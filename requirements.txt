@@ -1,0 +1,23 @@
+# Core dependencies for snowpyt-mechparams
+numpy>=1.19.0
+scipy>=1.6.0
+pandas>=1.2.0
+
+# Optional dependencies for extended functionality
+# Uncomment as needed:
+
+# For plotting and visualization
+# matplotlib>=3.3.0
+# seaborn>=0.11.0
+
+# For development and testing
+# pytest>=6.0
+# pytest-cov>=2.0
+# black>=21.0
+# flake8>=3.8
+# mypy>=0.800
+
+# For documentation
+# sphinx>=4.0
+# sphinx-rtd-theme>=1.0
+# jupyter>=1.0

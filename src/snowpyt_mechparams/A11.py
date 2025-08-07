@@ -1,0 +1,1 @@
+# Methods to calculate Bulk extensional stiffness (A11) of a layered slab

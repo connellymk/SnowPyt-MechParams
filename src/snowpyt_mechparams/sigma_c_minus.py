@@ -1,0 +1,1 @@
+# Methods to calculate the maximum principal stress (σ_c-minus) of a layered slab

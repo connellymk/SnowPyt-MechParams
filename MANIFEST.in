@@ -1,0 +1,23 @@
+# Include important files in source distribution
+include README.md
+include LICENSE
+include requirements.txt
+include pyproject.toml
+
+# Include documentation
+recursive-include docs *.rst *.md *.py *.bat *.txt
+recursive-include docs *.png *.jpg *.jpeg *.gif *.svg
+
+# Include examples and tests
+recursive-include examples *.py *.ipynb *.md *.txt *.csv *.json
+recursive-include tests *.py *.txt *.csv *.json
+
+# Exclude compiled files and caches
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .pytest_cache
+global-exclude .coverage
+global-exclude .git*
+global-exclude .DS_Store

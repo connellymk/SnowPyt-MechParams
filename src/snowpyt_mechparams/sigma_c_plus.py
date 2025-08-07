@@ -1,0 +1,1 @@
+# Methods to calculate the minimum principal stress (σ_c+) of a weak layer

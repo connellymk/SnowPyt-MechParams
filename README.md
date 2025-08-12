@@ -107,9 +107,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Related Projects
 
-- [SnowEx](https://snow.nasa.gov/campaigns/snowex) - NASA snow measurement campaigns
-- [SNOWPACK](https://models.slf.ch/p/snowpack/) - Detailed snow cover model
-- [pysnowtoolbox](https://github.com/example/pysnowtoolbox) - Related snow analysis tools
+- [SnowPylot](https://github.com/connellymk/snowpylot) 
 
 ## Contact
 

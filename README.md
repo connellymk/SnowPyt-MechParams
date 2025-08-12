@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/your-username/snowpyt-mechparams/workflows/Tests/badge.svg)](https://github.com/your-username/snowpyt-mechparams/actions)
 
-A collaborative Python library for estimating mechanical parameters from snow pit measurements, developed by multiple academic researchers in the snow science community. This package provides scientifically-validated methods to calculate snow density, strength properties, thermal characteristics, and avalanche stability metrics from standard snowpit observations.
+A collaborative Python library for estimating mechanical parameters from snow pit measurements, developed by multiple academic researchers in the snow science community. This package provides scientifically-validated methods to calculate mechanical parameters and avalanche stability metrics from standard snowpit observations.
 
 ## Features
 

@@ -91,7 +91,7 @@ If you use SnowPyt-MechParams in your research, please cite:
   title = {SnowPyt-MechParams: A collaborative Python library for snow mechanical parameter estimation},
   url = {https://github.com/your-username/snowpyt-mechparams},
   version = {0.1.0},
-  year = {2024}
+  year = {2025}
 }
 ```
 
@@ -120,8 +120,8 @@ We welcome new academic collaborators! See [CONTRIBUTING.md](CONTRIBUTING.md) fo
 
 ## Contact
 
-- **Project Lead**: Mary Connelly
-- **Email**: your.email@example.com
+- **Project Lead**: Mary Connelly, Montana State University
+- **Email**: connellymarykate@gmail.com
 - **Academic Collaboration Inquiries**: Please use GitHub Discussions or Issues
 - **Issues**: [GitHub Issues](https://github.com/your-username/snowpyt-mechparams/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-username/snowpyt-mechparams/discussions)

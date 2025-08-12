@@ -120,7 +120,7 @@ We welcome new academic collaborators! See [CONTRIBUTING.md](CONTRIBUTING.md) fo
 
 ## Contact
 
-- **Project Lead**: Mary Connelly, Montana State University
+- **Project Lead**: Mary Connelly and Samual Verplanck, Montana State University
 - **Email**: connellymarykate@gmail.com
 - **Academic Collaboration Inquiries**: Please use GitHub Discussions or Issues
 - **Issues**: [GitHub Issues](https://github.com/your-username/snowpyt-mechparams/issues)

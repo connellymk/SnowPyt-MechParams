@@ -1,9 +1,16 @@
 # Contributing to SnowPyt-MechParams
 
-Thank you for your interest in contributing to SnowPyt-MechParams! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to SnowPyt-MechParams! This collaborative project brings together academic researchers from multiple institutions to advance snow science through open source software development. This document provides guidelines and information for all contributors, with special emphasis on academic collaboration.
 
 ## Ways to Contribute
 
+### Academic Contributions
+- **Empirical Methods**: Contribute new scientifically-validated estimation methods
+- **Research Data**: Provide validation datasets from field studies
+- **Scientific Review**: Peer review of new methods and implementations
+- **Publications**: Collaborate on academic papers featuring the library
+
+### Technical Contributions  
 - **Bug Reports**: Report issues or unexpected behavior
 - **Feature Requests**: Suggest new functionality or improvements
 - **Documentation**: Improve or add to documentation
@@ -12,6 +19,8 @@ Thank you for your interest in contributing to SnowPyt-MechParams! This document
 - **Examples**: Contribute usage examples or tutorials
 
 ## Getting Started
+
+### For Academic Collaborators
 
 ### Development Environment Setup
 
@@ -111,10 +120,9 @@ Thank you for your interest in contributing to SnowPyt-MechParams! This document
 
 When adding new scientific methods:
 
-1. **Literature Review**: Ensure the method is peer-reviewed and validated
-2. **Documentation**: Include full citation and brief description
-3. **Testing**: Add tests with known values from literature
-4. **Validation**: Compare against existing methods when possible
+1. **Documentation**: Include full citation and brief description
+2. **Testing**: Add tests with known values from literature
+3. **Validation**: Compare against existing methods when possible
 
 **Example Implementation:**
 ```python
@@ -196,9 +204,10 @@ Brief description of changes
 ### Review Process
 1. **Automated Checks**: CI must pass
 2. **Code Review**: At least one maintainer review
-3. **Scientific Review**: For new methods, scientific validation
-4. **Testing**: Reviewer may test functionality
-5. **Documentation**: Check clarity and completeness
+3. **Scientific Review**: For new methods, peer review by domain experts
+4. **Academic Validation**: External validation by collaborating researchers when appropriate
+5. **Testing**: Reviewer may test functionality
+6. **Documentation**: Check clarity and completeness
 
 ## Issue Guidelines
 
@@ -233,10 +242,12 @@ Include:
 
 ## Scientific Standards
 
-### Peer Review
-- All new empirical methods should be from peer-reviewed sources
-- Prefer recent publications with validation data
-- Include uncertainty estimates when available
+
+### Academic Attribution
+- Properly cite all source publications
+- Acknowledge data contributors and method developers
+- Consider co-authorship opportunities for significant contributions
+- Maintain transparent attribution in code comments and documentation
 
 ### Units and Conventions
 - Use SI units internally
@@ -244,24 +255,42 @@ Include:
 - Follow snow science naming conventions
 - Use physically meaningful variable names
 
-### Validation
+### Validation and Quality Assurance
 - Compare new methods against established ones
 - Use field data for validation when possible
 - Document method limitations and uncertainty
 - Provide guidance on method selection
+- Encourage multi-institutional validation studies
 
-## Recognition
+## Recognition and Academic Credit
 
+### Contributor Recognition
 Contributors will be recognized in:
 - CHANGELOG.md for each release
-- README.md acknowledgments section
+- README.md contributors section
+- Method documentation with proper attribution
 - Citation information for significant contributions
-- Potential co-authorship on publications
 
 ## Questions?
 
-- **GitHub Discussions**: General questions about contributing
+- **GitHub Discussions**: General questions about contributing and academic collaboration
 - **Issues**: Specific bugs or feature requests
-- **Email**: mary.connelly@example.com for direct contact
+- **Email**: connellymarykate@gmail.com for direct contact
 
-Thank you for contributing to advancing snow science through open source software!
+## Academic Collaboration Framework
+
+### Institutional Partnerships
+We welcome formal partnerships with academic institutions. These may include:
+- Shared research objectives and funding opportunities
+- Student researcher participation and mentorship
+- Access to specialized datasets and field sites
+- Joint publication and presentation opportunities
+
+### Research Integration
+Contributors can integrate their research with the library through:
+- Implementation of novel empirical relationships from their work
+- Validation studies using institutional datasets
+- Case studies demonstrating library applications
+- Collaborative development of new features addressing research needs
+
+Thank you for contributing to advancing snow science through collaborative open source software development!

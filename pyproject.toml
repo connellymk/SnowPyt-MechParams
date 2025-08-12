@@ -8,7 +8,10 @@ version = "0.1.0"
 authors = [
     {name = "Mary Connelly", email = "your.email@example.com"},
 ]
-description = "Python library for estimating mechanical parameters from snow pit measurements"
+maintainers = [
+    {name = "SnowPyt-MechParams Contributors"},
+]
+description = "Collaborative Python library for estimating mechanical parameters from snow pit measurements, developed by academic researchers"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.8"
@@ -26,7 +29,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: Physics",
 ]
-keywords = ["snow", "avalanche", "mechanical properties", "snowpit", "geophysics"]
+keywords = ["snow", "avalanche", "mechanical properties", "snowpit", "geophysics", "academic", "collaboration", "research"]
 dependencies = [
     "numpy>=1.19.0",
     "scipy>=1.6.0",

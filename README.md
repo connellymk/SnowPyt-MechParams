@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/your-username/snowpyt-mechparams/workflows/Tests/badge.svg)](https://github.com/your-username/snowpyt-mechparams/actions)
 
-A Python library for estimating mechanical parameters from snow pit measurements. This package provides scientifically-validated methods to calculate snow density, strength properties, thermal characteristics, and avalanche stability metrics from standard snowpit observations.
+A collaborative Python library for estimating mechanical parameters from snow pit measurements, developed by multiple academic researchers in the snow science community. This package provides scientifically-validated methods to calculate snow density, strength properties, thermal characteristics, and avalanche stability metrics from standard snowpit observations.
 
 ## Features
 
@@ -87,23 +87,32 @@ If you use SnowPyt-MechParams in your research, please cite:
 
 ```bibtex
 @software{snowpyt_mechparams,
-  author = {Connelly, Mary},
-  title = {SnowPyt-MechParams: Python library for snow mechanical parameter estimation},
+  author = {Connelly, Mary and {SnowPyt-MechParams Contributors}},
+  title = {SnowPyt-MechParams: A collaborative Python library for snow mechanical parameter estimation},
   url = {https://github.com/your-username/snowpyt-mechparams},
   version = {0.1.0},
   year = {2024}
 }
 ```
 
+For specific methods or contributions from individual researchers, please also cite the relevant scientific publications listed in the method documentation.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Contributors
+
+This collaborative project is made possible by contributions from multiple academic researchers and institutions in the snow science community:
+
+- **Lead Developer**: Mary Connelly
+- **Academic Contributors**: [Contributors will be listed here as they join the project]
+- **Institutional Affiliations**: [Research institutions will be listed here]
+
+We welcome new academic collaborators! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on joining this collaborative effort.
+
 ## Acknowledgments
 
-- Snow science community for empirical relationships and validation data
-- Contributors and beta testers
-- Funding sources (if applicable)
 
 ## Related Projects
 
@@ -111,7 +120,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- **Author**: Mary Connelly
+- **Project Lead**: Mary Connelly
 - **Email**: your.email@example.com
+- **Academic Collaboration Inquiries**: Please use GitHub Discussions or Issues
 - **Issues**: [GitHub Issues](https://github.com/your-username/snowpyt-mechparams/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-username/snowpyt-mechparams/discussions)
+
+For academic researchers interested in collaborating, please see our [collaboration guidelines](CONTRIBUTING.md#scientific-contributions) and feel free to reach out through GitHub Discussions.

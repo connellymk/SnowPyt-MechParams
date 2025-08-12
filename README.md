@@ -9,7 +9,7 @@ A collaborative Python library for estimating mechanical parameters from snow pi
 
 ## Features
 
-## Installation
+## Installation (NOTE: DESCRIBES INTENDED FUTURE STATE)
 
 ### From PyPI (recommended)
 ```bash

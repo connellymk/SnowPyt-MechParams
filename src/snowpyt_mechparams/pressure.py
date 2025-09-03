@@ -1,1 +1,0 @@
-# Methods to calculate the weight per units area (pressure) of a layered slab

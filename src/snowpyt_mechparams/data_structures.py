@@ -33,6 +33,7 @@ class Slab:
         Ordered list of snow layers from top (surface) to bottom
     """
     layers: List[Layer]
+    angle: float    # angle of the slope in degrees
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""

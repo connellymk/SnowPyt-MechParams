@@ -16,7 +16,7 @@ class Layer(NamedTuple):
         Layer density in kilograms per cubic meter (kg/m³)
     """
     thickness: float  # mm
-    density: float    # kg/m³
+    density: float    # kg/m³ß
 
 
 @dataclass

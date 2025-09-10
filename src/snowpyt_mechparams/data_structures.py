@@ -16,7 +16,7 @@ class Layer(NamedTuple):
         Layer density in kilograms per cubic meter (kg/m³)
     """
     thickness: float  # mm
-    density: float    # kg/m³ß
+    density: float    # kg/m³
 
 
 @dataclass
@@ -33,7 +33,7 @@ class Slab:
         Ordered list of snow layers from top (surface) to bottom
     """
     layers: List[Layer]
-    angle: float    # angle of the slope in degrees
+    angle: float    # angle of the slope in degrees TODO: Do we need this?
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""

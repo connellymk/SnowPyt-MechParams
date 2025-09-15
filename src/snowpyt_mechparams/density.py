@@ -27,6 +27,8 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
           and grain form
         - 'kim': Uses Kim & Jamieson (2014) Equation (5) formulas based
           on hand hardness, grain type, and grain size
+        - 'kim_table2': Uses Kim & Jamieson (2014) Table 2 formulas based #TODO: rename
+          on hand hardness and grain form (updated from Geldsetzer)
     **kwargs
         Method-specific parameters
 
@@ -44,8 +46,10 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
         return _calculate_density_geldsetzer(**kwargs)
     elif method.lower() == 'kim':
         return _calculate_density_kim(**kwargs)
+    elif method.lower() == 'kim_table2':
+        return _calculate_density_kim_geldsetzer(**kwargs)
     else:
-        available_methods = ['geldsetzer', 'kim_hhi_gt']
+        available_methods = ['geldsetzer', 'kim', 'kim_table2']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -252,10 +256,10 @@ def _calculate_density_kim_geldsetzer(
 
     Notes
     -----
-    The Kim & Jamieson (2014) formulas, adapted from Geldsetzer et al. (2000), apply 
+     The Kim & Jamieson (2014) formulas, adapted from Geldsetzer et al. (2000), apply
     different regression models based on grain type:
     - Linear regression (rho = A + B*h): Used for all supported grain types except RG
-    - Non-linear regression (rho = A + B*h^x): Applied specifically to rounded
+    - Non-linear regression (rho = A*e^(B*h)): Applied specifically to rounded
       grain types (RG) which do not conform well to linear relationships
 
     Standard errors from Table 2 in Kim & Jamieson (2014) are used as uncertainties

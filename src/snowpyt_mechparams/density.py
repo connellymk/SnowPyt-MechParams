@@ -74,7 +74,7 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
     The Geldsetzer formulas apply different regression models based on grain type:
     - Linear regression (ρ = A + B*h): Used for most grain types including PP, PPgp, 
       DF, RGmx, FC, FCmx, and DH
-    - Non-linear regression (ρ = A + B*h^3.15): Applied specifically to rounded grain 
+    - Non-linear regression (ρ = A + B*h^x): Applied specifically to rounded grain 
       types (RG) which do not conform well to linear relationships
 
     Standard errors from Table 3 are used as uncertainties for density estimates.
@@ -113,15 +113,17 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
 
     # Table 3: Linear regressions of density on hardness index h by groups of grain types
     # From Geldsetzer and Jamieson (2000)
-    # Parameters for rho = A + B*h (linear) or rho = A + B*h^3.15 (non-linear for RG types)
+    # Parameters for rho = A + B*h (linear) or rho = A + B*h^x (non-linear for RG types)
+    # NOTE: Parameters for RG types are from discussion of equation 5
     regression_parameters = {
         'PP': {'A': 45.0, 'B': 36.0, 'SE': 27.0, 'formula': 'linear'},
         'PPgp': {'A': 83.0, 'B': 37.0, 'SE': 42.0, 'formula': 'linear'},
         'DF': {'A': 65.0, 'B': 36.0, 'SE': 30.0, 'formula': 'linear'},
-        'FC': {'A': 0.79, 'B': 69.0, 'SE': 46.0, 'formula': 'linear'},
-        'RGmx': {'A': 91.0, 'B': 42.0, 'SE': 32.0, 'formula': 'nonlinear'},
-        'RGlr': {'A': 112.0, 'B': 46.0, 'SE': 43.0, 'formula': 'linear'},
-        'FCmx': {'A': 154.0, 'B': 1.51, 'SE': 43.0, 'formula': 'linear'},
+        'RG': {'A': 154.0, 'B': 1.51, 'SE': 46.0, 'formula': 'nonlinear'},
+        #NOTE: SE for nonlinear regression is not provided, SE above is from linear regression
+        'RGmx': {'A': 91.0, 'B': 42.0, 'SE': 32.0, 'formula': 'linear'},
+        'FC': {'A': 112.0, 'B': 46.0, 'SE': 43.0, 'formula': 'linear'},
+        'FCmx': {'A': 56.0, 'B': 64.0, 'SE': 43.0, 'formula': 'linear'},
         'DH': {'A': 185.0, 'B': 25.0, 'SE': 41.0, 'formula': 'linear'}
     }
 
@@ -137,7 +139,8 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
         rho = a + b * hhi
     elif params['formula'] == 'nonlinear':
         # Non-linear regression for rounded grains: rho = A + B*h^3.15 (Equation 5)
-        rho = a + b * (hhi ** 3.15)
+        x = 3.15
+        rho = a + b * (hhi ** x)
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 

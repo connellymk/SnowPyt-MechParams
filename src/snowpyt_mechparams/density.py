@@ -1,5 +1,6 @@
 # Methods to calculate density of a layered slab if not known
 
+from math import exp
 from typing import Any, cast
 
 from uncertainties import ufloat
@@ -84,7 +85,8 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
     - Non-linear regression (rho = A + B*h^x): Applied specifically to rounded
       grain types (RG) which do not conform well to linear relationships
 
-    Standard errors from Table 3 are used as uncertainties for density estimates.
+    Standard errors from Table 3 in Geldsetzer et al. (2000) are used as
+    uncertainties for density estimates.
 
     References
     ----------
@@ -104,7 +106,7 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
         raise ValueError(f"Hand hardness '{hand_hardness}' not supported. "
                         f"Valid options: {list(HARDNESS_MAPPING.keys())}")
 
-    hhi = HARDNESS_MAPPING[hand_hardness]
+    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
 
     # Table 3: Linear regressions of density on hardness index h by groups
     # of grain types. From Geldsetzer and Jamieson (2000)
@@ -132,11 +134,11 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
     # Calculate density using appropriate formula
     if params['formula'] == 'linear':
         # Linear regression: rho = A + B*h (Equation 4)
-        rho = a + b * hhi
+        rho = a + b * h
     elif params['formula'] == 'nonlinear':
         # Non-linear regression for rounded grains: rho = A + B*h^3.15 (Equation 5)
         x = 3.15
-        rho = a + b * (hhi ** x)
+        rho = a + b * (h ** x)
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
@@ -196,7 +198,7 @@ def _calculate_density_kim(
         raise ValueError(f"Hand hardness '{hand_hardness}' not supported. "
                         f"Valid options: {list(HARDNESS_MAPPING.keys())}")
 
-    hhi = HARDNESS_MAPPING[hand_hardness]
+    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
 
     # Table 6: Significant multivariable linear regression of density on hardness index
     # and grain size by different groups of grain types
@@ -218,6 +220,96 @@ def _calculate_density_kim(
     se = params['SE']
 
     # Calculate density using equation 5
-    rho = a*hhi + b * grain_size + c
+    rho = a*h + b * grain_size + c
+
+    return ufloat(rho, se)
+
+def _calculate_density_kim_geldsetzer(
+    hand_hardness: str, grain_form: str
+) -> ufloat:
+    """
+    Calculate density using Kim & Jamieson (2014) empirical formulas based
+    on hand hardness and grain form, updated from Geldsetzer et al. (2000)
+
+    Parameters
+    ----------
+    hand_hardness : str
+        Hand hardness measurement in string notation
+        (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
+    grain_form : str
+        Grain form classification. Supported values:
+        - 'PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG'
+
+    Returns
+    -------
+    ufloat
+        Estimated density in kg/m³ with associated uncertainty
+
+    Raises
+    ------
+    ValueError
+        If hand_hardness or grain_form values are not supported
+
+    Notes
+    -----
+    The Kim & Jamieson (2014) formulas, adapted from Geldsetzer et al. (2000), apply 
+    different regression models based on grain type:
+    - Linear regression (rho = A + B*h): Used for all supported grain types except RG
+    - Non-linear regression (rho = A + B*h^x): Applied specifically to rounded
+      grain types (RG) which do not conform well to linear relationships
+
+    Standard errors from Table 2 in Kim & Jamieson (2014) are used as uncertainties
+    for density estimates.
+
+    References
+    ----------
+    Kim, D. and Jamieson, J.B., 2014. Estimating the Density of Dry Snow Layers
+    From Hardness, and Hardness From Density, International Snow Science Workshop
+    2014 Proceedings, Banff, Canada, 2014 pp.540-547.
+    """
+
+    # Validate grain form
+    valid_grain_forms = ['PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG']
+    if grain_form not in valid_grain_forms:
+        raise ValueError(
+            f"Invalid grain form '{grain_form}'. Valid options: {valid_grain_forms}"
+        )
+
+    if hand_hardness not in HARDNESS_MAPPING:
+        raise ValueError(f"Hand hardness '{hand_hardness}' not supported. "
+                        f"Valid options: {list(HARDNESS_MAPPING.keys())}")
+
+    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
+
+    # Table 2: Linear regressions of density on hand hardness index by
+    # grain types (Equation 1), except for a non-linear regression for RG (Equation 2)
+    # From Kim & Jamieson (2014)
+    regression_parameters = {
+        'PP': {'A': 41.3, 'B': 40.3, 'SE': 27.0, 'formula': 'linear'},
+        'PPgp': {'A': 61.8, 'B': 46.4, 'SE': 43.0, 'formula': 'linear'},
+        'DF': {'A': 62.5, 'B': 37.4, 'SE': 31.0, 'formula': 'linear'},
+        'RGxf': {'A': 85.0, 'B': 46.3, 'SE': 40.0, 'formula': 'linear'},
+        'FC': {'A': 103, 'B': 50.6, 'SE': 47.0, 'formula': 'linear'},
+        'FCxr': {'A': 68.8, 'B': 58.6, 'SE': 46.0, 'formula': 'linear'},
+        'DH': {'A': 214.0, 'B': 19.0, 'SE': 48.0, 'formula': 'linear'},
+        'MFcr': {'A': 235, 'B': 15.1, 'SE': 58.0, 'formula': 'linear'},
+        'RG': {'A': 91.8, 'B': 0.270, 'SE': 0.2, 'formula': 'nonlinear'}
+    }
+
+    # Get regression parameters for the grain form
+    params = regression_parameters[grain_form]
+    a = cast(float, params['A'])
+    b = cast(float, params['B'])
+    se = params['SE']
+
+    # Calculate density using appropriate formula
+    if params['formula'] == 'linear':
+        # Linear regression: rho = A + B*h (Equation 1)
+        rho = a + b * h
+    elif params['formula'] == 'nonlinear':
+        # Non-linear regression for rounded grains: rho = A*e^(B*h) (Equation 2)
+        rho = a*exp(b*h)
+    else:
+        raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
     return ufloat(rho, se)

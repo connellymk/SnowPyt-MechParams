@@ -1,7 +1,7 @@
 # Methods to calculate density of a layered slab if not known
 
 import math
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 from uncertainties import ufloat
 
 
@@ -57,14 +57,7 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
         (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
     grain_form : str
         Grain form classification. Supported values:
-        - 'PP': Precipitation particles
-        - 'PPgp': Precipitation particles, graupel
-        - 'DF': Decomposing and fragmented particles
-        - 'RG': Rounded grains
-        - 'RGmx': Rounded grains, mixed forms
-        - 'FC': Faceted crystals
-        - 'FCmx': Faceted crystals, mixed forms
-        - 'DH': Depth hoar
+        - 'PP', 'PPgp', 'DF', 'RG', 'RGmx', 'FC', 'FCmx', 'DH'
 
     Returns
     -------
@@ -78,16 +71,13 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
 
     Notes
     -----
-    The Geldsetzer formulas provide density estimates based on empirical
-    relationships with associated uncertainties:
-    - PP: ±27 kg/m³
-    - PPgp: ±42 kg/m³  
-    - DF: ±30 kg/m³
-    - RG: ±46 kg/m³
-    - RGmx: ±32 kg/m³
-    - FC: ±43 kg/m³
-    - FCmx: ±43 kg/m³
-    - DH: ±41 kg/m³
+    The Geldsetzer formulas apply different regression models based on grain type:
+    - Linear regression (ρ = A + B*h): Used for most grain types including PP, PPgp, 
+      DF, RGmx, FC, FCmx, and DH
+    - Non-linear regression (ρ = A + B*h^3.15): Applied specifically to rounded grain 
+      types (RG) which do not conform well to linear relationships
+
+    Standard errors from Table 3 are used as uncertainties for density estimates.
 
     References
     ----------
@@ -121,27 +111,37 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
 
     hhi = hardness_mapping[hand_hardness]
 
-    # Calculate density using Geldsetzer et al. formulas
-    if grain_form == 'PP':
-        rho, unc_rho = 45 + 36 * hhi, 27
-    elif grain_form == 'PPgp':
-        rho, unc_rho = 83 + 37 * hhi, 42
-    elif grain_form == 'DF':
-        rho, unc_rho = 65 + 36 * hhi, 30
-    elif grain_form == 'RG':
-        rho, unc_rho = 154 + 1.51 * (hhi ** 3.15), 46
-    elif grain_form == 'RGmx':
-        rho, unc_rho = 91 + 42 * hhi, 32
-    elif grain_form == 'FC':
-        rho, unc_rho = 112 + 46 * hhi, 43
-    elif grain_form == 'FCmx':
-        rho, unc_rho = 56 + 64 * hhi, 43
-    elif grain_form == 'DH':
-        rho, unc_rho = 185 + 25 * hhi, 41
-    else:
-        raise ValueError(f"Grain form '{grain_form}' not supported")
+    # Table 3: Linear regressions of density on hardness index h by groups of grain types
+    # From Geldsetzer and Jamieson (2000)
+    # Parameters for rho = A + B*h (linear) or rho = A + B*h^3.15 (non-linear for RG types)
+    regression_parameters = {
+        'PP': {'A': 45.0, 'B': 36.0, 'SE': 27.0, 'formula': 'linear'},
+        'PPgp': {'A': 83.0, 'B': 37.0, 'SE': 42.0, 'formula': 'linear'},
+        'DF': {'A': 65.0, 'B': 36.0, 'SE': 30.0, 'formula': 'linear'},
+        'FC': {'A': 0.79, 'B': 69.0, 'SE': 46.0, 'formula': 'linear'},
+        'RGmx': {'A': 91.0, 'B': 42.0, 'SE': 32.0, 'formula': 'nonlinear'},
+        'RGlr': {'A': 112.0, 'B': 46.0, 'SE': 43.0, 'formula': 'linear'},
+        'FCmx': {'A': 154.0, 'B': 1.51, 'SE': 43.0, 'formula': 'linear'},
+        'DH': {'A': 185.0, 'B': 25.0, 'SE': 41.0, 'formula': 'linear'}
+    }
 
-    return ufloat(rho, unc_rho)
+    # Get regression parameters for the grain form
+    params = regression_parameters[grain_form]
+    a = cast(float, params['A'])
+    b = cast(float, params['B'])
+    se = cast(float, params['SE'])
+
+    # Calculate density using appropriate formula
+    if params['formula'] == 'linear':
+        # Linear regression: rho = A + B*h (Equation 4)
+        rho = a + b * hhi
+    elif params['formula'] == 'nonlinear':
+        # Non-linear regression for rounded grains: rho = A + B*h^3.15 (Equation 5)
+        rho = a + b * (hhi ** 3.15)
+    else:
+        raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
+
+    return ufloat(rho, se)
 
 
 def _calculate_density_kim_hhi_gt(hand_hardness: float, grain_form: str) -> ufloat:

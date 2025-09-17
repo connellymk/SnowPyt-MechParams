@@ -3,6 +3,7 @@
 from math import exp
 from typing import Any, cast
 
+import numpy as np
 from uncertainties import ufloat
 
 # Map hand hardness string to numeric hand hardness index (hhi)
@@ -74,12 +75,9 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
     Returns
     -------
     ufloat
-        Estimated density in kg/m³ with associated uncertainty
-
-    Raises
-    ------
-    ValueError
-        If hand_hardness or grain_form values are not supported
+        Estimated density in kg/m³ with associated uncertainty.
+        Returns ufloat(NaN, NaN) if hand_hardness or grain_form values are not
+        supported.
 
     Notes
     -----
@@ -102,13 +100,10 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
     # Validate grain form
     valid_grain_forms = ['PP', 'PPgp', 'DF', 'RG', 'RGmx', 'FC', 'FCmx', 'DH']
     if grain_form not in valid_grain_forms:
-        raise ValueError(
-            f"Invalid grain form '{grain_form}'. Valid options: {valid_grain_forms}"
-        )
+        return ufloat(np.nan, np.nan)
 
     if hand_hardness not in HARDNESS_MAPPING:
-        raise ValueError(f"Hand hardness '{hand_hardness}' not supported. "
-                        f"Valid options: {list(HARDNESS_MAPPING.keys())}")
+        return ufloat(np.nan, np.nan)
 
     h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
 
@@ -173,12 +168,9 @@ def _calculate_density_kim(
     Returns
     -------
     ufloat
-        Estimated density in kg/m³ with associated uncertainty
-
-    Raises
-    ------
-    ValueError
-        If hand_hardness, grain_form, or grain_size values are not supported
+        Estimated density in kg/m³ with associated uncertainty.
+        Returns ufloat(NaN, NaN) if hand_hardness or grain_form values are not
+        supported.
 
     Notes
     -----
@@ -194,13 +186,10 @@ def _calculate_density_kim(
     # Validate grain form
     valid_grain_forms = ['FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF']
     if grain_form not in valid_grain_forms:
-        raise ValueError(
-            f"Invalid grain form '{grain_form}'. Valid options: {valid_grain_forms}"
-        )
+        return ufloat(np.nan, np.nan)
 
     if hand_hardness not in HARDNESS_MAPPING:
-        raise ValueError(f"Hand hardness '{hand_hardness}' not supported. "
-                        f"Valid options: {list(HARDNESS_MAPPING.keys())}")
+        return ufloat(np.nan, np.nan)
 
     h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
 
@@ -247,12 +236,9 @@ def _calculate_density_kim_geldsetzer(
     Returns
     -------
     ufloat
-        Estimated density in kg/m³ with associated uncertainty
-
-    Raises
-    ------
-    ValueError
-        If hand_hardness or grain_form values are not supported
+        Estimated density in kg/m³ with associated uncertainty.
+        Returns ufloat(NaN, NaN) if hand_hardness or grain_form values are not
+        supported.
 
     Notes
     -----
@@ -275,13 +261,10 @@ def _calculate_density_kim_geldsetzer(
     # Validate grain form
     valid_grain_forms = ['PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG']
     if grain_form not in valid_grain_forms:
-        raise ValueError(
-            f"Invalid grain form '{grain_form}'. Valid options: {valid_grain_forms}"
-        )
+        return ufloat(np.nan, np.nan)
 
     if hand_hardness not in HARDNESS_MAPPING:
-        raise ValueError(f"Hand hardness '{hand_hardness}' not supported. "
-                        f"Valid options: {list(HARDNESS_MAPPING.keys())}")
+        return ufloat(np.nan, np.nan)
 
     h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
 

@@ -1,5 +1,8 @@
 # Utility functions for snowpilot data
-from typing import Any, Optional
+import os
+from typing import Any, List, Optional
+
+from snowpylot import caaml_parser  # type: ignore
 
 # Constants for grain form codes by method
 
@@ -50,3 +53,33 @@ def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[s
     # Fall back to basic_grain_class_code
     basic_code = getattr(grain_form_obj, 'basic_grain_class_code', None)
     return str(basic_code) if basic_code in basic_codes else None
+
+
+def parse_sample_pits(folder_path: str = 'data') -> List[Any]:
+    """
+    Parse all XML snowpit files from a specified folder.
+
+    Parameters:
+    folder_path: Path to folder containing XML files (defaults to 'data')
+
+    Returns:
+    List of parsed pit objects
+    """
+    all_pits = []
+    failed_files = []
+
+    xml_files = [f for f in os.listdir(folder_path) if f.endswith('.xml')]
+
+    for file in xml_files:
+        try:
+            file_path = os.path.join(folder_path, file)
+            pit = caaml_parser(file_path)
+            all_pits.append(pit)
+        except Exception as e:
+            failed_files.append((file, str(e)))
+            print(f"Warning: Failed to parse {file}: {e}")
+
+    print(f"Successfully parsed {len(all_pits)} files")
+    print(f"Failed to parse {len(failed_files)} files")
+
+    return all_pits

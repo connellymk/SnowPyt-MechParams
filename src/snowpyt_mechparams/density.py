@@ -47,7 +47,7 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
         return _calculate_density_geldsetzer(**kwargs)
     elif method.lower() == 'kim':
         return _calculate_density_kim(**kwargs)
-    elif method.lower() == 'kim_table2':
+    elif method.lower() == 'kim_geldsetzer':
         return _calculate_density_kim_geldsetzer(**kwargs)
     else:
         available_methods = ['geldsetzer', 'kim', 'kim_table2']

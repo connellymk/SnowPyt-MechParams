@@ -11,8 +11,12 @@ GELDSETZER_SUB_GRAIN_CLASS_CODES = {"PPgp", "RGmx", "FCmx"}
 GELDSETZER_BASIC_GRAIN_CLASS_CODES = {"PP", "DF", "RG", "FC", "DH"}
 
 # Kim & Jamieson (2014) method codes
-KIM_SUB_GRAIN_CLASS_CODES = {"PPgp", "RGxf", "FCxr", "MFcr"}
-KIM_BASIC_GRAIN_CLASS_CODES = {"PP", "DF", "FC", "DH", "RG"}
+KIM_GELDSETZER_SUB_GRAIN_CLASS_CODES = {"PPgp", "RGxf", "FCxr", "MFcr"}
+KIM_GELDSETZER_BASIC_GRAIN_CLASS_CODES = {"PP", "DF", "FC", "DH", "RG"}
+
+# Kim & Jamieson (2014) method codes
+KIM_SUB_GRAIN_CLASS_CODES = {"FCxr", "PPgp"}
+KIM_BASIC_GRAIN_CLASS_CODES = {"FC", "PP", "DF", "MF"}
 
 
 def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[str]:
@@ -37,6 +41,9 @@ def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[s
     if method.lower() == "geldsetzer":
         sub_codes = GELDSETZER_SUB_GRAIN_CLASS_CODES
         basic_codes = GELDSETZER_BASIC_GRAIN_CLASS_CODES
+    elif method.lower() == "kim_geldsetzer":
+        sub_codes = KIM_GELDSETZER_SUB_GRAIN_CLASS_CODES
+        basic_codes = KIM_GELDSETZER_BASIC_GRAIN_CLASS_CODES
     elif method.lower() == "kim":
         sub_codes = KIM_SUB_GRAIN_CLASS_CODES
         basic_codes = KIM_BASIC_GRAIN_CLASS_CODES

@@ -54,7 +54,8 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_elastic_modulus_gerling(density: ufloat) -> ufloat:
+def _calculate_elastic_modulus_gerling(density: ufloat, grain_form: str) -> ufloat:
+    #NOTE: DO NOT USE THIS METHOD?
     """
     Calculate elastic modulus using Gerling et al. (2017) formula.
     
@@ -65,6 +66,9 @@ def _calculate_elastic_modulus_gerling(density: ufloat) -> ufloat:
     ----------
     density : ufloat
         Snow density in kg/m³ with associated uncertainty
+    grain_form : str
+        Grain form classification. Supported values:
+        - 'RG'
         
     Returns
     -------
@@ -73,35 +77,29 @@ def _calculate_elastic_modulus_gerling(density: ufloat) -> ufloat:
         
     Notes
     -----
-    The Gerling formula uses a power law relationship:
-    E = A * (ρ/ρ_ice)^n
-    where E is elastic modulus in GPa, ρ is snow density, and ρ_ice is ice density
+    "Finally, SMP estimates for the moduli must be regarded as non-competitive 
+    since the modulus equation (5) lacks a sound theoretical justification. ????
+
+    Limitations
+    -----------
+    The Gerling formula is only valid for rounded grain types (RG) and density values between 170 and 370 kg/m³.
     
     References
     ----------
     Gerling, B., Löwe, H., & van Herwijnen, A. (2017). Measuring the elastic 
     modulus of snow. Geophysical Research Letters, 44(21), 11088-11096.
     """
-    # Constants from Gerling et al. (2017)
-    # E = 68.8 * (ρ/ρ_ice)^2.02 (in GPa)
-    A = 68.8  # GPa
-    n = 2.02
-    rho_ice = 917.0  # kg/m³
+
     
-    # Calculate relative density
-    relative_density = density / rho_ice
-    
-    # Calculate elastic modulus in GPa
-    E = A * (relative_density ** n)
-    
-    return E
+    return ufloat(0,0)
 
 def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
     
     This method uses the empirical relationship developed by Bergfeld et al. (2023)
-    based on extensive laboratory and field measurements.
+    based on extensive laboratory and field measurements. The form of the parametrization is based on 
+    the Gerling et al. (2017) paper.
     
     Parameters
     ----------
@@ -118,26 +116,32 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     The Bergfeld formula uses an exponential relationship:
     E = A * exp(B * ρ)
     where E is elastic modulus in GPa and ρ is snow density in kg/m³
-    
+
+    Limitations
+    -----------
+    -Each layer is regarded as isotropic (Gi = Ei/(1+vi)*(1-2vi)), where vi is the Poisson's ratio.
+    -The Poisson's ratio is assumed to be 0.2 for all layers.
+
+
     References
     ----------
     Bergfeld, B., van Herwijnen, A., Reuter, B., Bobillier, G., Dual, J., & 
     Schweizer, J. (2023). Dynamic anticrack propagation in snow. Nature 
     communications, 14(1), 293.
     """
+
+    rho = density # kg/m³, input
+    rho_ice = 917.0  # kg/m³
+
     # Constants from Bergfeld et al. (2023)
-    # E = 0.0024 * exp(0.0138 * ρ) (in GPa)
-    A = 0.0024  # GPa
-    B = 0.0138  # 1/(kg/m³)
+    C0 = 6.5e3  # MPa, fixed from Gerling (2017) eqn (6) ??
+    C1 = 4.4 # NOTE: WHERE DID THIS COME FROM?, paper implies this should be calculated based on the dataset.
+
     
     # Calculate elastic modulus in GPa
-    E = A * exp(B * density.nominal_value)
+    E = C0 * (rho / rho_ice) ** C1
     
-    # Propagate uncertainty using simple approximation
-    # dE/dρ = A * B * exp(B * ρ) = B * E
-    E_uncertainty = B * E * density.std_dev
-    
-    return ufloat(E, E_uncertainty)
+    return E
 
 def _calculate_elastic_modulus_srivastava(density: ufloat) -> ufloat:
     """

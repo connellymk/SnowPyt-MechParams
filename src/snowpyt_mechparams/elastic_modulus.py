@@ -1,10 +1,10 @@
 # Methods to calculate elastic modulus of a slab layer
 
-# Gerling et al. (2017)
-# Bergfeld et al. (2023)
+# Gerling et al. (2017) ###
+# Bergfeld et al. (2023)  ###
 # Srivastava et al. (2016)
 # Köchle and Schneebeli (2014)
-# Wautier et al. (2015)
+# Wautier et al. (2015) ###
 
 from math import exp
 from typing import Any
@@ -94,6 +94,7 @@ def _calculate_elastic_modulus_gerling(density: ufloat, grain_form: str) -> uflo
     return ufloat(0,0)
 
 def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
+    # NOTE Add grain form as input
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
     
@@ -120,7 +121,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     Limitations
     -----------
     -Each layer is regarded as isotropic (Gi = Ei/(1+vi)*(1-2vi)), where vi is the Poisson's ratio.
-    -The Poisson's ratio is assumed to be 0.2 for all layers.
+    -Only valid for rounded grain 
 
 
     References
@@ -135,7 +136,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
 
     # Constants from Bergfeld et al. (2023)
     C0 = 6.5e3  # MPa, fixed from Gerling (2017) eqn (6) ??
-    C1 = 4.4 # NOTE: WHERE DID THIS COME FROM?, paper implies this should be calculated based on the dataset.
+    C1 = 4.4 # From appendix B of Bergfeld et al. (2023), NOTE: How to include +/- as uncertainty?
 
     
     # Calculate elastic modulus in GPa
@@ -230,10 +231,11 @@ def _calculate_elastic_modulus_koechle(density: ufloat) -> ufloat:
     return E
 
 def _calculate_elastic_modulus_wautier(density: ufloat) -> ufloat:
+    # NOTE: Add eleastic modulus of ice as input, with default from Kermani paper
     """
     Calculate elastic modulus using Wautier et al. (2015) formula.
     
-    This method uses the numerical homogenization approach developed by Wautier 
+    This method uses the numerical homogenization approach (eqn 5)developed by Wautier 
     et al. (2015) to relate snow microstructure to macroscopic elastic properties.
     
     Parameters
@@ -261,15 +263,16 @@ def _calculate_elastic_modulus_wautier(density: ufloat) -> ufloat:
     Geophysical Research Letters, 42(19), 8031-8041.
     """
     # Constants from Wautier et al. (2015)
-    # E = 10.2 * (ρ/ρ_ice)^2.94 (in GPa)
-    A = 10.2  # GPa
-    n = 2.94
+    E_ice = ufloat(1.06, 0.19) # GPa from Kermani paper NOTE: ADD CITATION and review
+    # BEnding strength and effetive modulus of atmospheric ice
+    A = 0.78  # GPa
+    n = 2.34
     rho_ice = 917.0  # kg/m³
     
     # Calculate relative density
     relative_density = density / rho_ice
     
     # Calculate elastic modulus in GPa
-    E = A * (relative_density ** n)
+    E = E_ice * A * (relative_density ** n) # R^2 is 0.97, convert to uncertainty
     
     return E

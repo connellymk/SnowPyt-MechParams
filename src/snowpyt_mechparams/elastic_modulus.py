@@ -1,8 +1,6 @@
 # Methods to calculate elastic modulus of a slab layer
 
-# Gerling et al. (2017) ###
 # Bergfeld et al. (2023)  ###
-# Srivastava et al. (2016)
 # Köchle and Schneebeli (2014)
 # Wautier et al. (2015) ###
 
@@ -19,10 +17,8 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
     ----------
     method : str
         Method to use for elastic modulus calculation. Available methods:
-        - 'gerling': Uses Gerling et al. (2017) formula based on density
         - 'bergfeld': Uses Bergfeld et al. (2023) formula based on density
-        - 'srivastava': Uses Srivastava et al. (2016) formula based on density
-        - 'koechle': Uses Köchle and Schneebeli (2014) formula based on density
+        - 'kochle': Uses Köchle and Schneebeli (2014) formula based on density
         - 'wautier': Uses Wautier et al. (2015) formula based on density
     **kwargs
         Method-specific parameters
@@ -37,14 +33,10 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'gerling':
-        return _calculate_elastic_modulus_gerling(**kwargs)
-    elif method.lower() == 'bergfeld':
+    if method.lower() == 'bergfeld':
         return _calculate_elastic_modulus_bergfeld(**kwargs)
-    elif method.lower() == 'srivastava':
-        return _calculate_elastic_modulus_srivastava(**kwargs)
-    elif method.lower() == 'koechle':
-        return _calculate_elastic_modulus_koechle(**kwargs)
+    elif method.lower() == 'kochle':
+        return _calculate_elastic_modulus_kochle(**kwargs)
     elif method.lower() == 'wautier':
         return _calculate_elastic_modulus_wautier(**kwargs)
     else:
@@ -53,45 +45,6 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
-
-def _calculate_elastic_modulus_gerling(density: ufloat, grain_form: str) -> ufloat:
-    #NOTE: DO NOT USE THIS METHOD?
-    """
-    Calculate elastic modulus using Gerling et al. (2017) formula.
-    
-    This method uses the empirical relationship between snow density and elastic modulus
-    developed by Gerling et al. (2017) from field measurements.
-    
-    Parameters
-    ----------
-    density : ufloat
-        Snow density in kg/m³ with associated uncertainty
-    grain_form : str
-        Grain form classification. Supported values:
-        - 'RG'
-        
-    Returns
-    -------
-    ufloat
-        Elastic modulus in GPa with associated uncertainty
-        
-    Notes
-    -----
-    "Finally, SMP estimates for the moduli must be regarded as non-competitive 
-    since the modulus equation (5) lacks a sound theoretical justification. ????
-
-    Limitations
-    -----------
-    The Gerling formula is only valid for rounded grain types (RG) and density values between 170 and 370 kg/m³.
-    
-    References
-    ----------
-    Gerling, B., Löwe, H., & van Herwijnen, A. (2017). Measuring the elastic 
-    modulus of snow. Geophysical Research Letters, 44(21), 11088-11096.
-    """
-
-    
-    return ufloat(0,0)
 
 def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     # NOTE Add grain form as input
@@ -144,50 +97,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     
     return E
 
-def _calculate_elastic_modulus_srivastava(density: ufloat) -> ufloat:
-    """
-    Calculate elastic modulus using Srivastava et al. (2016) formula.
-    
-    This method uses the relationship developed by Srivastava et al. (2016) based
-    on microstructural analysis and mechanical testing.
-    
-    Parameters
-    ----------
-    density : ufloat
-        Snow density in kg/m³ with associated uncertainty
-        
-    Returns
-    -------
-    ufloat
-        Elastic modulus in GPa with associated uncertainty
-        
-    Notes
-    -----
-    The Srivastava formula uses a cubic relationship:
-    E = A * (ρ/ρ_ice)^3
-    where E is elastic modulus in GPa, ρ is snow density, and ρ_ice is ice density
-    
-    References
-    ----------
-    Srivastava, P. K., Chandel, C., Mahajan, P., & Pankaj, P. (2016). 
-    Prediction of anisotropic elastic properties of snow from its 
-    microstructure. Cold Regions Science and Technology, 125, 85-100.
-    """
-    # Constants from Srivastava et al. (2016)
-    # E = 9.0 * (ρ/ρ_ice)^3 (in GPa)
-    A = 9.0  # GPa
-    n = 3.0
-    rho_ice = 917.0  # kg/m³
-    
-    # Calculate relative density
-    relative_density = density / rho_ice
-    
-    # Calculate elastic modulus in GPa
-    E = A * (relative_density ** n)
-    
-    return E
-
-def _calculate_elastic_modulus_koechle(density: ufloat) -> ufloat:
+def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     """
     Calculate elastic modulus using Köchle and Schneebeli (2014) formula.
     

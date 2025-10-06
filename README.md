@@ -9,14 +9,42 @@ A collaborative Python library for estimating mechanical parameters from snow pi
 
 ## Features
 
-## Installation (NOTE: DESCRIBES INTENDED FUTURE STATE)
+## Installation
 
-### From PyPI (recommended)
+### Virtual Environment Setup (Recommended)
+
+We strongly recommend using a virtual environment to manage dependencies and avoid conflicts with other Python projects.
+
+#### Create and Activate Virtual Environment
+```bash
+# Clone the repository
+git clone https://github.com/your-username/snowpyt-mechparams.git
+cd snowpyt-mechparams
+
+# Create virtual environment
+python3 -m venv MechParams
+
+# Activate virtual environment
+# On macOS/Linux:
+source MechParams/bin/activate
+# On Windows:
+# MechParams\Scripts\activate
+
+# Install the package in editable mode
+pip install -e .
+```
+
+#### Deactivate Virtual Environment
+```bash
+deactivate
+```
+
+### From PyPI (recommended for production)
 ```bash
 pip install snowpyt-mechparams
 ```
 
-### From Source
+### From Source (without virtual environment)
 ```bash
 git clone https://github.com/your-username/snowpyt-mechparams.git
 cd snowpyt-mechparams
@@ -27,6 +55,8 @@ pip install -e .
 ```bash
 git clone https://github.com/your-username/snowpyt-mechparams.git
 cd snowpyt-mechparams
+python3 -m venv MechParams
+source MechParams/bin/activate  # On Windows: MechParams\Scripts\activate
 pip install -e .[dev]
 ```
 
@@ -70,6 +100,12 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ```bash
 git clone https://github.com/your-username/snowpyt-mechparams.git
 cd snowpyt-mechparams
+
+# Create and activate virtual environment
+python3 -m venv MechParams
+source MechParams/bin/activate  # On Windows: MechParams\Scripts\activate
+
+# Install development dependencies
 pip install -e .[dev]
 pre-commit install
 ```

@@ -42,7 +42,7 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         return _calculate_elastic_modulus_wautier(**kwargs)
     else:
 
-        available_methods = ['gerling', 'bergfeld', 'srivastava', 'koechle', 'wautier']
+        available_methods = ['bergfeld', 'koechle', 'wautier']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )

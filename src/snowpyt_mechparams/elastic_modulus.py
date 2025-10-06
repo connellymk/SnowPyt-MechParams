@@ -111,7 +111,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     rho_ice = 917.0  # kg/m³
 
     # C0 is 6.5e3 MPa, converted to GPa for output unit consistency (Eq. 6, Gerling et al. (2017), Eq. 4, Bergfeld et al. (2023)).
-    C0 = ufloat(6.5, 0.0)  # GPa
+    C0 = 6.5  # GPa
     
     # C1 is the fitted exponent: mean 4.4, with a standard deviation of ± 0.18 (Appendix B, Bergfeld et al. (2023)).
     C1 = ufloat(4.4, 0.18) 

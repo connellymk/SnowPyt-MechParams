@@ -5,6 +5,7 @@
 # Wautier et al. (2015) ###
 
 from math import exp
+import numpy as np
 from typing import Any
 
 from uncertainties import ufloat
@@ -46,8 +47,7 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
-    # NOTE Add grain form as input
+def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str) -> ufloat:
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
     
@@ -73,8 +73,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
 
     Limitations
     -----------
-    -Each layer is regarded as isotropic (Gi = Ei/(1+vi)*(1-2vi)), where vi is the Poisson's ratio.
-    -Only valid for rounded grain 
+    -Only valid for rounded grain types (RG)
 
 
     References
@@ -92,8 +91,11 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     C1 = 4.4 # From appendix B of Bergfeld et al. (2023), NOTE: How to include +/- as uncertainty?
 
     
-    # Calculate elastic modulus in GPa
-    E = C0 * (rho / rho_ice) ** C1
+    # Calculate elastic modulus in GPa if grain form is RG
+    if grain_form == 'RG':
+        E = C0 * (rho / rho_ice) ** C1
+    else:
+        E = ufloat(np.nan, np.nan)
     
     return E
 

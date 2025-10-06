@@ -100,7 +100,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     communications, 14(1), 293.
     """
 
-    rho = density # kg/m³, input
+    rho_snow = density # kg/m³, input
     rho_ice = 917.0  # kg/m³
 
     # C0 is 6.5e3 MPa, converted to GPa for output unit consistency.
@@ -113,12 +113,12 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     # was applied universally to all layers based on ρi [1, 2].
     
     # Check for non-physical density before calculation
-    if rho.nominal <= 0:
-        E = ufloat(np.nan, np.nan)
+    if rho_snow.nominal <= 0:
+        E_snow = ufloat(np.nan, np.nan)
     else:
-        E = C0 * (rho / rho_ice) ** C1
+        E_snow = C0 * (rho_snow / rho_ice) ** C1
     
-    return E
+    return E_snow
 
 def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     """
@@ -180,11 +180,11 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     Journal of Glaciology, 60(220), 304-315.
     """
 
-    rho = density # kg/m³
+    rho_snow = density # kg/m³
     E_MPa = ufloat(np.nan, np.nan)
     
     # Extract nominal density for conditional checks
-    rho_nominal = rho.nominal
+    rho_nominal = rho_snow.nominal
 
     # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
     if 150 <= rho_nominal < 250:
@@ -192,14 +192,14 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
         # E = 0.0061 * exp(0.0396 * ρ)
         C_A = 0.0061
         C_B = 0.0396
-        E_MPa = C_A * np.exp(C_B * rho)
+        E_MPa = C_A * np.exp(C_B * rho_snow)
         
     elif 250 <= rho_nominal <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
         C_A = 6.0457
         C_B = 0.011
-        E_MPa = C_A * np.exp(C_B * rho)
+        E_MPa = C_A * np.exp(C_B * rho_snow)
 
     # Note: Densities outside 150-450 kg/m³ are extrapolated. If rho is outside 
     # the 150-450 range, E_MPa remains NaN, as initialized.

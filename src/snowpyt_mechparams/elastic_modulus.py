@@ -27,7 +27,7 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
     Returns
     -------
     ufloat
-        Calculated elastic modulus in GPa with associated uncertainty
+        Calculated elastic modulus in MPa with associated uncertainty
 
     Raises
     ------
@@ -42,7 +42,7 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         return _calculate_elastic_modulus_wautier(**kwargs)
     else:
 
-        available_methods = ['bergfeld', 'koechle', 'wautier']
+        available_methods = ['bergfeld', 'kochle', 'wautier']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -64,7 +64,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     Returns
     -------
     ufloat
-        Elastic modulus in GPa with associated uncertainty
+        Elastic modulus in MPa with associated uncertainty
         
     Notes
     -----
@@ -74,7 +74,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     E = C0 * (ρ / ρ_ice) ** C1
     
     where E is elastic modulus, ρ is snow density in kg/m³, and ρ_ice = 917 kg/m³.
-    C0 is fixed at 6.5 GPa (6.5e3 MPa) (Eq. 6, Gerling et al. (2017)).
+    C0 is fixed at 6.5 MPa (Eq. 6, Gerling et al. (2017)).
     C1 is the fitted exponent (mean: 4.4, standard deviation: 0.18) (Appendix B, Bergfeld et al. (2023))
 
     - The fitted exponent C1=4.4 was derived from optimizing displacement fields of layered slabs during 
@@ -99,7 +99,6 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
 
 
 
-
     References
     ----------
     Bergfeld, B., van Herwijnen, A., Reuter, B., Bobillier, G., Dual, J., & 
@@ -110,16 +109,16 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     rho_snow = density # kg/m³, input
     rho_ice = 917.0  # kg/m³
 
-    # C0 is 6.5e3 MPa, converted to GPa for output unit consistency (Eq. 6, Gerling et al. (2017), Eq. 4, Bergfeld et al. (2023)).
-    C0 = 6.5  # GPa
+    # C0 is 6.5e3 MPa, (Eq. 6, Gerling et al. (2017), Eq. 4, Bergfeld et al. (2023)).
+    C0 = 6.5e3  # MPa
     
     # C1 is the fitted exponent: mean 4.4, with a standard deviation of ± 0.18 (Appendix B, Bergfeld et al. (2023)).
     C1 = ufloat(4.4, 0.18) 
 
-    # Calculate elastic modulus (E) in GPa based solely on density, as the fit was applied universally to all layers based on ρ_i.
+    # Calculate elastic modulus (E) in MPa based solely on density, as the fit was applied universally to all layers based on ρ_i.
     
     # Check for density in range of fit
-    if rho_snow.nominal <= 110 or rho_snow.nominal > 363:
+    if rho_snow.nominal_value < 110 or rho_snow.nominal_value > 363:
         E_snow = ufloat(np.nan, np.nan)
     else:
         E_snow = C0 * (rho_snow / rho_ice) ** C1
@@ -143,7 +142,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     Returns
     -------
     ufloat
-        Young's modulus (E) in GPa with associated uncertainty
+        Young's modulus (E) in MPa with associated uncertainty
         
     Notes
     -----
@@ -187,10 +186,10 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     """
 
     rho_snow = density # kg/m³
-    E_MPa = ufloat(np.nan, np.nan)
+    E_snow = ufloat(np.nan, np.nan)
     
     # Extract nominal density for conditional checks
-    rho_nominal = rho_snow.nominal
+    rho_nominal = rho_snow.nominal_value
 
     # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
     if 150 <= rho_nominal < 250:
@@ -198,24 +197,21 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
         # E = 0.0061 * exp(0.0396 * ρ)
         C_A = 0.0061
         C_B = 0.0396
-        E_MPa = C_A * np.exp(C_B * rho_snow)
+        E_snow = C_A * np.exp(C_B * rho_snow)
         
     elif 250 <= rho_nominal <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
         C_A = 6.0457
         C_B = 0.011
-        E_MPa = C_A * np.exp(C_B * rho_snow)
+        E_snow = C_A * np.exp(C_B * rho_snow)
 
     # Note: Densities outside 150-450 kg/m³ are extrapolated. If rho is outside 
-    # the 150-450 range, E_MPa remains NaN, as initialized.
-
-    # Convert E from MPa to GPa (1 GPa = 1000 MPa)
-    E_GPa = E_MPa / 1000.0
+    # the 150-450 range, E_snow remains NaN, as initialized.
     
-    return E_GPa
+    return E_snow
 
-def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1.06, 0.17)) -> ufloat:
+def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1060, 170)) -> ufloat:
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).
@@ -228,12 +224,12 @@ def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1
     density : ufloat
         Snow density (ρ_snow) in kg/m³ with associated uncertainty
     E_ice : ufloat, optional
-        Young's modulus of the ice skeleton in GPa with associated uncertainty.
+        Young's modulus of the ice skeleton in MPa with associated uncertainty.
         
     Returns
     -------
     ufloat
-        Average Young's modulus (E_snow) in GPa with associated uncertainty
+        Average Young's modulus (E_snow) in MPa with associated uncertainty
         
     Notes
     -----
@@ -290,7 +286,7 @@ def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1
     n = ufloat(2.34, 0.0) 
 
     # Check for non-physical density before calculation
-    if rho_snow.nominal <= 0:
+    if rho_snow.nominal_value <= 0:
         E_snow = ufloat(np.nan, np.nan)
     else:
         # Calculate normalized Young's Modulus (E_snow / E_ice)

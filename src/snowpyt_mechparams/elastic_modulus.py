@@ -47,13 +47,14 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str) -> ufloat:
+def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
     
-    This method uses the empirical relationship developed by Bergfeld et al. (2023)
-    based on extensive laboratory and field measurements. The form of the parametrization is based on 
-    the Gerling et al. (2017) paper.
+    This method uses the power-law parameterization suggested by Gerling et al. (2017)
+    to estimate the elastic modulus of individual snow layers based on density, 
+    optimized using mechanical models fit to Propagation Saw Test (PST) data. As described in 
+    Bergfeld et al. (2023).
     
     Parameters
     ----------
@@ -67,13 +68,29 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str) -> ufl
         
     Notes
     -----
-    The Bergfeld formula uses an exponential relationship:
-    E = A * exp(B * ρ)
-    where E is elastic modulus in GPa and ρ is snow density in kg/m³
+    The Bergfeld et al. (2023) study used a power-law relationship 
+    based on Gerling et al. (2017) (Eq. 4 in the source paper):
+    
+    E = C0 * (ρ / ρ_ice) ** C1
+    
+    where E is elastic modulus, ρ is snow density in kg/m³, and ρ_ice = 917 kg/m³.
+    C0 is fixed at 6.5 GPa (6.5e3 MPa) [2].
+    C1 is the fitted exponent (mean: 4.4, standard deviation: 0.18)
 
     Limitations
     -----------
-    -Only valid for rounded grain types (RG)
+    - The fitted exponent C1=4.4 was derived from optimizing displacement fields of 
+      layered slabs during flat-field Propagation Saw Tests (PSTs).
+    - The slab layers used in the optimization consisted of mixed grain types 
+      (fresh snow (+), decomposing particles (/), and rounded grains (•))
+    - This parameterization estimates the elastic modulus of individual layers (Ei) 
+      within a snow slab, used for describing slab bending behavior. 
+    - The calculated value is a flexural-like effective elastic modulus.
+    - The modulus is strain-rate dependent; the fitting phase (sawing) occurs at 
+      strain rates at least 2 orders of magnitude lower than those during actual 
+      crack propagation.
+    - The density range of the mean slab densities observed during fitting was 
+      approximately 110 to 360 kg m⁻³.
 
 
     References
@@ -86,16 +103,20 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str) -> ufl
     rho = density # kg/m³, input
     rho_ice = 917.0  # kg/m³
 
-    # Constants from Bergfeld et al. (2023)
-    C0 = 6.5e3  # MPa, fixed from Gerling (2017) eqn (6) ??
-    C1 = 4.4 # From appendix B of Bergfeld et al. (2023), NOTE: How to include +/- as uncertainty?
-
+    # C0 is 6.5e3 MPa, converted to GPa for output unit consistency.
+    C0 = ufloat(6.5, 0.0)  # GPa
     
-    # Calculate elastic modulus in GPa if grain form is RG
-    if grain_form == 'RG':
-        E = C0 * (rho / rho_ice) ** C1
-    else:
+    # C1 is the fitted exponent: mean 4.4, with a standard deviation of ± 0.18 [6].
+    C1 = ufloat(4.4, 0.18) 
+
+    # Calculate elastic modulus (E) in GPa based solely on density, as the fit 
+    # was applied universally to all layers based on ρi [1, 2].
+    
+    # Check for non-physical density before calculation
+    if rho.nominal <= 0:
         E = ufloat(np.nan, np.nan)
+    else:
+        E = C0 * (rho / rho_ice) ** C1
     
     return E
 

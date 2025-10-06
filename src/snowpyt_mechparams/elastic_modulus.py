@@ -122,90 +122,176 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
 
 def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     """
-    Calculate elastic modulus using Köchle and Schneebeli (2014) formula.
+    Calculate Young's modulus (E) using the exponential relationships fitted by
+    Köchle and Schneebeli (2014).
     
-    This method uses the relationship developed by Köchle and Schneebeli (2014)
-    based on microtomography and finite element analysis.
+    This method uses empirical fits based on Young's modulus values derived 
+    from X-ray microcomputer tomography (m-CT) and subsequent finite-element 
+    (FE) simulations of snow microstructure.
     
     Parameters
     ----------
     density : ufloat
-        Snow density in kg/m³ with associated uncertainty
+        Snow density (ρ) in kg/m³ with associated uncertainty
         
     Returns
     -------
     ufloat
-        Elastic modulus in GPa with associated uncertainty
+        Young's modulus (E) in GPa with associated uncertainty
         
     Notes
     -----
-    The Köchle-Schneebeli formula uses a power law relationship:
-    E = A * (ρ/ρ_ice)^n
-    where E is elastic modulus in GPa, ρ is snow density, and ρ_ice is ice density
+    The relationship between the logarithmically transformed Young’s modulus (E) 
+    in MPa and density (ρ) in kg/m³ is represented by two separate exponential 
+    fits, depending on the density range [2]:
     
-    References
-    ----------
-    Köchle, B., & Schneebeli, M. (2014). Three‐dimensional microstructure and 
-    numerical calculation of elastic properties of alpine snow with a focus 
-    on weak layers. Journal of Glaciology, 60(222), 705-713.
-    """
-    # Constants from Köchle and Schneebeli (2014)
-    # E = 4.5 * (ρ/ρ_ice)^1.9 (in GPa)
-    A = 4.5  # GPa
-    n = 1.9
-    rho_ice = 917.0  # kg/m³
+    1. Low Density (150 ≤ ρ < 250 kg/m³):
+       E = 0.0061 * exp(0.0396 * ρ) [2] (R² = 0.68)
     
-    # Calculate relative density
-    relative_density = density / rho_ice
-    
-    # Calculate elastic modulus in GPa
-    E = A * (relative_density ** n)
-    
-    return E
+    2. High Density (250 ≤ ρ ≤ 450 kg/m³):
+       E = 6.0457 * exp(0.011 * ρ) [2] (R² = 0.92)
+       
+    The calculated result (E_MPa) is divided by 1000 to return E in GPa.
 
-def _calculate_elastic_modulus_wautier(density: ufloat) -> ufloat:
-    # NOTE: Add eleastic modulus of ice as input, with default from Kermani paper
+    Limitations
+    -----------
+    - The correlation is based on calculated mechanical properties derived from 
+      FE simulations of m-CT snow geometry, not direct field or laboratory measurements [1, 3, 4].
+    - The calculation relies on the assumption of isotropic, linear-elastic behavior 
+      of the underlying ice material (E_ice = 10 GPa, Poisson's ratio ν_ice = 0.3) [5, 6].
+    - Calculated E values typically run higher than experimental results, which is 
+      attributed to viscous effects captured in low-strain-rate experimental methods 
+      but excluded in this linear-elastic FE approach [7].
+    - The equations are fitted for specific density ranges: 150–250 kg/m³ (low density fit, lower R²) 
+      and 250–450 kg/m³ (high density fit, higher R²) [2]. Results outside this range 
+      (100–500 kg/m³ overall sample range) are extrapolated or unsupported [1].
+    - The underlying FE calculations were based on cubic subvolumes with a minimum 
+      side length of 7 mm (Representative Volume Element, RVE) to capture elastic properties [8, 9]. 
+      Properties of layers thinner than 7 mm were not calculated [9].
+    - Although the input samples contained weak layers, the calculated E value alone 
+      is not a sufficient indicator of weak snow; stiffness (E) should be assessed 
+      relative to adjacent layers ("the 'sandwich'") [10, 11].
+
+
+    References
+    ----------
+    Köchle, B., & Schneebeli, M. (2014). Three-dimensional microstructure and numerical 
+    calculation of elastic properties of alpine snow with a focus on weak layers. 
+    Journal of Glaciology, 60(220), 304-315.
     """
-    Calculate elastic modulus using Wautier et al. (2015) formula.
+
+    rho = density # kg/m³
+    E_MPa = ufloat(np.nan, np.nan)
     
-    This method uses the numerical homogenization approach (eqn 5)developed by Wautier 
-    et al. (2015) to relate snow microstructure to macroscopic elastic properties.
+    # Extract nominal density for conditional checks
+    rho_nominal = rho.nominal
+
+    # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
+    if 150 <= rho_nominal < 250:
+        # Low Density Fit (R² = 0.68)
+        # E = 0.0061 * exp(0.0396 * ρ)
+        C_A = 0.0061
+        C_B = 0.0396
+        E_MPa = C_A * np.exp(C_B * rho)
+        
+    elif 250 <= rho_nominal <= 450:
+        # High Density Fit (R² = 0.92)
+        # E = 6.0457 * exp(0.011 * ρ)
+        C_A = 6.0457
+        C_B = 0.011
+        E_MPa = C_A * np.exp(C_B * rho)
+
+    # Note: Densities outside 150-450 kg/m³ are extrapolated. If rho is outside 
+    # the 150-450 range, E_MPa remains NaN, as initialized.
+
+    # Convert E from MPa to GPa (1 GPa = 1000 MPa)
+    E_GPa = E_MPa / 1000.0
+    
+    return E_GPa
+
+def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1.06, 0.17)) -> ufloat:
+    """
+    Calculate the normalized average Young's modulus (E) using the power-law
+    relationship fitted by Wautier et al. (2015).
+    
+    This relationship is derived from numerical homogenization calculations of 
+    the elastic stiffness tensor over 3-D X-ray microtomography images of snow.
     
     Parameters
     ----------
     density : ufloat
-        Snow density in kg/m³ with associated uncertainty
+        Snow density (ρ_snow) in kg/m³ with associated uncertainty
+    E_ice : ufloat, optional
+        Young's modulus of the ice skeleton in GPa with associated uncertainty.
         
     Returns
     -------
     ufloat
-        Elastic modulus in GPa with associated uncertainty
+        Average Young's modulus (E_snow) in GPa with associated uncertainty
         
     Notes
     -----
-    The Wautier formula uses a power law relationship derived from 
-    three-dimensional numerical homogenization:
-    E = A * (ρ/ρ_ice)^n
-    where E is elastic modulus in GPa, ρ is snow density, and ρ_ice is ice density
+    The relationship found to correlate well (R² = 0.97) between normalized 
+    average Young’s modulus (E_snow) and relative density is a power law (Eq. 5):
     
+    E_snow / E_ice = A * (ρ_snow / ρ_ice)^n
+    
+    Where:
+    A = 0.78 
+    n = 2.34
+    
+    The default E_ice value (1.06 ± 0.17 GPa) is the effective modulus of 
+    atmospheric ice accumulated and tested at -10°C, reported by Kermani et al. (2008) [1].
+
+    Suggested values for E_ice based on source context:
+    - Wautier et al. (2015) notes that E_ice is generally known to range from 0.2 GPa to 9.5 GPa [2, 3].
+    - Kermani et al. (2008) references other studies on freshwater ice effective modulus that obtained values such as 1.6 ± 0.4 GPa and ranges between 0.7 GPa and 10.5 GPa [1].
+    
+    Constants Used for Calculation:
+    ρ_ice = 917.0 kg m⁻³
+
+    Limitations
+    -----------
+    - The correlation is based on calculated mechanical properties derived from 
+      Finite Element (FE) simulations assuming the ice skeleton is a homogeneous, 
+      isotropic elastic material with a Poisson’s ratio (ν_ice) of 0.3 [2, 3].
+    - The fitting parameter (E_snow) represents the normalized *average* Young’s 
+      modulus [4]. The fit does not capture the orthotropic (anisotropic) 
+      behavior often observed in snow, which can lead to significant deviation 
+      from directional moduli [5, 6].
+    - The fit applies for relative density (ρ_snow / ρ_ice) in the range 
+      [0.1; 0.6], corresponding approximately to densities from 103 to 544 kg m⁻³ [4].
+
+
     References
     ----------
-    Wautier, A., Geindreau, C., & Flin, F. (2015). Linking snow microstructure 
-    to its macroscopic elastic stiffness tensor: A numerical homogenization 
-    method and its application to 3‐D images from X‐ray tomography. 
-    Geophysical Research Letters, 42(19), 8031-8041.
+    Wautier, A., Geindreau, C., and Flin, F. (2015). Linking snow microstructure 
+    to its macroscopic elastic stiffness tensor: A numerical homogenization method 
+    and its application to 3-D images from X-ray tomography. 
+    Geophysical Research Letters, 42, 8031–8041.
+    Kermani, M., Farzaneh, M., and Gagnon, R. (2008). Bending strength and 
+    effective modulus of atmospheric ice. Cold Regions Science and Technology, 
+    53(2), 162–169.
     """
-    # Constants from Wautier et al. (2015)
-    E_ice = ufloat(1.06, 0.19) # GPa from Kermani paper NOTE: ADD CITATION and review
-    # BEnding strength and effetive modulus of atmospheric ice
-    A = 0.78  # GPa
-    n = 2.34
-    rho_ice = 917.0  # kg/m³
+
+    rho_snow = density  # kg/m³, input
     
-    # Calculate relative density
-    relative_density = density / rho_ice
+    # Constants for Ice
+    rho_ice = 917.0  # kg/m³ 
+
+    # Wautier et al. (2015) power law coefficients (Eq. 5)
+    A = ufloat(0.78, 0.0) 
+    n = ufloat(2.34, 0.0) 
+
+    # Check for non-physical density before calculation
+    if rho_snow.nominal <= 0:
+        E_snow = ufloat(np.nan, np.nan)
+    else:
+        # Calculate normalized Young's Modulus (E_snow / E_ice)
+        relative_density = rho_snow / rho_ice
+        E_normalized = A * (relative_density ** n)
+        
+        # Scale by E_ice to get E_snow in GPa
+        E_snow = E_normalized * E_ice
     
-    # Calculate elastic modulus in GPa
-    E = E_ice * A * (relative_density ** n) # R^2 is 0.97, convert to uncertainty
-    
-    return E
+    return E_snow

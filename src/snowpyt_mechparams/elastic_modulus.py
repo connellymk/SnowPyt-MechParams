@@ -50,6 +50,7 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         )
 
 def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
+  #TODO: Limit to PP, RG, DF
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
     
@@ -134,6 +135,8 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat) -> ufloat:
     return E_snow
 
 def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
+
+  # TODO: RG, RC, DH, MF 
     """
     Calculate Young's modulus (E) using the exponential relationships fitted by
     Köchle and Schneebeli (2014).
@@ -219,6 +222,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     return E_snow
 
 def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1060, 170)) -> ufloat:
+  # TODO: Limit to DF, RG, FC, DH, MF
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).

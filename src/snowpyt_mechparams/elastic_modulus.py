@@ -8,6 +8,7 @@ import numpy as np
 from typing import Any
 
 from uncertainties import ufloat
+from uncertainties import umath
 
 def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
     """
@@ -158,7 +159,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     fits, depending on the density range:
     
     1. Low Density (150 ≤ ρ < 250 kg/m³):
-       E = 0.0061 * exp(0.0396 * ρ) [2] (R² = 0.68)
+       E = 0.0061 * exp(0.0396 * ρ)  (R² = 0.68)
     
     2. High Density (250 ≤ ρ ≤ 450 kg/m³):
        E = 6.0457 * exp(0.011 * ρ) [2] (R² = 0.92)
@@ -196,28 +197,24 @@ def _calculate_elastic_modulus_kochle(density: ufloat) -> ufloat:
     """
 
     rho_snow = density # kg/m³
-    E_snow = ufloat(np.nan, np.nan)
-    
-    # Extract nominal density for conditional checks
-    rho_nominal = rho_snow.nominal_value
 
     # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
-    if 150 <= rho_nominal < 250:
+    if 150 <= rho_snow.nominal_value < 250:
         # Low Density Fit (R² = 0.68)
         # E = 0.0061 * exp(0.0396 * ρ)
         C_A = 0.0061
         C_B = 0.0396
-        E_snow = C_A * np.exp(C_B * rho_snow)
+        E_snow = C_A * umath.exp(C_B * rho_snow)
         
-    elif 250 <= rho_nominal <= 450:
+    elif 250 <= rho_snow.nominal_value <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
         C_A = 6.0457
         C_B = 0.011
-        E_snow = C_A * np.exp(C_B * rho_snow)
-
-    # Note: Densities outside 150-450 kg/m³ are extrapolated. If rho is outside 
-    # the 150-450 range, E_snow remains NaN, as initialized.
+        E_snow = C_A * umath.exp(C_B * rho_snow)
+    else:
+        # Densities outside 150-450 kg/m³ return NaN
+        E_snow = ufloat(np.nan, np.nan)
     
     return E_snow
 
@@ -295,17 +292,17 @@ def _calculate_elastic_modulus_wautier(density: ufloat, E_ice: ufloat = ufloat(1
     # Constants for Ice
     rho_ice = 917.0  # kg/m³ 
 
-    # Wautier et al. (2015) power law coefficients (Eq. 5)
-    A = ufloat(0.78, 0.0) 
-    n = ufloat(2.34, 0.0) 
-
-    # Check for non-physical density before calculation
-    if rho_snow.nominal_value <= 0:
+    # Check for nominal density in range of fit
+    if rho_snow.nominal_value < 103 or rho_snow.nominal_value > 544:
         E_snow = ufloat(np.nan, np.nan)
     else:
+        # Wautier et al. (2015) power law coefficients (Eq. 5)
+        A = ufloat(0.78, 0.0) 
+        n = ufloat(2.34, 0.0) 
+
         # Calculate normalized Young's Modulus (E_snow / E_ice)
-        relative_density = rho_snow / rho_ice
-        E_normalized = A * (relative_density ** n)
+
+        E_normalized = A * ((rho_snow / rho_ice) ** n)
         
         # Scale by E_ice to get E_snow in GPa
         E_snow = E_normalized * E_ice

@@ -92,6 +92,45 @@ With coverage report:
 pytest --cov=snowpyt_mechparams --cov-report=html
 ```
 
+## Troubleshooting
+
+### Python Cache Issues
+
+If you experience issues with stale code being loaded (e.g., code changes not taking effect), Python's bytecode cache may be the culprit. We provide utilities to clear all cache files:
+
+**Option 1: Run the cache clearing script**
+```bash
+# From the project root
+./clear_cache.sh
+# or
+python clear_cache.py
+```
+
+**Option 2: Manual clearing**
+```bash
+# Remove all __pycache__ directories and .pyc files
+find . -type d -name "__pycache__" -exec rm -rf {} +
+find . -type f -name "*.pyc" -delete
+```
+
+**Option 3: Prevent cache generation (recommended for development)**
+
+Add this to the first cell of your Jupyter notebooks:
+```python
+import sys
+sys.dont_write_bytecode = True
+```
+
+**After clearing cache:**
+1. Restart your Jupyter kernel (Kernel → Restart Kernel)
+2. Run all cells from the beginning
+
+### Common Issues
+
+- **"Unknown method" errors**: Clear the cache and restart the kernel
+- **Changes not taking effect**: Ensure `%autoreload 2` is enabled in notebooks and clear the cache
+- **Import errors after updates**: Reinstall the package in editable mode: `pip install -e .`
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

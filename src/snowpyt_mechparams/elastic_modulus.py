@@ -155,7 +155,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
         Snow density (ρ) in kg/m³ with associated uncertainty
     grain_form : str
         Grain form classification. Supported values:
-        - 'RG', 'RC', 'DH', 'MF'
+        - 'RG', 'FC', 'DH', 'MF'
         
     Returns
     -------

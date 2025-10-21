@@ -122,17 +122,20 @@ def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
 
 def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> ufloat:
     """
-    Calculate Poisson's ratio using Srivastava et al. (2016) formula.
+    Calculate Poisson's ratio using Srivastava et al. (2016) grain-type-specific
+    mean values.
     
-    This method uses relationships derived from micromechanical modeling
-    of snow microstructure.
+    This method uses effective isotropic Poisson's ratio values derived from
+    micromechanical modeling of snow microstructure using X-ray micro-computed
+    tomography (μCT) and finite element analysis.
     
     Parameters
     ----------
     density : ufloat
         Snow density (ρ) in kg/m³ with associated uncertainty
     grain_form : str
-        Grain form classification
+        Grain form classification. Supported values:
+        - ['RG', 'PP', 'DF', 'FC', 'DH']
         
     Returns
     -------
@@ -141,21 +144,56 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
         
     Notes
     -----
-    TODO: Add relationship details from Srivastava et al. (2016)
+    The effective isotropic Poisson's ratio showed no clear trend with density
+    in the Srivastava et al. (2016) study. The values represent grain-type-
+    specific means:
+    
+    - Rounded Grains (RG): ν = 0.191 ± 0.008 (density range: 200-580 kg/m³)
+    - Precipitation Particles and Decomposing/Fragmented (PP, DF): ν = 0.132 ± 0.053
+    - Faceted Crystals and Depth Hoar (FC, DH): ν = 0.17 ± 0.02
+    
+    The values were computed over subvolumes of size 150³ voxels and were
+    consistent with those obtained over entire image volumes for density > 200 kg/m³.
     
     Limitations
     -----------
-    TODO: Add limitations based on the source paper
+    - The method is based on numerical simulations of snow microstructure, not
+      direct mechanical measurements.
+    - The largest scatter was found for PP and DF particles, indicating high
+      variability within these grain types.
+    - Values are lower than dynamic measurements of Poisson's ratio for
+      density > 400 kg/m³ (Smith, 1969), but comparable to Köchle and
+      Schneebeli (2014) values.
+    - The density parameter is accepted but not used in the calculation, as
+      the study found no clear density dependence.
+    - Valid for densities > 200 kg/m³ based on the study's findings.
     
     References
     ----------
-    TODO: Add full citation for Srivastava et al. (2016)
+    Srivastava, P. K., Mahajan, P., Satyawali, P. K., & Kumar, V. (2016).
+    Observation of temperature gradient metamorphism in snow by X-ray computed
+    microtomography: measurement of microstructure parameters and simulation of
+    linear elastic properties. Annals of Glaciology, 57(71), 73-84.
+    doi:10.3189/2016AoG71A562
     """
     
-    # TODO: Determine valid grain forms for this method
-    # TODO: Implement the actual calculation based on Srivastava et al. (2016)
-    # Placeholder return - currently not implemented
-    nu_snow = ufloat(np.nan, np.nan)
+    main_grain_shape = grain_form[:2]
+    
+    # Check if grain form is valid
+    if main_grain_shape not in ['RG', 'PP', 'DF', 'FC', 'DH']:
+        return ufloat(np.nan, np.nan)
+    
+    # Assign Poisson's ratio based on grain form
+    # Note: density is not used as the study found no clear density dependence
+    if main_grain_shape == 'RG':
+        # Rounded grains: constant value over density range 200-580 kg/m³
+        nu_snow = ufloat(0.191, 0.008)
+    elif main_grain_shape in ['PP', 'DF']:
+        # Precipitation particles and decomposing/fragmented: largest scatter
+        nu_snow = ufloat(0.132, 0.053)
+    elif main_grain_shape in ['FC', 'DH']:
+        # Faceted crystals and depth hoar: intermediate scatter
+        nu_snow = ufloat(0.17, 0.02)
     
     return nu_snow
 

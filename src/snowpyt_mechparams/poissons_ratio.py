@@ -164,9 +164,9 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
     - Values are lower than dynamic measurements of Poisson's ratio for
       density > 400 kg/m³ (Smith, 1969), but comparable to Köchle and
       Schneebeli (2014) values.
-    - The density parameter is accepted but not used in the calculation, as
-      the study found no clear density dependence.
-    - Valid for densities > 200 kg/m³ based on the study's findings.
+    - Although density is not used in the calculation (no clear density dependence
+      was found), the method is only valid for densities > 200 kg/m³.
+    - The RG parameterization was validated over the density range 200-580 kg/m³.
     
     References
     ----------
@@ -177,6 +177,13 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
     doi:10.3189/2016AoG71A562
     """
     
+    # Extract nominal density value for validation
+    density_nominal = density.nominal_value
+    
+    # Check if density is within valid range (> 200 kg/m³)
+    if density_nominal <= 200.0:
+        return ufloat(np.nan, np.nan)
+    
     main_grain_shape = grain_form[:2]
     
     # Check if grain form is valid
@@ -184,9 +191,13 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
         return ufloat(np.nan, np.nan)
     
     # Assign Poisson's ratio based on grain form
-    # Note: density is not used as the study found no clear density dependence
+    # Note: density value is not used in the calculation as the study found 
+    # no clear density dependence, but density must be within valid ranges
     if main_grain_shape == 'RG':
         # Rounded grains: constant value over density range 200-580 kg/m³
+        # Check upper limit for RG
+        if density_nominal > 580.0:
+            return ufloat(np.nan, np.nan)
         nu_snow = ufloat(0.191, 0.008)
     elif main_grain_shape in ['PP', 'DF']:
         # Precipitation particles and decomposing/fragmented: largest scatter

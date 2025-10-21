@@ -9,11 +9,12 @@ academic researchers and institutions in the snow science community.
 """
 
 from .data_structures import Layer, Slab
+from .shear_modulus import calculate_shear_modulus
 
 __version__ = "0.1.0"
 __author__ = "Mary Connelly and SnowPyt-MechParams Contributors"
 __email__ = "connellymarykate@gmail.com"
 __maintainer__ = "SnowPyt-MechParams Contributors"
 
-# Expose common data structures at package level
-__all__ = ["Layer", "Slab"]
+# Expose common data structures and calculation functions at package level
+__all__ = ["Layer", "Slab", "calculate_shear_modulus"]

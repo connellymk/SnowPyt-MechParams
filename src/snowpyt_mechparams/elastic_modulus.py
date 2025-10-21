@@ -233,7 +233,6 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
     return E_snow
 
 def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = ufloat(1060, 170)) -> ufloat:
-  # TODO: Limit to DF, RG, FC, DH, MF
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).

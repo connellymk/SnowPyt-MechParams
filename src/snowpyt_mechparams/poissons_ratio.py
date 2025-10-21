@@ -49,19 +49,19 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
 
 def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
     """
-    Calculate Poisson's ratio using Köchle and Schneebeli (2014) formula.
+    Calculate Poisson's ratio using Köchle and Schneebeli (2014) grain-type-
+    specific mean values.
     
-    This method uses empirical fits based on Poisson's ratio values derived from
-    X-ray microcomputer tomography (m-CT) and subsequent finite-element (FE)
-    simulations of snow microstructure.
+    This method uses mean Poisson's ratio values derived from X-ray
+    microcomputer tomography (m-CT) and subsequent finite-element (FE)
+    simulations of snow microstructure. Unlike Young's modulus, Poisson's ratio
+    shows less density dependence and is characterized primarily by grain type.
     
     Parameters
     ----------
-    density : ufloat
-        Snow density (ρ) in kg/m³ with associated uncertainty
     grain_form : str
         Grain form classification. Supported values:
-        - 'RG', 'FC', 'DH'
+        - ['RG', 'FC', 'DH']
         
     Returns
     -------
@@ -70,11 +70,36 @@ def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
         
     Notes
     -----
-    TODO: Add relationship details from Köchle and Schneebeli (2014)
+    The Poisson's ratio values are grain-type-specific mean values calculated
+    from FE simulations of 3-D snow microstructure obtained through m-CT
+    imaging. The values represent:
+    
+    - Rounded Grains (RG): ν = 0.171 ± 0.026
+    - Faceted Crystals (FC): ν = 0.130 ± 0.040
+    - Depth Hoar (DH): ν = 0.087 ± 0.063
+    
+    The reported uncertainties represent the standard deviation of the
+    calculated values for each grain type. These values were calculated using
+    the same methodology as Young's modulus, based on numerical homogenization
+    of the elastic stiffness tensor.
     
     Limitations
     -----------
-    TODO: Add limitations based on the source paper
+    - The values are based on calculated mechanical properties derived from FE
+      simulations of m-CT snow geometry, not direct field or laboratory
+      measurements.
+    - The calculation relies on the assumption of isotropic, linear-elastic
+      behavior of the underlying ice material (E_ice = 10 GPa, Poisson's ratio
+      ν_ice = 0.3).
+    - The values represent mean properties for each grain type and do not
+      account for density variations within each grain type category.
+    - The underlying FE calculations were based on cubic subvolumes with a
+      minimum side length of 7 mm (Representative Volume Element, RVE) to
+      capture elastic properties. Properties of layers thinner than 7 mm were
+      not calculated.
+    - The relatively large standard deviations (especially for DH) indicate
+      significant variability within each grain type category, reflecting the
+      natural heterogeneity of snow microstructure.
     
     References
     ----------
@@ -175,6 +200,8 @@ def _calculate_poissons_ratio_wautier(density: ufloat, grain_form: str, nu_ice: 
     Limitations
     -----------
     TODO: Add limitations based on the source paper
+        - The fit applies for relative density (ρ_snow / ρ_ice) in the range [0.1;
+      0.6], corresponding approximately to densities from 103 to 544 kg m⁻³.
     
     References
     ----------

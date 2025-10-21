@@ -47,7 +47,7 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_poissons_ratio_kochle(density: ufloat, grain_form: str) -> ufloat:
+def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
     """
     Calculate Poisson's ratio using Köchle and Schneebeli (2014) formula.
     
@@ -61,7 +61,7 @@ def _calculate_poissons_ratio_kochle(density: ufloat, grain_form: str) -> ufloat
         Snow density (ρ) in kg/m³ with associated uncertainty
     grain_form : str
         Grain form classification. Supported values:
-        - 'RG', 'FC', 'DH', 'MF'
+        - 'RG', 'FC', 'DH'
         
     Returns
     -------
@@ -84,14 +84,15 @@ def _calculate_poissons_ratio_kochle(density: ufloat, grain_form: str) -> ufloat
     """
     
     main_grain_shape = grain_form[:2]
-    if main_grain_shape not in ['RG', 'RC', 'DH', 'MF']:
+    if main_grain_shape not in ['RG', 'FC', 'DH']:
         return ufloat(np.nan, np.nan)
     
-    rho_snow = density  # kg/m³
-    
-    # TODO: Implement the actual calculation based on Köchle and Schneebeli (2014)
-    # Placeholder return
-    nu_snow = ufloat(np.nan, np.nan)
+    if main_grain_shape == 'RG':
+        nu_snow = ufloat(0.171, 0.026)
+    elif main_grain_shape == 'FC':
+        nu_snow = ufloat(0.130, 0.040)
+    elif main_grain_shape == 'DH':
+        nu_snow = ufloat(0.087, 0.063)
     
     return nu_snow
 

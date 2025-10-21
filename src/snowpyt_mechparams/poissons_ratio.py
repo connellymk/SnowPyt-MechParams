@@ -8,7 +8,6 @@ import numpy as np
 from typing import Any
 
 from uncertainties import ufloat
-from uncertainties import umath
 
 def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
     """
@@ -154,33 +153,50 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
     """
     
     # TODO: Determine valid grain forms for this method
-    main_grain_shape = grain_form[:2]
-    
-    rho_snow = density  # kg/m³
-    
     # TODO: Implement the actual calculation based on Srivastava et al. (2016)
-    # Placeholder return
+    # Placeholder return - currently not implemented
     nu_snow = ufloat(np.nan, np.nan)
     
     return nu_snow
 
 def _calculate_poissons_ratio_from_modulii(elastic_modulus: ufloat, shear_modulus: ufloat) -> ufloat:
     """
-    Calculate Poisson's ratio from elastic modulus and shear modulus.
+    Calculate Poisson's ratio from Young's modulus and shear modulus.
+    
+    This method uses the standard elastic relationship for isotropic materials:
+    ν = (E / (2 * G)) - 1
+    
+    Or equivalently: E = 2 * G * (1 + ν)
     
     Parameters
     ----------
     elastic_modulus : ufloat
-        Elastic modulus in MPa with associated uncertainty
+        Young's modulus (E) in MPa with associated uncertainty
     shear_modulus : ufloat
-        Shear modulus in MPa with associated uncertainty
+        Shear modulus (G) in MPa with associated uncertainty
         
     Returns
     -------
     ufloat
-        Poisson's ratio (dimensionless) with associated uncertainty
+        Poisson's ratio (ν) (dimensionless) with associated uncertainty
+        
+    Notes
+    -----
+    This relationship is valid for isotropic, linear-elastic materials.
+    Both moduli must be in the same units (MPa).
+    
+    The relationship between elastic constants for isotropic materials:
+    - E = 2 * G * (1 + ν)
+    - G = E / (2 * (1 + ν))
+    - ν = (E / (2 * G)) - 1
+    
+    Where:
+    - E is Young's modulus
+    - G is shear modulus
+    - ν is Poisson's ratio
     """
     
-    nu_snow = (elastic_modulus / (2 * shear_modulus)) - 1
+    # Calculate Poisson's ratio: ν = (E / (2 * G)) - 1
+    nu_snow = (elastic_modulus / (2.0 * shear_modulus)) - 1.0
     
     return nu_snow

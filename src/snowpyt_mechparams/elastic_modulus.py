@@ -244,11 +244,12 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     ----------
     density : ufloat
         Snow density (ρ_snow) in kg/m³ with associated uncertainty
-    E_ice : ufloat, optional
-        Young's modulus of the ice skeleton in MPa with associated uncertainty.
     grain_form : str
         Grain form classification. Supported values:
         - 'DF', 'RG', 'FC', 'DH', 'MF'
+    E_ice : ufloat, optional
+        Young's modulus of ice in MPa with associated uncertainty.
+        Default is 1060 ± 170 MPa (1.06 ± 0.17 GPa)
         
     Returns
     -------
@@ -268,14 +269,14 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     
     The default E_ice value (1.06 ± 0.17 GPa) is the effective modulus of
     atmospheric ice accumulated and tested at -10°C, reported by Kermani et al.
-    (2008) [1].
+    (2008).
 
     Suggested values for E_ice based on source context:
     - Wautier et al. (2015) notes that E_ice is generally known to range from
-      0.2 GPa to 9.5 GPa [2, 3].
+      0.2 GPa to 9.5 GPa.
     - Kermani et al. (2008) references other studies on freshwater ice effective
       modulus that obtained values such as 1.6 ± 0.4 GPa and ranges between
-      0.7 GPa and 10.5 GPa [1].
+      0.7 GPa and 10.5 GPa.
     
     Constants Used for Calculation:
     ρ_ice = 917.0 kg m⁻³
@@ -322,10 +323,7 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
         n = ufloat(2.34, 0.0) 
 
         # Calculate normalized Young's Modulus (E_snow / E_ice)
-
-        E_normalized = A * ((rho_snow / rho_ice) ** n)
-        
-        # Scale by E_ice to get E_snow in GPa
-        E_snow = E_normalized * E_ice
+        # E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
+        E_snow = E_ice * A * ((rho_snow / rho_ice) ** n)
     
     return E_snow

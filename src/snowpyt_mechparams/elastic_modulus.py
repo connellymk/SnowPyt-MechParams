@@ -324,6 +324,6 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
 
         # Calculate normalized Young's Modulus (E_snow / E_ice)
         # E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
-        E_snow = E_ice * A * ((rho_snow / rho_ice) ** n)
+        E_snow = E_ice * (A * ((rho_snow / rho_ice) ** n))
     
     return E_snow

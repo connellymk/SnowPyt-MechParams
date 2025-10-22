@@ -73,9 +73,9 @@ def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
     from FE simulations of 3-D snow microstructure obtained through m-CT
     imaging. The values represent:
     
-    - Rounded Grains (RG): ν = 0.171 ± 0.026
-    - Faceted Crystals (FC): ν = 0.130 ± 0.040
-    - Depth Hoar (DH): ν = 0.087 ± 0.063
+    - Rounded Grains (RG): ν = 0.171 ± 0.026 (n = 17)
+    - Faceted Crystals (FC): ν = 0.130 ± 0.040 (n = 19)
+    - Depth Hoar (DH): ν = 0.087 ± 0.063 (n = 6)
     
     The reported uncertainties represent the standard deviation of the
     calculated values for each grain type. These values were calculated using
@@ -99,6 +99,8 @@ def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
     - The relatively large standard deviations (especially for DH) indicate
       significant variability within each grain type category, reflecting the
       natural heterogeneity of snow microstructure.
+    - Although MF grain types were included in the study, and the results are shown in fig. 4,
+      the authors did not provide the mean Poisson's ratio values for this grain type.
     
     References
     ----------

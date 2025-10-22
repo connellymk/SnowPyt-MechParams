@@ -136,7 +136,7 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
 
         # Calculate shear modulus (G_snow / G_ice = A * (ρ_snow / ρ_ice)^n)
         # G_snow = G_ice * A * (ρ_snow / ρ_ice)^n
-        G_snow = G_ice * A * ((rho_snow / rho_ice) ** n)
+        G_snow = G_ice * (A * ((rho_snow / rho_ice) ** n))
     
     return G_snow
 

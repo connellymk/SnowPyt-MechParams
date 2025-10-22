@@ -20,7 +20,7 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
         Method to use for Poisson's ratio calculation. Available methods:
         - 'kochle': Uses Köchle and Schneebeli (2014) formula
         - 'srivastava': Uses Srivastava et al. (2016) formula
-        - 'wautier': Uses Wautier et al. (2015) formula
+        - 'from_elastic_and_shear_modulus': Uses elastic modulus and shear modulus to calculate Poisson's ratio
     **kwargs
         Method-specific parameters
 
@@ -38,10 +38,10 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
         return _calculate_poissons_ratio_kochle(**kwargs)
     elif method.lower() == 'srivastava':
         return _calculate_poissons_ratio_srivastava(**kwargs)
-    elif method.lower() == 'from_modulii':
-        return _calculate_poissons_ratio_from_modulii(**kwargs)
+    elif method.lower() == 'from_elastic_and_shear_modulus':
+        return _calculate_poissons_ratio_from_elastic_and_shear_modulus(**kwargs)
     else:
-        available_methods = ['kochle', 'srivastava', 'from_modulii']
+        available_methods = ['kochle', 'srivastava', 'from_elastic_and_shear_modulus']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -208,7 +208,7 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
     
     return nu_snow
 
-def _calculate_poissons_ratio_from_modulii(elastic_modulus: ufloat, shear_modulus: ufloat) -> ufloat:
+def _calculate_poissons_ratio_from_elastic_and_shear_modulus(elastic_modulus: ufloat, shear_modulus: ufloat) -> ufloat:
     """
     Calculate Poisson's ratio from Young's modulus and shear modulus.
     

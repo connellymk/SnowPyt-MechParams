@@ -26,9 +26,9 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
         Method to use for density calculation. Available methods:
         - 'geldsetzer': Uses Geldsetzer et al. formulas based on hand hardness
           and grain form
-        - 'kim_method1': Uses Kim & Jamieson (2014) Table 2 formulas based
+        - 'kim_jamieson_table2': Uses Kim & Jamieson (2014) Table 2 formulas based
           on hand hardness and grain form (extended from Geldsetzer)
-        - 'kim_method2': Uses Kim & Jamieson (2014) Equation (5) formulas based
+        - 'kim_jamieson_table5': Uses Kim & Jamieson (2014) Table 5 formulas based
           on hand hardness, grain type, and grain size
 
     **kwargs
@@ -46,12 +46,12 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
     """
     if method.lower() == 'geldsetzer':
         return _calculate_density_geldsetzer(**kwargs)
-    elif method.lower() == 'kim_method1':
-        return _calculate_density_kim_method1(**kwargs)
-    elif method.lower() == 'kim_method2':
-        return _calculate_density_kim_method2(**kwargs)
+    elif method.lower() == 'kim_jamieson_table2':
+        return _calculate_density_kim_jamieson_table2(**kwargs)
+    elif method.lower() == 'kim_jamieson_table5':
+        return _calculate_density_kim_jamieson_table5(**kwargs)
     else:
-        available_methods = ['geldsetzer', 'kim_method1', 'kim_method2']
+        available_methods = ['geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table5']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -144,7 +144,7 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
 
     return ufloat(rho, se)
 
-def _calculate_density_kim_method1(
+def _calculate_density_kim_jamieson_table2(
     hand_hardness: str, grain_form: str
 ) -> ufloat:
     """
@@ -228,7 +228,7 @@ def _calculate_density_kim_method1(
 
     return ufloat(rho, se)
 
-def _calculate_density_kim_method2(
+def _calculate_density_kim_jamieson_table5(
     hand_hardness: str, grain_form: str, grain_size: float
 ) -> ufloat:
     """

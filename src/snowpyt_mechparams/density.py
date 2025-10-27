@@ -26,10 +26,11 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
         Method to use for density calculation. Available methods:
         - 'geldsetzer': Uses Geldsetzer et al. formulas based on hand hardness
           and grain form
-        - 'kim': Uses Kim & Jamieson (2014) Equation (5) formulas based
+        - 'kim_method1': Uses Kim & Jamieson (2014) Table 2 formulas based
+          on hand hardness and grain form (extended from Geldsetzer)
+        - 'kim_method2': Uses Kim & Jamieson (2014) Equation (5) formulas based
           on hand hardness, grain type, and grain size
-        - 'kim_table2': Uses Kim & Jamieson (2014) Table 2 formulas based #TODO: rename
-          on hand hardness and grain form (updated from Geldsetzer)
+
     **kwargs
         Method-specific parameters
 
@@ -45,12 +46,12 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
     """
     if method.lower() == 'geldsetzer':
         return _calculate_density_geldsetzer(**kwargs)
-    elif method.lower() == 'kim':
-        return _calculate_density_kim(**kwargs)
-    elif method.lower() == 'kim_geldsetzer':
-        return _calculate_density_kim_geldsetzer(**kwargs)
+    elif method.lower() == 'kim_method1':
+        return _calculate_density_kim_method1(**kwargs)
+    elif method.lower() == 'kim_method2':
+        return _calculate_density_kim_method2(**kwargs)
     else:
-        available_methods = ['geldsetzer', 'kim', 'kim_table2']
+        available_methods = ['geldsetzer', 'kim_method1', 'kim_method2']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -143,81 +144,7 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
 
     return ufloat(rho, se)
 
-
-def _calculate_density_kim(
-    hand_hardness: str, grain_form: str, grain_size: float
-) -> ufloat:
-    """
-    Calculate density using Kim & Jamieson (2014) empirical formulas based
-    on hand hardness, grain form, and grain size.
-
-    This method uses empirical relationships from Kim & Jamieson (2014) Equation (5)
-    to estimate snow density: rho = A*h + B*gs + C
-
-    Parameters
-    ----------
-    hand_hardness : str
-        Hand hardness measurement in string notation
-        (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
-    grain_form : str
-        Grain form classification. Supported values:
-        - 'FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF'
-    grain_size : float
-        Grain size in mm
-
-    Returns
-    -------
-    ufloat
-        Estimated density in kg/m³ with associated uncertainty.
-        Returns ufloat(NaN, NaN) if hand_hardness or grain_form values are not
-        supported.
-
-    Notes
-    -----
-    The Kim & Jamieson (2014) Equation (5) formulas provide density estimates
-    with associated uncertainties and R² values indicating model fit quality.
-
-    References
-    ----------
-    Kim, D. and Jamieson, J.B., 2014. Estimating the Density of Dry Snow Layers
-    From Hardness, and Hardness From Density, International Snow Science Workshop
-    2014 Proceedings, Banff, Canada, 2014 pp.540-547.
-    """
-    # Validate grain form
-    valid_grain_forms = ['FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF']
-    if grain_form not in valid_grain_forms:
-        return ufloat(np.nan, np.nan)
-
-    if hand_hardness not in HARDNESS_MAPPING:
-        return ufloat(np.nan, np.nan)
-
-    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
-
-    # Table 6: Significant multivariable linear regression of density on hardness index
-    # and grain size by different groups of grain types
-    # From Kim and Jamieson (2014)
-    regression_parameters = {
-        'FC': {'A': 51.9, 'B': 19.7, 'C': 82.8, 'SE': 46.0},
-        'FCxr': {'A': 60.4, 'B': 27.7, 'C': 36.7, 'SE': 45.0},
-        'PP': {'A': 40.0, 'B': -7.33, 'C': 52.8, 'SE': 25.0},
-        'PPgp': {'A': 38.8, 'B': 18.8, 'C': 35.7, 'SE': 33.0},
-        'DF': {'A': 37.9, 'B': -8.87, 'C': 71.4, 'SE': 31.0},
-        'MF': {'A': 34.9, 'B': 11.2, 'C': 124.5, 'SE': 63.0}
-    }
-
-    # Get regression parameters for the grain form
-    params = regression_parameters[grain_form]
-    a = params['A']
-    b = params['B']
-    c = params['C']
-    se = params['SE']
-
-    # Calculate density using equation 5
-    rho = a*h + b * grain_size + c
-
-    return ufloat(rho, se)
-
-def _calculate_density_kim_geldsetzer(
+def _calculate_density_kim_method1(
     hand_hardness: str, grain_form: str
 ) -> ufloat:
     """
@@ -300,3 +227,78 @@ def _calculate_density_kim_geldsetzer(
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
     return ufloat(rho, se)
+
+def _calculate_density_kim_method2(
+    hand_hardness: str, grain_form: str, grain_size: float
+) -> ufloat:
+    """
+    Calculate density using Kim & Jamieson (2014) empirical formulas based
+    on hand hardness, grain form, and grain size.
+
+    This method uses empirical relationships from Kim & Jamieson (2014) Equation (5)
+    to estimate snow density: rho = A*h + B*gs + C
+
+    Parameters
+    ----------
+    hand_hardness : str
+        Hand hardness measurement in string notation
+        (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
+    grain_form : str
+        Grain form classification. Supported values:
+        - 'FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF'
+    grain_size : float
+        Grain size in mm
+
+    Returns
+    -------
+    ufloat
+        Estimated density in kg/m³ with associated uncertainty.
+        Returns ufloat(NaN, NaN) if hand_hardness or grain_form values are not
+        supported.
+
+    Notes
+    -----
+    The Kim & Jamieson (2014) Equation (5) formulas provide density estimates
+    with associated uncertainties and R² values indicating model fit quality.
+
+    References
+    ----------
+    Kim, D. and Jamieson, J.B., 2014. Estimating the Density of Dry Snow Layers
+    From Hardness, and Hardness From Density, International Snow Science Workshop
+    2014 Proceedings, Banff, Canada, 2014 pp.540-547.
+    """
+    # Validate grain form
+    valid_grain_forms = ['FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF']
+    if grain_form not in valid_grain_forms:
+        return ufloat(np.nan, np.nan)
+
+    if hand_hardness not in HARDNESS_MAPPING:
+        return ufloat(np.nan, np.nan)
+
+    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
+
+    # Table 6: Significant multivariable linear regression of density on hardness index
+    # and grain size by different groups of grain types
+    # From Kim and Jamieson (2014)
+    regression_parameters = {
+        'FC': {'A': 51.9, 'B': 19.7, 'C': 82.8, 'SE': 46.0},
+        'FCxr': {'A': 60.4, 'B': 27.7, 'C': 36.7, 'SE': 45.0},
+        'PP': {'A': 40.0, 'B': -7.33, 'C': 52.8, 'SE': 25.0},
+        'PPgp': {'A': 38.8, 'B': 18.8, 'C': 35.7, 'SE': 33.0},
+        'DF': {'A': 37.9, 'B': -8.87, 'C': 71.4, 'SE': 31.0},
+        'MF': {'A': 34.9, 'B': 11.2, 'C': 124.5, 'SE': 63.0}
+    }
+
+    # Get regression parameters for the grain form
+    params = regression_parameters[grain_form]
+    a = params['A']
+    b = params['B']
+    c = params['C']
+    se = params['SE']
+
+    # Calculate density using equation 5
+    rho = a*h + b * grain_size + c
+
+    return ufloat(rho, se)
+
+

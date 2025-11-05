@@ -5,13 +5,13 @@ from data_structures import Node, Graph
 
 @dataclass
 class PathSegment:
-    """Represents a segment of a path: node -> edge -> node"""
+    """Represents a segment of a path: node -- edge --> node"""
     from_node: str
     edge_name: str
     to_node: str
     
     def __str__(self) -> str:
-        return f"{self.from_node} -> {self.edge_name} -> {self.to_node}"
+        return f"{self.from_node} -- {self.edge_name} --> {self.to_node}"
 
 
 @dataclass
@@ -22,8 +22,8 @@ class Branch:
     def __str__(self) -> str:
         if not self.segments:
             return "(empty branch)"
-        return " -> ".join([self.segments[0].from_node] + 
-                          [f"{seg.edge_name} -> {seg.to_node}" for seg in self.segments])
+        return " ".join([self.segments[0].from_node] + 
+                       [f"-- {seg.edge_name} --> {seg.to_node}" for seg in self.segments])
 
 
 @dataclass
@@ -41,8 +41,8 @@ class Parameterization:
             branch_list = ", ".join([f"branch {i+1}" for i in branch_indices])
             if continuation:
                 # Build the continuation path string
-                cont_str = " -> ".join([f"{seg.edge_name} -> {seg.to_node}" for seg in continuation])
-                result.append(f"merge {branch_list}: {merge_node} -> {cont_str}")
+                cont_str = " ".join([f"-- {seg.edge_name} --> {seg.to_node}" for seg in continuation])
+                result.append(f"merge {branch_list}: {merge_node} {cont_str}")
             else:
                 result.append(f"merge {branch_list}: {merge_node}")
         

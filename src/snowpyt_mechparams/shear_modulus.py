@@ -33,10 +33,8 @@ def calculate_shear_modulus(method: str, **kwargs: Any) -> ufloat:
     """
     if method.lower() == 'wautier':
         return _calculate_shear_modulus_wautier(**kwargs)
-    elif method.lower() == 'from_elastic_modulus_and_poissons_ratio':
-        return _calculate_shear_modulus_wautier_from_elastic_modulus_and_poissons_ratio(**kwargs)
     else:
-        available_methods = ['wautier', 'from_elastic_modulus_and_poissons_ratio']
+        available_methods = ['wautier']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -140,28 +138,5 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
     
     return G_snow
 
-def _calculate_shear_modulus_wautier_from_elastic_modulus_and_poissons_ratio(elastic_modulus: ufloat, poissons_ratio: ufloat) -> ufloat:
-    """
-    Calculate the shear modulus (G) using the elastic modulus and Poisson's ratio.
-    
-    This method uses the standard elastic relationship for isotropic materials:
-    G = E / (2 * (1 + ν))
-    
-    Parameters
-    ----------
-    elastic_modulus : ufloat
-        Elastic modulus (E) in MPa with associated uncertainty
-    poissons_ratio : ufloat
-        Poisson's ratio (ν) with associated uncertainty
         
-    Returns
-    -------
-    ufloat
-        Shear modulus (G) in MPa with associated uncertainty
-    """
-    
-    # Calculate shear modulus: G = E / (2 * (1 + ν))
-    G_snow = elastic_modulus / (2.0 * (1.0 + poissons_ratio))
-    
-    return G_snow
 

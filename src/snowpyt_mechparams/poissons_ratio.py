@@ -20,7 +20,6 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
         Method to use for Poisson's ratio calculation. Available methods:
         - 'kochle': Uses Köchle and Schneebeli (2014) formula
         - 'srivastava': Uses Srivastava et al. (2016) formula
-        - 'from_elastic_and_shear_modulus': Uses elastic modulus and shear modulus to calculate Poisson's ratio
     **kwargs
         Method-specific parameters
 
@@ -38,10 +37,8 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
         return _calculate_poissons_ratio_kochle(**kwargs)
     elif method.lower() == 'srivastava':
         return _calculate_poissons_ratio_srivastava(**kwargs)
-    elif method.lower() == 'from_elastic_and_shear_modulus':
-        return _calculate_poissons_ratio_from_elastic_and_shear_modulus(**kwargs)
     else:
-        available_methods = ['kochle', 'srivastava', 'from_elastic_and_shear_modulus']
+        available_methods = ['kochle', 'srivastava']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -207,47 +204,5 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
     elif main_grain_shape in ['FC', 'DH']:
         # Faceted crystals and depth hoar: intermediate scatter
         nu_snow = ufloat(0.17, 0.02)
-    
-    return nu_snow
-
-def _calculate_poissons_ratio_from_elastic_and_shear_modulus(elastic_modulus: ufloat, shear_modulus: ufloat) -> ufloat:
-    """
-    Calculate Poisson's ratio from Young's modulus and shear modulus.
-    
-    This method uses the standard elastic relationship for isotropic materials:
-    ν = (E / (2 * G)) - 1
-    
-    Or equivalently: E = 2 * G * (1 + ν)
-    
-    Parameters
-    ----------
-    elastic_modulus : ufloat
-        Young's modulus (E) in MPa with associated uncertainty
-    shear_modulus : ufloat
-        Shear modulus (G) in MPa with associated uncertainty
-        
-    Returns
-    -------
-    ufloat
-        Poisson's ratio (ν) (dimensionless) with associated uncertainty
-        
-    Notes
-    -----
-    This relationship is valid for isotropic, linear-elastic materials.
-    Both moduli must be in the same units (MPa).
-    
-    The relationship between elastic constants for isotropic materials:
-    - E = 2 * G * (1 + ν)
-    - G = E / (2 * (1 + ν))
-    - ν = (E / (2 * G)) - 1
-    
-    Where:
-    - E is Young's modulus
-    - G is shear modulus
-    - ν is Poisson's ratio
-    """
-    
-    # Calculate Poisson's ratio: ν = (E / (2 * G)) - 1
-    nu_snow = (elastic_modulus / (2.0 * shear_modulus)) - 1.0
     
     return nu_snow

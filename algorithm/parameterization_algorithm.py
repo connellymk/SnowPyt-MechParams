@@ -30,16 +30,21 @@ class Branch:
 class Parameterization:
     """Represents a complete parameterization with branches and merges"""
     branches: List[Branch]
-    merge_points: List[Tuple[List[int], str]]  # (branch_indices, merge_node_name)
+    merge_points: List[Tuple[List[int], str, List[PathSegment]]]  # (branch_indices, merge_node_name, continuation_path)
     
     def __str__(self) -> str:
         result = []
         for i, branch in enumerate(self.branches, 1):
             result.append(f"branch {i}: {branch}")
         
-        for branch_indices, merge_node in self.merge_points:
+        for branch_indices, merge_node, continuation in self.merge_points:
             branch_list = ", ".join([f"branch {i+1}" for i in branch_indices])
-            result.append(f"merge {branch_list}: {merge_node}")
+            if continuation:
+                # Build the continuation path string
+                cont_str = " -> ".join([f"{seg.edge_name} -> {seg.to_node}" for seg in continuation])
+                result.append(f"merge {branch_list}: {merge_node} -> {cont_str}")
+            else:
+                result.append(f"merge {branch_list}: {merge_node}")
         
         return "\n".join(result)
 
@@ -176,93 +181,130 @@ def _tree_to_parameterization(tree: PathTree) -> Parameterization:
     
     Strategy:
     - Traverse the tree from target to snow_pit
-    - Build paths in reverse (target -> snow_pit), then reverse them at the end
-    - When we hit a merge node, split into multiple branches
-    - Each branch goes from snow_pit to the merge point
-    - After the merge, the path continues to the target
+    - When we hit a merge node, split into multiple branches that end at the merge
+    - The continuation path after the merge is stored with the merge point
     """
     branches = []
     merge_points = []
+    closed_branches = set()  # Track branches that end at a merge and shouldn't be extended
     
-    def build_path_segments(from_node: PathTree, to_node_name: str, edge_name: str) -> List[PathSegment]:
-        """Helper to create a single path segment."""
-        return [PathSegment(from_node=from_node.node_name, edge_name=edge_name, to_node=to_node_name)]
-    
-    def process_node(node: PathTree) -> List[Tuple[int, List[PathSegment]]]:
+    def process_node(node: PathTree, continuation_path: List[PathSegment]) -> List[int]:
         """
-        Process a node and return list of (branch_index, path_from_branch_to_node) tuples.
+        Process a node and return list of branch indices.
+        
+        Parameters
+        ----------
+        node : PathTree
+            The current node being processed
+        continuation_path : List[PathSegment]
+            Path segments from this node to the target (for merge nodes)
         
         Returns
         -------
-        List[Tuple[int, List[PathSegment]]]
-            Each tuple contains:
-            - branch_index: the index of a branch that reaches this node
-            - path: the path segments from that branch's end to this node
+        List[int]
+            List of branch indices that reach this node
         """
         # Base case: reached snow_pit (leaf node)
         if not node.branches:
-            # Create a branch for snow_pit
+            # Create a branch starting from snow_pit
+            # The branch will be built up as we return from recursion
             branch = Branch(segments=[])
             branches.append(branch)
-            return [(len(branches) - 1, [])]
+            return [len(branches) - 1]
         
         # Merge node: all inputs must be included
         if node.is_merge:
-            branch_info: List[Tuple[int, List[PathSegment]]] = []
+            branch_indices = []
             
             # Process each input to the merge
             for sub_tree, edge_name in node.branches:
-                # Recursively process each input
-                sub_results = process_node(sub_tree)
+                # Recursively process each input (no continuation path for inputs)
+                sub_indices = process_node(sub_tree, [])
                 
-                # For each result, the path should end at the merge node
-                for branch_idx, path_to_subtree in sub_results:
-                    # Extend this branch's path to include the edge to merge
-                    segment = PathSegment(
-                        from_node=sub_tree.node_name,
-                        edge_name=edge_name,
-                        to_node=node.node_name
-                    )
-                    branches[branch_idx].segments.extend(path_to_subtree)
-                    branches[branch_idx].segments.append(segment)
-                    
-                    branch_info.append((branch_idx, []))
+                # For each branch returned, we need to extend it to this merge
+                for branch_idx in sub_indices:
+                    # Check if this branch is closed (already ends at a merge)
+                    if branch_idx in closed_branches:
+                        # Branch is closed - don't extend it, just reference it
+                        branch_indices.append(branch_idx)
+                    elif branches[branch_idx].segments:
+                        # Branch already has segments but isn't closed - add edge to current merge
+                        segment = PathSegment(
+                            from_node=sub_tree.node_name,
+                            edge_name=edge_name,
+                            to_node=node.node_name
+                        )
+                        branches[branch_idx].segments.append(segment)
+                        branch_indices.append(branch_idx)
+                    else:
+                        # Empty branch - build complete path from snow_pit
+                        def build_path_to_merge(n: PathTree) -> List[PathSegment]:
+                            if not n.branches:
+                                return []
+                            child, child_edge = n.branches[0]
+                            child_path = build_path_to_merge(child)
+                            seg = PathSegment(from_node=child.node_name, edge_name=child_edge, to_node=n.node_name)
+                            return child_path + [seg]
+                        
+                        # Get path from snow_pit to sub_tree
+                        path_to_subtree = build_path_to_merge(sub_tree)
+                        
+                        # Add segment from sub_tree to merge
+                        segment = PathSegment(
+                            from_node=sub_tree.node_name,
+                            edge_name=edge_name,
+                            to_node=node.node_name
+                        )
+                        
+                        branches[branch_idx].segments = path_to_subtree + [segment]
+                        branch_indices.append(branch_idx)
             
-            # Record the merge point
-            branch_indices = [idx for idx, _ in branch_info]
-            merge_points.append((branch_indices, node.node_name))
+            # Record the merge point with its continuation path
+            merge_points.append((branch_indices, node.node_name, continuation_path.copy()))
             
-            # Return info about all branches that meet at this merge
-            # Note: The edge from this merge node to its parent will be handled by the parent
-            # We return empty paths because all branches end at the merge point
-            return branch_info
+            # Mark these branches as closed (they end at this merge)
+            for idx in branch_indices:
+                closed_branches.add(idx)
+            
+            # Return the branch indices (they all end at this merge)
+            return branch_indices
         
         # Regular parameter node: continue the path
         else:
             sub_tree, edge_name = node.branches[0]
             
-            # Recursively process the child
-            sub_results = process_node(sub_tree)
+            # Build the segment from child to current node
+            segment = PathSegment(
+                from_node=sub_tree.node_name,
+                edge_name=edge_name,
+                to_node=node.node_name
+            )
             
-            # Add the edge from child to current node
-            results = []
-            for branch_idx, path_to_subtree in sub_results:
-                new_path = path_to_subtree.copy()
-                segment = PathSegment(
-                    from_node=sub_tree.node_name,
-                    edge_name=edge_name,
-                    to_node=node.node_name
-                )
-                new_path.append(segment)
-                results.append((branch_idx, new_path))
+            # Add this segment to the continuation path
+            new_continuation = [segment] + continuation_path
             
-            return results
+            # Recursively process the child with the extended continuation
+            return process_node(sub_tree, new_continuation)
     
     # Start processing from the root (target parameter)
-    results = process_node(tree)
+    branch_indices = process_node(tree, [])
     
-    # Add any remaining path segments to branches
-    for branch_idx, remaining_path in results:
-        branches[branch_idx].segments.extend(remaining_path)
+    # If there's no merge (simple path), the branch needs to be completed
+    # by adding segments from snow_pit to target
+    if not merge_points and len(branch_indices) == 1:
+        # Build the path by traversing the tree
+        def build_simple_path(node: PathTree) -> List[PathSegment]:
+            if not node.branches:
+                return []
+            sub_tree, edge_name = node.branches[0]
+            child_segments = build_simple_path(sub_tree)
+            segment = PathSegment(
+                from_node=sub_tree.node_name,
+                edge_name=edge_name,
+                to_node=node.node_name
+            )
+            return child_segments + [segment]
+        
+        branches[branch_indices[0]].segments = build_simple_path(tree)
     
     return Parameterization(branches=branches, merge_points=merge_points)

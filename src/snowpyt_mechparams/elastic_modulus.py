@@ -23,6 +23,8 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         - 'kochle': Uses Köchle and Schneebeli (2014) formula based on density
         - 'wautier': Uses Wautier et al. (2015) formula based on density and
           the elastic modulus of ice
+        - 'schottner': Uses Schöttner et al. (2026) experimental power-law
+          fits based on density and grain type (requires scaling constants)
     **kwargs
         Method-specific parameters
 
@@ -42,9 +44,10 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         return _calculate_elastic_modulus_kochle(**kwargs)
     elif method.lower() == 'wautier':
         return _calculate_elastic_modulus_wautier(**kwargs)
+    elif method.lower() == 'schottner':
+        return _calculate_elastic_modulus_schottner(**kwargs)
     else:
-
-        available_methods = ['bergfeld', 'kochle', 'wautier']
+        available_methods = ['bergfeld', 'kochle', 'wautier', 'schottner']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -326,4 +329,75 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
         # E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
         E_snow = E_ice * (A * ((rho_snow / rho_ice) ** n))
     
+    return E_snow
+
+def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str,E_ice: ufloat = ufloat(10000.0, 0.0)) -> ufloat:
+
+    """
+    Calculate the effective elastic modulus (E_eff) using the volume fraction
+    power-law relationships determined experimentally by Schöttner et al. (2026).
+
+    E_snow / E_ice = A * (ρ_snow / ρ_ice)^n
+
+    Parameters
+    ----------
+    density : ufloat
+        Snow density (ρ) in kg/m³ with associated uncertainty.
+    grain_form : str
+        Grain form classification. Supported values:
+        - 'DF', 'RG', 'FC', 'DH', 'SH'
+    E_ice : ufloat, optional
+        Young's modulus of bulk polycrystalline ice (E_•) in MPa, used for
+        normalization. Default is 10 GPa (10,000 MPa).
+
+    Returns
+    -------
+    ufloat
+        Effective elastic modulus (E_eff) in MPa with associated uncertainty.
+
+    Notes
+    -----
+    The power-law relationship is defined as:
+    E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
+
+    - ρ_ice (density of ice) = 917.0 kg/m³ [4].
+    - E_ice (Young's modulus of bulk ice) ≈ 10,000 MPa (10 GPa).
+    - The scaling constant A and E_snow were derived from fits using Orthogonal
+      Distance Regression (ODR) on normalized experimental data.
+
+    Limitations
+    -----------
+    - The exponents were derived from experimental uniaxial compression tests
+      on weak layers.
+    - This model reflects the *effective* elastic modulus E_eff, which is a
+      simplification that enables the application of non-time-dependent models
+      to snow's time-dependent behavior.
+    """
+
+    main_grain_shape = grain_form[:2]
+    if main_grain_shape not in ['DF', 'RG', 'FC', 'DH', 'SH']:
+        return ufloat(np.nan, np.nan)
+
+    rho_snow = density  # kg/m³, input
+    
+    # Constants for Ice
+    rho_ice = 917.0  # kg/m³ 
+
+    # Determine the grain category and retrieve parameters
+    main_grain_shape = grain_form[:2].upper()
+
+    if main_grain_shape in ['DF', 'RG']:
+      A = ufloat(0.40, 0.3)
+      n = ufloat(4.6, 0.6)
+    elif main_grain_shape in ['FC', 'DH']:
+      A = ufloat(1.8, 0.7)
+      n = ufloat(5.1, 0.3)
+    elif main_grain_shape in ['SH']:
+      A = ufloat(0.011, 0.009)
+      n = ufloat(1.7, 0.4)
+    else:
+      return ufloat(np.nan, np.nan)
+
+    E_snow = E_ice * A * (rho_snow / rho_ice) ** n
+
     return E_snow

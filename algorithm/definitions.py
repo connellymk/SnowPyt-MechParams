@@ -48,7 +48,7 @@ merge_hh_gf = build_graph.merge("merge_hand_hardness_grain_form")
 merge_hh_gf_gs = build_graph.merge("merge_hand_hardness_grain_form_grain_size")
 
 # Merge node for: density + grain_form
-# Used by: elastic_modulus.{bergfeld,kochle,wautier}, 
+# Used by: elastic_modulus.{bergfeld,kochle,wautier,schottner}, 
 #          poissons_ratio.srivastava, shear_modulus.wautier
 merge_d_gf = build_graph.merge("merge_density_grain_form")
 
@@ -89,6 +89,7 @@ build_graph.flow(measured_grain_form, merge_d_gf)
 build_graph.method_edge(merge_d_gf, elastic_modulus, "bergfeld")
 build_graph.method_edge(merge_d_gf, elastic_modulus, "kochle")
 build_graph.method_edge(merge_d_gf, elastic_modulus, "wautier")
+build_graph.method_edge(merge_d_gf, elastic_modulus, "schottner")
 
 # --- Poisson's ratio calculation paths ---
 

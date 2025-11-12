@@ -221,17 +221,17 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
         # E = 0.0061 * exp(0.0396 * ρ)
         C_A = 0.0061
         C_B = 0.0396
-        E_snow = C_A * umath.exp(C_B * rho_snow)
         
     elif 250 <= rho_snow.nominal_value <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
         C_A = 6.0457
         C_B = 0.011
-        E_snow = C_A * umath.exp(C_B * rho_snow)
     else:
         # Densities outside 150-450 kg/m³ return NaN
-        E_snow = ufloat(np.nan, np.nan)
+        return ufloat(np.nan, np.nan)
+
+    E_snow = C_A * umath.exp(C_B * rho_snow)
     
     return E_snow
 

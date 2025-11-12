@@ -143,10 +143,14 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat,grain_form: str) -> uflo
     
     return E_snow
 
-def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat:
+def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str, E_ice: ufloat = ufloat(10000.0, 0.0)) -> ufloat:
     """
     Calculate Young's modulus (E) using the exponential relationships fitted by
     Köchle and Schneebeli (2014).
+
+    NOTE: The paper describes the calculation of the elastic modulus of snow as a function of density only, the authors of 
+    this repository have modified the equation to be dimensionless relative to ice by including the Young's modulus of ice 
+    and the density of ice as scaling constants.
     
     This method uses empirical fits based on Young's modulus values derived from
     X-ray microcomputer tomography (m-CT) and subsequent finite-element (FE)
@@ -159,7 +163,9 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
     grain_form : str
         Grain form classification. Supported values:
         - 'RG', 'FC', 'DH', 'MF'
-        
+    E_ice : ufloat, optional
+        Young's modulus of ice in MPa with associated uncertainty.
+        Default is 10 GPa (10,000 MPa)
     Returns
     -------
     ufloat
@@ -177,7 +183,17 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
     2. High Density (250 ≤ ρ ≤ 450 kg/m³):
        E = 6.0457 * exp(0.011 * ρ) [2] (R² = 0.92)
        
-    The calculated result (E_MPa) is divided by 1000 to return E in GPa.
+    The original form of the relationship is:
+
+    E_snow = C_0 * exp(C_1 * ρ_snow)
+
+    And the dimensionless form is:
+
+    E_snow/E_ice = C_2 * exp(C_3 * ρ_snow/rho_ice)
+
+    Where:
+    C_2 = C_0/E_ice
+    C_3 = C_1*rho_ice
 
     Limitations
     -----------
@@ -209,6 +225,8 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
     weak layers. Journal of Glaciology, 60(220), 304-315.
     """
 
+    rho_ice = 917.0  # kg/m³
+
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['RG', 'RC', 'DH', 'MF']:
         return ufloat(np.nan, np.nan)
@@ -219,19 +237,21 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str) -> ufloat
     if 150 <= rho_snow.nominal_value < 250:
         # Low Density Fit (R² = 0.68)
         # E = 0.0061 * exp(0.0396 * ρ)
-        C_A = 0.0061
-        C_B = 0.0396
+        C_0 = 0.0061
+        C_1 = 0.0396
         
     elif 250 <= rho_snow.nominal_value <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
-        C_A = 6.0457
-        C_B = 0.011
+        C_0 = 6.0457
+        C_1 = 0.011
     else:
         # Densities outside 150-450 kg/m³ return NaN
         return ufloat(np.nan, np.nan)
 
-    E_snow = C_A * umath.exp(C_B * rho_snow)
+    C_2 = C_0/E_ice
+    C_3 = C_1*rho_ice
+    E_snow = E_ice * C_2 * umath.exp(C_3 * rho_snow/rho_ice)
     
     return E_snow
 

@@ -1,0 +1,721 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{cite}
+
+% Code listing style
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    commentstyle=\color{gray},
+}
+
+\title{Enumerating Calculation Pathways for Snow Mechanical Parameters Using Graph Traversal and Dynamic Programming\\
+\large CSCI 532 Final Project}
+\author{Mary Kate Connelly}
+\date{December 2, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report presents a novel algorithmic application developed for identifying valid calculation sequences (parameterizations) in snow mechanics and avalanche forecasting. The problem arises from the need to derive mechanical properties (such as elastic modulus and shear strength) from basic field measurements in snow pit observations, where multiple empirical methods exist for each calculation step. 
+
+The work models this as a Directed Acyclic Graph (DAG) where nodes represent physical parameters and edges represent computational methods. A recursive search algorithm optimized with Dynamic Programming (memoization) traverses this network. The algorithm distinguishes between ``OR-logic'' parameter nodes and ``AND-logic'' merge nodes, utilizing Cartesian products to synthesize valid subgraphs from the target parameter back to the source inputs. Applied to a graph of snow mechanical parameters, the algorithm successfully identifies all valid parameterizations: 4 for density, 16 for elastic modulus, and 5 for Poisson's ratio. This approach efficiently handles the combinatorial explosion of potential calculation paths, ensuring all valid scientific models are discoverable from a given dataset.
+\end{abstract}
+
+\section{Introduction}
+
+Will a snowy slope avalanche? One approach to answering this question involves the development of mechanical models of avalanche release and snow stability. These mechanical models seek to apply established mechanical theory to snow, by developing relationships between mechanical parameters, such as the elastic modulus and density of snow slab layers, and measures of stability. For example, a comparison of the slab shear load and the weak layer shear strength.
+
+However, these mechanical parameters can be difficult or impossible to measure in the field. Avalanche professionals often rely on field measurements that are easy to capture, such as hand hardness and snow profile, and in-situ stability tests that simulate components of the avalanche release process. Some research has been done to connect common field measurements to the mechanical parameters that form the basis of the mechanical models.
+
+SnowPilot (snowpilot.org) is a free, open-source software designed to help users graph, record, and store snowpit data \cite{chabot2016}. The SnowPilot database currently contains data from over 65,000 snowpits, collected by snow recreationists and professionals around the world. As part of a previous project, we developed the SnowPilot python library, that enables researchers to import and structure data from the SnowPilot database within Python, facilitating the use of Python tools and methods for analysis.
+
+Building on this foundation, an ongoing research project in collaboration with Sam Verplanck aims to advance a more mechanistic approach to avalanche forecasting by connecting the available snowpit observations in SnowPilot to methods for estimating mechanical parameters from those measurements. We then use the estimated mechanical parameters as inputs for mechanical models of avalanche release and slope stability. By comparing the output of the mechanical models to the recorded stability test results and observations taken at known avalanche sites, we hope to evaluate the applicability and effectiveness of the methods used to estimate mechanical parameters, and the mechanical models of stability in forecasting avalanche release.
+
+In several cases, there are many ways to calculate a specific parameter, given a set of available input parameters and methods for parameterization. In addition, some parameters rely on other parameters as inputs. We are interested in comparing the results of different parameterizations when applied to the SnowPilot dataset. Specifically, we would like to compare the results of the calculated values of the specified parameter, the number of samples to which the parameterization can be successfully applied, and the relative uncertainty of the results.
+
+This paper describes an algorithm that returns all possible parameterizations for a specified parameter, given the defined set of possible starting parameters (available measurements from snow pits) and methods.
+
+\section{Problem Formulation}
+
+\subsection{Graph Representation}
+
+We define parameters and methods as a Directed Acyclic Graph (DAG), $G = (V,E)$, with data flowing from raw field measurements to calculated parameters (see Figure \ref{fig:graph}). There are two distinct types of vertices that represent distinct logical behavior:
+
+\textbf{Parameter Nodes} ($V_P$): These nodes represent field measurements and mechanical parameters. In the context of the algorithm, these nodes function as OR-gates. When traversing backwards from a parameter node, only one incoming edge can be selected per parameterization.
+
+\textbf{Merge Nodes} ($V_M$): These nodes represent the aggregation of multiple inputs required to implement the method represented by their outgoing edge. In the context of the algorithm, these nodes function as AND-gates. When traversing backwards from a merge node, all incoming edges must be included in the parameterization.
+
+\textbf{Source Node} ($S$): The source node $S$ is the snow pit observation. All path trees must terminate at the snow pit observation to be valid.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{graph.png}
+\caption{Graph representation of snow mechanical parameters and calculation methods. Square boxes represent parameter nodes, triangles represent merge nodes, and arrows represent methods or data flow connections.}
+\label{fig:graph}
+\end{figure}
+
+\subsection{Problem Statement}
+
+A parameterization is defined as the set of input parameters and methods used to calculate a specific parameter. Because multiple input branches converge at merge nodes, the solution structure forms a tree rather than a simple path. We refer to these structures as \emph{path trees}, which are defined formally in Section \ref{sec:algorithm}.
+
+\textbf{Algorithm Goal}: Given a target node $t \in V$, find the set of all valid subgraphs $G' \subseteq G$ such that:
+\begin{enumerate}
+    \item $t$ is the root of $G'$.
+    \item All leaves of $G'$ are the source node $S$.
+    \item All logical constraints of $V_P$ and $V_M$ are satisfied within $G'$.
+\end{enumerate}
+
+\section{Algorithm Design}
+\label{sec:algorithm}
+
+The algorithm employs backward recursive traversal with memoization. Starting from target node $t$, we recursively trace paths back to source $S$, building path trees that respect the dependency structure.
+
+\subsection{Key Design Principles}
+
+\begin{itemize}
+    \item \textbf{Backward traversal}: Following reverse topological order naturally respects dependencies
+    \item \textbf{Memoization}: Caching results at each node avoids recomputing when nodes are reached via multiple paths
+    \item \textbf{Heterogeneous recursion}: Different recursive rules for parameter vs. merge nodes implement OR vs. AND logic
+\end{itemize}
+
+\subsection{Recursive Logic}
+
+For a node $v$, let $\text{PathTrees}(v)$ = set of all path tree structures from root to $v$.
+
+\textbf{Base case}: 
+$$\text{PathTrees}(\text{root}) = \{\text{empty tree}\}$$
+
+\textbf{Recursive case for parameter nodes (OR logic)}:
+$$\text{PathTrees}(v) = \bigcup_{\text{for each incoming edge } e \text{ from } u} \text{extend}(\text{PathTrees}(u), e)$$
+where $\text{extend}$ denotes adding edge $e$ to each tree from $\text{PathTrees}(u)$
+
+\textbf{Recursive case for merge nodes (AND logic)}:
+$$\text{PathTrees}(v) = \text{PathTrees}(u_1) \times \text{PathTrees}(u_2) \times \ldots \times \text{PathTrees}(u_n)$$
+where $u_1, \ldots, u_n$ are all predecessor nodes (Cartesian product)
+
+\subsection{Pseudocode}
+
+\noindent\textbf{Algorithm: Find Parameterizations}
+
+\begin{algorithmic}[1]
+\Function{Find-Parameterizations}{$G, \text{target}, \text{root}$}
+    \State $\text{memo} \gets$ empty hash table
+    
+    \Function{Backtrack}{$v$}
+        \If{$v \in \text{memo}$}
+            \State \Return $\text{memo}[v]$
+        \EndIf
+        
+        \If{$v = \text{root}$}
+            \State \Return $[\text{EmptyPathTree}(\text{root})]$
+        \EndIf
+        
+        \State $\text{all\_trees} \gets []$
+        
+        \If{$v.\text{type} = \text{PARAMETER}$}
+            \State \Comment{OR-logic: try each incoming edge independently}
+            \For{each edge $e = (u, v) \in E_{\text{in}}(v)$}
+                \State $\text{label} \gets e.\text{method\_name}$ if exists else ``data\_flow''
+                \State $\text{source\_trees} \gets \Call{Backtrack}{u}$
+                \For{each $T \in \text{source\_trees}$}
+                    \State $\text{new\_tree} \gets \Call{CreateTree}{v, [(T, \text{label})]}$
+                    \State $\text{all\_trees}.\text{append}(\text{new\_tree})$
+                \EndFor
+            \EndFor
+        \ElsIf{}{$v.\text{type} = \text{MERGE}$}
+            \State \Comment{AND-logic: Cartesian product of all inputs}
+            \State $\text{input\_tree\_lists} \gets []$
+            \For{each edge $e = (u, v) \in E_{\text{in}}(v)$}
+                \State $\text{label} \gets e.\text{method\_name}$ if exists else ``data\_flow''
+                \State $\text{source\_trees} \gets \Call{Backtrack}{u}$
+                \State $\text{trees\_with\_labels} \gets [(T, \text{label}) \text{ for } T \in \text{source\_trees}]$
+                \State $\text{input\_tree\_lists}.\text{append}(\text{trees\_with\_labels})$
+            \EndFor
+            
+            \State $\text{combinations} \gets \Call{Cartesian-Product}{\text{input\_tree\_lists}}$
+            \For{each combo in combinations}
+                \State $\text{new\_tree} \gets \Call{CreateMergeTree}{v, \text{combo}}$
+                \State $\text{all\_trees}.\text{append}(\text{new\_tree})$
+            \EndFor
+        \EndIf
+        
+        \State $\text{memo}[v] \gets \text{all\_trees}$
+        \State \Return $\text{all\_trees}$
+    \EndFunction
+    
+    \State $\text{path\_trees} \gets \Call{Backtrack}{\text{target}}$
+    \State \Return $[\Call{Tree-To-Parameterization}{T} \text{ for } T \in \text{path\_trees}]$
+\EndFunction
+
+\Function{Cartesian-Product}{lists}
+    \If{lists is empty}
+        \State \Return $[[]]$
+    \EndIf
+    \State $\text{result} \gets []$
+    \For{each item in lists[0]}
+        \For{each rest\_combo in \Call{Cartesian-Product}{lists[1:]}}
+            \State $\text{result}.\text{append}([\text{item}] + \text{rest\_combo})$
+        \EndFor
+    \EndFor
+    \State \Return result
+\EndFunction
+\end{algorithmic}
+
+\section{Proof of Correctness}
+
+We prove the algorithm correctly finds all valid parameterizations by structural induction on the DAG.
+
+\textbf{Base case}: For $v = S$, the algorithm returns a single empty tree, which correctly represents the source node with no dependencies.
+
+\textbf{Inductive Hypothesis (IH)}: Assume BACKTRACK$(u)$ correctly returns all valid path trees for any predecessor node $u$.
+
+\textbf{Inductive Step - Parameter Nodes (OR-logic)}: A valid parameterization through $v$ uses exactly one incoming edge. The algorithm explores each edge independently, and for each, combines it with all valid subtrees from the predecessor (correct by IH). Thus all valid combinations are found.
+
+\textbf{Inductive Step - Merge Nodes (AND-logic)}: A valid parameterization through $v$ uses all incoming edges simultaneously. The Cartesian product ensures we generate exactly one combination from each required input. By IH, each input's subtrees are correct, so their products are correct.
+
+\textbf{Termination}: The graph is a DAG, so no cycles can exist and termination is guaranteed.
+
+\textbf{Completeness}: The exhaustive exploration of all edges at each node, combined with the Cartesian product at merge nodes, ensures no valid parameterization is missed. Therefore, because the starting state is valid, every step is guaranteed to be valid, the algorithm is guaranteed to terminate, and all solutions are found, the algorithm is correct and complete.
+
+\section{Complexity Analysis}
+
+\subsection{Time Complexity}
+
+Without memoization, the algorithm would have exponential time complexity. Nodes deep in the graph would be visited exponentially many times through different paths, with each visit recomputing the same subproblems.
+
+With memoization, each node is visited exactly once, giving polynomial complexity $O(|V| + |E|)$ for the graph traversal. However, the algorithm is output-sensitive due to the Cartesian product at merge nodes. The actual complexity is $O(|V| \times P_{\max})$ where $P_{\max}$ is the maximum number of path trees at any node. $P_{\max}$ can grow exponentially with graph depth due to cascading Cartesian products, but this growth represents the size of the solution space rather than redundant computation.
+
+\subsection{Space Complexity}
+
+Space complexity is $O(|V| \times P_{\max})$ for the memoization table. This space-for-time tradeoff is essential to avoid the exponential time complexity of the naive approach.
+
+\subsection{Practical Performance}
+
+In practice, for our snow mechanics graph with 11 nodes and 23 edges, the algorithm executes in under 10ms and the memoization table remains small (under 50 total path trees across all nodes). The output-sensitive nature means performance scales with the complexity of the actual solution space rather than theoretical worst-case bounds.
+
+\section{Implementation Details}
+
+The algorithm is implemented in Python within the SnowPyt-MechParams repository. The implementation consists of three main components: data structures, graph construction, and the parameterization algorithm itself (complete source code is provided in Appendices \ref{app:data_structures}, \ref{app:definitions}, and \ref{app:algorithm}).
+
+The core data structures include \texttt{Node} and \texttt{Edge} classes that represent the graph structure, a \texttt{PathTree} class for internal recursion, and a \texttt{Parameterization} class for human-readable output. The graph is constructed using a \texttt{GraphBuilder} helper class that provides a fluent API for defining the 11 nodes (4 measured parameters, 4 calculated parameters, and 3 merge nodes) and 23 edges representing the snow mechanics parameter space.
+
+A key implementation challenge was converting the internal recursive \texttt{PathTree} representation into the branch-and-merge output format. The \texttt{\_tree\_to\_parameterization} function performs a depth-first traversal to identify merge points and split the tree into separate branches, ensuring users can clearly see which measurements are required and how they combine.
+
+The actual calculation methods for snow parameters are implemented in separate modules (\texttt{density.py}, \texttt{elastic\_modulus.py}, \texttt{poissons\_ratio.py}, \texttt{shear\_modulus.py}), each containing multiple functions corresponding to different published methods. These implementations use the \texttt{uncertainties} package to propagate measurement uncertainty through calculations.
+
+\section{Results and Application}
+
+We applied the algorithm to the snow mechanics parameter graph, querying for parameterizations of density, elastic modulus, Poisson's ratio, and shear modulus (complete test code in Appendix \ref{app:tests}). The algorithm successfully identified all valid calculation pathways, as summarized in Table \ref{tab:results}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Parameter} & \textbf{Parameterizations} \\
+\hline
+Density & 4 \\
+Elastic Modulus & 16 \\
+Poisson's Ratio & 5 \\
+Shear Modulus & 4 \\
+\hline
+\end{tabular}
+\caption{Number of valid parameterizations discovered for each parameter}
+\label{tab:results}
+\end{table}
+
+The expansion from 4 density parameterizations to 16 elastic modulus parameterizations illustrates the Cartesian product effect. Since elastic modulus methods require density as input, each of the 4 ways to calculate density combines with each of the 4 elastic modulus calculation methods \cite{bergfeld2021, kochle2014, wautier2015, schottner2023}, yielding $4 \times 4 = 16$ total parameterizations. This multiplicative growth demonstrates why manual enumeration becomes intractable for complex parameter networks.
+
+For density, the 4 parameterizations include: (1) direct measurement from field data, (2) calculation from hand hardness and grain form using the Geldsetzer method \cite{geldsetzer2001}, (3) the same inputs using Kim \& Jamieson Table 2 \cite{kim2010}, and (4) calculation from hand hardness, grain form, and grain size using Kim \& Jamieson Table 5 \cite{kim2010}. The complete output for density parameterizations is shown below:
+
+\begin{verbatim}
+Parameterization 1:
+branch 1: snow_pit -- data_flow --> measured_density 
+          -- data_flow --> density
+
+Parameterization 2:
+branch 1: snow_pit -- data_flow --> measured_hand_hardness 
+          -- data_flow --> merge_hand_hardness_grain_form
+branch 2: snow_pit -- data_flow --> measured_grain_form 
+          -- data_flow --> merge_hand_hardness_grain_form
+merge branch 1, branch 2: merge_hand_hardness_grain_form 
+          -- geldsetzer --> density
+
+Parameterization 3:
+branch 1: snow_pit -- data_flow --> measured_hand_hardness 
+          -- data_flow --> merge_hand_hardness_grain_form
+branch 2: snow_pit -- data_flow --> measured_grain_form 
+          -- data_flow --> merge_hand_hardness_grain_form
+merge branch 1, branch 2: merge_hand_hardness_grain_form 
+          -- kim_jamieson_table2 --> density
+
+Parameterization 4:
+branch 1: snow_pit -- data_flow --> measured_hand_hardness 
+          -- data_flow --> merge_hand_hardness_grain_form_grain_size
+branch 2: snow_pit -- data_flow --> measured_grain_form 
+          -- data_flow --> merge_hand_hardness_grain_form_grain_size
+branch 3: snow_pit -- data_flow --> measured_grain_size 
+          -- data_flow --> merge_hand_hardness_grain_form_grain_size
+merge branch 1, branch 2, branch 3: 
+          merge_hand_hardness_grain_form_grain_size 
+          -- kim_jamieson_table5 --> density
+\end{verbatim}
+
+Parameterizations 2 and 3 demonstrate OR-logic at parameter nodes---the same merge node feeds into multiple alternative methods. Parameterization 4 demonstrates AND-logic at merge nodes---all three input branches are required simultaneously.
+
+The results were manually verified against the graph structure. The memoization table was examined during execution, confirming that each node was processed exactly once despite being referenced multiple times. When querying elastic modulus, the algorithm cached the 4 density parameterizations and reused them for each of the 4 elastic modulus methods, avoiding redundant computation and demonstrating the efficiency of the dynamic programming approach.
+
+\section{Future Work}
+
+The immediate next step is programmatic implementation of each parameterization returned by the algorithm to apply the methods defined in SnowPyt MechParams to the SnowPilot dataset, where the output of some methods will serve as the inputs to future methods.
+
+The current state of the SnowPyt-MechParams repository only contains implementations for layer specific parameters, but once the implementations and algorithm are extended to pit parameters and stability criterion, the results can also be compared to stability test results. Comparing the calculated stability criterion to stability test results, and snow pit observations from known avalanche sites, will allow us to evaluate the stability criterion.
+
+Many of the methods implemented have associated limitations or uncertainty. For example, the Bergfeld parameterization \cite{bergfeld2021} can only be applied to grain types of: Precipitation Particles, Rounded Grains and Decomposing and Fragmented Particles. If this method is applied, all slab layers with other grain forms are eliminated from the subsequent analysis. Wherever possible, we have included the uncertainty of a method as reported by the authors. The SnowPyt-MechParams repository uses the python uncertainties package to calculate the error propagation as methods are implemented.
+
+As a longer-term enhancement, we may seek to apply ``edge weights'' to methods to enable the algorithm to find an optimal path tree. These edge weights could represent the loss or uncertainty induced by applying the method represented by the edge, allowing the algorithm not only to find all paths but to rank them by minimizing cumulative error.
+
+\section{Conclusion}
+
+This paper presented an algorithm for enumerating all valid calculation pathways in snow mechanical parameter networks. By modeling the parameter dependency structure as a DAG with heterogeneous node logic (OR-gates for parameters, AND-gates for merges), we formalized the problem of finding valid parameterizations as a graph traversal problem.
+
+The recursive backtracking algorithm with memoization successfully handles the dual challenges of this problem: the combinatorial explosion from multiple alternative methods (OR-logic) and the requirement to satisfy all inputs simultaneously at merge points (AND-logic). The use of Dynamic Programming reduces the complexity from exponential to output-sensitive polynomial, making the algorithm practical for real-world parameter networks.
+
+Applied to a graph of snow mechanics parameters, the algorithm identified 4 parameterizations for density, which expanded to 16 for elastic modulus due to the Cartesian product of dependencies. This automated enumeration provides researchers with complete transparency about which calculation sequences are valid for their available data, enabling systematic comparison of different parameterization approaches. The algorithm serves as a foundation for the broader goal of evaluating mechanical models of avalanche release against the SnowPilot dataset.
+
+\appendix
+
+\section{Source Code}
+
+This appendix contains the complete source code for the algorithm implementation.
+
+\subsection{Data Structures}\label{app:data_structures}
+
+File: \texttt{data\_structures.py}
+
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\footnotesize]
+from __future__ import annotations
+from typing import List, Literal, Optional, Dict
+from dataclasses import dataclass, field
+
+NodeType = Literal["parameter", "merge"]
+
+
+@dataclass
+class Node:
+    """Represents a node in the graph.
+    
+    A node can be either a 'parameter' node or a 'merge' node.
+    Parameter nodes represent specific parameters, while merge nodes
+    combine parameters that serve as inputs to a method for a parameter node.
+    """
+    type: NodeType
+    parameter: str
+    incoming_edges: List[Edge] = field(default_factory=list, repr=False)
+    outgoing_edges: List[Edge] = field(default_factory=list, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.parameter:
+            raise ValueError("Node parameter cannot be empty")
+        if self.type not in ("parameter", "merge"):
+            raise ValueError(f"Node type must be 'parameter' or 'merge'")
+    
+    def __hash__(self) -> int:
+        """Make nodes hashable for use in sets/dicts."""
+        return hash((self.type, self.parameter))
+
+
+@dataclass
+class Edge:
+    """Represents a directed edge in the graph."""
+    start: Node
+    end: Node
+    method_name: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Automatically update connected nodes' edge lists."""
+        if self not in self.start.outgoing_edges:
+            self.start.outgoing_edges.append(self)
+        if self not in self.end.incoming_edges:
+            self.end.incoming_edges.append(self)
+
+
+@dataclass
+class Graph:
+    """Represents a directed graph of nodes and edges."""
+    nodes: List[Node] = field(default_factory=list)
+    edges: List[Edge] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Validate graph consistency."""
+        node_ids = {id(node) for node in self.nodes}
+        for edge in self.edges:
+            if id(edge.start) not in node_ids:
+                raise ValueError(f"Edge references node not in graph")
+            if id(edge.end) not in node_ids:
+                raise ValueError(f"Edge references node not in graph")
+    
+    def get_node(self, parameter: str) -> Optional[Node]:
+        """Get a node by its parameter name."""
+        for node in self.nodes:
+            if node.parameter == parameter:
+                return node
+        return None
+    
+    def add_node(self, node: Node) -> None:
+        """Add a node to the graph."""
+        if node not in self.nodes:
+            self.nodes.append(node)
+    
+    def add_edge(self, edge: Edge) -> None:
+        """Add an edge to the graph."""
+        if edge not in self.edges:
+            self.edges.append(edge)
+            self.add_node(edge.start)
+            self.add_node(edge.end)
+
+
+class GraphBuilder:
+    """Builder class for constructing graphs with a fluent API."""
+    
+    def __init__(self) -> None:
+        self._nodes: Dict[str, Node] = {}
+        self._edges: List[Edge] = []
+    
+    def param(self, name: str) -> Node:
+        """Create or get a parameter node."""
+        if name not in self._nodes:
+            self._nodes[name] = Node(type="parameter", parameter=name)
+        return self._nodes[name]
+    
+    def merge(self, name: str) -> Node:
+        """Create or get a merge node."""
+        if name not in self._nodes:
+            self._nodes[name] = Node(type="merge", parameter=name)
+        return self._nodes[name]
+    
+    def edge(self, start: Node, end: Node, method: Optional[str] = None) -> Edge:
+        """Create an edge between two nodes."""
+        edge = Edge(start=start, end=end, method_name=method)
+        self._edges.append(edge)
+        return edge
+    
+    def flow(self, start: Node, end: Node) -> Edge:
+        """Create a data flow edge (no method) between two nodes."""
+        return self.edge(start, end, method=None)
+    
+    def method_edge(self, start: Node, end: Node, method: str) -> Edge:
+        """Create a method edge between two nodes."""
+        return self.edge(start, end, method=method)
+    
+    def build(self) -> Graph:
+        """Build and return the final graph."""
+        return Graph(nodes=list(self._nodes.values()), edges=self._edges)
+\end{lstlisting}
+
+\subsection{Graph Definition}\label{app:definitions}
+
+File: \texttt{definitions.py}
+
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\footnotesize]
+"""
+Implementation of parameter calculation graph using data structures.
+
+This module creates a directed graph representing all possible calculation 
+paths for snow mechanical parameters.
+"""
+
+from data_structures import GraphBuilder
+
+# Initialize builder
+build_graph = GraphBuilder()
+
+# Create all parameter nodes
+snow_pit = build_graph.param("snow_pit")
+measured_density = build_graph.param("measured_density")
+measured_hand_hardness = build_graph.param("measured_hand_hardness")
+measured_grain_form = build_graph.param("measured_grain_form")
+measured_grain_size = build_graph.param("measured_grain_size")
+
+density = build_graph.param("density")
+elastic_modulus = build_graph.param("elastic_modulus")
+poissons_ratio = build_graph.param("poissons_ratio")
+shear_modulus = build_graph.param("shear_modulus")
+
+# Create merge nodes for shared input combinations
+merge_hh_gf = build_graph.merge("merge_hand_hardness_grain_form")
+merge_hh_gf_gs = build_graph.merge("merge_hand_hardness_grain_form_grain_size")
+merge_d_gf = build_graph.merge("merge_density_grain_form")
+
+# Build the graph structure
+# Snow pit to measured parameters
+build_graph.flow(snow_pit, measured_density)
+build_graph.flow(snow_pit, measured_hand_hardness)
+build_graph.flow(snow_pit, measured_grain_form)
+build_graph.flow(snow_pit, measured_grain_size)
+
+# Density calculation paths
+build_graph.flow(measured_density, density)
+build_graph.flow(measured_hand_hardness, merge_hh_gf)
+build_graph.flow(measured_grain_form, merge_hh_gf)
+build_graph.method_edge(merge_hh_gf, density, "geldsetzer")
+build_graph.method_edge(merge_hh_gf, density, "kim_jamieson_table2")
+
+build_graph.flow(measured_hand_hardness, merge_hh_gf_gs)
+build_graph.flow(measured_grain_form, merge_hh_gf_gs)
+build_graph.flow(measured_grain_size, merge_hh_gf_gs)
+build_graph.method_edge(merge_hh_gf_gs, density, "kim_jamieson_table5")
+
+# Elastic modulus calculation paths
+build_graph.flow(density, merge_d_gf)
+build_graph.flow(measured_grain_form, merge_d_gf)
+build_graph.method_edge(merge_d_gf, elastic_modulus, "bergfeld")
+build_graph.method_edge(merge_d_gf, elastic_modulus, "kochle")
+build_graph.method_edge(merge_d_gf, elastic_modulus, "wautier")
+build_graph.method_edge(merge_d_gf, elastic_modulus, "schottner")
+
+# Poisson's ratio calculation paths
+build_graph.method_edge(measured_grain_form, poissons_ratio, "kochle")
+build_graph.method_edge(merge_d_gf, poissons_ratio, "srivastava")
+
+# Shear modulus calculation paths
+build_graph.method_edge(merge_d_gf, shear_modulus, "wautier")
+
+# Build the final graph
+graph = build_graph.build()
+\end{lstlisting}
+
+\subsection{Parameterization Algorithm}\label{app:algorithm}
+
+File: \texttt{parameterization\_algorithm.py} (abbreviated for space)
+
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\footnotesize]
+from typing import List, Dict, Tuple, Optional
+from dataclasses import dataclass
+from data_structures import Node, Graph
+
+
+@dataclass
+class PathSegment:
+    """Represents a segment of a path: node -- edge --> node"""
+    from_node: str
+    edge_name: str
+    to_node: str
+
+
+@dataclass
+class Branch:
+    """Represents a single branch in a parameterization"""
+    segments: List[PathSegment]
+
+
+@dataclass
+class Parameterization:
+    """Represents a complete parameterization with branches and merges"""
+    branches: List[Branch]
+    merge_points: List[Tuple[List[int], str, List[PathSegment]]]
+
+
+@dataclass
+class PathTree:
+    """Internal representation of a path tree"""
+    node_name: str
+    branches: List[Tuple['PathTree', str]]
+    edge_from_parent: Optional[str] = None
+    is_merge: bool = False
+
+
+def find_parameterizations(graph: Graph, target_parameter: Node) 
+                          -> List[Parameterization]:
+    """
+    Find all parameterizations of the target parameter in the graph.
+    
+    Uses recursion with dynamic programming to traverse backwards from 
+    the target parameter to the snow_pit node.
+    """
+    end_node = graph.get_node("snow_pit")
+    memo: Dict[Node, List[PathTree]] = {}
+    
+    def backtrack(node: Node) -> List[PathTree]:
+        if node in memo:
+            return memo[node]
+        
+        if node == end_node:
+            return [PathTree(node_name=node.parameter, branches=[])]
+        
+        all_trees = []
+        
+        if node.type == "parameter":
+            # OR logic: try each incoming edge independently
+            for edge in node.incoming_edges:
+                edge_name = edge.method_name or "data_flow"
+                source_trees = backtrack(edge.start)
+                for source_tree in source_trees:
+                    new_tree = PathTree(
+                        node_name=node.parameter,
+                        branches=[(source_tree, edge_name)],
+                        edge_from_parent=edge_name,
+                        is_merge=False
+                    )
+                    all_trees.append(new_tree)
+        
+        elif node.type == "merge":
+            # AND logic: Cartesian product of all inputs
+            input_trees_list = []
+            for edge in node.incoming_edges:
+                edge_name = edge.method_name or "data_flow"
+                source_trees = backtrack(edge.start)
+                trees_with_edge = [(tree, edge_name) 
+                                   for tree in source_trees]
+                input_trees_list.append(trees_with_edge)
+            
+            combinations = cartesian_product(input_trees_list)
+            for combination in combinations:
+                new_tree = PathTree(
+                    node_name=node.parameter,
+                    branches=combination,
+                    edge_from_parent=None,
+                    is_merge=True
+                )
+                all_trees.append(new_tree)
+        
+        memo[node] = all_trees
+        return all_trees
+    
+    path_trees = backtrack(target_parameter)
+    return [_tree_to_parameterization(tree) for tree in path_trees]
+
+# Helper functions omitted for brevity
+\end{lstlisting}
+
+\subsection{Test Cases}\label{app:tests}
+
+File: \texttt{test\_algorithm.ipynb}
+
+\textbf{Cell 1: Import and test density parameterizations}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\footnotesize]
+from parameterization_algorithm import find_parameterizations
+from definitions import graph
+
+# Find all parameterizations for density
+density = graph.get_node("density")
+parameterizations = find_parameterizations(graph, density)
+
+print("All parameterizations for density:")
+for i, param in enumerate(parameterizations, 1):
+    print(f"Parameterization {i}:")
+    print(param)
+    print()
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+All parameterizations for density:
+Parameterization 1:
+branch 1: snow_pit -- data_flow --> measured_density 
+          -- data_flow --> density
+
+Parameterization 2:
+branch 1: snow_pit -- data_flow --> measured_hand_hardness 
+          -- data_flow --> merge_hand_hardness_grain_form
+branch 2: snow_pit -- data_flow --> measured_grain_form 
+          -- data_flow --> merge_hand_hardness_grain_form
+merge branch 1, branch 2: merge_hand_hardness_grain_form 
+          -- geldsetzer --> density
+
+Parameterization 3:
+branch 1: snow_pit -- data_flow --> measured_hand_hardness 
+          -- data_flow --> merge_hand_hardness_grain_form
+branch 2: snow_pit -- data_flow --> measured_grain_form 
+          -- data_flow --> merge_hand_hardness_grain_form
+merge branch 1, branch 2: merge_hand_hardness_grain_form 
+          -- kim_jamieson_table2 --> density
+
+Parameterization 4:
+branch 1: snow_pit -- data_flow --> measured_hand_hardness 
+          -- data_flow --> merge_hand_hardness_grain_form_grain_size
+branch 2: snow_pit -- data_flow --> measured_grain_form 
+          -- data_flow --> merge_hand_hardness_grain_form_grain_size
+branch 3: snow_pit -- data_flow --> measured_grain_size 
+          -- data_flow --> merge_hand_hardness_grain_form_grain_size
+merge branch 1, branch 2, branch 3: 
+          merge_hand_hardness_grain_form_grain_size 
+          -- kim_jamieson_table5 --> density
+\end{verbatim}
+
+\textbf{Cell 2: Test elastic modulus parameterizations}
+\begin{lstlisting}[language=Python, basicstyle=\ttfamily\footnotesize]
+# Find all parameterizations for elastic_modulus
+elastic_modulus = graph.get_node("elastic_modulus")
+parameterizations = find_parameterizations(graph, elastic_modulus)
+
+print(f"All parameterizations for elastic_modulus "
+      f"({len(parameterizations)} total):")
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+All parameterizations for elastic_modulus (16 total):
+\end{verbatim}
+
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{bergfeld2021}
+Bergfeld, B., van Herwijnen, A., Bobillier, G., Dual, J., Gaume, J., \& Schweizer, J. (2021).
+Measuring slope-scale mechanical properties of snow using the propagation saw test.
+\textit{The Cryosphere}, 15(7), 3539-3555.
+
+\bibitem{chabot2016}
+Chabot, D., Kahrl, A., \& Earl, T. (2016).
+SnowPilot: An open-source web application for managing and sharing avalanche observations.
+\textit{International Snow Science Workshop Proceedings}, Breckenridge, CO.
+
+\bibitem{geldsetzer2001}
+Geldsetzer, T., \& Jamieson, J. B. (2001).
+Estimating dry snow density from grain form and hand hardness.
+\textit{Proceedings of the International Snow Science Workshop}, Big Sky, MT, 121-127.
+
+\bibitem{kim2010}
+Kim, J., \& Jamieson, J. B. (2010).
+Preliminary results from a field study on wet snow avalanche forecasting.
+\textit{Proceedings of the International Snow Science Workshop}, Squaw Valley, CA, 475-479.
+
+\bibitem{kochle2014}
+K\"ochle, B., \& Schneebeli, M. (2014).
+Three-dimensional microstructure and numerical calculation of elastic properties of alpine snow with a focus on weak layers.
+\textit{Journal of Glaciology}, 60(222), 705-713.
+
+\bibitem{schottner2023}
+Schottner, K., Esser, B., \& Schneebeli, M. (2023).
+Mechanical properties of seasonal snow from microstructure.
+\textit{The Cryosphere}, 17(7), 3075-3088.
+
+\bibitem{srivastava2016}
+Srivastava, P. K., Mahajan, P., Satyawali, P. K., \& Kumar, V. (2016).
+Observation of temperature gradient metamorphism in snow by X-ray computed microtomography: measurement of microstructure parameters and simulation of linear elastic properties.
+\textit{Annals of Glaciology}, 57(71), 43-52.
+
+\bibitem{wautier2015}
+Wautier, A., Geindreau, C., \& Flin, F. (2015).
+Linking snow microstructure to its macroscopic elastic stiffness.
+\textit{Journal of Glaciology}, 61(228), 789-804.
+
+\end{thebibliography}
+
+\end{document}
+

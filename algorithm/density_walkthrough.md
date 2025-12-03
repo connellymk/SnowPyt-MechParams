@@ -362,22 +362,31 @@ merge branch 1, branch 2, branch 3: merge_hh_gf_gs -- kim_jamieson_table5 --> de
 ```
 find_parameterizations(density)
   └─> backtrack(density)                    [parameter node - OR logic]
+       │
        ├─> backtrack(measured_density)      [parameter node - OR logic]
        │    └─> backtrack(snow_pit)         [BASE CASE] ✓
+       │    
+       │    → Returns 1 tree → Parameterization 1: Direct measurement
        │
        ├─> backtrack(merge_hh_gf)           [merge node - AND logic]
        │    ├─> backtrack(measured_hand_hardness)
        │    │    └─> backtrack(snow_pit)    [from memo] ✓
        │    └─> backtrack(measured_grain_form)
        │         └─> backtrack(snow_pit)    [from memo] ✓
+       │    
+       │    → Returns 1 tree (merge of 2 inputs) → Parameterization 2: geldsetzer method
        │
        ├─> backtrack(merge_hh_gf)           [from memo] ✓
+       │    
+       │    → Returns cached tree (same merge) → Parameterization 3: kim_jamieson_table2
        │
        └─> backtrack(merge_hh_gf_gs)        [merge node - AND logic]
             ├─> backtrack(measured_hand_hardness)  [from memo] ✓
             ├─> backtrack(measured_grain_form)     [from memo] ✓
             └─> backtrack(measured_grain_size)
                  └─> backtrack(snow_pit)    [from memo] ✓
+            
+            → Returns 1 tree (merge of 3 inputs) → Parameterization 4: kim_jamieson_table5
 ```
 
 **Total unique nodes computed**: 6 (snow_pit, measured_density, measured_hand_hardness, measured_grain_form, measured_grain_size, merge_hh_gf, merge_hh_gf_gs)

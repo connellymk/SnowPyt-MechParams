@@ -13,22 +13,26 @@ flowchart TD
     CheckBase -->|Yes| BaseCase[Return empty PathTree]
     CheckBase -->|No| CheckType{Node type?}
     
-    CheckType -->|parameter| ParamLogic["OR Logic:<br/>Select each incoming edge"]
-    CheckType -->|merge| MergeLogic["AND Logic:<br/>Combine all incoming edges"]
+    CheckType -->|parameter| ParamLogic["OR Logic:<br/>Each edge = alternative method"]
+    CheckType -->|merge| MergeLogic["AND Logic:<br/>All edges required"]
     
-    ParamLogic --> ForEachEdge["For each incoming edge:<br/>independently"]
-    ForEachEdge --> RecurseParam["🔄 backtrack(edge.start)"]
+    ParamLogic --> ParamLoop["For each incoming edge:"]
+    ParamLoop --> RecurseParam["🔄 trees = backtrack(edge.start)"]
     RecurseParam -.->|recurse| Backtrack
-    RecurseParam --> CollectParam["Collect all returned trees<br/>from all edges"]
-    CollectParam --> BuildParam["Wrap each tree:<br/>add current node on top"]
-    BuildParam --> StoreParam[Store all trees in memo]
+    RecurseParam --> ParamNested["For each returned tree:"]
+    ParamNested --> WrapTree["Create new PathTree:<br/>current node → tree"]
+    WrapTree --> AddToList["Add to all_trees list"]
+    AddToList --> ParamStore[Store all_trees in memo]
     
-    MergeLogic --> ForEachInput["For each incoming edge:<br/>get predecessor trees"]
-    ForEachInput --> RecurseMerge["🔄 backtrack(edge.start)"]
+    MergeLogic --> MergeLoop["For each incoming edge:"]
+    MergeLoop --> RecurseMerge["🔄 trees = backtrack(edge.start)"]
     RecurseMerge -.->|recurse| Backtrack
-    RecurseMerge --> Cartesian["Cartesian product:<br/>one tree from each input"]
-    Cartesian --> BuildMerge["For each combination:<br/>create merged PathTree"]
-    BuildMerge --> StoreMerge[Store all trees in memo]
+    RecurseMerge --> CollectInputs["Collect into input_trees_list:<br/>[[trees from edge1], [trees from edge2], ...]"]
+    CollectInputs --> Cartesian["Cartesian product:<br/>Pick 1 tree from each edge"]
+    Cartesian --> MergeNested["For each combination:"]
+    MergeNested --> CreateMerge["Create PathTree with<br/>all inputs as branches"]
+    CreateMerge --> AddMerge["Add to all_trees list"]
+    AddMerge --> MergeStore[Store all_trees in memo]
     
     StoreParam --> End
     StoreMerge --> End
@@ -59,20 +63,26 @@ flowchart TD
 - **Action**: Return PathTree with empty branches (leaf node)
 
 ### 3. Parameter Node (OR Logic)
-- **Behavior**: Each incoming edge represents an alternative way to compute the parameter
+- **Meaning**: Each incoming edge represents a different method to calculate this parameter
+- **Example**: If parameter `X` can be calculated by method A OR method B, we explore both
 - **Process**: 
-  1. Loop through each incoming edge independently
-  2. Recursively get trees from edge source
-  3. Create new tree for each source tree
-  4. Collect all possibilities
+  1. For each incoming edge (method):
+     - Recursively get all path trees from the predecessor node
+     - For each returned tree, wrap it by creating a new PathTree with current node on top
+     - Add all wrapped trees to the result list
+- **Result**: If edge1 returns 3 trees and edge2 returns 2 trees, we get 5 total trees (3+2)
 
 ### 4. Merge Node (AND Logic)
-- **Behavior**: All incoming edges must be included
+- **Meaning**: All incoming edges must be included (all inputs are required)
+- **Example**: If merge node needs input A AND input B, we must have paths for both
 - **Process**:
-  1. Get trees for each input edge
-  2. Compute Cartesian product of all input tree lists
-  3. Create tree for each combination
-  4. Each combination represents one valid way to satisfy all merge inputs
+  1. For each incoming edge:
+     - Recursively get all path trees from the predecessor node
+     - Store in input_trees_list: `[[trees from A], [trees from B], ...]`
+  2. Compute Cartesian product: pick one tree from each input
+  3. For each combination, create a PathTree with all inputs as branches
+- **Result**: If input A has 2 trees and input B has 3 trees, we get 6 combinations (2×3)
+- **Why Cartesian?**: Every way to reach A must be paired with every way to reach B
 
 ### 5. Recursion Flow
 - **Initial call**: `find_parameterizations()` calls `backtrack(target_parameter)`

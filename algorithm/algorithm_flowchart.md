@@ -43,9 +43,11 @@ flowchart TD
     Return3 --> BackToMain
     ReturnCached --> BackToMain
     
-    BackToMain[Return to caller] --> CheckComplete{All recursion complete?}
-    CheckComplete -->|No| Backtrack
-    CheckComplete -->|Yes| ConvertTrees[Convert PathTrees to<br/>Parameterizations]
+    BackToMain[Return List of PathTrees<br/>to caller] --> CheckCaller{Is caller another<br/>backtrack call?}
+    CheckCaller -->|Yes: recursive| UseInParent[Caller uses returned trees<br/>to build its own trees]
+    UseInParent -.->|continues processing| CreateParamTree
+    UseInParent -.->|continues processing| Cartesian
+    CheckCaller -->|No: initial call| ConvertTrees[Convert PathTrees to<br/>Parameterizations]
     ConvertTrees --> End([Return parameterizations])
     
     style Start fill:#e1f5e1
@@ -91,10 +93,14 @@ flowchart TD
   4. Each combination represents one valid way to satisfy all merge inputs
 
 ### 5. Recursion Flow
-- Starts at target parameter
-- Works backward to snow_pit
-- Memoization prevents redundant computation
-- Returns list of all possible path trees
+- **Initial call**: `find_parameterizations()` calls `backtrack(target_parameter)`
+- **Recursive calls**: Each `backtrack(node)` may call `backtrack()` on predecessor nodes
+- **Return path**: 
+  - When `backtrack()` returns to another `backtrack()` call (recursive case), the returned trees are used to construct the caller's trees
+  - When `backtrack()` returns to `find_parameterizations()` (base of call stack), the recursion is complete
+- **Direction**: Works backward from target parameter to snow_pit
+- **Memoization**: Prevents redundant computation when the same node is reached via different paths
+- **Result**: Returns list of all possible path trees from the given node to snow_pit
 
 ## Complexity Notes
 

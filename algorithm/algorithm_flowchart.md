@@ -19,15 +19,15 @@ flowchart TD
     ParamLogic --> ForEachEdge["For each incoming edge:"]
     ForEachEdge --> RecurseParam["🔄 backtrack(edge.start)"]
     RecurseParam -.->|recurse| Backtrack
-    RecurseParam --> BuildParam["Immediately extend each tree:<br/>create PathTree with<br/>current node → returned tree"]
-    CollectParam --> StoreParam[Store all trees in memo]
+    RecurseParam --> BuildParam["Extend each tree:<br/>create PathTree with<br/>current node → returned tree"]
+    BuildParam --> StoreParam[Store all trees in memo]
     
     MergeLogic --> ForEachInput["For each incoming edge:"]
     ForEachInput --> RecurseMerge["🔄 backtrack(edge.start)"]
     RecurseMerge -.->|recurse| Backtrack
-    RecurseMerge --> GroupInputs["Keep trees grouped by edge:<br/>input_list = [[edge1 trees],<br/>[edge2 trees], ...]"]
-    GroupInputs --> Cartesian["Cartesian product:<br/>combine one tree from each edge"]
-    Cartesian --> BuildMerge["For each combination:<br/>create PathTree with current<br/>node → all selected trees"]
+    RecurseMerge --> GroupInputs["Collect trees by edge:<br/>[[trees from edge1],<br/>[trees from edge2], ...]"]
+    GroupInputs --> CombineAll["Combine all possibilities:<br/>Pick 1 tree from edge1 AND<br/>1 tree from edge2 AND ...<br/>(e.g., edge1 has 2 trees, edge2 has 3 trees<br/>→ 2×3=6 combos)"]
+    CombineAll --> BuildMerge["For each combination:<br/>create PathTree with current<br/>node → all selected trees"]
     BuildMerge --> StoreMerge[Store all trees in memo]
     
     StoreParam --> End
@@ -75,14 +75,17 @@ flowchart TD
   1. For each incoming edge, recursively get trees from the edge's source node
   2. Collect results into a list of lists: `[[trees from input1], [trees from input2], ...]`
   3. Compute Cartesian product: pick one tree from each input
+     - **This creates branching**: Multiple trees from inputs → multiple combinations
   4. For each combination, create a new PathTree with:
      - Current node as the root
      - All selected trees as child branches
-- **Example**: 
+- **Example (Branching in Action)**: 
   - Input A returns 2 trees: `[tree_A1, tree_A2]`
   - Input B returns 3 trees: `[tree_B1, tree_B2, tree_B3]`
-  - Cartesian product gives 6 combinations: `(A1,B1), (A1,B2), (A1,B3), (A2,B1), (A2,B2), (A2,B3)`
-  - Each combination becomes a merged PathTree with current node having both inputs as branches
+  - Cartesian product gives **6 combinations** (2×3 branching): 
+    - `(A1,B1), (A1,B2), (A1,B3), (A2,B1), (A2,B2), (A2,B3)`
+  - Each combination becomes a separate merged PathTree
+  - Result: **6 different ways** to reach this merge node
 
 ### 5. Recursion Flow
 - **Initial call**: `find_parameterizations()` calls `backtrack(target_parameter)`

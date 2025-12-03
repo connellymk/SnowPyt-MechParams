@@ -3,7 +3,7 @@
 This flowchart shows the key recursive and memoization logic in `parameterization_algorithm.py`.
 
 ```mermaid
-flowchart TD
+flowchart LR
     Start(["find_parameterizations(t)"]) --> Backtrack{"backtrack(v)"}
     
     Backtrack --> CheckMemo{v in memo?}

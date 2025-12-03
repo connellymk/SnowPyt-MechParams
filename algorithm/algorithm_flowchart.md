@@ -26,7 +26,7 @@ flowchart TD
     ForEachInput --> RecurseMerge["🔄 backtrack(edge.start)"]
     RecurseMerge -.->|recurse| Backtrack
     RecurseMerge --> GroupInputs["Collect trees by edge:<br/>[[trees from edge1],<br/>[trees from edge2], ...]"]
-    GroupInputs --> CombineAll["Combine all possibilities:<br/>Pick 1 tree from edge1 AND<br/>1 tree from edge2 AND ...<br/>(e.g., edge1 has 2 trees, edge2 has 3 trees<br/>→ 2×3=6 combos)"]
+    GroupInputs --> CombineAll["Combine all possibilities (Cartesian Product):<br/>Pick 1 tree from edge1 AND<br/>1 tree from edge2 AND ...<br/>(e.g., edge1 has 2 trees, edge2 has 3 trees<br/>→ 2×3=6 combos)"]
     CombineAll --> BuildMerge["For each combination:<br/>create PathTree with current<br/>node → all selected trees"]
     BuildMerge --> StoreMerge[Store all trees in memo]
     

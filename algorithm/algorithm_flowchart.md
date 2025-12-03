@@ -16,19 +16,19 @@ flowchart TD
     CheckType -->|parameter| ParamLogic["OR Logic:<br/>Select each incoming edge"]
     CheckType -->|merge| MergeLogic["AND Logic:<br/>Combine all incoming edges"]
     
-    ParamLogic --> ForEachEdge["For each incoming edge:<br/>independently"]
+    ParamLogic --> ForEachEdge["For each incoming edge:"]
     ForEachEdge --> RecurseParam["🔄 backtrack(edge.start)"]
     RecurseParam -.->|recurse| Backtrack
-    RecurseParam --> BuildParam["For each returned tree:<br/>create new PathTree with<br/>current node as root"]
-    BuildParam --> CollectParam["Collect all new trees"]
+    RecurseParam --> BuildParam["Immediately extend each tree:<br/>create PathTree with<br/>current node → returned tree"]
+    BuildParam --> CollectParam["Add to result list<br/>(flattened)"]
     CollectParam --> StoreParam[Store all trees in memo]
     
-    MergeLogic --> ForEachInput["For each incoming edge:<br/>call backtrack"]
+    MergeLogic --> ForEachInput["For each incoming edge:"]
     ForEachInput --> RecurseMerge["🔄 backtrack(edge.start)"]
     RecurseMerge -.->|recurse| Backtrack
-    RecurseMerge --> CollectInputs["Collect all results:<br/>input_list = [[trees from edge1],<br/>[trees from edge2], ...]"]
-    CollectInputs --> Cartesian["Cartesian product:<br/>combine one tree from each edge"]
-    Cartesian --> BuildMerge["For each combination:<br/>create PathTree with current<br/>node and all inputs as branches"]
+    RecurseMerge --> GroupInputs["Keep trees grouped by edge:<br/>input_list = [[edge1 trees],<br/>[edge2 trees], ...]"]
+    GroupInputs --> Cartesian["Cartesian product:<br/>combine one tree from each edge"]
+    Cartesian --> BuildMerge["For each combination:<br/>create PathTree with current<br/>node → all selected trees"]
     BuildMerge --> StoreMerge[Store all trees in memo]
     
     StoreParam --> End

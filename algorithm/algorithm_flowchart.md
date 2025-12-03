@@ -4,7 +4,9 @@ This flowchart shows the key recursive and memoization logic in `parameterizatio
 
 ```mermaid
 flowchart LR
-    Start(["find_parameterizations(t)"]) --> Backtrack{"backtrack(v)"}
+    Start(["find_parameterizations(t)"]) --> Initialize[Initialize memo]
+    
+    Initialize --> Backtrack(["backtrack(v)"])
     
     Backtrack --> CheckMemo{v in memo?}
     CheckMemo -->|Yes| Return[Return cached trees]

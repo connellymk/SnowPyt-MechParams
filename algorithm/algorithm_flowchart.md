@@ -23,14 +23,17 @@ flowchart TD
     CheckType -->|merge| MergeLogic[AND Logic: All incoming edges required]
     
     ParamLogic --> LoopEdges[For each incoming edge]
-    LoopEdges --> RecurseParam[Recursively call backtrack on edge.start]
+    LoopEdges --> RecurseParam[🔄 RECURSIVE CALL:<br/>backtrack edge.start]
+    RecurseParam -.->|recursive call| Backtrack
     RecurseParam --> CreateParamTree[For each returned tree:<br/>Create new PathTree with<br/>single branch]
     CreateParamTree --> CollectParam[Collect all trees]
     CollectParam --> StoreMemo2[Store in memo]
     StoreMemo2 --> Return2[Return all trees]
     
-    MergeLogic --> GetInputs[For each incoming edge:<br/>Get trees from backtrack]
-    GetInputs --> Cartesian[Compute Cartesian product<br/>of all input tree lists]
+    MergeLogic --> GetInputs[For each incoming edge]
+    GetInputs --> RecurseMerge[🔄 RECURSIVE CALL:<br/>backtrack edge.start]
+    RecurseMerge -.->|recursive call| Backtrack
+    RecurseMerge --> Cartesian[Compute Cartesian product<br/>of all input tree lists]
     Cartesian --> CreateMergeTrees[For each combination:<br/>Create PathTree with<br/>is_merge=True]
     CreateMergeTrees --> StoreMemo3[Store in memo]
     StoreMemo3 --> Return3[Return all trees]
@@ -56,6 +59,8 @@ flowchart TD
     style StoreMemo1 fill:#f0f0f0
     style StoreMemo2 fill:#f0f0f0
     style StoreMemo3 fill:#f0f0f0
+    style RecurseParam fill:#ffeb99
+    style RecurseMerge fill:#ffeb99
 ```
 
 ## Key Components

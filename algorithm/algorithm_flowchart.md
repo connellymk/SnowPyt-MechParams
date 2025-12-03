@@ -4,63 +4,42 @@ This flowchart shows the key recursive and memoization logic in `parameterizatio
 
 ```mermaid
 flowchart TD
-    Start(["find_parameterizations(t)"]) --> Init[Initialize memo]
-    Init --> CallBacktrack["Call backtrack(t)"]
-    
-    CallBacktrack --> Backtrack{"backtrack(v) function"}
+    Start(["find_parameterizations(t)"]) --> Backtrack{"backtrack(v)"}
     
     Backtrack --> CheckMemo{v in memo?}
-    CheckMemo -->|Yes| ReturnCached[Return cached result]
-    CheckMemo -->|No| CheckBase{Node == snow_pit?}
+    CheckMemo -->|Yes| Return[Return cached trees]
+    CheckMemo -->|No| CheckBase{v == snow_pit?}
     
-    CheckBase -->|Yes| BaseCase[Create PathTree with empty branches]
-    BaseCase --> StoreMemo1[Store in memo]
-    StoreMemo1 --> Return1[Return PathTree list]
-    
+    CheckBase -->|Yes| BaseCase[Return empty PathTree]
     CheckBase -->|No| CheckType{Node type?}
     
-    CheckType -->|parameter| ParamLogic[OR Logic: Each incoming edge is independent]
-    CheckType -->|merge| MergeLogic[AND Logic: All incoming edges required]
+    CheckType -->|parameter| ParamLogic["OR Logic:<br/>Try each incoming edge"]
+    CheckType -->|merge| MergeLogic["AND Logic:<br/>Combine all incoming edges"]
     
-    ParamLogic --> LoopEdges[For each incoming edge]
-    LoopEdges --> RecurseParam[🔄 RECURSIVE CALL:<br/>backtrack edge.start]
-    RecurseParam -.->|recursive call| Backtrack
-    RecurseParam --> CreateParamTree[For each returned tree:<br/>Create new PathTree with<br/>single branch]
-    CreateParamTree --> CollectParam[Collect all trees]
-    CollectParam --> StoreMemo2[Store in memo]
-    StoreMemo2 --> Return2[Return all trees]
+    ParamLogic --> RecurseParam["🔄 backtrack(predecessor)"]
+    RecurseParam -.->|recurse| Backtrack
+    RecurseParam --> BuildParam[Build PathTree for each result]
+    BuildParam --> StoreParam[Store in memo & return]
     
-    MergeLogic --> GetInputs[For each incoming edge]
-    GetInputs --> RecurseMerge[🔄 RECURSIVE CALL:<br/>backtrack edge.start]
-    RecurseMerge -.->|recursive call| Backtrack
-    RecurseMerge --> Cartesian[Compute Cartesian product<br/>of all input tree lists]
-    Cartesian --> CreateMergeTrees[For each combination:<br/>Create PathTree with<br/>is_merge=True]
-    CreateMergeTrees --> StoreMemo3[Store in memo]
-    StoreMemo3 --> Return3[Return all trees]
+    MergeLogic --> RecurseMerge["🔄 backtrack(each predecessor)"]
+    RecurseMerge -.->|recurse| Backtrack
+    RecurseMerge --> Cartesian[Cartesian product of results]
+    Cartesian --> BuildMerge[Build PathTree for each combination]
+    BuildMerge --> StoreMerge[Store in memo & return]
     
-    Return1 --> BackToMain
-    Return2 --> BackToMain
-    Return3 --> BackToMain
-    ReturnCached --> BackToMain
-    
-    BackToMain[Return List of PathTrees<br/>to caller] --> CheckCaller{Is caller another<br/>backtrack call?}
-    CheckCaller -->|Yes: recursive| UseInParent[Caller uses returned trees<br/>to build its own trees]
-    UseInParent -.->|continues processing| CreateParamTree
-    UseInParent -.->|continues processing| Cartesian
-    CheckCaller -->|No: initial call| ConvertTrees[Convert PathTrees to<br/>Parameterizations]
-    ConvertTrees --> End([Return parameterizations])
+    StoreParam --> End
+    StoreMerge --> End
+    BaseCase --> End
+    Return --> End
+    End([Results bubble up<br/>through recursion])
     
     style Start fill:#e1f5e1
     style End fill:#e1f5e1
     style CheckMemo fill:#fff4e1
     style CheckBase fill:#fff4e1
     style CheckType fill:#fff4e1
-    style CheckComplete fill:#fff4e1
     style ParamLogic fill:#e1e5ff
     style MergeLogic fill:#ffe1e1
-    style StoreMemo1 fill:#f0f0f0
-    style StoreMemo2 fill:#f0f0f0
-    style StoreMemo3 fill:#f0f0f0
     style RecurseParam fill:#ffeb99
     style RecurseMerge fill:#ffeb99
 ```

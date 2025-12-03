@@ -4,10 +4,10 @@ This flowchart shows the key recursive and memoization logic in `parameterizatio
 
 ```mermaid
 flowchart TD
-    Start([find_parameterizations(t)]) --> Init[Initialize memo]
-    Init --> CallBacktrack[Call backtrack(t)]
+    Start(["find_parameterizations(t)"]) --> Init[Initialize memo]
+    Init --> CallBacktrack["Call backtrack(t)"]
     
-    CallBacktrack --> Backtrack{backtrack(v) function}
+    CallBacktrack --> Backtrack{"backtrack(v) function"}
     
     Backtrack --> CheckMemo{v in memo?}
     CheckMemo -->|Yes| ReturnCached[Return cached result]

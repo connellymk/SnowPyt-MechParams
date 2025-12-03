@@ -20,7 +20,6 @@ flowchart TD
     ForEachEdge --> RecurseParam["🔄 backtrack(edge.start)"]
     RecurseParam -.->|recurse| Backtrack
     RecurseParam --> BuildParam["Immediately extend each tree:<br/>create PathTree with<br/>current node → returned tree"]
-    BuildParam --> CollectParam["Add to result list<br/>(flattened)"]
     CollectParam --> StoreParam[Store all trees in memo]
     
     MergeLogic --> ForEachInput["For each incoming edge:"]

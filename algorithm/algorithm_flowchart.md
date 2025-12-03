@@ -4,12 +4,12 @@ This flowchart shows the key recursive and memoization logic in `parameterizatio
 
 ```mermaid
 flowchart TD
-    Start([find_parameterizations called]) --> Init[Initialize memo cache: Dict]
-    Init --> CallBacktrack[Call backtrack on target_parameter]
+    Start([find_parameterizations(t)]) --> Init[Initialize memo]
+    Init --> CallBacktrack[Call backtrack(t)]
     
-    CallBacktrack --> Backtrack{backtrack function}
+    CallBacktrack --> Backtrack{backtrack(v) function}
     
-    Backtrack --> CheckMemo{Node in memo?}
+    Backtrack --> CheckMemo{v in memo?}
     CheckMemo -->|Yes| ReturnCached[Return cached result]
     CheckMemo -->|No| CheckBase{Node == snow_pit?}
     

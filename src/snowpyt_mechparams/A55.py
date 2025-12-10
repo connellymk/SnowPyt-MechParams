@@ -84,10 +84,7 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     - h_i is the thickness of layer i [mm]
     - N is the number of layers in the slab
 
-    The shear modulus G_i is calculated from the elastic modulus and Poisson's
-    ratio using the isotropic elasticity relationship:
-
-    G_i = E_i / (2(1 + ν_i))
+    The shear modulus G_i should be provided directly in the Layer object.
 
     Shear Correction Factor:
     The shear correction factor κ = 5/6 is applied to account for the
@@ -150,10 +147,7 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     and Dublin Philosophical Magazine and Journal of Science, 41(245), 744-746.
     """
     # Validate slab input
-    if not isinstance(slab, Slab):
-        return ufloat(np.nan, np.nan)
-
-    if not slab.layers or len(slab.layers) == 0:
+    if not slab.layers:
         return ufloat(np.nan, np.nan)
 
     # Shear correction factor for rectangular cross-section
@@ -164,32 +158,18 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> ufloat:
 
     # Sum contributions from each layer
     for i, layer in enumerate(slab.layers):
-        # Check that all required properties are present
-        if layer.elastic_modulus is None:
-            return ufloat(np.nan, np.nan)
-        if layer.poissons_ratio is None:
+        # Check that required properties are present
+        # Shear modulus is required (Equation 8d uses G_i directly)
+        if layer.shear_modulus is None:
             return ufloat(np.nan, np.nan)
         if layer.thickness is None:
             return ufloat(np.nan, np.nan)
 
         # Extract layer properties
-        E_i = layer.elastic_modulus  # MPa = N/mm²
-        nu_i = layer.poissons_ratio  # dimensionless
+        G_i = layer.shear_modulus  # MPa = N/mm², shear modulus
         h_i = layer.thickness * 10.0  # cm → mm
 
-        # Check for valid Poisson's ratio (must be > -1 to avoid division issues)
-        if hasattr(nu_i, 'nominal_value'):
-            nu_val = nu_i.nominal_value
-        else:
-            nu_val = nu_i
-
-        if nu_val <= -1.0:
-            return ufloat(np.nan, np.nan)
-
-        # Calculate shear modulus: G_i = E_i / (2(1 + ν_i))
-        G_i = E_i / (2.0 * (1.0 + nu_i))
-
-        # Add contribution from this layer: G_i * h_i
+        # Add contribution from this layer: G_i * h_i (Equation 8d)
         A55_sum += G_i * h_i
 
     # Apply shear correction factor

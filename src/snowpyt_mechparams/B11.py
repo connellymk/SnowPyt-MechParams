@@ -159,10 +159,7 @@ def _calculate_B11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     https://doi.org/10.1201/b12409
     """
     # Validate slab input
-    if not isinstance(slab, Slab):
-        return ufloat(np.nan, np.nan)
-
-    if not slab.layers or len(slab.layers) == 0:
+    if not slab.layers:
         return ufloat(np.nan, np.nan)
 
     # Calculate total slab thickness

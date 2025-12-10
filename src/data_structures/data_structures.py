@@ -141,8 +141,16 @@ class Slab:
 
     Attributes
     ----------
+
+    # Field Measurements
+    angle: float
+        Angle of the slab in degrees.
+
+    # Layer Structure
     layers : List[Layer]
         Ordered list of snow layers from top (surface) to bottom
+
+    # Calculated Parameters
     """
     layers: List[Layer]
     angle: float

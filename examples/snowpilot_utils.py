@@ -1,8 +1,16 @@
 # Utility functions for snowpilot data
 import os
+import sys
 from typing import Any, List, Optional
 
 from snowpylot import caaml_parser  # type: ignore
+
+# Add the src directory to import snowpyt_mechparams
+_src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
+if _src_path not in sys.path:
+    sys.path.append(_src_path)
+
+from snowpyt_mechparams.data_structures.data_structures import Layer, Slab  # type: ignore
 
 # Constants for grain form codes by method
 
@@ -90,3 +98,111 @@ def parse_sample_pits(folder_path: str = 'data') -> List[Any]:
     print(f"Failed to parse {len(failed_files)} files")
 
     return all_pits
+
+
+def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
+    """
+    Convert a snowpilot pit object to a list of Layer objects.
+
+    Parameters:
+    pit: Parsed pit object from caaml_parser
+    include_density: If True, attempts to match and include direct density measurements
+                     from the pit's density profile (defaults to True)
+
+    Returns:
+    List of Layer objects representing the snow layers in the pit
+
+    Notes:
+    - depth_top and thickness are extracted from arrays (using [0] index)
+    - grain_form is extracted from layer.grain_form_primary.basic_grain_class_code
+    - grain_size_avg is extracted from layer.grain_form_primary.grain_size_avg
+    - If include_density=True, density values are matched by depth_top and thickness
+      and stored in the density_measured field
+    """
+    layers = []
+    
+    for layer in pit.snow_profile.layers:
+        # Extract depth_top (array to scalar)
+        depth_top = layer.depth_top[0] if layer.depth_top else None
+        
+        # Extract thickness (array to scalar)
+        thickness = layer.thickness[0] if layer.thickness else None
+        
+        # Extract hand hardness
+        hand_hardness = layer.hardness if hasattr(layer, 'hardness') else None
+        
+        # Extract grain form from grain_form_primary
+        grain_form = None
+        if hasattr(layer, 'grain_form_primary') and layer.grain_form_primary:
+            grain_form = getattr(layer.grain_form_primary, 'basic_grain_class_code', None)
+        
+        # Extract grain size average
+        grain_size_avg = None
+        if hasattr(layer, 'grain_form_primary') and layer.grain_form_primary and hasattr(layer.grain_form_primary, 'grain_size_avg'):
+            grain_size_data = layer.grain_form_primary.grain_size_avg
+            if grain_size_data:
+                # Extract scalar from array if needed
+                grain_size_avg = grain_size_data[0] if isinstance(grain_size_data, (list, tuple)) else grain_size_data
+        
+        # Optionally match and extract density from density profile
+        density_measured = None
+        if include_density and hasattr(pit.snow_profile, 'density_profile'):
+            for density_obs in pit.snow_profile.density_profile:
+                # Match by depth_top and thickness
+                if density_obs.depth_top == layer.depth_top and density_obs.thickness == layer.thickness:
+                    density_measured = density_obs.density
+                    break
+        
+        # Create Layer object
+        layer_obj = Layer(
+            depth_top=depth_top,
+            thickness=thickness,
+            density_measured=density_measured,
+            hand_hardness=hand_hardness,
+            grain_form=grain_form,
+            grain_size_avg=grain_size_avg
+        )
+        
+        layers.append(layer_obj)
+    
+    return layers
+
+
+def pit_to_slab(pit: Any) -> Slab:
+    """
+    Convert a snowpilot pit object to a Slab object.
+
+    Parameters:
+    pit: Parsed pit object from caaml_parser
+
+    Returns:
+    Slab object containing all layers from the pit
+
+    Notes:
+    - The angle is automatically extracted from pit.core_info.location.slope_angle
+      and defaults to 0.0 if unavailable
+    - Density measurements are automatically included from the pit's density profile
+      when available
+    - Layers are ordered from top to bottom as they appear in the pit
+    - See pit_to_layers() for details on how layer data is extracted
+    
+    Example:
+    >>> pit = caaml_parser('path/to/snowpit.xml')
+    >>> slab = pit_to_slab(pit)
+    >>> print(f"Slab has {len(slab.layers)} layers at {slab.angle}°")
+    """
+    # Extract angle from pit
+    try:
+        slope_angle_data = pit.core_info.location.slope_angle
+        # slope_angle is returned as [value, units] where units are always 'deg'
+        if slope_angle_data and len(slope_angle_data) > 0:
+            angle = slope_angle_data[0]
+        else:
+            angle = 0.0
+    except (AttributeError, IndexError, TypeError):
+        # Fall back to 0.0 if slope_angle is not available
+        angle = 0.0
+    
+    # Always include density when available
+    layers = pit_to_layers(pit, include_density=True)
+    return Slab(layers=layers, angle=angle)

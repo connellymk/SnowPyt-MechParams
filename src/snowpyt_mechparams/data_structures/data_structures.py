@@ -34,6 +34,8 @@ class Layer:
         Layer depth from the top of the snowpack in centimeters (cm). Can include uncertainty.
     thickness: Union[float, uncertainties.UFloat]
         Layer thickness in centimeters (cm). Can include uncertainty.
+    density_measured: Union[float, uncertainties.UFloat]
+        Layer density measured directly in kilograms per cubic meter (kg/m³). Can include uncertainty.
     hand_hardness: str
         Layer hand hardness 
     grain_form: str
@@ -51,9 +53,8 @@ class Layer:
         Main grain shape of the layer.
 
     ## From Method Implementations
-    density: Union[float, uncertainties.UFloat]
+    density_calculated: Union[float, uncertainties.UFloat]
         Layer density in kilograms per cubic meter (kg/m³). Can include uncertainty.
-        NOTE: Can also be measured directly
     poissons_ratio: Union[float, uncertainties.UFloat]
         Layer poissons ratio. Can include uncertainty.
     shear_modulus: Union[float, uncertainties.UFloat]
@@ -69,12 +70,13 @@ class Layer:
     # Field Measurements
     depth_top: Optional[UncertainValue] = None  # cm - Layer depth from the top of the snowpack
     thickness: Optional[UncertainValue] = None  # cm - Layer thickness
+    density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
     hand_hardness: Optional[str] = None  # Layer hand hardness
     grain_form: Optional[str] = None  # Grain form
     grain_size_avg: Optional[UncertainValue] = None  # Average grain size
     
     # Calculated Parameters - From Method Implementations
-    density: Optional[UncertainValue] = None  # kg/m³ - Layer density (can also be measured directly)
+    density_calculated: Optional[UncertainValue] = None  # kg/m³ - Layer density (can also be measured directly)
     poissons_ratio: Optional[UncertainValue] = None  # Layer Poisson's ratio
     shear_modulus: Optional[UncertainValue] = None  # Layer shear modulus
     elastic_modulus: Optional[UncertainValue] = None  # Layer elastic modulus

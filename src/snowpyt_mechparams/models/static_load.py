@@ -3,10 +3,13 @@
 import math
 from typing import Tuple
 
-from snowpyt_mechparams.data_structures import Slab
+import numpy as np
+from uncertainties import ufloat
+
+from snowpyt_mechparams.data_structures import Slab, UncertainValue
 
 
-def calculate_static_load(slab: Slab) -> Tuple[float, float, float]:
+def calculate_static_load(slab: Slab) -> Tuple[UncertainValue, UncertainValue, UncertainValue]:
     """
     Calculate the weight per unit area (pressure) of a layered snow slab and
     the shear and normal force components on a slope.
@@ -19,12 +22,13 @@ def calculate_static_load(slab: Slab) -> Tuple[float, float, float]:
 
     Returns
     -------
-    float
-        The gravitational load per unit area (N/m²) of the layered slab
-    float
-        The shear force component per unit area (N/m²) of the layered slab
-    float
-        The normal force component per unit area (N/m²) of the layered slab
+    UncertainValue
+        The gravitational load per unit area (N/m²) of the layered slab with uncertainty
+    UncertainValue
+        The shear force component per unit area (N/m²) of the layered slab with uncertainty
+    UncertainValue
+        The normal force component per unit area (N/m²) of the layered slab with uncertainty
+        Returns ufloat(NaN, NaN) for all three values if any layer is missing thickness or density
 
     Notes
     -----
@@ -47,6 +51,10 @@ def calculate_static_load(slab: Slab) -> Tuple[float, float, float]:
     normal_load = 0.0         # N/m²
 
     for layer in slab.layers:
+        # Return NaN if any layer is missing thickness or density
+        if layer.thickness is None or layer.density is None:
+            return ufloat(np.nan, np.nan), ufloat(np.nan, np.nan), ufloat(np.nan, np.nan)
+        
         # Convert thickness from cm to m
         thickness_m = layer.thickness / 100.0
 

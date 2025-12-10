@@ -4,7 +4,6 @@ from typing import Any
 
 import numpy as np
 from uncertainties import ufloat
-from uncertainties import umath
 
 
 def calculate_sigma_c_plus(method: str, **kwargs: Any) -> ufloat:

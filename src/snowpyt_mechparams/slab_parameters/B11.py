@@ -1,26 +1,27 @@
-# Methods to calculate bending stiffness (D11) of a layered slab
+# Methods to calculate bending-extension coupling stiffness (B11) of a layered slab
 
 from typing import Any
 
 import numpy as np
 from uncertainties import ufloat
 
-from data_structures.data_structures import Slab
+from snowpyt_mechparams.data_structures import Slab
 
 
-def calculate_D11(method: str, **kwargs: Any) -> ufloat:
+def calculate_B11(method: str, **kwargs: Any) -> ufloat:
     """
-    Calculate bending stiffness of a layered slab based on specified method
-    and input parameters.
+    Calculate bending-extension coupling stiffness of a layered slab based on
+    specified method and input parameters.
 
-    The bending stiffness D11 represents the slab's resistance to bending
-    moments. It is a fundamental mechanical property used in beam-on-elastic-
-    foundation models for snow slab avalanche mechanics.
+    The bending-extension coupling stiffness B11 represents the coupling between
+    in-plane forces and bending moments in asymmetrically layered slabs. It is
+    analogous to the bending-extension coupling in bimetal bars. For symmetric
+    layering, B11 = 0.
 
     Parameters
     ----------
     method : str
-        Method to use for D11 calculation. Available methods:
+        Method to use for B11 calculation. Available methods:
         - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023) 
           formulation based on classical laminate theory applied to layered
           snow slabs with plane-strain assumptions
@@ -31,7 +32,8 @@ def calculate_D11(method: str, **kwargs: Any) -> ufloat:
     Returns
     -------
     ufloat
-        Calculated bending stiffness in N·mm with associated uncertainty
+        Calculated bending-extension coupling stiffness in N with associated
+        uncertainty
 
     Raises
     ------
@@ -39,7 +41,7 @@ def calculate_D11(method: str, **kwargs: Any) -> ufloat:
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'weissgraeber_rosendahl':
-        return _calculate_D11_weissgraeber_rosendahl(**kwargs)
+        return _calculate_B11_weissgraeber_rosendahl(**kwargs)
     else:
         available_methods = ['weissgraeber_rosendahl']
         raise ValueError(
@@ -47,17 +49,17 @@ def calculate_D11(method: str, **kwargs: Any) -> ufloat:
         )
 
 
-def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
+def _calculate_B11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     """
-    Calculate bending stiffness using Weißgraeber & Rosendahl (2023) formulation
-    based on classical laminate theory.
+    Calculate bending-extension coupling stiffness using Weißgraeber & Rosendahl
+    (2023) formulation based on classical laminate theory.
 
-    This method calculates the bending stiffness of a layered slab by
-    integrating the plane-strain elastic modulus weighted by the square of
+    This method calculates the bending-extension coupling stiffness of a
+    layered slab by integrating the plane-strain elastic modulus weighted by
     the distance from the neutral axis over the slab thickness. The formulation
     applies classical laminate theory (from composite mechanics) to stratified
-    snow covers, accounting for the position of each layer relative to the
-    neutral axis.
+    snow covers, capturing the coupling effects that arise from asymmetric
+    layering.
 
     Parameters
     ----------
@@ -69,17 +71,17 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     Returns
     -------
     ufloat
-        Bending stiffness D11 in N·mm with associated uncertainty.
+        Bending-extension coupling stiffness B11 in N with associated uncertainty.
         Returns ufloat(NaN, NaN) if any required layer properties are missing
         or invalid.
 
     Notes
     -----
-    The bending stiffness is calculated using the weighted integration of
-    individual layer stiffness properties (Equation 8c in Weißgraeber & 
-    Rosendahl 2023):
+    The bending-extension coupling stiffness is calculated using the weighted
+    integration of individual layer stiffness properties (Equation 8b in
+    Weißgraeber & Rosendahl 2023):
 
-    D11 = ∫_{-h/2}^{h/2} E(z)/(1-ν(z)²) * z² dz = (1/3) * Σ_{i=1}^{N} E_i/(1-ν_i²) * (z_{i+1}³ - z_i³)
+    B11 = ∫_{-h/2}^{h/2} E(z)/(1-ν(z)²) * z dz = (1/2) * Σ_{i=1}^{N} E_i/(1-ν_i²) * (z_{i+1}² - z_i²)
 
     where:
     - E_i is the elastic (Young's) modulus of layer i [MPa]
@@ -89,16 +91,27 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     - z = 0 is at the centroid (geometric center) of the slab
     - z increases upward (toward the surface)
 
-    The term E/(1-ν²) represents the plane-strain elastic modulus. The z²
-    weighting reflects the fact that material farther from the neutral axis
-    contributes more to bending resistance.
+    The term E/(1-ν²) represents the plane-strain elastic modulus. The linear
+    z weighting creates coupling between extension and bending.
 
     Theoretical Basis:
     This formula is derived from classical laminate theory as presented in
     composite mechanics textbooks (Jones 1998, Reddy 2003), applied to
     stratified snow covers by Weißgraeber & Rosendahl (2023). The integration
-    is performed over the slab thickness with second-order weighting (z²),
-    which captures the moment of inertia contribution of each layer.
+    is performed over the slab thickness with first-order weighting (z),
+    which captures the first moment of area contribution of each layer.
+
+    Physical Interpretation:
+    - B11 represents the coupling between in-plane normal forces and bending
+      moments in the constitutive equations
+    - B11 = 0 for symmetric layering (e.g., homogeneous slab or symmetric
+      sandwich structure)
+    - B11 ≠ 0 for asymmetric layering (e.g., hard layer on top, soft layer
+      on bottom)
+    - Positive B11: stiffer layers are above the centroid
+    - Negative B11: stiffer layers are below the centroid
+    - An applied in-plane force will induce bending (and vice versa) when B11 ≠ 0
+    - This coupling is analogous to thermal bending in bimetal strips
 
     Coordinate System:
     - The origin (z = 0) is at the geometric centroid of the slab
@@ -110,16 +123,7 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     - Input elastic modulus: MPa = N/mm²
     - Input thickness: cm → mm (multiply by 10)
     - z-coordinates: mm
-    - Output: N·mm
-
-    Physical Interpretation:
-    - D11 represents the bending moment per unit width required to produce
-      unit curvature in the slab
-    - Higher values indicate a stiffer slab that resists bending
-    - Bending stiffness increases with the cube of the distance from the
-      neutral axis, making layer position critical
-    - Layering effects can be dramatic: a stiff layer far from the centroid
-      contributes much more than the same layer near the centroid
+    - Output: N (note: different from A11 and D11)
 
     Limitations
     -----------
@@ -131,6 +135,15 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     - Does not account for temperature effects on material properties
     - The neutral axis is assumed to be at the geometric centroid, which is
       exact only for symmetric layering or uniform properties
+
+    Example
+    -------
+    For a two-layer slab with a stiff layer on top and soft layer on bottom:
+    - The stiff layer (above centroid, z > 0) contributes positive terms
+    - The soft layer (below centroid, z < 0) contributes smaller negative terms
+    - Net result: B11 > 0
+    - Physical meaning: tension causes upward bending, compression causes
+      downward bending
 
     References
     ----------
@@ -157,8 +170,8 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     # Convert to mm
     h_total = total_thickness * 10.0  # cm → mm
 
-    # Initialize accumulator for D11
-    D11_sum = 0.0
+    # Initialize accumulator for B11
+    B11_sum = 0.0
 
     # Calculate z-coordinates for each layer
     # z = 0 at centroid, z = h/2 at top surface, z = -h/2 at bottom
@@ -203,7 +216,7 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
         # Calculate plane-strain modulus term: E_i / (1 - ν_i²)
         plane_strain_modulus = E_i / (1.0 - nu_i**2)
 
-        # Add contribution from this layer: (1/3) * [E_i / (1 - ν_i²)] * (z_{i+1}³ - z_i³)
-        D11_sum += (1.0 / 3.0) * plane_strain_modulus * (z_i_plus_1**3 - z_i**3)
+        # Add contribution from this layer: (1/2) * [E_i / (1 - ν_i²)] * (z_{i+1}² - z_i²)
+        B11_sum += (1.0 / 2.0) * plane_strain_modulus * (z_i_plus_1**2 - z_i**2)
 
-    return D11_sum
+    return B11_sum

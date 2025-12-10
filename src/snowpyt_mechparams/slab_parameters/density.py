@@ -6,7 +6,7 @@ from typing import Any, cast
 import numpy as np
 from uncertainties import ufloat
 
-from data_structures.data_structures import HARDNESS_MAPPING
+from snowpyt_mechparams.data_structures import HARDNESS_MAPPING
 
 
 def calculate_density(method: str, **kwargs: Any) -> ufloat:

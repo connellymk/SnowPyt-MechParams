@@ -119,7 +119,14 @@ def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
     - If include_density=True, density values are matched by depth_top and thickness
       and stored in the density_measured field
     """
-    layers = []
+    layers: List[Layer] = []
+    
+    # Check if snow_profile and layers exist
+    if not hasattr(pit, 'snow_profile') or not hasattr(pit.snow_profile, 'layers'):
+        return layers
+    
+    if not pit.snow_profile.layers:
+        return layers
     
     for layer in pit.snow_profile.layers:
         # Extract depth_top (array to scalar)
@@ -168,7 +175,7 @@ def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
     return layers
 
 
-def pit_to_slab(pit: Any) -> Slab:
+def pit_to_slab(pit: Any) -> Optional[Slab]:
     """
     Convert a snowpilot pit object to a Slab object.
 
@@ -176,9 +183,10 @@ def pit_to_slab(pit: Any) -> Slab:
     pit: Parsed pit object from caaml_parser
 
     Returns:
-    Slab object containing all layers from the pit
+    Slab object containing all layers from the pit, or None if the pit contains no valid layers
 
     Notes:
+    - Returns None if the pit contains no valid layers (allows graceful skipping in loops)
     - The angle is automatically extracted from pit.core_info.location.slope_angle
       and defaults to 0.0 if unavailable
     - Density measurements are automatically included from the pit's density profile
@@ -189,7 +197,8 @@ def pit_to_slab(pit: Any) -> Slab:
     Example:
     >>> pit = caaml_parser('path/to/snowpit.xml')
     >>> slab = pit_to_slab(pit)
-    >>> print(f"Slab has {len(slab.layers)} layers at {slab.angle}°")
+    >>> if slab:
+    >>>     print(f"Slab has {len(slab.layers)} layers at {slab.angle}°")
     """
     # Extract angle from pit
     try:
@@ -205,4 +214,9 @@ def pit_to_slab(pit: Any) -> Slab:
     
     # Always include density when available
     layers = pit_to_layers(pit, include_density=True)
+    
+    # Return None if no valid layers (allows graceful skipping in loops)
+    if not layers:
+        return None
+    
     return Slab(layers=layers, angle=angle)

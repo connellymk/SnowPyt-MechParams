@@ -175,51 +175,26 @@ def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
     return layers
 
 
-def pit_to_slab(pit: Any) -> Optional[Slab]:
+def _extract_angle(pit: Any) -> float:
     """
-    Convert a snowpilot pit object to a Slab object.
-
+    Helper function to extract slope angle from pit.
+    
     Parameters:
     pit: Parsed pit object from caaml_parser
-
-    Returns:
-    Slab object containing all layers from the pit, or None if the pit contains no valid layers
-
-    Notes:
-    - Returns None if the pit contains no valid layers (allows graceful skipping in loops)
-    - The angle is automatically extracted from pit.core_info.location.slope_angle
-      and defaults to 0.0 if unavailable
-    - Density measurements are automatically included from the pit's density profile
-      when available
-    - Layers are ordered from top to bottom as they appear in the pit
-    - See pit_to_layers() for details on how layer data is extracted
     
-    Example:
-    >>> pit = caaml_parser('path/to/snowpit.xml')
-    >>> slab = pit_to_slab(pit)
-    >>> if slab:
-    >>>     print(f"Slab has {len(slab.layers)} layers at {slab.angle}°")
+    Returns:
+    Slope angle in degrees, or NaN if not available
     """
-    # Extract angle from pit
     try:
         slope_angle_data = pit.core_info.location.slope_angle
         # slope_angle is returned as [value, units] where units are always 'deg'
         if slope_angle_data and len(slope_angle_data) > 0:
-            angle = float(slope_angle_data[0])
+            return float(slope_angle_data[0])
         else:
-            angle = 0.0
+            return float('nan')
     except (AttributeError, IndexError, TypeError, ValueError):
-        # Fall back to 0.0 if slope_angle is not available or cannot be converted
-        angle = 0.0
-    
-    # Always include density when available
-    layers = pit_to_layers(pit, include_density=True)
-    
-    # Return None if no valid layers (allows graceful skipping in loops)
-    if not layers:
-        return None
-    
-    return Slab(layers=layers, angle=angle)
+        # Fall back to NaN if slope_angle is not available or cannot be converted
+        return float('nan')
 
 
 def get_value_safe(obj: Any) -> Optional[float]:
@@ -324,35 +299,42 @@ def find_weak_layer_depth(pit: Any, weak_layer_def: str) -> Optional[float]:
 
 def pit_to_slab_above_weak_layer(
     pit: Any, 
-    weak_layer_def: str,
+    weak_layer_def: Optional[str] = None,
     depth_tolerance: float = 2.0
 ) -> Optional[Slab]:
     """
-    Convert a snowpilot pit object to a Slab object containing only layers above the weak layer.
+    Convert a snowpilot pit object to a Slab object.
     
     Parameters:
     pit: Parsed pit object from caaml_parser
-    weak_layer_def: Weak layer definition - one of:
+    weak_layer_def: Weak layer definition (optional) - one of:
+        - None: Returns all layers in the pit (no weak layer filtering)
         - "layer_of_concern": Uses layer with layer_of_concern=True
         - "CT_failure_layer": Uses CT test failure layer with Q1/SC/SP fracture character
         - "ECTP_failure_layer": Uses ECT test failure layer with propagation
     depth_tolerance: Tolerance in cm for matching test depths to layer depths (default: 2.0 cm)
     
     Returns:
-    Slab object containing layers above the weak layer, or None if:
-        - No weak layer is found
+    Slab object containing layers above the weak layer (or all layers if weak_layer_def=None),
+    or None if:
+        - No weak layer is found (when weak_layer_def is specified)
         - No valid layers exist above the weak layer
         - The pit contains no valid layers
     
     Notes:
+    - If weak_layer_def=None, returns a slab with all layers
     - The slab consists of all layers with depth_top < weak_layer_depth
     - Layers are ordered from top to bottom as they appear in the pit
     - The angle is automatically extracted from pit.core_info.location.slope_angle
+      and is NaN if unavailable
     - Density measurements are automatically included when available
     - For stability test definitions (CT/ECTP), depth_tolerance is used to match
       test depths to layer depths (accounts for measurement precision)
     
     Examples:
+    >>> # Get slab with all layers (no weak layer filtering)
+    >>> slab = pit_to_slab_above_weak_layer(pit)
+    >>> 
     >>> # Get slab above the indicated layer of concern
     >>> slab = pit_to_slab_above_weak_layer(pit, "layer_of_concern")
     >>> 
@@ -365,28 +347,23 @@ def pit_to_slab_above_weak_layer(
     >>> if slab:
     >>>     print(f"Slab has {len(slab.layers)} layers above weak layer")
     """
-    # Find the weak layer depth
-    weak_layer_depth = find_weak_layer_depth(pit, weak_layer_def)
-    
-    if weak_layer_depth is None:
-        return None
-    
-    # Extract angle from pit
-    try:
-        slope_angle_data = pit.core_info.location.slope_angle
-        # slope_angle is returned as [value, units] where units are always 'deg'
-        if slope_angle_data and len(slope_angle_data) > 0:
-            angle = float(slope_angle_data[0])
-        else:
-            angle = 0.0
-    except (AttributeError, IndexError, TypeError, ValueError):
-        # Fall back to 0.0 if slope_angle is not available or cannot be converted
-        angle = 0.0
-    
     # Get all layers
     all_layers = pit_to_layers(pit, include_density=True)
     
     if not all_layers:
+        return None
+    
+    # Extract angle from pit
+    angle = _extract_angle(pit)
+    
+    # If no weak layer definition, return all layers
+    if weak_layer_def is None:
+        return Slab(layers=all_layers, angle=angle)
+    
+    # Find the weak layer depth
+    weak_layer_depth = find_weak_layer_depth(pit, weak_layer_def)
+    
+    if weak_layer_depth is None:
         return None
     
     # Filter layers above the weak layer

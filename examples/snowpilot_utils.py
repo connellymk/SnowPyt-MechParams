@@ -175,48 +175,206 @@ def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
     return layers
 
 
-def pit_to_slab(pit: Any) -> Optional[Slab]:
+def _extract_angle(pit: Any) -> float:
     """
-    Convert a snowpilot pit object to a Slab object.
-
+    Helper function to extract slope angle from pit.
+    
     Parameters:
     pit: Parsed pit object from caaml_parser
-
-    Returns:
-    Slab object containing all layers from the pit, or None if the pit contains no valid layers
-
-    Notes:
-    - Returns None if the pit contains no valid layers (allows graceful skipping in loops)
-    - The angle is automatically extracted from pit.core_info.location.slope_angle
-      and defaults to 0.0 if unavailable
-    - Density measurements are automatically included from the pit's density profile
-      when available
-    - Layers are ordered from top to bottom as they appear in the pit
-    - See pit_to_layers() for details on how layer data is extracted
     
-    Example:
-    >>> pit = caaml_parser('path/to/snowpit.xml')
-    >>> slab = pit_to_slab(pit)
-    >>> if slab:
-    >>>     print(f"Slab has {len(slab.layers)} layers at {slab.angle}°")
+    Returns:
+    Slope angle in degrees, or NaN if not available
     """
-    # Extract angle from pit
     try:
         slope_angle_data = pit.core_info.location.slope_angle
         # slope_angle is returned as [value, units] where units are always 'deg'
         if slope_angle_data and len(slope_angle_data) > 0:
-            angle = slope_angle_data[0]
+            return float(slope_angle_data[0])
         else:
-            angle = 0.0
-    except (AttributeError, IndexError, TypeError):
-        # Fall back to 0.0 if slope_angle is not available
-        angle = 0.0
+            return float('nan')
+    except (AttributeError, IndexError, TypeError, ValueError):
+        # Fall back to NaN if slope_angle is not available or cannot be converted
+        return float('nan')
+
+
+def get_value_safe(obj: Any) -> Optional[float]:
+    """
+    Safely extract value from object that might be None, scalar, or array-like.
+    Helper function for weak layer identification.
     
-    # Always include density when available
-    layers = pit_to_layers(pit, include_density=True)
+    Parameters:
+    obj: Value to extract (could be None, scalar, list, tuple, or array)
     
-    # Return None if no valid layers (allows graceful skipping in loops)
-    if not layers:
+    Returns:
+    Scalar value or None
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return obj[0] if len(obj) > 0 else None
+    # Handle numpy arrays if present
+    if hasattr(obj, '__len__') and hasattr(obj, 'shape'):
+        return obj[0] if len(obj) > 0 else None
+    return obj
+
+
+def find_weak_layer_depth(pit: Any, weak_layer_def: str) -> Optional[float]:
+    """
+    Find the depth of the weak layer based on the specified definition.
+    
+    Parameters:
+    pit: Parsed pit object from caaml_parser
+    weak_layer_def: Weak layer definition - one of:
+        - "layer_of_concern": Uses layer with layer_of_concern=True
+        - "CT_failure_layer": Uses CT test failure layer with Q1/SC/SP fracture character
+        - "ECTP_failure_layer": Uses ECT test failure layer with propagation
+    
+    Returns:
+    Depth (from top) of the weak layer in cm, or None if no weak layer found
+    
+    Notes:
+    - For layer_of_concern: Returns the depth_top of the first layer marked as layer_of_concern
+    - For CT_failure_layer: Returns the depth_top from the first CT test with Q1/SC/SP fracture character
+    - For ECTP_failure_layer: Returns the depth_top from the first ECT test with propagation
+    - If multiple weak layers exist, returns the shallowest (smallest depth_top)
+    """
+    if not hasattr(pit, 'snow_profile') or not pit.snow_profile:
         return None
     
-    return Slab(layers=layers, angle=angle)
+    if weak_layer_def == "layer_of_concern":
+        # Find layer marked as layer_of_concern
+        if not hasattr(pit.snow_profile, 'layers') or not pit.snow_profile.layers:
+            return None
+        
+        for layer in pit.snow_profile.layers:
+            if hasattr(layer, 'layer_of_concern') and layer.layer_of_concern is True:
+                depth = get_value_safe(layer.depth_top)
+                if depth is not None:
+                    return depth
+        return None
+    
+    elif weak_layer_def == "CT_failure_layer":
+        # Find CT test failure layer with Q1/SC/SP fracture character
+        if not hasattr(pit, 'stability_tests') or not hasattr(pit.stability_tests, 'CT'):
+            return None
+        
+        ct_tests = pit.stability_tests.CT
+        if not ct_tests:
+            return None
+        
+        for ct in ct_tests:
+            if hasattr(ct, 'fracture_character') and ct.fracture_character in ['Q1', 'SC', 'SP']:
+                depth = get_value_safe(ct.depth_top)
+                if depth is not None:
+                    return depth
+        return None
+    
+    elif weak_layer_def == "ECTP_failure_layer":
+        # Find ECT test failure layer with propagation
+        if not hasattr(pit, 'stability_tests') or not hasattr(pit.stability_tests, 'ECT'):
+            return None
+        
+        ect_tests = pit.stability_tests.ECT
+        if not ect_tests:
+            return None
+        
+        for ect in ect_tests:
+            # Check for propagation in both attribute and test_score
+            has_propagation = (
+                (hasattr(ect, 'propagation') and ect.propagation is True) or
+                (hasattr(ect, 'test_score') and ect.test_score and 'ECTP' in str(ect.test_score))
+            )
+            if has_propagation:
+                depth = get_value_safe(ect.depth_top)
+                if depth is not None:
+                    return depth
+        return None
+    
+    else:
+        raise ValueError(
+            f"Invalid weak_layer_def '{weak_layer_def}'. "
+            f"Valid options: 'layer_of_concern', 'CT_failure_layer', 'ECTP_failure_layer'"
+        )
+
+
+def pit_to_slab_above_weak_layer(
+    pit: Any, 
+    weak_layer_def: Optional[str] = None,
+    depth_tolerance: float = 2.0
+) -> Optional[Slab]:
+    """
+    Convert a snowpilot pit object to a Slab object.
+    
+    Parameters:
+    pit: Parsed pit object from caaml_parser
+    weak_layer_def: Weak layer definition (optional) - one of:
+        - None: Returns all layers in the pit (no weak layer filtering)
+        - "layer_of_concern": Uses layer with layer_of_concern=True
+        - "CT_failure_layer": Uses CT test failure layer with Q1/SC/SP fracture character
+        - "ECTP_failure_layer": Uses ECT test failure layer with propagation
+    depth_tolerance: Tolerance in cm for matching test depths to layer depths (default: 2.0 cm)
+    
+    Returns:
+    Slab object containing layers above the weak layer (or all layers if weak_layer_def=None),
+    or None if:
+        - No weak layer is found (when weak_layer_def is specified)
+        - No valid layers exist above the weak layer
+        - The pit contains no valid layers
+    
+    Notes:
+    - If weak_layer_def=None, returns a slab with all layers
+    - The slab consists of all layers with depth_top < weak_layer_depth
+    - Layers are ordered from top to bottom as they appear in the pit
+    - The angle is automatically extracted from pit.core_info.location.slope_angle
+      and is NaN if unavailable
+    - Density measurements are automatically included when available
+    - For stability test definitions (CT/ECTP), depth_tolerance is used to match
+      test depths to layer depths (accounts for measurement precision)
+    
+    Examples:
+    >>> # Get slab with all layers (no weak layer filtering)
+    >>> slab = pit_to_slab_above_weak_layer(pit)
+    >>> 
+    >>> # Get slab above the indicated layer of concern
+    >>> slab = pit_to_slab_above_weak_layer(pit, "layer_of_concern")
+    >>> 
+    >>> # Get slab above CT failure layer
+    >>> slab = pit_to_slab_above_weak_layer(pit, "CT_failure_layer")
+    >>> 
+    >>> # Get slab above ECTP failure layer
+    >>> slab = pit_to_slab_above_weak_layer(pit, "ECTP_failure_layer")
+    >>> 
+    >>> if slab:
+    >>>     print(f"Slab has {len(slab.layers)} layers above weak layer")
+    """
+    # Get all layers
+    all_layers = pit_to_layers(pit, include_density=True)
+    
+    if not all_layers:
+        return None
+    
+    # Extract angle from pit
+    angle = _extract_angle(pit)
+    
+    # If no weak layer definition, return all layers
+    if weak_layer_def is None:
+        return Slab(layers=all_layers, angle=angle)
+    
+    # Find the weak layer depth
+    weak_layer_depth = find_weak_layer_depth(pit, weak_layer_def)
+    
+    if weak_layer_depth is None:
+        return None
+    
+    # Filter layers above the weak layer
+    # Layer is above weak layer if its depth_top < weak_layer_depth
+    slab_layers = []
+    for layer in all_layers:
+        if layer.depth_top is not None and layer.depth_top < weak_layer_depth:
+            slab_layers.append(layer)
+    
+    # Return None if no valid layers above weak layer
+    if not slab_layers:
+        return None
+    
+    return Slab(layers=slab_layers, angle=angle)

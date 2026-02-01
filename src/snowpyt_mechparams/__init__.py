@@ -13,6 +13,7 @@ Main Modules
 - models: Mechanical models (static load calculations)
 - slab_parameters: Slab mechanical properties (density, modulus, etc.)
 - weak_layer_parameters: Weak layer properties (strength, fracture toughness)
+- execution: Parameterization pathway execution engine
 """
 
 from snowpyt_mechparams.data_structures import Layer, Slab, HARDNESS_MAPPING
@@ -20,6 +21,13 @@ from snowpyt_mechparams.slab_parameters.shear_modulus import calculate_shear_mod
 from snowpyt_mechparams.weak_layer_parameters import (
     calculate_sigma_c_minus,
     calculate_sigma_c_plus,
+)
+from snowpyt_mechparams.execution import (
+    ExecutionEngine,
+    ExecutionResults,
+    PathwayResult,
+    PathwayExecutor,
+    MethodDispatcher,
 )
 
 __version__ = "0.1.0"
@@ -29,11 +37,19 @@ __maintainer__ = "SnowPyt-MechParams Contributors"
 
 # Expose common data structures and calculation functions at package level
 __all__ = [
+    # Data structures
     "Layer",
     "Slab",
     "HARDNESS_MAPPING",
+    # Calculation functions
     "calculate_shear_modulus",
     "calculate_sigma_c_minus",
     "calculate_sigma_c_plus",
+    # Execution engine
+    "ExecutionEngine",
+    "ExecutionResults",
+    "PathwayResult",
+    "PathwayExecutor",
+    "MethodDispatcher",
 ]
 

@@ -72,7 +72,8 @@ class Layer:
     thickness: Optional[UncertainValue] = None  # cm - Layer thickness
     density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
     hand_hardness: Optional[str] = None  # Layer hand hardness
-    grain_form: Optional[str] = None  # Grain form
+    grain_form: Optional[str] = None  # Grain form (basic grain class code, e.g., 'PP', 'RG', 'FC')
+    grain_form_sub: Optional[str] = None  # Sub-grain class code (e.g., 'PPgp', 'RGmx', 'FCxr')
     grain_size_avg: Optional[UncertainValue] = None  # Average grain size
     
     # Calculated Parameters - From Method Implementations

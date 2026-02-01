@@ -138,10 +138,12 @@ def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
         # Extract hand hardness
         hand_hardness = layer.hardness if hasattr(layer, 'hardness') else None
         
-        # Extract grain form from grain_form_primary
+        # Extract grain form from grain_form_primary (both basic and sub codes)
         grain_form = None
+        grain_form_sub = None
         if hasattr(layer, 'grain_form_primary') and layer.grain_form_primary:
             grain_form = getattr(layer.grain_form_primary, 'basic_grain_class_code', None)
+            grain_form_sub = getattr(layer.grain_form_primary, 'sub_grain_class_code', None)
         
         # Extract grain size average
         grain_size_avg = None
@@ -167,6 +169,7 @@ def pit_to_layers(pit: Any, include_density: bool = True) -> List[Layer]:
             density_measured=density_measured,
             hand_hardness=hand_hardness,
             grain_form=grain_form,
+            grain_form_sub=grain_form_sub,
             grain_size_avg=grain_size_avg
         )
         

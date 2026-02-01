@@ -11,54 +11,137 @@ A collaborative Python library for estimating mechanical parameters from snow pi
 
 ## Installation
 
+### Prerequisites
+
+- **Python 3.8 or higher** (Python 3.9+ recommended)
+- **pip** (usually comes with Python)
+- **git** (for cloning the repository)
+
+Check your Python version:
+```bash
+python3 --version
+```
+
 ### Virtual Environment Setup (Recommended)
 
 We strongly recommend using a virtual environment to manage dependencies and avoid conflicts with other Python projects.
 
-#### Create and Activate Virtual Environment
+#### Quick Setup (Automated)
+
+For a quick automated setup, run:
 ```bash
-# Clone the repository
+./setup.sh
+```
+
+This script will create the virtual environment, upgrade pip, and install the package.
+
+#### Manual Setup
+
+Follow these steps for manual setup:
+
+#### Step 1: Clone the Repository
+
+If you haven't already cloned the repository:
+```bash
 git clone https://github.com/your-username/snowpyt-mechparams.git
 cd snowpyt-mechparams
+```
 
-# Create virtual environment
-python3 -m venv MechParams
+#### Step 2: Create Virtual Environment
 
-# Activate virtual environment
-# On macOS/Linux:
-source MechParams/bin/activate
-# On Windows:
-# MechParams\Scripts\activate
+```bash
+# Create virtual environment (named 'venv')
+python3 -m venv venv
 
-# Install the package in editable mode
+# Alternative: You can name it 'MechParams' if you prefer
+# python3 -m venv MechParams
+```
+
+#### Step 3: Activate Virtual Environment
+
+**On macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+**On Windows:**
+```bash
+venv\Scripts\activate
+```
+
+You should see `(venv)` appear in your terminal prompt when activated.
+
+#### Step 4: Upgrade pip (Recommended)
+
+```bash
+pip install --upgrade pip setuptools wheel
+```
+
+#### Step 5: Install the Package
+
+**Standard Installation (editable mode):**
+```bash
 pip install -e .
 ```
 
+**Development Installation (includes testing and development tools):**
+```bash
+pip install -e .[dev]
+```
+
+This installs the package in "editable" mode, meaning changes to the source code will be immediately available without reinstalling.
+
+#### Step 6: Verify Installation
+
+```bash
+python -c "import snowpyt_mechparams; print('Installation successful!')"
+```
+
 #### Deactivate Virtual Environment
+
+When you're done working:
 ```bash
 deactivate
 ```
 
-### From PyPI (recommended for production)
+### Installation Methods
+
+#### From PyPI (Production Use)
+
+If you just want to use the package without development:
 ```bash
 pip install snowpyt-mechparams
 ```
 
-### From Source (without virtual environment)
+#### From Source (Without Virtual Environment)
+
+**Not recommended**, but if you prefer:
 ```bash
 git clone https://github.com/your-username/snowpyt-mechparams.git
 cd snowpyt-mechparams
 pip install -e .
 ```
 
-### Development Installation
-```bash
-git clone https://github.com/your-username/snowpyt-mechparams.git
-cd snowpyt-mechparams
-python3 -m venv MechParams
-source MechParams/bin/activate  # On Windows: MechParams\Scripts\activate
-pip install -e .[dev]
-```
+### Using with Jupyter Notebooks
+
+To use this package in Jupyter notebooks with your virtual environment:
+
+1. **Activate your virtual environment:**
+   ```bash
+   source venv/bin/activate  # or MechParams/bin/activate
+   ```
+
+2. **Install ipykernel:**
+   ```bash
+   pip install ipykernel
+   ```
+
+3. **Register the kernel:**
+   ```bash
+   python -m ipykernel install --user --name=snowpyt-mechparams --display-name="Python (SnowPyt-MechParams)"
+   ```
+
+4. **In Jupyter:** Select "Python (SnowPyt-MechParams)" from the kernel dropdown menu.
 
 ## Quick Start
 
@@ -125,29 +208,70 @@ sys.dont_write_bytecode = True
 1. Restart your Jupyter kernel (Kernel → Restart Kernel)
 2. Run all cells from the beginning
 
+### SSL Certificate Issues (macOS)
+
+If you encounter SSL certificate errors when installing packages (e.g., `SSLError(SSLCertVerificationError)`):
+
+**Option 1: Install certificates (Recommended)**
+```bash
+# Run this in your terminal (outside the virtual environment)
+/Applications/Python\ 3.*/Install\ Certificates.command
+```
+
+**Option 2: Use pip with trusted hosts (Temporary workaround)**
+```bash
+pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -e .
+```
+
+**Option 3: Update certificates manually**
+```bash
+# Install certifi and update certificates
+pip install --upgrade certifi
+/Applications/Python\ 3.*/Install\ Certificates.command
+```
+
 ### Common Issues
 
 - **"Unknown method" errors**: Clear the cache and restart the kernel
 - **Changes not taking effect**: Ensure `%autoreload 2` is enabled in notebooks and clear the cache
 - **Import errors after updates**: Reinstall the package in editable mode: `pip install -e .`
+- **SSL certificate errors**: See "SSL Certificate Issues" section above
+- **Package not found**: Make sure your virtual environment is activated (you should see `(venv)` in your prompt)
+- **Permission errors**: Avoid using `sudo` with pip when in a virtual environment
 
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### Development Setup
+
+For contributors who want to develop and test the package:
+
 ```bash
+# Clone the repository (if not already done)
 git clone https://github.com/your-username/snowpyt-mechparams.git
 cd snowpyt-mechparams
 
 # Create and activate virtual environment
-python3 -m venv MechParams
-source MechParams/bin/activate  # On Windows: MechParams\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install development dependencies
+# Upgrade pip
+pip install --upgrade pip setuptools wheel
+
+# Install development dependencies (includes pytest, black, flake8, etc.)
 pip install -e .[dev]
+
+# Install pre-commit hooks (optional but recommended)
 pre-commit install
 ```
+
+**Note:** The `[dev]` extra includes:
+- Testing tools: `pytest`, `pytest-cov`
+- Code formatting: `black`, `flake8`
+- Type checking: `mypy`
+- Documentation: `sphinx`, `sphinx-rtd-theme`
+- Jupyter: `jupyter`
 
 ### Running Tests
 ```bash

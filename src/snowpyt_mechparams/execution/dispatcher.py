@@ -13,10 +13,10 @@ import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
-from snowpyt_mechparams.slab_parameters.density import calculate_density
-from snowpyt_mechparams.slab_parameters.elastic_modulus import calculate_elastic_modulus
-from snowpyt_mechparams.slab_parameters.poissons_ratio import calculate_poissons_ratio
-from snowpyt_mechparams.slab_parameters.shear_modulus import calculate_shear_modulus
+from snowpyt_mechparams.layer_parameters.density import calculate_density
+from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
+from snowpyt_mechparams.layer_parameters.poissons_ratio import calculate_poissons_ratio
+from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
 from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
 from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
 from snowpyt_mechparams.slab_parameters.D11 import calculate_D11

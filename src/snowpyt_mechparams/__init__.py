@@ -18,7 +18,7 @@ Main Modules
 
 from snowpyt_mechparams.data_structures import Layer, Slab
 from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE
-from snowpyt_mechparams.slab_parameters.shear_modulus import calculate_shear_modulus
+from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
 from snowpyt_mechparams.weak_layer_parameters import (
     calculate_sigma_c_minus,
     calculate_sigma_c_plus,

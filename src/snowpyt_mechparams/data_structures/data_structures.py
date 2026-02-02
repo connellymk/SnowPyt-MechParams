@@ -32,7 +32,8 @@ class Layer:
     hand_hardness: str
         Layer hand hardness 
     grain_form: str
-        Full recorded grain form including sub-grain class code, if available (e.g., 'PPgp', 'RGmx', 'FCxr')
+        Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available, 
+        otherwise basic class (e.g., 'FC', 'PP', 'RG')
     grain_size_avg: Union[float, uncertainties.UFloat]
         Average grain size in millimeters (mm). Can include uncertainty.
 
@@ -45,7 +46,9 @@ class Layer:
     hand_hardness_index: Union[float, uncertainties.UFloat]
         Hand hardness index of the layer.
     main_grain_form: str
-        Main grain shape of the layer (first 2 characters of grain_form).
+        Basic grain class code extracted from grain_form (first 2 characters).
+        Always returns the 2-character basic code regardless of whether grain_form
+        contains a sub-grain or basic code.
 
     ## From Method Implementations
     density_calculated: Union[float, uncertainties.UFloat]
@@ -67,7 +70,7 @@ class Layer:
     thickness: Optional[UncertainValue] = None  # cm - Layer thickness
     density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
     hand_hardness: Optional[str] = None  # Layer hand hardness
-    grain_form: Optional[str] = None  # Full recorded grain form including sub-grain class code, if available (e.g., 'PPgp', 'RGmx', 'FCxr')
+    grain_form: Optional[str] = None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
     grain_size_avg: Optional[UncertainValue] = None  # mm - Average grain size
     
     # ==========================================
@@ -119,15 +122,32 @@ class Layer:
     @property
     def main_grain_form(self) -> Optional[str]:
         """
-        Extract the main grain form from the grain_form string.
+        Extract the basic grain form from the grain_form string.
         
-        Returns the first two characters of grain_form.
+        Returns the first two characters of grain_form, which extracts the basic
+        grain class code:
+        - For sub-grain codes (e.g., 'FCxr', 'PPgp', 'RGmx'): returns basic form ('FC', 'PP', 'RG')
+        - For basic codes (e.g., 'FC', 'PP', 'RG'): returns same value (already basic)
+        
+        This property is useful when you need the basic grain class regardless of
+        whether the full grain_form contains a sub-grain or basic code.
+        
         Returns None if grain_form is not defined or has less than 2 characters.
         
         Returns
         -------
         Optional[str]
-            Main grain shape of the layer (first 2 characters of grain_form), or None
+            Basic grain class code (first 2 characters of grain_form), or None
+            
+        Examples
+        --------
+        >>> layer.grain_form = "FCxr"
+        >>> layer.main_grain_form
+        'FC'
+        
+        >>> layer.grain_form = "PP"
+        >>> layer.main_grain_form
+        'PP'
         """
         if self.grain_form is not None and len(self.grain_form) >= 2:
             return self.grain_form[:2]

@@ -102,7 +102,8 @@ def caaml_to_layers(caaml_profile: Any, include_density: bool = True) -> List[La
     Notes
     -----
     - depth_top and thickness are extracted from arrays (using [0] index)
-    - grain_form is extracted from layer.grain_form_primary.basic_grain_class_code
+    - grain_form is extracted from layer.grain_form_primary (sub-grain class if available,
+      otherwise basic grain class)
     - grain_size_avg is extracted from layer.grain_form_primary.grain_size_avg
     - If include_density=True, density values are matched by depth_top and thickness
       and stored in the density_measured field
@@ -130,7 +131,9 @@ def caaml_to_layers(caaml_profile: Any, include_density: bool = True) -> List[La
         hand_hardness = layer.hardness if hasattr(layer, "hardness") else None
 
         # Extract grain form from grain_form_primary
-        # Prefer sub_grain_class_code (more specific), fall back to basic_grain_class_code
+        # Store the most specific code available: sub-grain class if present, otherwise basic class
+        # This preserves full detail from the CAAML file. The Layer.main_grain_form property
+        # can be used to extract just the 2-character basic code when needed.
         grain_form = None
         if hasattr(layer, "grain_form_primary") and layer.grain_form_primary:
             grain_form_sub = getattr(
@@ -139,7 +142,7 @@ def caaml_to_layers(caaml_profile: Any, include_density: bool = True) -> List[La
             grain_form_basic = getattr(
                 layer.grain_form_primary, "basic_grain_class_code", None
             )
-            # Use sub-grain class if available, otherwise use basic
+            # Prefer sub-grain (more specific), fall back to basic
             grain_form = grain_form_sub if grain_form_sub else grain_form_basic
 
         # Extract grain size average

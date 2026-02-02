@@ -247,7 +247,7 @@ def caaml_to_slab(
     ...     print(f"Slab has {len(slab.layers)} layers above weak layer")
     """
     # Get all layers
-    all_layers = caaml_to_layers(caaml_profile, include_density=True)
+    all_layers = caaml_to_layers(caaml_profile)
 
     if not all_layers:
         return None

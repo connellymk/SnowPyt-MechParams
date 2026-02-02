@@ -153,10 +153,24 @@ class Slab:
     layers : List[Layer]
         Ordered list of snow layers from top (surface) to bottom
 
-    # Calculated Parameters
+    # Calculated Parameters - From Method Implementations
+    A11 : Union[float, uncertainties.UFloat]
+        Extensional stiffness in N/mm. Can include uncertainty.
+    A55 : Union[float, uncertainties.UFloat]
+        Shear stiffness (with shear correction factor κ) in N/mm. Can include uncertainty.
+    B11 : Union[float, uncertainties.UFloat]
+        Bending-extension coupling stiffness in N. Can include uncertainty.
+    D11 : Union[float, uncertainties.UFloat]
+        Bending stiffness in N·mm. Can include uncertainty.
     """
     layers: List[Layer]
     angle: float
+    
+    # Calculated Parameters - From Method Implementations
+    A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness
+    A55: Optional[UncertainValue] = None  # N/mm - Shear stiffness (with shear correction factor κ)
+    B11: Optional[UncertainValue] = None  # N - Bending-extension coupling stiffness
+    D11: Optional[UncertainValue] = None  # N·mm - Bending stiffness
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""

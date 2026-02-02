@@ -153,6 +153,10 @@ class Slab:
     layers : List[Layer]
         Ordered list of snow layers from top (surface) to bottom
 
+    # Weak Layer
+    weak_layer: Optional[Layer]
+        Weak layer of the slab.
+
     # Calculated Parameters - From Method Implementations
     A11 : Union[float, uncertainties.UFloat]
         Extensional stiffness in N/mm. Can include uncertainty.
@@ -163,8 +167,9 @@ class Slab:
     D11 : Union[float, uncertainties.UFloat]
         Bending stiffness in N·mm. Can include uncertainty.
     """
-    layers: List[Layer]
-    angle: float
+    layers: List[Layer] # Ordered list of snow layers from top (surface) to bottom
+    angle: float # Slope angle of the slab in degrees
+    weak_layer: Optional[Layer] = None  # Weak layer of the slab
     
     # Calculated Parameters - From Method Implementations
     A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness

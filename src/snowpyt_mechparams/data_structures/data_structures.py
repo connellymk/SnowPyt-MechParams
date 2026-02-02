@@ -32,18 +32,20 @@ class Layer:
     hand_hardness: str
         Layer hand hardness 
     grain_form: str
+        Full recorded grain form including sub-grain class code, if available (e.g., 'PPgp', 'RGmx', 'FCxr')
     grain_size_avg: Union[float, uncertainties.UFloat]
+        Average grain size in millimeters (mm). Can include uncertainty.
 
 
     # Calculated Parameters
 
     ## From Field Measurements
     depth_bottom: Union[float, uncertainties.UFloat]
-        location of the bottom of the layer in centimeters (cm). Can include uncertainty.
+        Location of the bottom of the layer in centimeters (cm). Can include uncertainty.
     hand_hardness_index: Union[float, uncertainties.UFloat]
         Hand hardness index of the layer.
-    main_grain_from: str
-        Main grain shape of the layer.
+    main_grain_form: str
+        Main grain shape of the layer (first 2 characters of grain_form).
 
     ## From Method Implementations
     density_calculated: Union[float, uncertainties.UFloat]
@@ -55,25 +57,30 @@ class Layer:
     elastic_modulus: Union[float, uncertainties.UFloat]
         Layer elastic modulus. Can include uncertainty.
 
-
-    Examples
     --------
 
     """
+    # ==========================================
     # Field Measurements
+    # ==========================================
     depth_top: Optional[UncertainValue] = None  # cm - Layer depth from the top of the snowpack
     thickness: Optional[UncertainValue] = None  # cm - Layer thickness
     density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
     hand_hardness: Optional[str] = None  # Layer hand hardness
-    grain_form: Optional[str] = None  # Grain form (basic grain class code, e.g., 'PP', 'RG', 'FC')
-    grain_form_sub: Optional[str] = None  # Sub-grain class code (e.g., 'PPgp', 'RGmx', 'FCxr')
-    grain_size_avg: Optional[UncertainValue] = None  # Average grain size
+    grain_form: Optional[str] = None  # Full recorded grain form including sub-grain class code, if available (e.g., 'PPgp', 'RGmx', 'FCxr')
+    grain_size_avg: Optional[UncertainValue] = None  # mm - Average grain size
     
+    # ==========================================
     # Calculated Parameters - From Method Implementations
-    density_calculated: Optional[UncertainValue] = None  # kg/m³ - Layer density (can also be measured directly)
+    # ==========================================
+    density_calculated: Optional[UncertainValue] = None  # kg/m³ - Layer density
     poissons_ratio: Optional[UncertainValue] = None  # Layer Poisson's ratio
     shear_modulus: Optional[UncertainValue] = None  # Layer shear modulus
     elastic_modulus: Optional[UncertainValue] = None  # Layer elastic modulus
+    
+    # ==========================================
+    # Calculated Parameters - From Field Measurements (Properties)
+    # ==========================================
     
     @property
     def depth_bottom(self) -> Optional[UncertainValue]:

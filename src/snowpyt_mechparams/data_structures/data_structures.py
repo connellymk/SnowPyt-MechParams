@@ -5,17 +5,10 @@ from typing import List, Optional, Union
 
 import uncertainties
 
+from snowpyt_mechparams.constants import HARDNESS_MAPPING
+
 # Type alias for values that can be floats or uncertain numbers
 UncertainValue = Union[float, uncertainties.UFloat]
-
-# Map hand hardness string to numeric hand hardness index (hhi)
-HARDNESS_MAPPING = {
-    'F-': 0.67, 'F': 1.0, 'F+': 1.33,
-    '4F-': 1.67, '4F': 2.0, '4F+': 2.33,
-    '1F-': 2.67, '1F': 3.0, '1F+': 3.33,
-    'P-': 3.67, 'P': 4.0, 'P+': 4.33,
-    'K-': 4.67, 'K': 5.0, 'K+': 5.33
-}
 
 
 @dataclass

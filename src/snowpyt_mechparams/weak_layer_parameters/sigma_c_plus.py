@@ -5,6 +5,8 @@ from typing import Any
 import numpy as np
 from uncertainties import ufloat
 
+from snowpyt_mechparams.constants import RHO_ICE
+
 
 def calculate_sigma_c_plus(method: str, **kwargs: Any) -> ufloat:
     """
@@ -127,9 +129,7 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
         rho_val = density
 
     # Check for valid density range
-    rho_ice = 917.0  # kg/m³, density of ice
-
-    if rho_val <= 0.0 or rho_val > rho_ice:
+    if rho_val <= 0.0 or rho_val > RHO_ICE:
         return ufloat(np.nan, np.nan)
 
     # Power-law parameters from Sigrist et al. (2005)

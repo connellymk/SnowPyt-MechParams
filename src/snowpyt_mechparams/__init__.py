@@ -16,7 +16,8 @@ Main Modules
 - execution: Parameterization pathway execution engine
 """
 
-from snowpyt_mechparams.data_structures import Layer, Slab, HARDNESS_MAPPING
+from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE
 from snowpyt_mechparams.slab_parameters.shear_modulus import calculate_shear_modulus
 from snowpyt_mechparams.weak_layer_parameters import (
     calculate_sigma_c_minus,
@@ -40,7 +41,9 @@ __all__ = [
     # Data structures
     "Layer",
     "Slab",
+    # Constants
     "HARDNESS_MAPPING",
+    "RHO_ICE",
     # Calculation functions
     "calculate_shear_modulus",
     "calculate_sigma_c_minus",

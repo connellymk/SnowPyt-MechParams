@@ -10,6 +10,8 @@ from typing import Any
 from uncertainties import ufloat
 from uncertainties import umath
 
+from snowpyt_mechparams.constants import RHO_ICE
+
 def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
     """
     Calculate elastic modulus of a slab layer based on specified method and
@@ -121,7 +123,6 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat,grain_form: str) -> uflo
     """
 
     rho_snow = density # kg/m³, input
-    rho_ice = 917.0  # kg/m³
     
     # Check grain form validity (only PP, RG, DF are supported)
     main_grain_shape = grain_form[:2]
@@ -139,7 +140,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat,grain_form: str) -> uflo
     C1 = ufloat(4.4, 0.18) 
     
     # Calculate elastic modulus (E) in MPa based solely on density
-    E_snow = C0 * (rho_snow / rho_ice) ** C1
+    E_snow = C0 * (rho_snow / RHO_ICE) ** C1
     
     return E_snow
 
@@ -225,8 +226,6 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str, E_ice: uf
     weak layers. Journal of Glaciology, 60(220), 304-315.
     """
 
-    rho_ice = 917.0  # kg/m³
-
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['RG', 'RC', 'DH', 'MF']:
         return ufloat(np.nan, np.nan)
@@ -250,8 +249,8 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str, E_ice: uf
         return ufloat(np.nan, np.nan)
 
     C_2 = C_0/E_ice
-    C_3 = C_1*rho_ice
-    E_snow = E_ice * C_2 * umath.exp(C_3 * rho_snow/rho_ice)
+    C_3 = C_1*RHO_ICE
+    E_snow = E_ice * C_2 * umath.exp(C_3 * rho_snow/RHO_ICE)
     
     return E_snow
 
@@ -333,9 +332,6 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
-    
-    # Constants for Ice
-    rho_ice = 917.0  # kg/m³ 
 
     # Check for nominal density in range of fit
     if rho_snow.nominal_value < 103 or rho_snow.nominal_value > 544:
@@ -347,7 +343,7 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
 
         # Calculate normalized Young's Modulus (E_snow / E_ice)
         # E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
-        E_snow = E_ice * (A * ((rho_snow / rho_ice) ** n))
+        E_snow = E_ice * (A * ((rho_snow / RHO_ICE) ** n))
     
     return E_snow
 
@@ -399,9 +395,6 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str,E_ice:
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
-    
-    # Constants for Ice
-    rho_ice = 917.0  # kg/m³ 
 
     # Determine the grain category and retrieve parameters
     main_grain_shape = grain_form[:2].upper()
@@ -418,6 +411,6 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str,E_ice:
     else:
       return ufloat(np.nan, np.nan)
 
-    E_snow = E_ice * A * (rho_snow / rho_ice) ** n
+    E_snow = E_ice * A * (rho_snow / RHO_ICE) ** n
 
     return E_snow

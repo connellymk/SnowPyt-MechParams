@@ -7,6 +7,8 @@ from typing import Any
 
 from uncertainties import ufloat
 
+from snowpyt_mechparams.constants import RHO_ICE
+
 def calculate_shear_modulus(method: str, **kwargs: Any) -> ufloat:
     """
     Calculate shear modulus of a slab layer based on specified method and
@@ -120,9 +122,6 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
         return ufloat(np.nan, np.nan)
     
     rho_snow = density  # kg/m³, input
-    
-    # Constants for Ice
-    rho_ice = 917.0  # kg/m³ 
 
     # Check for nominal density in range of fit
     if rho_snow.nominal_value < 103 or rho_snow.nominal_value > 544:
@@ -134,7 +133,7 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
 
         # Calculate shear modulus (G_snow / G_ice = A * (ρ_snow / ρ_ice)^n)
         # G_snow = G_ice * A * (ρ_snow / ρ_ice)^n
-        G_snow = G_ice * (A * ((rho_snow / rho_ice) ** n))
+        G_snow = G_ice * (A * ((rho_snow / RHO_ICE) ** n))
     
     return G_snow
 

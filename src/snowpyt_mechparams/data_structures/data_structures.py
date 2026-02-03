@@ -153,6 +153,14 @@ class Layer:
             return self.grain_form[:2]
         return None
 
+@dataclass
+class Pit:
+    """
+    Represents a Snow Pilot Snowpit object.
+    """
+    core_info: CoreInfo # Core information about the snowpit
+    snow_profile: SnowProfile # Snow profile of the snowpit
+    stability_tests: StabilityTests # Stability tests of the snowpit
 
 @dataclass
 class Slab:
@@ -187,10 +195,17 @@ class Slab:
     D11 : Union[float, uncertainties.UFloat]
         Bending stiffness in N·mm. Can include uncertainty.
     """
+    # Slab Structure
     layers: List[Layer] # Ordered list of snow layers from top (surface) to bottom
     angle: float # Slope angle of the slab in degrees
     weak_layer: Optional[Layer] = None  # Weak layer of the slab
-    
+
+    # Stability Test Results
+    ECT_results: Optional[List[Any]] = None  # ECT test results
+    CT_results: Optional[List[Any]] = None  # CT test results
+    PST_results: Optional[List[Any]] = None  # PST test results
+    layer_of_concern: Optional[Layer] = None  # Layer of concern
+
     # Calculated Parameters - From Method Implementations
     A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness
     A55: Optional[UncertainValue] = None  # N/mm - Shear stiffness (with shear correction factor κ)

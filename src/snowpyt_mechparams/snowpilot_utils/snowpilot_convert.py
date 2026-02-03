@@ -232,6 +232,10 @@ def caaml_to_slab(
     - The depth_tolerance parameter is used by _find_weak_layer_depth for matching
       test depths to layer depths when finding the weak layer depth, but the weak
       layer itself is identified as the layer containing that depth
+    - Stability test results (ECT_results, CT_results, PST_results) are extracted
+      from the profile and match the snowpylot structure
+    - The layer_of_concern field is populated with the Layer object for any layer
+      marked as layer_of_concern in the profile, or None if not found
 
     Examples
     --------
@@ -259,9 +263,24 @@ def caaml_to_slab(
     # Extract angle from profile
     angle = _extract_slope_angle(caaml_profile)
 
-    # If no weak layer definition, return all layers
+    # Extract stability test results (matching snowpylot structure)
+    ect_results = _extract_stability_test_results(caaml_profile, "ECT")
+    ct_results = _extract_stability_test_results(caaml_profile, "CT")
+    pst_results = _extract_stability_test_results(caaml_profile, "PST")
+
+    # Extract layer of concern
+    layer_of_concern = _extract_layer_of_concern(caaml_profile, all_layers)
+
+    # If no weak layer definition, return all layers with test results
     if weak_layer_def is None:
-        return Slab(layers=all_layers, angle=angle)
+        return Slab(
+            layers=all_layers,
+            angle=angle,
+            ECT_results=ect_results,
+            CT_results=ct_results,
+            PST_results=pst_results,
+            layer_of_concern=layer_of_concern,
+        )
 
     # Find the weak layer depth
     weak_layer_depth = _find_weak_layer_depth(caaml_profile, weak_layer_def)
@@ -290,7 +309,15 @@ def caaml_to_slab(
     if not slab_layers:
         return None
 
-    return Slab(layers=slab_layers, angle=angle, weak_layer=weak_layer)
+    return Slab(
+        layers=slab_layers,
+        angle=angle,
+        weak_layer=weak_layer,
+        ECT_results=ect_results,
+        CT_results=ct_results,
+        PST_results=pst_results,
+        layer_of_concern=layer_of_concern,
+    )
 
 
 def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[str]:
@@ -490,3 +517,77 @@ def _find_weak_layer_depth(caaml_profile: Any, weak_layer_def: str) -> Optional[
             f"Invalid weak_layer_def '{weak_layer_def}'. "
             f"Valid options: 'layer_of_concern', 'CT_failure_layer', 'ECTP_failure_layer'"
         )
+
+
+def _extract_stability_test_results(caaml_profile: Any, test_type: str) -> Optional[List[Any]]:
+    """
+    Extract stability test results from CAAML profile.
+
+    Parameters
+    ----------
+    caaml_profile : Any
+        Parsed CAAML profile object
+    test_type : str
+        Test type - one of: "ECT", "CT", "PST"
+
+    Returns
+    -------
+    Optional[List[Any]]
+        List of test results matching snowpylot structure, or None if not available
+    """
+    if not hasattr(caaml_profile, "stability_tests") or not caaml_profile.stability_tests:
+        return None
+
+    # Map test types to possible snowpylot attribute names
+    # Try multiple possible names for PST (PropSawTest)
+    test_attr_map = {
+        "ECT": ["ECT"],
+        "CT": ["CT"],
+        "PST": ["PST", "PropSawTest", "PropSaw"],
+    }
+
+    if test_type not in test_attr_map:
+        return None
+
+    # Try each possible attribute name
+    for attr_name in test_attr_map[test_type]:
+        if hasattr(caaml_profile.stability_tests, attr_name):
+            tests = getattr(caaml_profile.stability_tests, attr_name)
+            if tests:
+                return list(tests) if isinstance(tests, (list, tuple)) else [tests]
+    return None
+
+
+def _extract_layer_of_concern(caaml_profile: Any, all_layers: List[Layer]) -> Optional[Layer]:
+    """
+    Extract the layer of concern from CAAML profile and convert to Layer object.
+
+    Parameters
+    ----------
+    caaml_profile : Any
+        Parsed CAAML profile object
+    all_layers : List[Layer]
+        List of all Layer objects from the profile
+
+    Returns
+    -------
+    Optional[Layer]
+        Layer object for the layer of concern, or None if not found
+    """
+    if (
+        not hasattr(caaml_profile, "snow_profile")
+        or not hasattr(caaml_profile.snow_profile, "layers")
+        or not caaml_profile.snow_profile.layers
+    ):
+        return None
+
+    # Find the layer marked as layer_of_concern in CAAML
+    for caaml_layer in caaml_profile.snow_profile.layers:
+        if hasattr(caaml_layer, "layer_of_concern") and caaml_layer.layer_of_concern is True:
+            # Find the corresponding Layer object by matching depth_top
+            depth_top = _get_value_safe(caaml_layer.depth_top)
+            if depth_top is not None:
+                for layer in all_layers:
+                    if layer.depth_top is not None and abs(layer.depth_top - depth_top) < 0.01:
+                        return layer
+    return None

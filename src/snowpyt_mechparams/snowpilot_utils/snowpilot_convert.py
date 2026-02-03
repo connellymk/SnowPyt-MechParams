@@ -220,14 +220,18 @@ def caaml_to_slab(
 
     Notes
     -----
-    - If weak_layer_def=None, returns a slab with all layers
+    - If weak_layer_def=None, returns a slab with all layers (weak_layer=None)
+    - If weak_layer_def is specified, the weak_layer field is populated with the
+      Layer object that contains the failure depth (i.e., the layer where
+      depth_top <= failure_depth < depth_bottom)
     - The slab consists of all layers with depth_top < weak_layer_depth
     - Layers are ordered from top to bottom as they appear in the profile
     - The angle is automatically extracted from profile.core_info.location.slope_angle
       and is NaN if unavailable
     - Density measurements are automatically included when available
-    - For stability test definitions (CT/ECTP), depth_tolerance is used to match
-      test depths to layer depths (accounts for measurement precision)
+    - The depth_tolerance parameter is used by _find_weak_layer_depth for matching
+      test depths to layer depths when finding the weak layer depth, but the weak
+      layer itself is identified as the layer containing that depth
 
     Examples
     --------
@@ -265,6 +269,16 @@ def caaml_to_slab(
     if weak_layer_depth is None:
         return None
 
+    # Find the weak layer object from all_layers
+    # The weak layer is the layer that contains the failure depth
+    # (i.e., depth_top <= weak_layer_depth < depth_bottom)
+    weak_layer = None
+    for layer in all_layers:
+        if layer.depth_top is not None and layer.depth_bottom is not None:
+            if layer.depth_top <= weak_layer_depth < layer.depth_bottom:
+                weak_layer = layer
+                break
+
     # Filter layers above the weak layer
     # Layer is above weak layer if its depth_top < weak_layer_depth
     slab_layers = []
@@ -276,7 +290,7 @@ def caaml_to_slab(
     if not slab_layers:
         return None
 
-    return Slab(layers=slab_layers, angle=angle)
+    return Slab(layers=slab_layers, angle=angle, weak_layer=weak_layer)
 
 
 def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[str]:

@@ -4,16 +4,31 @@ CAAML (Snow Profile) data parser and converter.
 This module provides functionality to parse CAAML XML files (from SnowPilot
 or other sources) and convert them to snowpyt_mechparams data structures.
 
-Usage
------
-Use the `Pit` class from data_structures for snow profile conversion:
+Workflow
+--------
+1. Parse CAAML file to get snowpylot profile
+2. Create Pit object from snowpylot profile
+3. Create Slab from Pit
 
+Example
+-------
+    >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
     >>> from snowpyt_mechparams.data_structures import Pit
-    >>> pit = Pit.from_caaml_file("profile.xml")
+    >>> 
+    >>> # Step 1: Parse CAAML file
+    >>> profile = parse_caaml_file("profile.xml")
+    >>> 
+    >>> # Step 2: Create Pit from snowpylot profile
+    >>> pit = Pit.from_snowpylot_profile(profile)
+    >>> 
+    >>> # Step 3: Create Slab from Pit
     >>> slab = pit.create_slab(weak_layer_def="layer_of_concern")
 
-This module also provides utility functions for parsing CAAML files and
-converting grain form codes for different lookup tables.
+Additional Utilities
+--------------------
+This module also provides utility functions for:
+- Parsing multiple CAAML files from a directory
+- Converting grain form codes for different lookup tables
 """
 
 import logging

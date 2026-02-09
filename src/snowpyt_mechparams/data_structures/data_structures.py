@@ -183,12 +183,22 @@ class Pit:
     
     Notes
     -----
-    Use the `from_caaml_file()` or `from_snowpylot_profile()` factory methods
-    to create Pit objects from CAAML data.
+    Workflow for creating a Pit object:
+    1. Parse CAAML file using parse_caaml_file() from snowpilot_utils
+    2. Pass the snowpylot profile to Pit.from_snowpylot_profile()
     
     Examples
     --------
-    >>> pit = Pit.from_caaml_file("profile.xml")
+    >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
+    >>> from snowpyt_mechparams.data_structures import Pit
+    >>> 
+    >>> # Parse CAAML file to get snowpylot profile
+    >>> profile = parse_caaml_file("profile.xml")
+    >>> 
+    >>> # Create Pit from snowpylot profile
+    >>> pit = Pit.from_snowpylot_profile(profile)
+    >>> 
+    >>> # Create slab from pit
     >>> slab = pit.create_slab(weak_layer_def="layer_of_concern")
     """
     # Raw data
@@ -227,43 +237,17 @@ class Pit:
         self.layer_of_concern = self._extract_layer_of_concern()
     
     @classmethod
-    def from_caaml_file(cls, filepath: str) -> "Pit":
-        """
-        Create a Pit object from a CAAML XML file.
-        
-        Parameters
-        ----------
-        filepath : str
-            Path to the CAAML XML file
-            
-        Returns
-        -------
-        Pit
-            Initialized Pit object with layers and test results
-            
-        Raises
-        ------
-        Exception
-            If the file cannot be parsed
-            
-        Examples
-        --------
-        >>> pit = Pit.from_caaml_file("profile.xml")
-        >>> print(f"Pit has {len(pit.layers)} layers")
-        """
-        from snowpylot import caaml_parser
-        profile = caaml_parser(filepath)
-        return cls(snowpylot_profile=profile)
-    
-    @classmethod
     def from_snowpylot_profile(cls, profile: Any) -> "Pit":
         """
-        Create a Pit object from an already-parsed snowpylot profile.
+        Create a Pit object from a snowpylot profile.
+        
+        This is the primary way to create a Pit object. First parse a CAAML file
+        using snowpylot, then pass the profile to this method.
         
         Parameters
         ----------
         profile : Any
-            Parsed CAAML profile object from snowpylot
+            Parsed CAAML profile object from snowpylot (via caaml_parser)
             
         Returns
         -------
@@ -272,9 +256,15 @@ class Pit:
             
         Examples
         --------
-        >>> from snowpylot import caaml_parser
-        >>> profile = caaml_parser("profile.xml")
+        >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
+        >>> from snowpyt_mechparams.data_structures import Pit
+        >>> 
+        >>> # Step 1: Parse CAAML file to get snowpylot profile
+        >>> profile = parse_caaml_file("profile.xml")
+        >>> 
+        >>> # Step 2: Create Pit from snowpylot profile
         >>> pit = Pit.from_snowpylot_profile(profile)
+        >>> print(f"Pit has {len(pit.layers)} layers")
         """
         return cls(snowpylot_profile=profile)
     
@@ -305,7 +295,9 @@ class Pit:
             
         Examples
         --------
-        >>> pit = Pit.from_caaml_file("profile.xml")
+        >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
+        >>> profile = parse_caaml_file("profile.xml")
+        >>> pit = Pit.from_snowpylot_profile(profile)
         >>> slab = pit.create_slab(weak_layer_def="layer_of_concern")
         >>> if slab:
         ...     print(f"Slab has {len(slab.layers)} layers")

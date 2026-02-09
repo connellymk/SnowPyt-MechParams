@@ -826,7 +826,7 @@ def test_pit_stability_test_none():
 
 @pytest.mark.integration
 def test_pit_from_caaml_file_real():
-    """Test creating Pit from a real CAAML file."""
+    """Test creating Pit from a real CAAML file using two-step workflow."""
     # Use a real CAAML file from examples/data
     examples_dir = os.path.join(os.path.dirname(__file__), "..", "examples", "data")
     caaml_files = [f for f in os.listdir(examples_dir) if f.endswith(".xml")]
@@ -837,7 +837,11 @@ def test_pit_from_caaml_file_real():
     test_file = os.path.join(examples_dir, caaml_files[0])
     
     try:
-        pit = Pit.from_caaml_file(test_file)
+        # Step 1: Parse CAAML file to get snowpylot profile
+        profile = parse_caaml_file(test_file)
+        
+        # Step 2: Create Pit from snowpylot profile
+        pit = Pit.from_snowpylot_profile(profile)
         
         assert pit is not None
         assert len(pit.layers) > 0

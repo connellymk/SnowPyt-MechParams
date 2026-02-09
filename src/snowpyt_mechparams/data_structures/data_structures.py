@@ -221,19 +221,29 @@ class Pit:
         Initialize the pit by extracting layers and test results from snowpylot SnowPit.
         """
         # Extract slope angle
-        self.slope_angle = self._extract_slope_angle()
-        
-        # Extract pit ID if available
-        self.pit_id = self._extract_pit_id()
-        
+        try:
+            slope_angle_data = self.snow_pit.core_info.location.slope_angle
+            if slope_angle_data and len(slope_angle_data) > 0:
+                self.slope_angle = float(slope_angle_data[0])
+        except (AttributeError, IndexError, TypeError, ValueError):
+            pass  # slope_angle already defaults to NaN
+
+        # Extract pit ID
+        try:
+            if hasattr(self.snow_pit.core_info, 'pit_id') and self.snow_pit.core_info.pit_id:
+                self.pit_id = str(self.snow_pit.core_info.pit_id)
+        except (AttributeError, TypeError):
+            pass  # pit_id already defaults to None
+
         # Create layers from snow profile
         self.layers = self._create_layers_from_profile()
-        
+
         # Extract stability test results
-        self.ECT_results = self._extract_stability_test_results("ECT")
-        self.CT_results = self._extract_stability_test_results("CT")
-        self.PST_results = self._extract_stability_test_results("PST")
-        
+        if hasattr(self.snow_pit, "stability_tests") and self.snow_pit.stability_tests:
+            self.ECT_results = self._extract_test_list(self.snow_pit.stability_tests.ECT)
+            self.CT_results = self._extract_test_list(self.snow_pit.stability_tests.CT)
+            self.PST_results = self._extract_test_list(self.snow_pit.stability_tests.PST)
+
         # Extract layer of concern
         self.layer_of_concern = self._extract_layer_of_concern()
     
@@ -400,27 +410,27 @@ class Pit:
     # ============================================================================
     # Private Helper Methods
     # ============================================================================
-    
-    def _extract_slope_angle(self) -> float:
-        """Extract slope angle from snowpylot SnowPit."""
-        try:
-            slope_angle_data = self.snow_pit.core_info.location.slope_angle
-            if slope_angle_data and len(slope_angle_data) > 0:
-                return float(slope_angle_data[0])
-            else:
-                return float('nan')
-        except (AttributeError, IndexError, TypeError, ValueError):
-            return float('nan')
-    
-    def _extract_pit_id(self) -> Optional[str]:
-        """Extract pit ID from snowpylot SnowPit if available."""
-        try:
-            # Extract pit_id from core_info (matches snowpylot structure)
-            if hasattr(self.snow_pit, 'core_info') and hasattr(self.snow_pit.core_info, 'pit_id'):
-                return str(self.snow_pit.core_info.pit_id) if self.snow_pit.core_info.pit_id else None
+
+    @staticmethod
+    def _extract_test_list(tests: Any) -> Optional[List[Any]]:
+        """
+        Convert test results to a list format.
+
+        Parameters
+        ----------
+        tests : Any
+            Test results from snowpylot (could be None, list, or single object)
+
+        Returns
+        -------
+        Optional[List[Any]]
+            List of test results, or None if not available
+        """
+        if tests is None:
             return None
-        except (AttributeError, TypeError):
-            return None
+        if isinstance(tests, (list, tuple)):
+            return list(tests) if tests else []
+        return [tests]
     
     def _create_layers_from_profile(self, include_density: bool = True) -> List[Layer]:
         """
@@ -437,17 +447,13 @@ class Pit:
             List of Layer objects representing the snow layers
         """
         layers: List[Layer] = []
-        
-        # Check if snow_profile and layers exist
-        if (
-            not hasattr(self.snow_pit, "snow_profile")
-            or not hasattr(self.snow_pit.snow_profile, "layers")
-        ):
+
+        try:
+            if not self.snow_pit.snow_profile.layers:
+                return layers
+        except (AttributeError, TypeError):
             return layers
-        
-        if not self.snow_pit.snow_profile.layers:
-            return layers
-        
+
         for layer in self.snow_pit.snow_profile.layers:
             # Extract depth_top (array to scalar)
             depth_top = layer.depth_top[0] if layer.depth_top else None
@@ -487,14 +493,15 @@ class Pit:
             
             # Optionally match and extract density from density profile
             density_measured = None
-            if include_density and hasattr(self.snow_pit.snow_profile, "density_profile"):
-                for density_obs in self.snow_pit.snow_profile.density_profile:
-                    if (
-                        density_obs.depth_top == layer.depth_top
-                        and density_obs.thickness == layer.thickness
-                    ):
-                        density_measured = density_obs.density
-                        break
+            if include_density:
+                try:
+                    for density_obs in self.snow_pit.snow_profile.density_profile:
+                        if (density_obs.depth_top == layer.depth_top and
+                            density_obs.thickness == layer.thickness):
+                            density_measured = density_obs.density
+                            break
+                except (AttributeError, TypeError):
+                    pass
             
             # Create Layer object
             layer_obj = Layer(
@@ -510,45 +517,6 @@ class Pit:
         
         return layers
     
-    def _extract_stability_test_results(self, test_type: str) -> Optional[List[Any]]:
-        """
-        Extract stability test results from snowpylot SnowPit.
-
-        Parameters
-        ----------
-        test_type : str
-            Test type - one of: "ECT", "CT", "PST"
-
-        Returns
-        -------
-        Optional[List[Any]]
-            List of test results, or None if not available
-        """
-        if not hasattr(self.snow_pit, "stability_tests") or not self.snow_pit.stability_tests:
-            return None
-        
-        # Map test types to possible snowpylot attribute names
-        test_attr_map = {
-            "ECT": ["ECT"],
-            "CT": ["CT"],
-            "PST": ["PST"],
-        }
-        
-        if test_type not in test_attr_map:
-            return None
-        
-        # Try each possible attribute name
-        for attr_name in test_attr_map[test_type]:
-            if hasattr(self.snow_pit.stability_tests, attr_name):
-                tests = getattr(self.snow_pit.stability_tests, attr_name)
-                if tests is not None:
-                    # Handle empty lists (return empty list, not None)
-                    if isinstance(tests, (list, tuple)):
-                        return list(tests) if tests else []
-                    else:
-                        return [tests]
-        return None
-    
     def _extract_layer_of_concern(self) -> Optional[Layer]:
         """
         Extract the layer of concern from snowpylot SnowPit.
@@ -558,32 +526,26 @@ class Pit:
         Optional[Layer]
             Layer object for the layer of concern, or None if not found
         """
-        if (
-            not hasattr(self.snow_pit, "snow_profile")
-            or not hasattr(self.snow_pit.snow_profile, "layers")
-            or not self.snow_pit.snow_profile.layers
-        ):
-            return None
-        
-        # Find the layer marked as layer_of_concern in CAAML
-        for caaml_layer in self.snow_pit.snow_profile.layers:
-            if hasattr(caaml_layer, "layer_of_concern") and caaml_layer.layer_of_concern is True:
-                # Find the corresponding Layer object by matching depth_top
-                depth_top = self._get_value_safe(caaml_layer.depth_top)
-                if depth_top is not None:
-                    for layer in self.layers:
-                        if layer.depth_top is not None and abs(layer.depth_top - depth_top) < 0.01:
-                            return layer
+        try:
+            for caaml_layer in self.snow_pit.snow_profile.layers:
+                if hasattr(caaml_layer, "layer_of_concern") and caaml_layer.layer_of_concern:
+                    depth_top = self._get_value_safe(caaml_layer.depth_top)
+                    if depth_top is not None:
+                        for layer in self.layers:
+                            if layer.depth_top is not None and abs(layer.depth_top - depth_top) < 0.01:
+                                return layer
+        except (AttributeError, TypeError):
+            pass
         return None
     
     def _find_weak_layer_depth(
-        self, 
+        self,
         weak_layer_def: str,
         depth_tolerance: float = 2.0
     ) -> Optional[float]:
         """
         Find the depth of the weak layer based on the specified definition.
-        
+
         Parameters
         ----------
         weak_layer_def : str
@@ -593,82 +555,47 @@ class Pit:
             - "ECTP_failure_layer": Uses ECT test failure layer with propagation
         depth_tolerance : float
             Tolerance in cm for matching test depths to layer depths
-            
+
         Returns
         -------
         Optional[float]
             Depth (from top) of the weak layer in cm, or None if no weak layer found
         """
-        if not hasattr(self.snow_pit, "snow_profile") or not self.snow_pit.snow_profile:
-            return None
-        
-        if weak_layer_def == "layer_of_concern":
-            # Find layer marked as layer_of_concern
-            if (
-                not hasattr(self.snow_pit.snow_profile, "layers")
-                or not self.snow_pit.snow_profile.layers
-            ):
-                return None
-            
-            for layer in self.snow_pit.snow_profile.layers:
-                if hasattr(layer, "layer_of_concern") and layer.layer_of_concern is True:
-                    depth = self._get_value_safe(layer.depth_top)
-                    if depth is not None:
-                        return depth
-            return None
-        
-        elif weak_layer_def == "CT_failure_layer":
-            # Find CT test failure layer with Q1/SC/SP fracture character
-            if not hasattr(self.snow_pit, "stability_tests") or not hasattr(
-                self.snow_pit.stability_tests, "CT"
-            ):
-                return None
-            
-            ct_tests = self.snow_pit.stability_tests.CT
-            if not ct_tests:
-                return None
-            
-            for ct in ct_tests:
-                if (
-                    hasattr(ct, "fracture_character")
-                    and ct.fracture_character in ["Q1", "SC", "SP"]
-                ):
-                    depth = self._get_value_safe(ct.depth_top)
-                    if depth is not None:
-                        return depth
-            return None
-        
-        elif weak_layer_def == "ECTP_failure_layer":
-            # Find ECT test failure layer with propagation
-            if not hasattr(self.snow_pit, "stability_tests") or not hasattr(
-                self.snow_pit.stability_tests, "ECT"
-            ):
-                return None
-            
-            ect_tests = self.snow_pit.stability_tests.ECT
-            if not ect_tests:
-                return None
-            
-            for ect in ect_tests:
-                # Check for propagation in both attribute and test_score
-                has_propagation = (
-                    hasattr(ect, "propagation") and ect.propagation is True
-                ) or (
-                    hasattr(ect, "test_score")
-                    and ect.test_score
-                    and "ECTP" in str(ect.test_score)
+        try:
+            if weak_layer_def == "layer_of_concern":
+                for layer in self.snow_pit.snow_profile.layers:
+                    if hasattr(layer, "layer_of_concern") and layer.layer_of_concern:
+                        depth = self._get_value_safe(layer.depth_top)
+                        if depth is not None:
+                            return depth
+
+            elif weak_layer_def == "CT_failure_layer":
+                for ct in self.snow_pit.stability_tests.CT or []:
+                    if hasattr(ct, "fracture_character") and ct.fracture_character in ["Q1", "SC", "SP"]:
+                        depth = self._get_value_safe(ct.depth_top)
+                        if depth is not None:
+                            return depth
+
+            elif weak_layer_def == "ECTP_failure_layer":
+                for ect in self.snow_pit.stability_tests.ECT or []:
+                    has_propagation = (
+                        (hasattr(ect, "propagation") and ect.propagation) or
+                        (hasattr(ect, "test_score") and ect.test_score and "ECTP" in str(ect.test_score))
+                    )
+                    if has_propagation:
+                        depth = self._get_value_safe(ect.depth_top)
+                        if depth is not None:
+                            return depth
+
+            else:
+                raise ValueError(
+                    f"Invalid weak_layer_def '{weak_layer_def}'. "
+                    f"Valid options: 'layer_of_concern', 'CT_failure_layer', 'ECTP_failure_layer'"
                 )
-                if has_propagation:
-                    depth = self._get_value_safe(ect.depth_top)
-                    if depth is not None:
-                        return depth
-            return None
-        
-        else:
-            raise ValueError(
-                f"Invalid weak_layer_def '{weak_layer_def}'. "
-                f"Valid options: 'layer_of_concern', 'CT_failure_layer', 'ECTP_failure_layer'"
-            )
+        except (AttributeError, TypeError):
+            pass
+
+        return None
     
     @staticmethod
     def _get_value_safe(obj: Any) -> Optional[float]:
@@ -706,19 +633,11 @@ class Pit:
         if not self.ECT_results:
             return []
 
-        matching_tests = []
-        for ect in self.ECT_results:
-            has_propagation = (
-                hasattr(ect, "propagation") and ect.propagation is True
-            ) or (
-                hasattr(ect, "test_score")
-                and ect.test_score
-                and "ECTP" in str(ect.test_score)
-            )
-            if has_propagation:
-                matching_tests.append(ect)
-
-        return matching_tests
+        return [
+            ect for ect in self.ECT_results
+            if (hasattr(ect, "propagation") and ect.propagation) or
+               (hasattr(ect, "test_score") and ect.test_score and "ECTP" in str(ect.test_score))
+        ]
 
     def _get_matching_ct_results(self) -> List[Any]:
         """
@@ -732,15 +651,10 @@ class Pit:
         if not self.CT_results:
             return []
 
-        matching_tests = []
-        for ct in self.CT_results:
-            if (
-                hasattr(ct, "fracture_character")
-                and ct.fracture_character in ["Q1", "SC", "SP"]
-            ):
-                matching_tests.append(ct)
-
-        return matching_tests
+        return [
+            ct for ct in self.CT_results
+            if hasattr(ct, "fracture_character") and ct.fracture_character in ["Q1", "SC", "SP"]
+        ]
 
     def _create_slab_from_test_result(
         self,

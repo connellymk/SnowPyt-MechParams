@@ -71,20 +71,22 @@ def example_convert_to_slab():
     
     # Create Pit object from profile
     pit = Pit.from_snowpylot_profile(profiles[0])
-    
-    # Convert to slab (all layers, no weak layer filtering)
-    slab_all = pit.create_slab()
-    
-    if slab_all:
+
+    # Convert to slabs (all layers, no weak layer filtering)
+    slabs_all = pit.create_slabs()
+
+    if slabs_all:
+        slab_all = slabs_all[0]
         print(f"✅ Slab with all layers:")
         print(f"  - Number of layers: {len(slab_all.layers)}")
         print(f"  - Total thickness: {slab_all.total_thickness} cm")
         print(f"  - Slope angle: {slab_all.angle}°")
-    
-    # Try to get slab above layer of concern
-    slab_loc = pit.create_slab(weak_layer_def="layer_of_concern")
-    
-    if slab_loc:
+
+    # Try to get slabs above layer of concern
+    slabs_loc = pit.create_slabs(weak_layer_def="layer_of_concern")
+
+    if slabs_loc:
+        slab_loc = slabs_loc[0]
         print(f"\n✅ Slab above layer of concern:")
         print(f"  - Number of layers: {len(slab_loc.layers)}")
         print(f"  - Total thickness: {slab_loc.total_thickness} cm")

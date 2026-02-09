@@ -444,7 +444,9 @@ def test_pit_layers_grain_size_array():
 def test_pit_create_slab_no_weak_layer_def(mock_caaml_profile_basic):
     """Test Pit creating slab without weak layer definition."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
-    slab = pit.create_slab(weak_layer_def=None)
+    slabs = pit.create_slabs(weak_layer_def=None)
+
+    slab = slabs[0] if slabs else None
     
     assert slab is not None
     assert isinstance(slab, Slab)
@@ -461,7 +463,9 @@ def test_pit_create_slab_no_weak_layer_def(mock_caaml_profile_basic):
 def test_pit_create_slab_layer_of_concern(mock_caaml_profile_basic):
     """Test Pit creating slab with layer_of_concern."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
-    slab = pit.create_slab(weak_layer_def="layer_of_concern")
+    slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
+
+    slab = slabs[0] if slabs else None
     
     assert slab is not None
     assert len(slab.layers) == 1  # Only layer above weak layer
@@ -473,10 +477,11 @@ def test_pit_create_slab_layer_of_concern(mock_caaml_profile_basic):
 def test_pit_create_slab_ct_failure_layer(mock_caaml_profile_with_tests):
     """Test Pit creating slab with CT failure layer."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
-    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
-    
-    assert slab is not None
-    assert len(slab.layers) == 2  # Layers above depth 25.0
+    slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
+
+    assert len(slabs) == 1
+    slab = slabs[0]
+    assert len(slab.layers) == 1  # Only layers above weak layer (NOT including it)
     assert slab.weak_layer is not None
     # Weak layer should be layer containing depth 25.0
     assert slab.weak_layer.depth_top == 10.0  # Layer 2 contains depth 25.0
@@ -487,10 +492,11 @@ def test_pit_create_slab_ct_failure_layer(mock_caaml_profile_with_tests):
 def test_pit_create_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
     """Test Pit creating slab with ECTP failure layer."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
-    slab = pit.create_slab(weak_layer_def="ECTP_failure_layer")
-    
-    assert slab is not None
-    assert len(slab.layers) == 2
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    assert len(slabs) == 1
+    slab = slabs[0]
+    assert len(slab.layers) == 1  # Only layers above weak layer (NOT including it)
     assert slab.weak_layer is not None
     assert slab.ECT_results is not None
     assert len(slab.ECT_results) == 1
@@ -530,7 +536,9 @@ def test_pit_create_slab_no_weak_layer_found():
     
     # Try to find layer_of_concern when none exists
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def="layer_of_concern")
+    slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
+
+    slab = slabs[0] if slabs else None
     
     assert slab is None
 
@@ -570,7 +578,9 @@ def test_pit_create_slab_no_layers_above_weak_layer():
     
     # Weak layer is at depth 0, so no layers above it
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def="layer_of_concern")
+    slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
+
+    slab = slabs[0] if slabs else None
     
     assert slab is None
 
@@ -578,7 +588,9 @@ def test_pit_create_slab_no_layers_above_weak_layer():
 def test_pit_create_slab_with_stability_tests(mock_caaml_profile_with_tests):
     """Test Pit creating slab includes stability test results."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
-    slab = pit.create_slab(weak_layer_def=None)
+    slabs = pit.create_slabs(weak_layer_def=None)
+
+    slab = slabs[0] if slabs else None
     
     assert slab is not None
     assert slab.ECT_results is not None
@@ -592,7 +604,9 @@ def test_pit_create_slab_with_stability_tests(mock_caaml_profile_with_tests):
 def test_pit_create_slab_with_layer_of_concern(mock_caaml_profile_with_tests):
     """Test Pit creating slab includes layer_of_concern."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
-    slab = pit.create_slab(weak_layer_def=None)
+    slabs = pit.create_slabs(weak_layer_def=None)
+
+    slab = slabs[0] if slabs else None
     
     assert slab is not None
     assert slab.layer_of_concern is not None
@@ -613,7 +627,9 @@ def test_pit_create_slab_empty_profile():
     profile.stability_tests = None
     
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab()
+    slabs = pit.create_slabs()
+
+    slab = slabs[0] if slabs else None
     assert slab is None
 
 
@@ -668,12 +684,13 @@ def test_pit_create_slab_weak_layer_contains_failure_depth():
     profile.stability_tests = stability_tests
     
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
-    
-    assert slab is not None
+    slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
+
+    assert len(slabs) == 1
+    slab = slabs[0]
     assert slab.weak_layer is not None
     assert slab.weak_layer.depth_top == 10.0  # Layer 2 contains depth 25.0
-    assert len(slab.layers) == 1  # Only layer1 is above
+    assert len(slab.layers) == 1  # Only layer1 is above weak layer (NOT including weak layer)
 
 
 # ============================================================================
@@ -849,7 +866,9 @@ def test_pit_from_caaml_file_real():
         assert all(isinstance(layer, Layer) for layer in pit.layers)
         
         # Test slab creation
-        slab = pit.create_slab()
+        slabs = pit.create_slabs()
+
+        slab = slabs[0] if slabs else None
         assert slab is not None
         assert isinstance(slab, Slab)
         assert len(slab.layers) > 0
@@ -911,17 +930,17 @@ def test_pit_ectp_test_score_string():
     profile.stability_tests = stability_tests
     
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def="ECTP_failure_layer")
-    
-    assert slab is not None
-    assert slab.weak_layer is not None
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+    # Since layer1 is the weak layer and there are no layers above it, no slab can be created
+
+    assert len(slabs) == 0
 
 
 def test_pit_ct_multiple_tests():
     """Test Pit with multiple CT tests - should use first Q1/SC/SP."""
     profile = Mock()
     snow_profile = Mock()
-    
+
     layer1 = Mock()
     layer1.depth_top = [0.0]
     layer1.thickness = [10.0]
@@ -932,36 +951,37 @@ def test_pit_ct_multiple_tests():
     grain_form1.sub_grain_class_code = None
     grain_form1.grain_size_avg = None
     layer1.grain_form_primary = grain_form1
-    
+
     snow_profile.layers = [layer1]
     snow_profile.density_profile = []
     profile.snow_profile = snow_profile
-    
+
     core_info = Mock()
     location = Mock()
     location.slope_angle = [30.0, "deg"]
     core_info.location = location
     profile.core_info = core_info
-    
+
     stability_tests = Mock()
     # Multiple CT tests - should return first Q1/SC/SP
     ct_test1 = Mock()
     ct_test1.depth_top = [5.0]
     ct_test1.fracture_character = "RP"  # Not Q1/SC/SP
-    
+
     ct_test2 = Mock()
     ct_test2.depth_top = [5.0]
     ct_test2.fracture_character = "Q1"  # Valid
-    
+
     stability_tests.CT = [ct_test1, ct_test2]
     stability_tests.ECT = []
     stability_tests.PST = []
     profile.stability_tests = stability_tests
-    
+
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
-    
-    assert slab is not None
+    slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
+    # Since layer1 is the weak layer and there are no layers above it, no slab can be created
+
+    assert len(slabs) == 0
 
 
 def test_pit_stability_single_test():
@@ -1065,7 +1085,9 @@ def test_pit_weak_layer_at_boundary():
     profile.stability_tests = stability_tests
     
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
+    slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
+
+    slab = slabs[0] if slabs else None
     
     assert slab is not None
     # Failure at 10.0 should be in layer2 (depth_top <= 10.0 < depth_bottom)
@@ -1107,7 +1129,9 @@ def test_pit_no_stability_tests():
     profile.stability_tests = stability_tests
     
     pit = Pit.from_snowpylot_profile(profile)
-    slab = pit.create_slab(weak_layer_def=None)
+    slabs = pit.create_slabs(weak_layer_def=None)
+
+    slab = slabs[0] if slabs else None
     
     assert slab is not None
     # Empty lists should return as empty lists, not None (after fix)
@@ -1139,7 +1163,468 @@ def test_pit_layer_of_concern_depth_matching():
     profile.stability_tests = None
     
     pit = Pit.from_snowpylot_profile(profile)
-    
+
     # Should match within tolerance (0.01)
     assert pit.layer_of_concern is not None
     assert abs(pit.layer_of_concern.depth_top - 10.0) < 0.01
+
+
+# ============================================================================
+# Tests for create_slabs() method - Multiple slabs per pit
+# ============================================================================
+
+
+def test_pit_create_slabs_multiple_ectp():
+    """Test create_slabs with multiple ECTP results creates multiple slabs."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    # Create 3 layers
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [20.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    layer2 = Mock()
+    layer2.depth_top = [20.0]
+    layer2.thickness = [30.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = False
+    grain_form2 = Mock()
+    grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
+    layer2.grain_form_primary = grain_form2
+
+    layer3 = Mock()
+    layer3.depth_top = [50.0]
+    layer3.thickness = [20.0]
+    layer3.hardness = "1F"
+    layer3.layer_of_concern = False
+    grain_form3 = Mock()
+    grain_form3.basic_grain_class_code = "RG"
+    grain_form3.sub_grain_class_code = None
+    grain_form3.grain_size_avg = None
+    layer3.grain_form_primary = grain_form3
+
+    snow_profile.layers = [layer1, layer2, layer3]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [35.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    # Create 3 ECT tests with propagation at different depths
+    stability_tests = Mock()
+    ect_test1 = Mock()
+    ect_test1.depth_top = [25.0]  # In layer2
+    ect_test1.propagation = True
+    ect_test1.test_score = "ECTP12"
+
+    ect_test2 = Mock()
+    ect_test2.depth_top = [55.0]  # In layer3
+    ect_test2.propagation = True
+    ect_test2.test_score = "ECTP18"
+
+    ect_test3 = Mock()
+    ect_test3.depth_top = [45.0]  # In layer2
+    ect_test3.propagation = True
+    ect_test3.test_score = "ECTP15"
+
+    stability_tests.ECT = [ect_test1, ect_test2, ect_test3]
+    stability_tests.CT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    # Add pit_id
+    profile.obs_id = "test_pit_001"
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    # Should create 3 slabs
+    assert len(slabs) == 3
+
+    # Check metadata for each slab
+    for idx, slab in enumerate(slabs):
+        assert slab.pit_id == "test_pit_001"
+        assert slab.slab_id == f"test_pit_001_slab_{idx}"
+        assert slab.weak_layer_source == "ECTP_failure_layer"
+        assert slab.test_result_index == idx
+        assert slab.n_test_results_in_pit == 3
+        assert slab.test_result_properties is not None
+        assert "score" in slab.test_result_properties
+        assert "propagation" in slab.test_result_properties
+        assert "depth_top" in slab.test_result_properties
+
+    # Check weak layer depths match test depths
+    assert slabs[0].weak_layer.depth_top == 20.0  # layer2 contains 25.0
+    assert slabs[1].weak_layer.depth_top == 50.0  # layer3 contains 55.0
+    assert slabs[2].weak_layer.depth_top == 20.0  # layer2 contains 45.0
+
+    # Check slab layer counts
+    # Slab includes layers with depth_top < weak_layer.depth_top (NOT including weak layer)
+    assert len(slabs[0].layers) == 1  # Only layer1 (layer2 is the weak layer, excluded)
+    assert len(slabs[1].layers) == 2  # layer1 and layer2 (layer3 is the weak layer, excluded)
+    assert len(slabs[2].layers) == 1  # Only layer1 (layer2 is the weak layer, excluded)
+
+
+def test_pit_create_slabs_single_ectp():
+    """Test create_slabs with single ECTP creates one slab."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [20.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    layer2 = Mock()
+    layer2.depth_top = [20.0]
+    layer2.thickness = [10.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = False
+    grain_form2 = Mock()
+    grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
+    layer2.grain_form_primary = grain_form2
+
+    snow_profile.layers = [layer1, layer2]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [30.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    stability_tests = Mock()
+    ect_test = Mock()
+    ect_test.depth_top = [25.0]
+    ect_test.propagation = True
+    ect_test.test_score = "ECTP12"
+    stability_tests.ECT = [ect_test]
+    stability_tests.CT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    profile.obs_id = "pit_002"
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    # Should create 1 slab
+    assert len(slabs) == 1
+    assert slabs[0].pit_id == "pit_002"
+    assert slabs[0].slab_id == "pit_002_slab_0"
+    assert slabs[0].test_result_index == 0
+    assert slabs[0].n_test_results_in_pit == 1
+
+
+def test_pit_create_slabs_no_ectp():
+    """Test create_slabs with no ECTP returns empty list."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [20.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    snow_profile.layers = [layer1]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [30.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    stability_tests = Mock()
+    # ECT tests but no propagation
+    ect_test = Mock()
+    ect_test.depth_top = [15.0]
+    ect_test.propagation = False
+    ect_test.test_score = "ECT15"  # No "ECTP"
+    stability_tests.ECT = [ect_test]
+    stability_tests.CT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    # Should return empty list
+    assert len(slabs) == 0
+
+
+def test_pit_create_slabs_multiple_ct():
+    """Test create_slabs with multiple CT results creates multiple slabs."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [15.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    layer2 = Mock()
+    layer2.depth_top = [15.0]
+    layer2.thickness = [25.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = False
+    grain_form2 = Mock()
+    grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
+    layer2.grain_form_primary = grain_form2
+
+    snow_profile.layers = [layer1, layer2]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [30.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    stability_tests = Mock()
+    # Multiple CT tests with valid fracture characters
+    ct_test1 = Mock()
+    ct_test1.depth_top = [20.0]
+    ct_test1.fracture_character = "Q1"
+    ct_test1.test_score = "CT12"
+
+    ct_test2 = Mock()
+    ct_test2.depth_top = [35.0]
+    ct_test2.fracture_character = "SC"
+    ct_test2.test_score = "CT18"
+
+    ct_test3 = Mock()
+    ct_test3.depth_top = [10.0]
+    ct_test3.fracture_character = "RP"  # Not valid - should be excluded
+    ct_test3.test_score = "CT8"
+
+    stability_tests.CT = [ct_test1, ct_test2, ct_test3]
+    stability_tests.ECT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    profile.obs_id = "pit_003"
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
+
+    # Should create 2 slabs (ct_test3 excluded due to RP fracture character)
+    assert len(slabs) == 2
+
+    # Check metadata
+    assert slabs[0].pit_id == "pit_003"
+    assert slabs[0].weak_layer_source == "CT_failure_layer"
+    assert slabs[0].test_result_index == 0
+    assert slabs[0].n_test_results_in_pit == 2
+    assert slabs[0].test_result_properties["fracture_character"] == "Q1"
+
+    assert slabs[1].test_result_index == 1
+    assert slabs[1].test_result_properties["fracture_character"] == "SC"
+
+
+def test_pit_create_slabs_layer_of_concern():
+    """Test create_slabs with layer_of_concern returns single slab."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [10.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    layer2 = Mock()
+    layer2.depth_top = [10.0]
+    layer2.thickness = [20.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = True
+    grain_form2 = Mock()
+    grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
+    layer2.grain_form_primary = grain_form2
+
+    snow_profile.layers = [layer1, layer2]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [30.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    stability_tests = Mock()
+    stability_tests.ECT = []
+    stability_tests.CT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    profile.obs_id = "pit_004"
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
+
+    # Should create 1 slab
+    assert len(slabs) == 1
+    assert slabs[0].pit_id == "pit_004"
+    assert slabs[0].slab_id == "pit_004_slab_0"
+    assert slabs[0].weak_layer_source == "layer_of_concern"
+    assert slabs[0].test_result_index is None
+    assert slabs[0].test_result_properties is None
+    assert slabs[0].n_test_results_in_pit is None
+
+
+def test_pit_create_slabs_none_weak_layer():
+    """Test create_slabs with None weak_layer_def returns all layers."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [10.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    snow_profile.layers = [layer1]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [30.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    stability_tests = Mock()
+    stability_tests.ECT = []
+    stability_tests.CT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    profile.obs_id = "pit_005"
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def=None)
+
+    # Should create 1 slab with all layers
+    assert len(slabs) == 1
+    assert len(slabs[0].layers) == 1
+    assert slabs[0].weak_layer is None
+    assert slabs[0].weak_layer_source is None
+
+
+def test_pit_create_slabs_no_pit_id():
+    """Test create_slabs generates slab_id even without pit_id."""
+    profile = Mock()
+    snow_profile = Mock()
+
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [10.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
+    layer1.grain_form_primary = grain_form1
+
+    layer2 = Mock()
+    layer2.depth_top = [10.0]
+    layer2.thickness = [10.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = False
+    grain_form2 = Mock()
+    grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
+    layer2.grain_form_primary = grain_form2
+
+    snow_profile.layers = [layer1, layer2]
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+
+    core_info = Mock()
+    location = Mock()
+    location.slope_angle = [30.0, "deg"]
+    core_info.location = location
+    profile.core_info = core_info
+
+    stability_tests = Mock()
+    ect_test1 = Mock()
+    ect_test1.depth_top = [15.0]
+    ect_test1.propagation = True
+    ect_test1.test_score = "ECTP12"
+
+    ect_test2 = Mock()
+    ect_test2.depth_top = [12.0]
+    ect_test2.propagation = True
+    ect_test2.test_score = "ECTP10"
+
+    stability_tests.ECT = [ect_test1, ect_test2]
+    stability_tests.CT = []
+    stability_tests.PST = []
+    profile.stability_tests = stability_tests
+
+    # No obs_id or profile_id - pit_id will be None
+    # Use spec to prevent Mock from auto-creating these attributes
+    del profile.obs_id
+    del profile.profile_id
+
+    pit = Pit.from_snowpylot_profile(profile)
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    # Should still generate slab_ids
+    assert len(slabs) == 2
+    assert slabs[0].pit_id is None
+    assert slabs[0].slab_id == "slab_0"
+    assert slabs[1].slab_id == "slab_1"

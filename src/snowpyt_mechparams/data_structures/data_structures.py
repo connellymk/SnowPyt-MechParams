@@ -191,15 +191,16 @@ class Pit:
     --------
     >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
     >>> from snowpyt_mechparams.data_structures import Pit
-    >>> 
+    >>>
     >>> # Parse CAAML file to get snowpylot profile
     >>> profile = parse_caaml_file("profile.xml")
-    >>> 
+    >>>
     >>> # Create Pit from snowpylot profile
     >>> pit = Pit.from_snowpylot_profile(profile)
-    >>> 
-    >>> # Create slab from pit
-    >>> slab = pit.create_slab(weak_layer_def="layer_of_concern")
+    >>>
+    >>> # Create slabs from pit (one per matching test result)
+    >>> slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+    >>> print(f"Created {len(slabs)} slabs")
     """
     # Raw data
     snowpylot_profile: Any
@@ -267,95 +268,149 @@ class Pit:
         >>> print(f"Pit has {len(pit.layers)} layers")
         """
         return cls(snowpylot_profile=profile)
-    
-    def create_slab(
+
+    def create_slabs(
         self,
         weak_layer_def: Optional[str] = None,
         depth_tolerance: float = 2.0,
-    ) -> Optional["Slab"]:
+    ) -> List["Slab"]:
         """
-        Create a Slab object from the pit's layers.
-        
+        Create multiple Slab objects from the pit's layers, one per matching test result.
+
+        This method creates one slab for each test result that matches the weak_layer_def
+        criteria. For example, if a pit has 3 ECT tests with propagation, this will create
+        3 slabs (one for each ECTP result). Each slab includes metadata tracking which
+        test result was used.
+
         Parameters
         ----------
         weak_layer_def : Optional[str]
             Weak layer definition - one of:
-            - None: Returns all layers in the profile (no weak layer filtering)
-            - "layer_of_concern": Uses layer with layer_of_concern=True
-            - "CT_failure_layer": Uses CT test failure layer with Q1/SC/SP fracture character
-            - "ECTP_failure_layer": Uses ECT test failure layer with propagation
+            - None: Returns single slab with all layers (no weak layer filtering)
+            - "layer_of_concern": Returns single slab using layer with layer_of_concern=True
+            - "CT_failure_layer": Creates one slab per CT test with Q1/SC/SP fracture character
+            - "ECTP_failure_layer": Creates one slab per ECT test with propagation
         depth_tolerance : float, optional
             Tolerance in cm for matching test depths to layer depths (default: 2.0 cm)
-            
+
         Returns
         -------
-        Optional[Slab]
-            Slab object containing layers above the weak layer (or all layers if
-            weak_layer_def=None), or None if no valid slab can be created
-            
+        List[Slab]
+            List of Slab objects, each containing layers above a weak layer identified by
+            a test result. Returns empty list if no valid slabs can be created.
+            Each slab includes metadata about which test result was used.
+
+        Notes
+        -----
+        - For weak_layer_def=None or "layer_of_concern", returns a single slab (or empty list)
+        - For test-based definitions (CT, ECTP), returns one slab per matching test result
+        - Each slab has unique slab_id in format "{pit_id}_slab_{index}"
+        - Metadata fields track test result details for analysis
+        - Non-independent slabs from same pit share layer data (account for this in statistics)
+
         Examples
         --------
         >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
         >>> profile = parse_caaml_file("profile.xml")
         >>> pit = Pit.from_snowpylot_profile(profile)
-        >>> slab = pit.create_slab(weak_layer_def="layer_of_concern")
-        >>> if slab:
-        ...     print(f"Slab has {len(slab.layers)} layers")
+        >>>
+        >>> # Create slabs for all ECTP results
+        >>> slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+        >>> print(f"Created {len(slabs)} slabs from {pit.pit_id}")
+        >>>
+        >>> # Access metadata for each slab
+        >>> for slab in slabs:
+        ...     print(f"Slab {slab.slab_id}: weak layer at {slab.weak_layer.depth_top}cm")
+        ...     print(f"  Test index: {slab.test_result_index}")
+        ...     print(f"  Test properties: {slab.test_result_properties}")
         """
+        slabs = []
+
         if not self.layers:
-            return None
-        
-        # If no weak layer definition, return all layers
+            return slabs
+
+        # Handle None - return single slab with all layers
         if weak_layer_def is None:
-            return Slab(
+            slab = Slab(
                 layers=self.layers,
                 angle=self.slope_angle,
                 ECT_results=self.ECT_results,
                 CT_results=self.CT_results,
                 PST_results=self.PST_results,
                 layer_of_concern=self.layer_of_concern,
+                pit_id=self.pit_id,
+                slab_id=f"{self.pit_id}_slab_0" if self.pit_id else "slab_0",
+                weak_layer_source=None,
+                test_result_index=None,
+                test_result_properties=None,
+                n_test_results_in_pit=None,
             )
-        
-        # Find the weak layer depth
-        weak_layer_depth = self._find_weak_layer_depth(weak_layer_def, depth_tolerance)
-        
-        if weak_layer_depth is None:
-            return None
-        
-        # Find the weak layer object from layers
-        # The weak layer is the layer that contains the failure depth
-        weak_layer = None
-        for layer in self.layers:
-            if layer.depth_top is not None and layer.depth_bottom is not None:
-                if layer.depth_top <= weak_layer_depth < layer.depth_bottom:
-                    weak_layer = layer
-                    break
-        
-        # If no weak layer found, return None
-        if weak_layer is None or weak_layer.depth_top is None:
-            return None
-        
-        # Filter layers above the weak layer
-        # Layers are above the weak layer if their depth_top < weak_layer's depth_top
-        slab_layers = [
-            layer for layer in self.layers
-            if layer.depth_top is not None and layer.depth_top < weak_layer.depth_top
-        ]
-        
-        # Return None if no valid layers above weak layer
-        if not slab_layers:
-            return None
-        
-        return Slab(
-            layers=slab_layers,
-            angle=self.slope_angle,
-            weak_layer=weak_layer,
-            ECT_results=self.ECT_results,
-            CT_results=self.CT_results,
-            PST_results=self.PST_results,
-            layer_of_concern=self.layer_of_concern,
-        )
-    
+            slabs.append(slab)
+            return slabs
+
+        # Handle layer_of_concern - return single slab based on layer_of_concern
+        if weak_layer_def == "layer_of_concern":
+            if self.layer_of_concern is None or self.layer_of_concern.depth_top is None:
+                return slabs
+
+            # Filter layers above the layer of concern
+            slab_layers = [
+                layer for layer in self.layers
+                if layer.depth_top is not None and layer.depth_top < self.layer_of_concern.depth_top
+            ]
+
+            if not slab_layers:
+                return slabs
+
+            slab = Slab(
+                layers=slab_layers,
+                angle=self.slope_angle,
+                weak_layer=self.layer_of_concern,
+                ECT_results=self.ECT_results,
+                CT_results=self.CT_results,
+                PST_results=self.PST_results,
+                layer_of_concern=self.layer_of_concern,
+                pit_id=self.pit_id,
+                slab_id=f"{self.pit_id}_slab_0" if self.pit_id else "slab_0",
+                weak_layer_source="layer_of_concern",
+                test_result_index=None,
+                test_result_properties=None,
+                n_test_results_in_pit=None,
+            )
+            slabs.append(slab)
+            return slabs
+
+        # Handle test-based weak layer definitions - create one slab per matching test
+        if weak_layer_def == "ECTP_failure_layer":
+            test_results = self._get_matching_ect_results()
+            test_type = "ECT"
+        elif weak_layer_def == "CT_failure_layer":
+            test_results = self._get_matching_ct_results()
+            test_type = "CT"
+        else:
+            raise ValueError(
+                f"Invalid weak_layer_def '{weak_layer_def}'. "
+                f"Valid options: None, 'layer_of_concern', 'CT_failure_layer', 'ECTP_failure_layer'"
+            )
+
+        if not test_results:
+            return slabs
+
+        # Create one slab per matching test result
+        for test_idx, test_result in enumerate(test_results):
+            slab = self._create_slab_from_test_result(
+                test_result=test_result,
+                test_idx=test_idx,
+                test_type=test_type,
+                weak_layer_def=weak_layer_def,
+                depth_tolerance=depth_tolerance,
+                n_total_tests=len(test_results),
+            )
+            if slab:
+                slabs.append(slab)
+
+        return slabs
+
     # ============================================================================
     # Private Helper Methods
     # ============================================================================
@@ -492,7 +547,7 @@ class Pit:
         test_attr_map = {
             "ECT": ["ECT"],
             "CT": ["CT"],
-            "PST": ["PST", "PropSawTest", "PropSaw"],
+            "PST": ["PST"],
         }
         
         if test_type not in test_attr_map:
@@ -635,12 +690,12 @@ class Pit:
     def _get_value_safe(obj: Any) -> Optional[float]:
         """
         Safely extract value from object that might be None, scalar, or array-like.
-        
+
         Parameters
         ----------
         obj : Any
             Value to extract (could be None, scalar, list, tuple, or array)
-            
+
         Returns
         -------
         Optional[float]
@@ -653,7 +708,175 @@ class Pit:
         # Handle numpy arrays if present
         if hasattr(obj, "__len__") and hasattr(obj, "shape"):
             return obj[0] if len(obj) > 0 else None
-        return obj 
+        return obj
+
+    def _get_matching_ect_results(self) -> List[Any]:
+        """
+        Get all ECT test results that have propagation.
+
+        Returns
+        -------
+        List[Any]
+            List of ECT test results with propagation (empty list if none found)
+        """
+        if not self.ECT_results:
+            return []
+
+        matching_tests = []
+        for ect in self.ECT_results:
+            has_propagation = (
+                hasattr(ect, "propagation") and ect.propagation is True
+            ) or (
+                hasattr(ect, "test_score")
+                and ect.test_score
+                and "ECTP" in str(ect.test_score)
+            )
+            if has_propagation:
+                matching_tests.append(ect)
+
+        return matching_tests
+
+    def _get_matching_ct_results(self) -> List[Any]:
+        """
+        Get all CT test results with Q1/SC/SP fracture character.
+
+        Returns
+        -------
+        List[Any]
+            List of CT test results with valid fracture character (empty list if none found)
+        """
+        if not self.CT_results:
+            return []
+
+        matching_tests = []
+        for ct in self.CT_results:
+            if (
+                hasattr(ct, "fracture_character")
+                and ct.fracture_character in ["Q1", "SC", "SP"]
+            ):
+                matching_tests.append(ct)
+
+        return matching_tests
+
+    def _create_slab_from_test_result(
+        self,
+        test_result: Any,
+        test_idx: int,
+        test_type: str,
+        weak_layer_def: str,
+        depth_tolerance: float,
+        n_total_tests: int,
+    ) -> Optional["Slab"]:
+        """
+        Create a slab from a specific test result with metadata.
+
+        Parameters
+        ----------
+        test_result : Any
+            The specific test result object
+        test_idx : int
+            Index of this test in the list of matching tests (0-indexed)
+        test_type : str
+            Type of test ("ECT" or "CT")
+        weak_layer_def : str
+            Weak layer definition used
+        depth_tolerance : float
+            Depth tolerance for matching layers
+        n_total_tests : int
+            Total number of matching tests in the pit
+
+        Returns
+        -------
+        Optional[Slab]
+            Slab object with metadata, or None if slab cannot be created
+        """
+        # Get weak layer depth from test result
+        weak_layer_depth = self._get_value_safe(test_result.depth_top)
+        if weak_layer_depth is None:
+            return None
+
+        # Find the weak layer object from layers
+        weak_layer = None
+        for layer in self.layers:
+            if layer.depth_top is not None and layer.depth_bottom is not None:
+                if layer.depth_top <= weak_layer_depth < layer.depth_bottom:
+                    weak_layer = layer
+                    break
+
+        if weak_layer is None or weak_layer.depth_top is None:
+            return None
+
+        # Filter layers above the weak layer
+        # The slab includes all layers with depth_top < weak_layer.depth_top
+        # This EXCLUDES the weak layer itself (which contains the failure)
+        slab_layers = [
+            layer for layer in self.layers
+            if layer.depth_top is not None and layer.depth_top < weak_layer.depth_top
+        ]
+
+        if not slab_layers:
+            return None
+
+        # Extract test result properties for metadata
+        test_props = self._extract_test_properties(test_result, test_type)
+
+        # Create slab ID
+        slab_id = f"{self.pit_id}_slab_{test_idx}" if self.pit_id else f"slab_{test_idx}"
+
+        # Create slab with metadata
+        return Slab(
+            layers=slab_layers,
+            angle=self.slope_angle,
+            weak_layer=weak_layer,
+            ECT_results=self.ECT_results,
+            CT_results=self.CT_results,
+            PST_results=self.PST_results,
+            layer_of_concern=self.layer_of_concern,
+            pit_id=self.pit_id,
+            slab_id=slab_id,
+            weak_layer_source=weak_layer_def,
+            test_result_index=test_idx,
+            test_result_properties=test_props,
+            n_test_results_in_pit=n_total_tests,
+        )
+
+    def _extract_test_properties(self, test_result: Any, test_type: str) -> dict:
+        """
+        Extract properties from a test result for metadata.
+
+        Parameters
+        ----------
+        test_result : Any
+            Test result object
+        test_type : str
+            Type of test ("ECT" or "CT")
+
+        Returns
+        -------
+        dict
+            Dictionary of test properties
+        """
+        props = {}
+
+        if test_type == "ECT":
+            # Extract ECT properties
+            if hasattr(test_result, "test_score"):
+                props["score"] = str(test_result.test_score) if test_result.test_score else None
+            if hasattr(test_result, "propagation"):
+                props["propagation"] = test_result.propagation
+            if hasattr(test_result, "depth_top"):
+                props["depth_top"] = self._get_value_safe(test_result.depth_top)
+
+        elif test_type == "CT":
+            # Extract CT properties
+            if hasattr(test_result, "test_score"):
+                props["score"] = str(test_result.test_score) if test_result.test_score else None
+            if hasattr(test_result, "fracture_character"):
+                props["fracture_character"] = test_result.fracture_character
+            if hasattr(test_result, "depth_top"):
+                props["depth_top"] = self._get_value_safe(test_result.depth_top)
+
+        return props 
 
 
 
@@ -680,6 +903,20 @@ class Slab:
     weak_layer: Optional[Layer]
         Weak layer of the slab.
 
+    # Metadata
+    pit_id : Optional[str]
+        Identifier of the source pit
+    slab_id : Optional[str]
+        Unique identifier for this slab (e.g., "pit_001_slab_0")
+    weak_layer_source : Optional[str]
+        Method used to identify weak layer (e.g., "ECTP_failure_layer", "CT_failure_layer", "layer_of_concern")
+    test_result_index : Optional[int]
+        Index of the specific test result used to create this slab (0-indexed)
+    test_result_properties : Optional[dict]
+        Properties of the specific test result used (e.g., {"score": "ECTP12", "propagation": True})
+    n_test_results_in_pit : Optional[int]
+        Total number of test results of this type available in the source pit
+
     # Calculated Parameters - From Method Implementations
     A11 : Union[float, uncertainties.UFloat]
         Extensional stiffness in N/mm. Can include uncertainty.
@@ -700,6 +937,14 @@ class Slab:
     CT_results: Optional[List[Any]] = None  # CT test results
     PST_results: Optional[List[Any]] = None  # PST test results
     layer_of_concern: Optional[Layer] = None  # Layer of concern
+
+    # Metadata - tracks which test result was used to create this slab
+    pit_id: Optional[str] = None  # Source pit identifier
+    slab_id: Optional[str] = None  # Unique slab identifier
+    weak_layer_source: Optional[str] = None  # Method used to identify weak layer
+    test_result_index: Optional[int] = None  # Index of specific test result used (0-indexed)
+    test_result_properties: Optional[dict] = None  # Properties of the specific test result
+    n_test_results_in_pit: Optional[int] = None  # Total test results available in pit
 
     # Calculated Parameters - From Method Implementations
     A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness

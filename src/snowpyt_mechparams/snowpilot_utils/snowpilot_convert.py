@@ -21,8 +21,9 @@ Example
     >>> # Step 2: Create Pit from snowpylot profile
     >>> pit = Pit.from_snowpylot_profile(profile)
     >>> 
-    >>> # Step 3: Create Slab from Pit
-    >>> slab = pit.create_slab(weak_layer_def="layer_of_concern")
+    >>> # Step 3: Create Slabs from Pit
+    >>> slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+    >>> print(f"Created {len(slabs)} slabs")
 
 Additional Utilities
 --------------------

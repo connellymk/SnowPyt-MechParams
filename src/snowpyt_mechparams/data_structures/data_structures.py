@@ -286,7 +286,7 @@ class Pit:
         ----------
         weak_layer_def : Optional[str]
             Weak layer definition - one of:
-            - None: Returns single slab with all layers (no weak layer filtering)
+            - None: Returns empty list (no slab created without weak layer definition)
             - "layer_of_concern": Returns single slab using layer with layer_of_concern=True
             - "CT_failure_layer": Creates one slab per CT test with Q1/SC/SP fracture character
             - "ECTP_failure_layer": Creates one slab per ECT test with propagation
@@ -302,7 +302,8 @@ class Pit:
 
         Notes
         -----
-        - For weak_layer_def=None or "layer_of_concern", returns a single slab (or empty list)
+        - For weak_layer_def=None, returns empty list (no slab without weak layer)
+        - For weak_layer_def="layer_of_concern", returns single slab (or empty list if no layer_of_concern)
         - For test-based definitions (CT, ECTP), returns one slab per matching test result
         - Each slab has unique slab_id in format "{pit_id}_slab_{index}"
         - Metadata fields track test result details for analysis
@@ -329,23 +330,8 @@ class Pit:
         if not self.layers:
             return slabs
 
-        # Handle None - return single slab with all layers
+        # Handle None - return empty list (no slab without weak layer definition)
         if weak_layer_def is None:
-            slab = Slab(
-                layers=self.layers,
-                angle=self.slope_angle,
-                ECT_results=self.ECT_results,
-                CT_results=self.CT_results,
-                PST_results=self.PST_results,
-                layer_of_concern=self.layer_of_concern,
-                pit_id=self.pit_id,
-                slab_id=f"{self.pit_id}_slab_0" if self.pit_id else "slab_0",
-                weak_layer_source=None,
-                test_result_index=None,
-                test_result_properties=None,
-                n_test_results_in_pit=None,
-            )
-            slabs.append(slab)
             return slabs
 
         # Handle layer_of_concern - return single slab based on layer_of_concern

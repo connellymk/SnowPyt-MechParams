@@ -687,7 +687,8 @@ def test_convert_grain_form_with_sub_grain():
     grain_form_obj.sub_grain_class_code = "FCxr"
     grain_form_obj.basic_grain_class_code = "FC"
     
-    result = convert_grain_form(grain_form_obj, "geldsetzer")
+    # Use kim_jamieson_table2 which supports FCxr sub-grain code
+    result = convert_grain_form(grain_form_obj, "kim_jamieson_table2")
     
     assert result == "FCxr"
 
@@ -1099,19 +1100,20 @@ def test_pit_no_stability_tests():
     core_info.location = location
     profile.core_info = core_info
     
-    stability_tests = Mock()
+    stability_tests = Mock(spec=['ECT', 'CT'])  # Only ECT and CT, no PST
     stability_tests.ECT = []
     stability_tests.CT = []
-    # No PST attribute at all
+    # No PST attribute - using spec to prevent Mock from auto-creating it
     profile.stability_tests = stability_tests
     
     pit = Pit.from_snowpylot_profile(profile)
     slab = pit.create_slab(weak_layer_def=None)
     
     assert slab is not None
-    assert slab.ECT_results is None
-    assert slab.CT_results is None
-    assert slab.PST_results is None
+    # Empty lists should return as empty lists, not None (after fix)
+    assert slab.ECT_results == []
+    assert slab.CT_results == []
+    assert slab.PST_results is None  # PST doesn't exist, so None
 
 
 def test_pit_layer_of_concern_depth_matching():

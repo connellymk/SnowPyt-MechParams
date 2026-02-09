@@ -323,6 +323,7 @@ class Pit:
             return None
         
         # Find the weak layer object from layers
+        # The weak layer is the layer that contains the failure depth
         weak_layer = None
         for layer in self.layers:
             if layer.depth_top is not None and layer.depth_bottom is not None:
@@ -330,10 +331,15 @@ class Pit:
                     weak_layer = layer
                     break
         
+        # If no weak layer found, return None
+        if weak_layer is None or weak_layer.depth_top is None:
+            return None
+        
         # Filter layers above the weak layer
+        # Layers are above the weak layer if their depth_top < weak_layer's depth_top
         slab_layers = [
             layer for layer in self.layers
-            if layer.depth_top is not None and layer.depth_top < weak_layer_depth
+            if layer.depth_top is not None and layer.depth_top < weak_layer.depth_top
         ]
         
         # Return None if no valid layers above weak layer
@@ -496,8 +502,12 @@ class Pit:
         for attr_name in test_attr_map[test_type]:
             if hasattr(self.snowpylot_profile.stability_tests, attr_name):
                 tests = getattr(self.snowpylot_profile.stability_tests, attr_name)
-                if tests:
-                    return list(tests) if isinstance(tests, (list, tuple)) else [tests]
+                if tests is not None:
+                    # Handle empty lists (return empty list, not None)
+                    if isinstance(tests, (list, tuple)):
+                        return list(tests) if tests else []
+                    else:
+                        return [tests]
         return None
     
     def _extract_layer_of_concern(self) -> Optional[Layer]:

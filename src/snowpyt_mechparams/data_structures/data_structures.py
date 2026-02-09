@@ -157,17 +157,17 @@ class Layer:
 class Pit:
     """
     Represents a Snow Pit profile with layers and stability test data.
-    
+
     This class encapsulates a snow pit observation, including the raw snowpylot
-    data, extracted metadata, layers, and stability test results. It provides
-    methods to create layers from the snow profile and build slab objects.
-    
+    SnowPit object, extracted metadata, layers, and stability test results. It
+    provides methods to create layers from the snow profile and build slab objects.
+
     Attributes
     ----------
-    snowpylot_profile : Any
-        Raw CAAML profile object from snowpylot parser
+    snow_pit : Any
+        SnowPit object from snowpylot (parsed from CAAML)
     pit_id : Optional[str]
-        Identifier for the pit (extracted from profile if available)
+        Identifier for the pit (extracted from core_info if available)
     slope_angle : float
         Slope angle in degrees (NaN if not available)
     layers : List[Layer]
@@ -180,35 +180,35 @@ class Pit:
         Propagation Saw Test results from stability tests
     layer_of_concern : Optional[Layer]
         Layer marked as layer of concern in the profile
-    
+
     Notes
     -----
     Workflow for creating a Pit object:
     1. Parse CAAML file using parse_caaml_file() from snowpilot_utils
-    2. Pass the snowpylot profile to Pit.from_snowpylot_profile()
-    
+    2. Pass the snowpylot SnowPit to Pit.from_snow_pit()
+
     Examples
     --------
     >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
     >>> from snowpyt_mechparams.data_structures import Pit
     >>>
-    >>> # Parse CAAML file to get snowpylot profile
-    >>> profile = parse_caaml_file("profile.xml")
+    >>> # Parse CAAML file to get snowpylot SnowPit
+    >>> snow_pit = parse_caaml_file("profile.xml")
     >>>
-    >>> # Create Pit from snowpylot profile
-    >>> pit = Pit.from_snowpylot_profile(profile)
+    >>> # Create Pit from snowpylot SnowPit
+    >>> pit = Pit.from_snow_pit(snow_pit)
     >>>
     >>> # Create slabs from pit (one per matching test result)
     >>> slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
     >>> print(f"Created {len(slabs)} slabs")
     """
     # Raw data
-    snowpylot_profile: Any
-    
+    snow_pit: Any
+
     # Extracted metadata
     pit_id: Optional[str] = None
     slope_angle: float = float('nan')
-    
+
     # Layers and test results (populated automatically in __post_init__)
     layers: List[Layer] = field(default_factory=list)
     ECT_results: Optional[List[Any]] = None
@@ -218,7 +218,7 @@ class Pit:
     
     def __post_init__(self) -> None:
         """
-        Initialize the pit by extracting layers and test results from snowpylot profile.
+        Initialize the pit by extracting layers and test results from snowpylot SnowPit.
         """
         # Extract slope angle
         self.slope_angle = self._extract_slope_angle()
@@ -238,36 +238,36 @@ class Pit:
         self.layer_of_concern = self._extract_layer_of_concern()
     
     @classmethod
-    def from_snowpylot_profile(cls, profile: Any) -> "Pit":
+    def from_snow_pit(cls, snow_pit: Any) -> "Pit":
         """
-        Create a Pit object from a snowpylot profile.
-        
+        Create a Pit object from a snowpylot SnowPit.
+
         This is the primary way to create a Pit object. First parse a CAAML file
-        using snowpylot, then pass the profile to this method.
-        
+        using snowpylot, then pass the SnowPit to this method.
+
         Parameters
         ----------
-        profile : Any
-            Parsed CAAML profile object from snowpylot (via caaml_parser)
-            
+        snow_pit : Any
+            SnowPit object from snowpylot (via caaml_parser)
+
         Returns
         -------
         Pit
             Initialized Pit object with layers and test results
-            
+
         Examples
         --------
         >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
         >>> from snowpyt_mechparams.data_structures import Pit
-        >>> 
-        >>> # Step 1: Parse CAAML file to get snowpylot profile
-        >>> profile = parse_caaml_file("profile.xml")
-        >>> 
-        >>> # Step 2: Create Pit from snowpylot profile
-        >>> pit = Pit.from_snowpylot_profile(profile)
+        >>>
+        >>> # Step 1: Parse CAAML file to get snowpylot SnowPit
+        >>> snow_pit = parse_caaml_file("profile.xml")
+        >>>
+        >>> # Step 2: Create Pit from snowpylot SnowPit
+        >>> pit = Pit.from_snow_pit(snow_pit)
         >>> print(f"Pit has {len(pit.layers)} layers")
         """
-        return cls(snowpylot_profile=profile)
+        return cls(snow_pit=snow_pit)
 
     def create_slabs(
         self,
@@ -402,9 +402,9 @@ class Pit:
     # ============================================================================
     
     def _extract_slope_angle(self) -> float:
-        """Extract slope angle from snowpylot profile."""
+        """Extract slope angle from snowpylot SnowPit."""
         try:
-            slope_angle_data = self.snowpylot_profile.core_info.location.slope_angle
+            slope_angle_data = self.snow_pit.core_info.location.slope_angle
             if slope_angle_data and len(slope_angle_data) > 0:
                 return float(slope_angle_data[0])
             else:
@@ -413,26 +413,24 @@ class Pit:
             return float('nan')
     
     def _extract_pit_id(self) -> Optional[str]:
-        """Extract pit ID from snowpylot profile if available."""
+        """Extract pit ID from snowpylot SnowPit if available."""
         try:
-            # Try common CAAML fields for observation/profile ID
-            if hasattr(self.snowpylot_profile, 'obs_id'):
-                return str(self.snowpylot_profile.obs_id)
-            if hasattr(self.snowpylot_profile, 'profile_id'):
-                return str(self.snowpylot_profile.profile_id)
+            # Extract pit_id from core_info (matches snowpylot structure)
+            if hasattr(self.snow_pit, 'core_info') and hasattr(self.snow_pit.core_info, 'pit_id'):
+                return str(self.snow_pit.core_info.pit_id) if self.snow_pit.core_info.pit_id else None
             return None
         except (AttributeError, TypeError):
             return None
     
     def _create_layers_from_profile(self, include_density: bool = True) -> List[Layer]:
         """
-        Convert snowpylot profile to a list of Layer objects.
-        
+        Convert snowpylot SnowPit to a list of Layer objects.
+
         Parameters
         ----------
         include_density : bool
             If True, attempts to match and include direct density measurements
-            
+
         Returns
         -------
         List[Layer]
@@ -442,15 +440,15 @@ class Pit:
         
         # Check if snow_profile and layers exist
         if (
-            not hasattr(self.snowpylot_profile, "snow_profile")
-            or not hasattr(self.snowpylot_profile.snow_profile, "layers")
+            not hasattr(self.snow_pit, "snow_profile")
+            or not hasattr(self.snow_pit.snow_profile, "layers")
         ):
             return layers
         
-        if not self.snowpylot_profile.snow_profile.layers:
+        if not self.snow_pit.snow_profile.layers:
             return layers
         
-        for layer in self.snowpylot_profile.snow_profile.layers:
+        for layer in self.snow_pit.snow_profile.layers:
             # Extract depth_top (array to scalar)
             depth_top = layer.depth_top[0] if layer.depth_top else None
             
@@ -489,8 +487,8 @@ class Pit:
             
             # Optionally match and extract density from density profile
             density_measured = None
-            if include_density and hasattr(self.snowpylot_profile.snow_profile, "density_profile"):
-                for density_obs in self.snowpylot_profile.snow_profile.density_profile:
+            if include_density and hasattr(self.snow_pit.snow_profile, "density_profile"):
+                for density_obs in self.snow_pit.snow_profile.density_profile:
                     if (
                         density_obs.depth_top == layer.depth_top
                         and density_obs.thickness == layer.thickness
@@ -514,19 +512,19 @@ class Pit:
     
     def _extract_stability_test_results(self, test_type: str) -> Optional[List[Any]]:
         """
-        Extract stability test results from snowpylot profile.
-        
+        Extract stability test results from snowpylot SnowPit.
+
         Parameters
         ----------
         test_type : str
             Test type - one of: "ECT", "CT", "PST"
-            
+
         Returns
         -------
         Optional[List[Any]]
             List of test results, or None if not available
         """
-        if not hasattr(self.snowpylot_profile, "stability_tests") or not self.snowpylot_profile.stability_tests:
+        if not hasattr(self.snow_pit, "stability_tests") or not self.snow_pit.stability_tests:
             return None
         
         # Map test types to possible snowpylot attribute names
@@ -541,8 +539,8 @@ class Pit:
         
         # Try each possible attribute name
         for attr_name in test_attr_map[test_type]:
-            if hasattr(self.snowpylot_profile.stability_tests, attr_name):
-                tests = getattr(self.snowpylot_profile.stability_tests, attr_name)
+            if hasattr(self.snow_pit.stability_tests, attr_name):
+                tests = getattr(self.snow_pit.stability_tests, attr_name)
                 if tests is not None:
                     # Handle empty lists (return empty list, not None)
                     if isinstance(tests, (list, tuple)):
@@ -553,22 +551,22 @@ class Pit:
     
     def _extract_layer_of_concern(self) -> Optional[Layer]:
         """
-        Extract the layer of concern from snowpylot profile.
-        
+        Extract the layer of concern from snowpylot SnowPit.
+
         Returns
         -------
         Optional[Layer]
             Layer object for the layer of concern, or None if not found
         """
         if (
-            not hasattr(self.snowpylot_profile, "snow_profile")
-            or not hasattr(self.snowpylot_profile.snow_profile, "layers")
-            or not self.snowpylot_profile.snow_profile.layers
+            not hasattr(self.snow_pit, "snow_profile")
+            or not hasattr(self.snow_pit.snow_profile, "layers")
+            or not self.snow_pit.snow_profile.layers
         ):
             return None
         
         # Find the layer marked as layer_of_concern in CAAML
-        for caaml_layer in self.snowpylot_profile.snow_profile.layers:
+        for caaml_layer in self.snow_pit.snow_profile.layers:
             if hasattr(caaml_layer, "layer_of_concern") and caaml_layer.layer_of_concern is True:
                 # Find the corresponding Layer object by matching depth_top
                 depth_top = self._get_value_safe(caaml_layer.depth_top)
@@ -601,18 +599,18 @@ class Pit:
         Optional[float]
             Depth (from top) of the weak layer in cm, or None if no weak layer found
         """
-        if not hasattr(self.snowpylot_profile, "snow_profile") or not self.snowpylot_profile.snow_profile:
+        if not hasattr(self.snow_pit, "snow_profile") or not self.snow_pit.snow_profile:
             return None
         
         if weak_layer_def == "layer_of_concern":
             # Find layer marked as layer_of_concern
             if (
-                not hasattr(self.snowpylot_profile.snow_profile, "layers")
-                or not self.snowpylot_profile.snow_profile.layers
+                not hasattr(self.snow_pit.snow_profile, "layers")
+                or not self.snow_pit.snow_profile.layers
             ):
                 return None
             
-            for layer in self.snowpylot_profile.snow_profile.layers:
+            for layer in self.snow_pit.snow_profile.layers:
                 if hasattr(layer, "layer_of_concern") and layer.layer_of_concern is True:
                     depth = self._get_value_safe(layer.depth_top)
                     if depth is not None:
@@ -621,12 +619,12 @@ class Pit:
         
         elif weak_layer_def == "CT_failure_layer":
             # Find CT test failure layer with Q1/SC/SP fracture character
-            if not hasattr(self.snowpylot_profile, "stability_tests") or not hasattr(
-                self.snowpylot_profile.stability_tests, "CT"
+            if not hasattr(self.snow_pit, "stability_tests") or not hasattr(
+                self.snow_pit.stability_tests, "CT"
             ):
                 return None
             
-            ct_tests = self.snowpylot_profile.stability_tests.CT
+            ct_tests = self.snow_pit.stability_tests.CT
             if not ct_tests:
                 return None
             
@@ -642,12 +640,12 @@ class Pit:
         
         elif weak_layer_def == "ECTP_failure_layer":
             # Find ECT test failure layer with propagation
-            if not hasattr(self.snowpylot_profile, "stability_tests") or not hasattr(
-                self.snowpylot_profile.stability_tests, "ECT"
+            if not hasattr(self.snow_pit, "stability_tests") or not hasattr(
+                self.snow_pit.stability_tests, "ECT"
             ):
                 return None
             
-            ect_tests = self.snowpylot_profile.stability_tests.ECT
+            ect_tests = self.snow_pit.stability_tests.ECT
             if not ect_tests:
                 return None
             

@@ -282,7 +282,6 @@ class Pit:
     def create_slabs(
         self,
         weak_layer_def: Optional[str] = None,
-        depth_tolerance: float = 2.0,
     ) -> List["Slab"]:
         """
         Create multiple Slab objects from the pit's layers, one per matching test result.
@@ -292,6 +291,11 @@ class Pit:
         3 slabs (one for each ECTP result). Each slab includes metadata tracking which
         test result was used.
 
+        The weak layer is identified by finding which layer contains the test failure depth:
+        - The test result provides depth_top (depth of failure from surface)
+        - The weak_layer is the layer where: layer.depth_top <= failure_depth < layer.depth_bottom
+        - The slab layers are all layers above (NOT including) the weak layer
+
         Parameters
         ----------
         weak_layer_def : Optional[str]
@@ -300,8 +304,6 @@ class Pit:
             - "layer_of_concern": Returns single slab using layer with layer_of_concern=True
             - "CT_failure_layer": Creates one slab per CT test with Q1/SC/SP fracture character
             - "ECTP_failure_layer": Creates one slab per ECT test with propagation
-        depth_tolerance : float, optional
-            Tolerance in cm for matching test depths to layer depths (default: 2.0 cm)
 
         Returns
         -------
@@ -322,8 +324,11 @@ class Pit:
         Examples
         --------
         >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
-        >>> profile = parse_caaml_file("profile.xml")
-        >>> pit = Pit.from_snowpylot_profile(profile)
+        >>> from snowpyt_mechparams.data_structures import Pit
+        >>>
+        >>> # Parse CAAML file to get snowpylot SnowPit
+        >>> snow_pit = parse_caaml_file("profile.xml")
+        >>> pit = Pit.from_snow_pit(snow_pit)
         >>>
         >>> # Create slabs for all ECTP results
         >>> slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
@@ -399,7 +404,6 @@ class Pit:
                 test_idx=test_idx,
                 test_type=test_type,
                 weak_layer_def=weak_layer_def,
-                depth_tolerance=depth_tolerance,
                 n_total_tests=len(test_results),
             )
             if slab:
@@ -538,11 +542,7 @@ class Pit:
             pass
         return None
     
-    def _find_weak_layer_depth(
-        self,
-        weak_layer_def: str,
-        depth_tolerance: float = 2.0
-    ) -> Optional[float]:
+    def _find_weak_layer_depth(self, weak_layer_def: str) -> Optional[float]:
         """
         Find the depth of the weak layer based on the specified definition.
 
@@ -553,8 +553,6 @@ class Pit:
             - "layer_of_concern": Uses layer with layer_of_concern=True
             - "CT_failure_layer": Uses CT test failure layer with Q1/SC/SP fracture character
             - "ECTP_failure_layer": Uses ECT test failure layer with propagation
-        depth_tolerance : float
-            Tolerance in cm for matching test depths to layer depths
 
         Returns
         -------
@@ -662,24 +660,24 @@ class Pit:
         test_idx: int,
         test_type: str,
         weak_layer_def: str,
-        depth_tolerance: float,
         n_total_tests: int,
     ) -> Optional["Slab"]:
         """
         Create a slab from a specific test result with metadata.
 
+        The weak layer is found by identifying which layer contains the test failure depth.
+        The slab layers are all layers above (not including) the weak layer.
+
         Parameters
         ----------
         test_result : Any
-            The specific test result object
+            The specific test result object with depth_top attribute
         test_idx : int
             Index of this test in the list of matching tests (0-indexed)
         test_type : str
             Type of test ("ECT" or "CT")
         weak_layer_def : str
             Weak layer definition used
-        depth_tolerance : float
-            Depth tolerance for matching layers
         n_total_tests : int
             Total number of matching tests in the pit
 
@@ -688,25 +686,24 @@ class Pit:
         Optional[Slab]
             Slab object with metadata, or None if slab cannot be created
         """
-        # Get weak layer depth from test result
-        weak_layer_depth = self._get_value_safe(test_result.depth_top)
-        if weak_layer_depth is None:
+        # Get failure depth from test result
+        failure_depth = self._get_value_safe(test_result.depth_top)
+        if failure_depth is None:
             return None
 
-        # Find the weak layer object from layers
+        # Find the layer that contains the failure depth
+        # This is the weak layer where the failure occurred
         weak_layer = None
         for layer in self.layers:
             if layer.depth_top is not None and layer.depth_bottom is not None:
-                if layer.depth_top <= weak_layer_depth < layer.depth_bottom:
+                if layer.depth_top <= failure_depth < layer.depth_bottom:
                     weak_layer = layer
                     break
 
         if weak_layer is None or weak_layer.depth_top is None:
             return None
 
-        # Filter layers above the weak layer
-        # The slab includes all layers with depth_top < weak_layer.depth_top
-        # This EXCLUDES the weak layer itself (which contains the failure)
+        # Get all layers above the weak layer (NOT including the weak layer)
         slab_layers = [
             layer for layer in self.layers
             if layer.depth_top is not None and layer.depth_top < weak_layer.depth_top

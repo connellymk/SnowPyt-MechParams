@@ -24,3 +24,4 @@ pytest-cov>=2.0
 # sphinx>=4.0
 # sphinx-rtd-theme>=1.0
 jupyter>=1.0
+tqdm>=4.0.0

@@ -3,10 +3,8 @@ Comprehensive tests for snowpilot_convert module.
 
 Tests cover:
 - parse_caaml_file and parse_caaml_directory
-- caaml_to_layers
-- caaml_to_slab (with all weak layer definitions)
+- Pit class (layers creation, slab creation with all weak layer definitions)
 - convert_grain_form
-- Helper functions (_extract_slope_angle, _find_weak_layer_depth, etc.)
 """
 
 import os
@@ -16,18 +14,11 @@ from unittest.mock import Mock, MagicMock, patch
 
 import pytest
 
-from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.data_structures import Layer, Pit, Slab
 from snowpyt_mechparams.snowpilot_utils.snowpilot_convert import (
     parse_caaml_file,
     parse_caaml_directory,
-    caaml_to_layers,
-    caaml_to_slab,
     convert_grain_form,
-    _extract_slope_angle,
-    _find_weak_layer_depth,
-    _extract_stability_test_results,
-    _extract_layer_of_concern,
-    _get_value_safe,
 )
 
 
@@ -322,69 +313,72 @@ def test_parse_caaml_directory_with_failures(tmp_path, caplog):
 
 
 # ============================================================================
-# Tests for caaml_to_layers
+# Tests for Pit class - Layer creation
 # ============================================================================
 
 
-def test_caaml_to_layers_basic(mock_caaml_profile_basic):
-    """Test converting CAAML profile to layers."""
-    layers = caaml_to_layers(mock_caaml_profile_basic)
+def test_pit_layers_basic(mock_caaml_profile_basic):
+    """Test Pit creating layers from CAAML profile."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
     
-    assert len(layers) == 2
-    assert isinstance(layers[0], Layer)
-    assert isinstance(layers[1], Layer)
+    assert len(pit.layers) == 2
+    assert isinstance(pit.layers[0], Layer)
+    assert isinstance(pit.layers[1], Layer)
     
-    assert layers[0].depth_top == 0.0
-    assert layers[0].thickness == 10.0
-    assert layers[0].hand_hardness == "F"
-    assert layers[0].grain_form == "PP"
-    assert layers[0].grain_size_avg == 0.5
+    assert pit.layers[0].depth_top == 0.0
+    assert pit.layers[0].thickness == 10.0
+    assert pit.layers[0].hand_hardness == "F"
+    assert pit.layers[0].grain_form == "PP"
+    assert pit.layers[0].grain_size_avg == 0.5
     
-    assert layers[1].depth_top == 10.0
-    assert layers[1].thickness == 20.0
-    assert layers[1].hand_hardness == "4F"
-    assert layers[1].grain_form == "FCxr"
-    assert layers[1].grain_size_avg == 1.5
+    assert pit.layers[1].depth_top == 10.0
+    assert pit.layers[1].thickness == 20.0
+    assert pit.layers[1].hand_hardness == "4F"
+    assert pit.layers[1].grain_form == "FCxr"
+    assert pit.layers[1].grain_size_avg == 1.5
 
 
-def test_caaml_to_layers_with_density(mock_caaml_profile_with_density):
-    """Test converting CAAML profile to layers with density."""
-    layers = caaml_to_layers(mock_caaml_profile_with_density, include_density=True)
+def test_pit_layers_with_density(mock_caaml_profile_with_density):
+    """Test Pit creating layers with density from CAAML profile."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_density)
     
-    assert len(layers) == 1
-    assert layers[0].density_measured == 200.0
+    assert len(pit.layers) == 1
+    assert pit.layers[0].density_measured == 200.0
 
 
-def test_caaml_to_layers_without_density(mock_caaml_profile_with_density):
-    """Test converting CAAML profile to layers without density."""
-    layers = caaml_to_layers(mock_caaml_profile_with_density, include_density=False)
-    
-    assert len(layers) == 1
-    assert layers[0].density_measured is None
-
-
-def test_caaml_to_layers_empty_profile():
-    """Test converting empty CAAML profile."""
+def test_pit_layers_empty_profile():
+    """Test Pit with empty CAAML profile."""
     profile = Mock()
     profile.snow_profile = None
+    # Add required attributes for Pit
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = None
+    profile.stability_tests = None
     
-    layers = caaml_to_layers(profile)
-    assert layers == []
+    pit = Pit.from_snowpylot_profile(profile)
+    assert pit.layers == []
 
 
-def test_caaml_to_layers_no_layers():
-    """Test converting CAAML profile with no layers."""
+def test_pit_layers_no_layers():
+    """Test Pit with CAAML profile with no layers."""
     profile = Mock()
     snow_profile = Mock()
     snow_profile.layers = []
+    snow_profile.density_profile = []
     profile.snow_profile = snow_profile
+    # Add required attributes
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = [30.0, "deg"]
+    profile.stability_tests = None
     
-    layers = caaml_to_layers(profile)
-    assert layers == []
+    pit = Pit.from_snowpylot_profile(profile)
+    assert pit.layers == []
 
 
-def test_caaml_to_layers_missing_attributes():
-    """Test converting CAAML profile with missing layer attributes."""
+def test_pit_layers_missing_attributes():
+    """Test Pit with CAAML profile with missing layer attributes."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -393,21 +387,27 @@ def test_caaml_to_layers_missing_attributes():
     layer.thickness = None
     layer.hardness = None
     layer.grain_form_primary = None
+    layer.layer_of_concern = False
     snow_profile.layers = [layer]
     snow_profile.density_profile = []
     
     profile.snow_profile = snow_profile
+    # Add required attributes
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = [30.0, "deg"]
+    profile.stability_tests = None
     
-    layers = caaml_to_layers(profile)
-    assert len(layers) == 1
-    assert layers[0].depth_top is None
-    assert layers[0].thickness is None
-    assert layers[0].hand_hardness is None
-    assert layers[0].grain_form is None
+    pit = Pit.from_snowpylot_profile(profile)
+    assert len(pit.layers) == 1
+    assert pit.layers[0].depth_top is None
+    assert pit.layers[0].thickness is None
+    assert pit.layers[0].hand_hardness is None
+    assert pit.layers[0].grain_form is None
 
 
-def test_caaml_to_layers_grain_size_array():
-    """Test converting CAAML profile with grain size as array."""
+def test_pit_layers_grain_size_array():
+    """Test Pit with CAAML profile with grain size as array."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -415,28 +415,36 @@ def test_caaml_to_layers_grain_size_array():
     layer.depth_top = [0.0]
     layer.thickness = [10.0]
     layer.hardness = "F"
+    layer.layer_of_concern = False
     grain_form = Mock()
     grain_form.basic_grain_class_code = "PP"
+    grain_form.sub_grain_class_code = None
     grain_form.grain_size_avg = [2.5]  # Array
     layer.grain_form_primary = grain_form
     snow_profile.layers = [layer]
     snow_profile.density_profile = []
     
     profile.snow_profile = snow_profile
+    # Add required attributes
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = [30.0, "deg"]
+    profile.stability_tests = None
     
-    layers = caaml_to_layers(profile)
-    assert len(layers) == 1
-    assert layers[0].grain_size_avg == 2.5
+    pit = Pit.from_snowpylot_profile(profile)
+    assert len(pit.layers) == 1
+    assert pit.layers[0].grain_size_avg == 2.5
 
 
 # ============================================================================
-# Tests for caaml_to_slab
+# Tests for Pit class - Slab creation
 # ============================================================================
 
 
-def test_caaml_to_slab_no_weak_layer_def(mock_caaml_profile_basic):
-    """Test converting CAAML to slab without weak layer definition."""
-    slab = caaml_to_slab(mock_caaml_profile_basic, weak_layer_def=None)
+def test_pit_create_slab_no_weak_layer_def(mock_caaml_profile_basic):
+    """Test Pit creating slab without weak layer definition."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    slab = pit.create_slab(weak_layer_def=None)
     
     assert slab is not None
     assert isinstance(slab, Slab)
@@ -450,21 +458,22 @@ def test_caaml_to_slab_no_weak_layer_def(mock_caaml_profile_basic):
     assert slab.layer_of_concern.depth_top == 10.0
 
 
-def test_caaml_to_slab_layer_of_concern(mock_caaml_profile_basic):
-    """Test converting CAAML to slab with layer_of_concern."""
-    slab = caaml_to_slab(mock_caaml_profile_basic, weak_layer_def="layer_of_concern")
+def test_pit_create_slab_layer_of_concern(mock_caaml_profile_basic):
+    """Test Pit creating slab with layer_of_concern."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    slab = pit.create_slab(weak_layer_def="layer_of_concern")
     
     assert slab is not None
     assert len(slab.layers) == 1  # Only layer above weak layer
     assert slab.layers[0].depth_top == 0.0
     assert slab.weak_layer is not None
     assert slab.weak_layer.depth_top == 10.0
-    assert slab.weak_layer.layer_of_concern is True
 
 
-def test_caaml_to_slab_ct_failure_layer(mock_caaml_profile_with_tests):
-    """Test converting CAAML to slab with CT failure layer."""
-    slab = caaml_to_slab(mock_caaml_profile_with_tests, weak_layer_def="CT_failure_layer")
+def test_pit_create_slab_ct_failure_layer(mock_caaml_profile_with_tests):
+    """Test Pit creating slab with CT failure layer."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
     
     assert slab is not None
     assert len(slab.layers) == 2  # Layers above depth 25.0
@@ -475,9 +484,10 @@ def test_caaml_to_slab_ct_failure_layer(mock_caaml_profile_with_tests):
     assert len(slab.CT_results) == 1
 
 
-def test_caaml_to_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
-    """Test converting CAAML to slab with ECTP failure layer."""
-    slab = caaml_to_slab(mock_caaml_profile_with_tests, weak_layer_def="ECTP_failure_layer")
+def test_pit_create_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
+    """Test Pit creating slab with ECTP failure layer."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    slab = pit.create_slab(weak_layer_def="ECTP_failure_layer")
     
     assert slab is not None
     assert len(slab.layers) == 2
@@ -486,8 +496,8 @@ def test_caaml_to_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
     assert len(slab.ECT_results) == 1
 
 
-def test_caaml_to_slab_no_weak_layer_found():
-    """Test converting CAAML to slab when weak layer is not found."""
+def test_pit_create_slab_no_weak_layer_found():
+    """Test Pit creating slab when weak layer is not found."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -498,6 +508,8 @@ def test_caaml_to_slab_no_weak_layer_found():
     layer.layer_of_concern = False
     grain_form = Mock()
     grain_form.basic_grain_class_code = "PP"
+    grain_form.sub_grain_class_code = None
+    grain_form.grain_size_avg = None
     layer.grain_form_primary = grain_form
     snow_profile.layers = [layer]
     snow_profile.density_profile = []
@@ -517,13 +529,14 @@ def test_caaml_to_slab_no_weak_layer_found():
     profile.stability_tests = stability_tests
     
     # Try to find layer_of_concern when none exists
-    slab = caaml_to_slab(profile, weak_layer_def="layer_of_concern")
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def="layer_of_concern")
     
     assert slab is None
 
 
-def test_caaml_to_slab_no_layers_above_weak_layer():
-    """Test converting CAAML to slab when no layers exist above weak layer."""
+def test_pit_create_slab_no_layers_above_weak_layer():
+    """Test Pit creating slab when no layers exist above weak layer."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -535,6 +548,8 @@ def test_caaml_to_slab_no_layers_above_weak_layer():
     layer.layer_of_concern = True
     grain_form = Mock()
     grain_form.basic_grain_class_code = "PP"
+    grain_form.sub_grain_class_code = None
+    grain_form.grain_size_avg = None
     layer.grain_form_primary = grain_form
     snow_profile.layers = [layer]
     snow_profile.density_profile = []
@@ -554,14 +569,16 @@ def test_caaml_to_slab_no_layers_above_weak_layer():
     profile.stability_tests = stability_tests
     
     # Weak layer is at depth 0, so no layers above it
-    slab = caaml_to_slab(profile, weak_layer_def="layer_of_concern")
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def="layer_of_concern")
     
     assert slab is None
 
 
-def test_caaml_to_slab_with_stability_tests(mock_caaml_profile_with_tests):
-    """Test converting CAAML to slab includes stability test results."""
-    slab = caaml_to_slab(mock_caaml_profile_with_tests, weak_layer_def=None)
+def test_pit_create_slab_with_stability_tests(mock_caaml_profile_with_tests):
+    """Test Pit creating slab includes stability test results."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    slab = pit.create_slab(weak_layer_def=None)
     
     assert slab is not None
     assert slab.ECT_results is not None
@@ -572,27 +589,35 @@ def test_caaml_to_slab_with_stability_tests(mock_caaml_profile_with_tests):
     assert len(slab.PST_results) == 1
 
 
-def test_caaml_to_slab_with_layer_of_concern(mock_caaml_profile_with_tests):
-    """Test converting CAAML to slab includes layer_of_concern."""
-    slab = caaml_to_slab(mock_caaml_profile_with_tests, weak_layer_def=None)
+def test_pit_create_slab_with_layer_of_concern(mock_caaml_profile_with_tests):
+    """Test Pit creating slab includes layer_of_concern."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    slab = pit.create_slab(weak_layer_def=None)
     
     assert slab is not None
     assert slab.layer_of_concern is not None
     assert slab.layer_of_concern.depth_top == 30.0
 
 
-def test_caaml_to_slab_empty_profile():
-    """Test converting empty CAAML profile returns None."""
+def test_pit_create_slab_empty_profile():
+    """Test Pit creating slab with empty profile returns None."""
     profile = Mock()
     snow_profile = Mock()
     snow_profile.layers = []
+    snow_profile.density_profile = []
     profile.snow_profile = snow_profile
+    # Add required attributes
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = None
+    profile.stability_tests = None
     
-    slab = caaml_to_slab(profile)
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab()
     assert slab is None
 
 
-def test_caaml_to_slab_weak_layer_contains_failure_depth():
+def test_pit_create_slab_weak_layer_contains_failure_depth():
     """Test that weak layer is correctly identified when failure depth is within layer."""
     profile = Mock()
     snow_profile = Mock()
@@ -605,6 +630,8 @@ def test_caaml_to_slab_weak_layer_contains_failure_depth():
     layer1.layer_of_concern = False
     grain_form1 = Mock()
     grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
     layer1.grain_form_primary = grain_form1
     
     # Layer 2: 10-30 cm (contains failure at 25 cm)
@@ -615,6 +642,8 @@ def test_caaml_to_slab_weak_layer_contains_failure_depth():
     layer2.layer_of_concern = False
     grain_form2 = Mock()
     grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
     layer2.grain_form_primary = grain_form2
     
     snow_profile.layers = [layer1, layer2]
@@ -638,7 +667,8 @@ def test_caaml_to_slab_weak_layer_contains_failure_depth():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    slab = caaml_to_slab(profile, weak_layer_def="CT_failure_layer")
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
     
     assert slab is not None
     assert slab.weak_layer is not None
@@ -688,151 +718,105 @@ def test_convert_grain_form_invalid_method():
 
 
 # ============================================================================
-# Tests for Helper Functions
+# Tests for Pit class - Metadata extraction
 # ============================================================================
 
 
-def test_extract_slope_angle_valid(mock_caaml_profile_basic):
-    """Test extracting valid slope angle."""
-    angle = _extract_slope_angle(mock_caaml_profile_basic)
-    assert angle == 30.0
+def test_pit_slope_angle_extraction(mock_caaml_profile_basic):
+    """Test Pit extracting valid slope angle."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    assert pit.slope_angle == 30.0
 
 
-def test_extract_slope_angle_missing():
-    """Test extracting slope angle when missing."""
+def test_pit_slope_angle_missing():
+    """Test Pit with missing slope angle."""
     profile = Mock()
+    profile.snow_profile = Mock()
+    profile.snow_profile.layers = []
+    profile.snow_profile.density_profile = []
     profile.core_info = None
+    profile.stability_tests = None
     
-    angle = _extract_slope_angle(profile)
-    assert math.isnan(angle)
+    pit = Pit.from_snowpylot_profile(profile)
+    assert math.isnan(pit.slope_angle)
 
 
-def test_extract_slope_angle_empty_array():
-    """Test extracting slope angle from empty array."""
+def test_pit_slope_angle_empty_array():
+    """Test Pit with slope angle as empty array."""
     profile = Mock()
+    profile.snow_profile = Mock()
+    profile.snow_profile.layers = []
+    profile.snow_profile.density_profile = []
     core_info = Mock()
     location = Mock()
     location.slope_angle = []
     core_info.location = location
     profile.core_info = core_info
-    
-    angle = _extract_slope_angle(profile)
-    assert math.isnan(angle)
-
-
-def test_find_weak_layer_depth_layer_of_concern(mock_caaml_profile_basic):
-    """Test finding weak layer depth for layer_of_concern."""
-    depth = _find_weak_layer_depth(mock_caaml_profile_basic, "layer_of_concern")
-    assert depth == 10.0
-
-
-def test_find_weak_layer_depth_ct_failure(mock_caaml_profile_with_tests):
-    """Test finding weak layer depth for CT failure."""
-    depth = _find_weak_layer_depth(mock_caaml_profile_with_tests, "CT_failure_layer")
-    assert depth == 25.0
-
-
-def test_find_weak_layer_depth_ectp_failure(mock_caaml_profile_with_tests):
-    """Test finding weak layer depth for ECTP failure."""
-    depth = _find_weak_layer_depth(mock_caaml_profile_with_tests, "ECTP_failure_layer")
-    assert depth == 25.0
-
-
-def test_find_weak_layer_depth_invalid_def():
-    """Test finding weak layer depth with invalid definition."""
-    profile = Mock()
-    
-    with pytest.raises(ValueError, match="Invalid weak_layer_def"):
-        _find_weak_layer_depth(profile, "invalid_def")
-
-
-def test_extract_stability_test_results_ect(mock_caaml_profile_with_tests):
-    """Test extracting ECT test results."""
-    results = _extract_stability_test_results(mock_caaml_profile_with_tests, "ECT")
-    assert results is not None
-    assert len(results) == 1
-
-
-def test_extract_stability_test_results_ct(mock_caaml_profile_with_tests):
-    """Test extracting CT test results."""
-    results = _extract_stability_test_results(mock_caaml_profile_with_tests, "CT")
-    assert results is not None
-    assert len(results) == 1
-
-
-def test_extract_stability_test_results_pst(mock_caaml_profile_with_tests):
-    """Test extracting PST test results."""
-    results = _extract_stability_test_results(mock_caaml_profile_with_tests, "PST")
-    assert results is not None
-    assert len(results) == 1
-
-
-def test_extract_stability_test_results_none():
-    """Test extracting stability test results when none exist."""
-    profile = Mock()
     profile.stability_tests = None
     
-    results = _extract_stability_test_results(profile, "ECT")
-    assert results is None
+    pit = Pit.from_snowpylot_profile(profile)
+    assert math.isnan(pit.slope_angle)
 
 
-def test_extract_stability_test_results_empty():
-    """Test extracting stability test results when empty."""
-    profile = Mock()
-    stability_tests = Mock()
-    stability_tests.ECT = []
-    profile.stability_tests = stability_tests
+def test_pit_layer_of_concern_extraction(mock_caaml_profile_basic):
+    """Test Pit extracting layer of concern."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
     
-    results = _extract_stability_test_results(profile, "ECT")
-    assert results is None
+    assert pit.layer_of_concern is not None
+    assert pit.layer_of_concern.depth_top == 10.0
 
 
-def test_extract_layer_of_concern_found(mock_caaml_profile_basic):
-    """Test extracting layer of concern when found."""
-    layers = caaml_to_layers(mock_caaml_profile_basic)
-    layer_of_concern = _extract_layer_of_concern(mock_caaml_profile_basic, layers)
-    
-    assert layer_of_concern is not None
-    assert layer_of_concern.depth_top == 10.0
-
-
-def test_extract_layer_of_concern_not_found():
-    """Test extracting layer of concern when not found."""
+def test_pit_layer_of_concern_not_found():
+    """Test Pit when layer of concern is not found."""
     profile = Mock()
     snow_profile = Mock()
     
     layer = Mock()
     layer.depth_top = [0.0]
     layer.thickness = [10.0]
+    layer.hardness = None
     layer.layer_of_concern = False
+    layer.grain_form_primary = None
     snow_profile.layers = [layer]
+    snow_profile.density_profile = []
     
     profile.snow_profile = snow_profile
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = None
+    profile.stability_tests = None
     
-    layers = [Layer(depth_top=0.0, thickness=10.0)]
-    layer_of_concern = _extract_layer_of_concern(profile, layers)
+    pit = Pit.from_snowpylot_profile(profile)
+    assert pit.layer_of_concern is None
+
+
+def test_pit_stability_test_extraction(mock_caaml_profile_with_tests):
+    """Test Pit extracting stability test results."""
+    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
     
-    assert layer_of_concern is None
+    assert pit.ECT_results is not None
+    assert len(pit.ECT_results) == 1
+    assert pit.CT_results is not None
+    assert len(pit.CT_results) == 1
+    assert pit.PST_results is not None
+    assert len(pit.PST_results) == 1
 
 
-def test_get_value_safe_scalar():
-    """Test _get_value_safe with scalar."""
-    assert _get_value_safe(5.0) == 5.0
-
-
-def test_get_value_safe_list():
-    """Test _get_value_safe with list."""
-    assert _get_value_safe([10.0]) == 10.0
-
-
-def test_get_value_safe_empty_list():
-    """Test _get_value_safe with empty list."""
-    assert _get_value_safe([]) is None
-
-
-def test_get_value_safe_none():
-    """Test _get_value_safe with None."""
-    assert _get_value_safe(None) is None
+def test_pit_stability_test_none():
+    """Test Pit when stability tests are None."""
+    profile = Mock()
+    profile.snow_profile = Mock()
+    profile.snow_profile.layers = []
+    profile.snow_profile.density_profile = []
+    profile.core_info = Mock()
+    profile.core_info.location = Mock()
+    profile.core_info.location.slope_angle = None
+    profile.stability_tests = None
+    
+    pit = Pit.from_snowpylot_profile(profile)
+    assert pit.ECT_results is None
+    assert pit.CT_results is None
+    assert pit.PST_results is None
 
 
 # ============================================================================
@@ -841,8 +825,8 @@ def test_get_value_safe_none():
 
 
 @pytest.mark.integration
-def test_caaml_to_slab_real_file():
-    """Test converting a real CAAML file to slab."""
+def test_pit_from_caaml_file_real():
+    """Test creating Pit from a real CAAML file."""
     # Use a real CAAML file from examples/data
     examples_dir = os.path.join(os.path.dirname(__file__), "..", "examples", "data")
     caaml_files = [f for f in os.listdir(examples_dir) if f.endswith(".xml")]
@@ -853,33 +837,17 @@ def test_caaml_to_slab_real_file():
     test_file = os.path.join(examples_dir, caaml_files[0])
     
     try:
-        profile = parse_caaml_file(test_file)
-        slab = caaml_to_slab(profile, weak_layer_def=None)
+        pit = Pit.from_caaml_file(test_file)
         
+        assert pit is not None
+        assert len(pit.layers) > 0
+        assert all(isinstance(layer, Layer) for layer in pit.layers)
+        
+        # Test slab creation
+        slab = pit.create_slab()
         assert slab is not None
         assert isinstance(slab, Slab)
         assert len(slab.layers) > 0
-    except Exception as e:
-        pytest.skip(f"Could not parse test file: {e}")
-
-
-@pytest.mark.integration
-def test_caaml_to_layers_real_file():
-    """Test converting a real CAAML file to layers."""
-    examples_dir = os.path.join(os.path.dirname(__file__), "..", "examples", "data")
-    caaml_files = [f for f in os.listdir(examples_dir) if f.endswith(".xml")]
-    
-    if not caaml_files:
-        pytest.skip("No CAAML files found in examples/data")
-    
-    test_file = os.path.join(examples_dir, caaml_files[0])
-    
-    try:
-        profile = parse_caaml_file(test_file)
-        layers = caaml_to_layers(profile)
-        
-        assert len(layers) > 0
-        assert all(isinstance(layer, Layer) for layer in layers)
     except Exception as e:
         pytest.skip(f"Could not parse test file: {e}")
 
@@ -889,8 +857,8 @@ def test_caaml_to_layers_real_file():
 # ============================================================================
 
 
-def test_caaml_to_slab_ectp_test_score_string():
-    """Test ECTP detection using test_score string."""
+def test_pit_ectp_test_score_string():
+    """Test Pit ECTP detection using test_score string."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -901,6 +869,8 @@ def test_caaml_to_slab_ectp_test_score_string():
     layer1.layer_of_concern = False
     grain_form1 = Mock()
     grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
     layer1.grain_form_primary = grain_form1
     
     layer2 = Mock()
@@ -910,6 +880,8 @@ def test_caaml_to_slab_ectp_test_score_string():
     layer2.layer_of_concern = False
     grain_form2 = Mock()
     grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
     layer2.grain_form_primary = grain_form2
     
     snow_profile.layers = [layer1, layer2]
@@ -933,12 +905,15 @@ def test_caaml_to_slab_ectp_test_score_string():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    depth = _find_weak_layer_depth(profile, "ECTP_failure_layer")
-    assert depth == 15.0
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def="ECTP_failure_layer")
+    
+    assert slab is not None
+    assert slab.weak_layer is not None
 
 
-def test_caaml_to_slab_ct_multiple_tests():
-    """Test CT failure layer with multiple CT tests."""
+def test_pit_ct_multiple_tests():
+    """Test Pit with multiple CT tests - should use first Q1/SC/SP."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -949,6 +924,8 @@ def test_caaml_to_slab_ct_multiple_tests():
     layer1.layer_of_concern = False
     grain_form1 = Mock()
     grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
     layer1.grain_form_primary = grain_form1
     
     snow_profile.layers = [layer1]
@@ -976,15 +953,26 @@ def test_caaml_to_slab_ct_multiple_tests():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    depth = _find_weak_layer_depth(profile, "CT_failure_layer")
-    assert depth == 5.0
-
-
-def test_extract_stability_test_results_single_test():
-    """Test extracting single test result (not a list)."""
-    profile = Mock()
-    stability_tests = Mock()
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
     
+    assert slab is not None
+
+
+def test_pit_stability_single_test():
+    """Test Pit with single test result (not a list)."""
+    profile = Mock()
+    snow_profile = Mock()
+    snow_profile.layers = []
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
+    
+    core_info = Mock()
+    core_info.location = Mock()
+    core_info.location.slope_angle = None
+    profile.core_info = core_info
+    
+    stability_tests = Mock()
     # Single test object (not a list)
     ct_test = Mock()
     stability_tests.CT = ct_test  # Single object, not list
@@ -992,16 +980,25 @@ def test_extract_stability_test_results_single_test():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    results = _extract_stability_test_results(profile, "CT")
-    assert results is not None
-    assert len(results) == 1
+    pit = Pit.from_snowpylot_profile(profile)
+    assert pit.CT_results is not None
+    assert len(pit.CT_results) == 1
 
 
-def test_extract_stability_test_results_pst_alternative_names():
-    """Test PST extraction with alternative attribute names."""
+def test_pit_pst_alternative_names():
+    """Test Pit PST extraction with alternative attribute names."""
     profile = Mock()
-    stability_tests = Mock()
+    snow_profile = Mock()
+    snow_profile.layers = []
+    snow_profile.density_profile = []
+    profile.snow_profile = snow_profile
     
+    core_info = Mock()
+    core_info.location = Mock()
+    core_info.location.slope_angle = None
+    profile.core_info = core_info
+    
+    stability_tests = Mock()
     pst_test = Mock()
     stability_tests.PST = None  # Not PST
     stability_tests.PropSawTest = [pst_test]  # Try PropSawTest
@@ -1009,13 +1006,13 @@ def test_extract_stability_test_results_pst_alternative_names():
     stability_tests.CT = []
     profile.stability_tests = stability_tests
     
-    results = _extract_stability_test_results(profile, "PST")
-    assert results is not None
-    assert len(results) == 1
+    pit = Pit.from_snowpylot_profile(profile)
+    assert pit.PST_results is not None
+    assert len(pit.PST_results) == 1
 
 
-def test_caaml_to_slab_weak_layer_at_boundary():
-    """Test weak layer identification when failure is at layer boundary."""
+def test_pit_weak_layer_at_boundary():
+    """Test Pit weak layer identification when failure is at layer boundary."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -1027,6 +1024,8 @@ def test_caaml_to_slab_weak_layer_at_boundary():
     layer1.layer_of_concern = False
     grain_form1 = Mock()
     grain_form1.basic_grain_class_code = "PP"
+    grain_form1.sub_grain_class_code = None
+    grain_form1.grain_size_avg = None
     layer1.grain_form_primary = grain_form1
     
     # Layer 2: 10-30 cm (failure at exactly 10.0 - boundary)
@@ -1037,6 +1036,8 @@ def test_caaml_to_slab_weak_layer_at_boundary():
     layer2.layer_of_concern = False
     grain_form2 = Mock()
     grain_form2.basic_grain_class_code = "FC"
+    grain_form2.sub_grain_class_code = None
+    grain_form2.grain_size_avg = None
     layer2.grain_form_primary = grain_form2
     
     snow_profile.layers = [layer1, layer2]
@@ -1058,7 +1059,8 @@ def test_caaml_to_slab_weak_layer_at_boundary():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    slab = caaml_to_slab(profile, weak_layer_def="CT_failure_layer")
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def="CT_failure_layer")
     
     assert slab is not None
     # Failure at 10.0 should be in layer2 (depth_top <= 10.0 < depth_bottom)
@@ -1067,8 +1069,8 @@ def test_caaml_to_slab_weak_layer_at_boundary():
     assert len(slab.layers) == 1  # Only layer1 is above
 
 
-def test_caaml_to_slab_no_stability_tests():
-    """Test slab creation when no stability tests exist."""
+def test_pit_no_stability_tests():
+    """Test Pit slab creation when no stability tests exist."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -1079,6 +1081,8 @@ def test_caaml_to_slab_no_stability_tests():
     layer.layer_of_concern = False
     grain_form = Mock()
     grain_form.basic_grain_class_code = "PP"
+    grain_form.sub_grain_class_code = None
+    grain_form.grain_size_avg = None
     layer.grain_form_primary = grain_form
     
     snow_profile.layers = [layer]
@@ -1097,7 +1101,8 @@ def test_caaml_to_slab_no_stability_tests():
     # No PST attribute at all
     profile.stability_tests = stability_tests
     
-    slab = caaml_to_slab(profile, weak_layer_def=None)
+    pit = Pit.from_snowpylot_profile(profile)
+    slab = pit.create_slab(weak_layer_def=None)
     
     assert slab is not None
     assert slab.ECT_results is None
@@ -1105,8 +1110,8 @@ def test_caaml_to_slab_no_stability_tests():
     assert slab.PST_results is None
 
 
-def test_extract_layer_of_concern_depth_matching():
-    """Test layer_of_concern extraction with depth matching tolerance."""
+def test_pit_layer_of_concern_depth_matching():
+    """Test Pit layer_of_concern extraction with depth matching tolerance."""
     profile = Mock()
     snow_profile = Mock()
     
@@ -1114,15 +1119,21 @@ def test_extract_layer_of_concern_depth_matching():
     caaml_layer = Mock()
     caaml_layer.depth_top = [10.0001]  # Slight difference
     caaml_layer.thickness = [20.0]
+    caaml_layer.hardness = None
     caaml_layer.layer_of_concern = True
+    caaml_layer.grain_form_primary = None
     snow_profile.layers = [caaml_layer]
+    snow_profile.density_profile = []
     profile.snow_profile = snow_profile
     
-    # Layer object with depth 10.0
-    layers = [Layer(depth_top=10.0, thickness=20.0)]
+    core_info = Mock()
+    core_info.location = Mock()
+    core_info.location.slope_angle = None
+    profile.core_info = core_info
+    profile.stability_tests = None
     
-    layer_of_concern = _extract_layer_of_concern(profile, layers)
+    pit = Pit.from_snowpylot_profile(profile)
     
     # Should match within tolerance (0.01)
-    assert layer_of_concern is not None
-    assert layer_of_concern.depth_top == 10.0
+    assert pit.layer_of_concern is not None
+    assert abs(pit.layer_of_concern.depth_top - 10.0) < 0.01

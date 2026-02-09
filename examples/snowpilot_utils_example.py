@@ -2,16 +2,21 @@
 Example script demonstrating the snowpyt_mechparams.snowpilot_utils module.
 
 This shows how to load SnowPilot/CAAML data and convert it to Layer and Slab objects
-using the SnowPilot utilities module.
+using the Pit class.
 """
 
+import os
+
+from snowpyt_mechparams.data_structures import Pit
 from snowpyt_mechparams.snowpilot_utils import (
-    caaml_to_layers,
-    caaml_to_slab,
     convert_grain_form,
     parse_caaml_directory,
     parse_caaml_file,
 )
+
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(SCRIPT_DIR, "data")
 
 
 def example_parse_directory():
@@ -21,55 +26,54 @@ def example_parse_directory():
     print("=" * 60)
     
     # Parse all XML files in the data directory
-    profiles = parse_caaml_directory('data')
+    profiles = parse_caaml_directory(DATA_DIR)
     
     print(f"✅ Successfully loaded {len(profiles)} profiles")
     print()
 
 
 def example_convert_to_layers():
-    """Example: Convert a CAAML profile to Layer objects."""
+    """Example: Convert a CAAML profile to Layer objects using Pit class."""
     print("=" * 60)
     print("Example 2: Convert CAAML to Layers")
     print("=" * 60)
     
     # Parse one file
-    profiles = parse_caaml_directory('data')
+    profiles = parse_caaml_directory(DATA_DIR)
     if not profiles:
         print("❌ No profiles found")
         return
     
-    profile = profiles[0]
+    # Create Pit object from profile
+    pit = Pit.from_snowpylot_profile(profiles[0])
     
-    # Convert to layers
-    layers = caaml_to_layers(profile, include_density=True)
-    
-    print(f"✅ Converted profile to {len(layers)} layers")
-    if layers:
+    print(f"✅ Converted profile to {len(pit.layers)} layers")
+    if pit.layers:
         print(f"\nFirst layer:")
-        print(f"  - Depth: {layers[0].depth_top} cm")
-        print(f"  - Thickness: {layers[0].thickness} cm")
-        print(f"  - Grain form: {layers[0].grain_form}")
-        print(f"  - Hand hardness: {layers[0].hand_hardness}")
+        print(f"  - Depth: {pit.layers[0].depth_top} cm")
+        print(f"  - Thickness: {pit.layers[0].thickness} cm")
+        print(f"  - Grain form: {pit.layers[0].grain_form}")
+        print(f"  - Hand hardness: {pit.layers[0].hand_hardness}")
     print()
 
 
 def example_convert_to_slab():
-    """Example: Convert a CAAML profile to a Slab object."""
+    """Example: Convert a CAAML profile to a Slab object using Pit class."""
     print("=" * 60)
     print("Example 3: Convert CAAML to Slab")
     print("=" * 60)
     
     # Parse one file
-    profiles = parse_caaml_directory('data')
+    profiles = parse_caaml_directory(DATA_DIR)
     if not profiles:
         print("❌ No profiles found")
         return
     
-    profile = profiles[0]
+    # Create Pit object from profile
+    pit = Pit.from_snowpylot_profile(profiles[0])
     
     # Convert to slab (all layers, no weak layer filtering)
-    slab_all = caaml_to_slab(profile)
+    slab_all = pit.create_slab()
     
     if slab_all:
         print(f"✅ Slab with all layers:")
@@ -78,7 +82,7 @@ def example_convert_to_slab():
         print(f"  - Slope angle: {slab_all.angle}°")
     
     # Try to get slab above layer of concern
-    slab_loc = caaml_to_slab(profile, weak_layer_def="layer_of_concern")
+    slab_loc = pit.create_slab(weak_layer_def="layer_of_concern")
     
     if slab_loc:
         print(f"\n✅ Slab above layer of concern:")
@@ -96,19 +100,20 @@ def example_grain_form_conversion():
     print("=" * 60)
     
     # Parse one file
-    profiles = parse_caaml_directory('data')
+    profiles = parse_caaml_directory(DATA_DIR)
     if not profiles:
         print("❌ No profiles found")
         return
     
-    profile = profiles[0]
+    # Create Pit object
+    pit = Pit.from_snowpylot_profile(profiles[0])
     
-    # Get layers
-    if not hasattr(profile, 'snow_profile') or not profile.snow_profile.layers:
+    # Get layers from snowpylot profile for grain form conversion
+    if not hasattr(pit.snowpylot_profile, 'snow_profile') or not pit.snowpylot_profile.snow_profile.layers:
         print("❌ No layers in profile")
         return
     
-    layer = profile.snow_profile.layers[0]
+    layer = pit.snowpylot_profile.snow_profile.layers[0]
     
     if hasattr(layer, 'grain_form_primary') and layer.grain_form_primary:
         print(f"Original grain form:")
@@ -143,8 +148,8 @@ def main():
     except Exception as e:
         print(f"\n❌ Error running examples: {e}")
         print("\nMake sure:")
-        print("  1. You're in the examples/ directory")
-        print("  2. The data/ directory exists with CAAML XML files")
+        print(f"  1. The data/ directory exists at: {DATA_DIR}")
+        print("  2. The data/ directory contains CAAML XML files")
         print("  3. snowpyt_mechparams is installed: pip install -e .")
 
 

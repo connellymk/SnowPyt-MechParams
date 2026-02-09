@@ -453,11 +453,12 @@ def test_pit_create_slab_no_weak_layer_def(mock_caaml_profile_basic):
     assert len(slab.layers) == 2
     assert slab.weak_layer is None
     assert slab.angle == 30.0
-    assert slab.ECT_results == []
-    assert slab.CT_results == []
-    assert slab.PST_results == []
-    assert slab.layer_of_concern is not None
-    assert slab.layer_of_concern.depth_top == 10.0
+    assert slab.pit is not None
+    assert slab.pit.ECT_results == []
+    assert slab.pit.CT_results == []
+    assert slab.pit.PST_results == []
+    assert slab.pit.layer_of_concern is not None
+    assert slab.pit.layer_of_concern.depth_top == 10.0
 
 
 def test_pit_create_slab_layer_of_concern(mock_caaml_profile_basic):
@@ -485,8 +486,9 @@ def test_pit_create_slab_ct_failure_layer(mock_caaml_profile_with_tests):
     assert slab.weak_layer is not None
     # Weak layer should be layer containing depth 25.0
     assert slab.weak_layer.depth_top == 10.0  # Layer 2 contains depth 25.0
-    assert slab.CT_results is not None
-    assert len(slab.CT_results) == 1
+    assert slab.pit is not None
+    assert slab.pit.CT_results is not None
+    assert len(slab.pit.CT_results) == 1
 
 
 def test_pit_create_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
@@ -498,8 +500,9 @@ def test_pit_create_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
     slab = slabs[0]
     assert len(slab.layers) == 1  # Only layers above weak layer (NOT including it)
     assert slab.weak_layer is not None
-    assert slab.ECT_results is not None
-    assert len(slab.ECT_results) == 1
+    assert slab.pit is not None
+    assert slab.pit.ECT_results is not None
+    assert len(slab.pit.ECT_results) == 1
 
 
 def test_pit_create_slab_no_weak_layer_found():
@@ -586,31 +589,35 @@ def test_pit_create_slab_no_layers_above_weak_layer():
 
 
 def test_pit_create_slab_with_stability_tests(mock_caaml_profile_with_tests):
-    """Test Pit creating slab includes stability test results."""
+    """Test Pit creating slab has access to stability test results through pit reference."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
-    slabs = pit.create_slabs(weak_layer_def=None)
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
-    slab = slabs[0] if slabs else None
-    
+    assert len(slabs) == 1
+    slab = slabs[0]
+
     assert slab is not None
-    assert slab.ECT_results is not None
-    assert len(slab.ECT_results) == 1
-    assert slab.CT_results is not None
-    assert len(slab.CT_results) == 1
-    assert slab.PST_results is not None
-    assert len(slab.PST_results) == 1
+    assert slab.pit is not None
+    assert slab.pit.ECT_results is not None
+    assert len(slab.pit.ECT_results) == 1
+    assert slab.pit.CT_results is not None
+    assert len(slab.pit.CT_results) == 1
+    assert slab.pit.PST_results is not None
+    assert len(slab.pit.PST_results) == 1
 
 
 def test_pit_create_slab_with_layer_of_concern(mock_caaml_profile_with_tests):
-    """Test Pit creating slab includes layer_of_concern."""
+    """Test Pit creating slab has access to layer_of_concern through pit reference."""
     pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
-    slabs = pit.create_slabs(weak_layer_def=None)
+    slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
 
-    slab = slabs[0] if slabs else None
-    
+    assert len(slabs) == 1
+    slab = slabs[0]
+
     assert slab is not None
-    assert slab.layer_of_concern is not None
-    assert slab.layer_of_concern.depth_top == 30.0
+    assert slab.pit is not None
+    assert slab.pit.layer_of_concern is not None
+    assert slab.pit.layer_of_concern.depth_top == 30.0
 
 
 def test_pit_create_slab_empty_profile():
@@ -1129,15 +1136,16 @@ def test_pit_no_stability_tests():
     profile.stability_tests = stability_tests
     
     pit = Pit.from_snowpylot_profile(profile)
-    slabs = pit.create_slabs(weak_layer_def=None)
 
-    slab = slabs[0] if slabs else None
-    
-    assert slab is not None
-    # Empty lists should return as empty lists, not None (after fix)
-    assert slab.ECT_results == []
-    assert slab.CT_results == []
-    assert slab.PST_results is None  # PST doesn't exist, so None
+    # Test that pit correctly extracts test results
+    assert pit.ECT_results == []
+    assert pit.CT_results == []
+    assert pit.PST_results is None  # PST doesn't exist, so None
+
+    # Test that slabs have access through pit reference
+    # Note: weak_layer_def=None returns empty list, so we can't test slab access here
+    slabs = pit.create_slabs(weak_layer_def=None)
+    assert slabs == []  # No slabs created when weak_layer_def is None
 
 
 def test_pit_layer_of_concern_depth_matching():

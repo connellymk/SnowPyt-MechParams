@@ -6,21 +6,21 @@ or other sources) and convert them to snowpyt_mechparams data structures.
 
 Workflow
 --------
-1. Parse CAAML file to get snowpylot profile
-2. Create Pit object from snowpylot profile
+1. Parse CAAML file to get snowpylot SnowPit
+2. Create Pit object from snowpylot SnowPit
 3. Create Slab from Pit
 
 Example
 -------
     >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
     >>> from snowpyt_mechparams.data_structures import Pit
-    >>> 
+    >>>
     >>> # Step 1: Parse CAAML file
-    >>> profile = parse_caaml_file("profile.xml")
-    >>> 
-    >>> # Step 2: Create Pit from snowpylot profile
-    >>> pit = Pit.from_snowpylot_profile(profile)
-    >>> 
+    >>> snow_pit = parse_caaml_file("profile.xml")
+    >>>
+    >>> # Step 2: Create Pit from snowpylot SnowPit
+    >>> pit = Pit.from_snow_pit(snow_pit)
+    >>>
     >>> # Step 3: Create Slabs from Pit
     >>> slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
     >>> print(f"Created {len(slabs)} slabs")
@@ -55,7 +55,7 @@ def parse_caaml_file(filepath: str) -> Any:
     Returns
     -------
     Any
-        Parsed CAAML profile object from snowpylot
+        SnowPit object from snowpylot
 
     Raises
     ------
@@ -79,7 +79,7 @@ def parse_caaml_directory(directory: str, pattern: str = "*.xml") -> List[Any]:
     Returns
     -------
     List[Any]
-        List of parsed CAAML profile objects
+        List of SnowPit objects from snowpylot
 
     Notes
     -----

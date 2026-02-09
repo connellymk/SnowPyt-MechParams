@@ -222,30 +222,27 @@ class Pit:
         """
         # Extract slope angle
         try:
-            slope_angle_data = self.snow_pit.core_info.location.slope_angle
-            if slope_angle_data and len(slope_angle_data) > 0:
-                self.slope_angle = float(slope_angle_data[0])
+            self.slope_angle = self.snow_pit.core_info.location.slope_angle[0]
         except (AttributeError, IndexError, TypeError, ValueError):
-            pass  # slope_angle already defaults to NaN
+            self.slope_angle = float('nan')
 
         # Extract pit ID
         try:
-            if hasattr(self.snow_pit.core_info, 'pit_id') and self.snow_pit.core_info.pit_id:
-                self.pit_id = str(self.snow_pit.core_info.pit_id)
+            self.pit_id = self.snow_pit.core_info.pit_id
         except (AttributeError, TypeError):
-            pass  # pit_id already defaults to None
+            self.pit_id = None
 
         # Create layers from snow profile
         self.layers = self._create_layers_from_profile()
 
         # Extract stability test results
         if hasattr(self.snow_pit, "stability_tests") and self.snow_pit.stability_tests:
-            self.ECT_results = self._extract_test_list(self.snow_pit.stability_tests.ECT)
-            self.CT_results = self._extract_test_list(self.snow_pit.stability_tests.CT)
-            self.PST_results = self._extract_test_list(self.snow_pit.stability_tests.PST)
+            self.ECT_results = self.snow_pit.stability_tests.ECT if self.snow_pit.stability_tests.ECT else []
+            self.CT_results = self.snow_pit.stability_tests.CT if self.snow_pit.stability_tests.CT else []
+            self.PST_results = self.snow_pit.stability_tests.PST if self.snow_pit.stability_tests.PST else []
 
         # Extract layer of concern
-        self.layer_of_concern = self._extract_layer_of_concern()
+        self.layer_of_concern = next((layer for layer in self.snow_pit.snow_profile.layers if layer.layer_of_concern), None)
     
     @classmethod
     def from_snow_pit(cls, snow_pit: Any) -> "Pit":
@@ -367,10 +364,7 @@ class Pit:
                 layers=slab_layers,
                 angle=self.slope_angle,
                 weak_layer=self.layer_of_concern,
-                ECT_results=self.ECT_results,
-                CT_results=self.CT_results,
-                PST_results=self.PST_results,
-                layer_of_concern=self.layer_of_concern,
+                pit=self,
                 pit_id=self.pit_id,
                 slab_id=f"{self.pit_id}_slab_0" if self.pit_id else "slab_0",
                 weak_layer_source="layer_of_concern",
@@ -414,27 +408,6 @@ class Pit:
     # ============================================================================
     # Private Helper Methods
     # ============================================================================
-
-    @staticmethod
-    def _extract_test_list(tests: Any) -> Optional[List[Any]]:
-        """
-        Convert test results to a list format.
-
-        Parameters
-        ----------
-        tests : Any
-            Test results from snowpylot (could be None, list, or single object)
-
-        Returns
-        -------
-        Optional[List[Any]]
-            List of test results, or None if not available
-        """
-        if tests is None:
-            return None
-        if isinstance(tests, (list, tuple)):
-            return list(tests) if tests else []
-        return [tests]
     
     def _create_layers_from_profile(self, include_density: bool = True) -> List[Layer]:
         """
@@ -540,59 +513,6 @@ class Pit:
                                 return layer
         except (AttributeError, TypeError):
             pass
-        return None
-    
-    def _find_weak_layer_depth(self, weak_layer_def: str) -> Optional[float]:
-        """
-        Find the depth of the weak layer based on the specified definition.
-
-        Parameters
-        ----------
-        weak_layer_def : str
-            Weak layer definition - one of:
-            - "layer_of_concern": Uses layer with layer_of_concern=True
-            - "CT_failure_layer": Uses CT test failure layer with Q1/SC/SP fracture character
-            - "ECTP_failure_layer": Uses ECT test failure layer with propagation
-
-        Returns
-        -------
-        Optional[float]
-            Depth (from top) of the weak layer in cm, or None if no weak layer found
-        """
-        try:
-            if weak_layer_def == "layer_of_concern":
-                for layer in self.snow_pit.snow_profile.layers:
-                    if hasattr(layer, "layer_of_concern") and layer.layer_of_concern:
-                        depth = self._get_value_safe(layer.depth_top)
-                        if depth is not None:
-                            return depth
-
-            elif weak_layer_def == "CT_failure_layer":
-                for ct in self.snow_pit.stability_tests.CT or []:
-                    if hasattr(ct, "fracture_character") and ct.fracture_character in ["Q1", "SC", "SP"]:
-                        depth = self._get_value_safe(ct.depth_top)
-                        if depth is not None:
-                            return depth
-
-            elif weak_layer_def == "ECTP_failure_layer":
-                for ect in self.snow_pit.stability_tests.ECT or []:
-                    has_propagation = (
-                        (hasattr(ect, "propagation") and ect.propagation) or
-                        (hasattr(ect, "test_score") and ect.test_score and "ECTP" in str(ect.test_score))
-                    )
-                    if has_propagation:
-                        depth = self._get_value_safe(ect.depth_top)
-                        if depth is not None:
-                            return depth
-
-            else:
-                raise ValueError(
-                    f"Invalid weak_layer_def '{weak_layer_def}'. "
-                    f"Valid options: 'layer_of_concern', 'CT_failure_layer', 'ECTP_failure_layer'"
-                )
-        except (AttributeError, TypeError):
-            pass
-
         return None
     
     @staticmethod
@@ -723,10 +643,7 @@ class Pit:
             layers=slab_layers,
             angle=self.slope_angle,
             weak_layer=weak_layer,
-            ECT_results=self.ECT_results,
-            CT_results=self.CT_results,
-            PST_results=self.PST_results,
-            layer_of_concern=self.layer_of_concern,
+            pit=self,
             pit_id=self.pit_id,
             slab_id=slab_id,
             weak_layer_source=weak_layer_def,
@@ -798,6 +715,10 @@ class Slab:
     weak_layer: Optional[Layer]
         Weak layer of the slab.
 
+    # Parent Reference
+    pit: Optional["Pit"]
+        Reference to the parent Pit object (access test results and layer_of_concern through this)
+
     # Metadata
     pit_id : Optional[str]
         Identifier of the source pit
@@ -823,15 +744,12 @@ class Slab:
         Bending stiffness in N·mm. Can include uncertainty.
     """
     # Slab Structure
-    layers: List[Layer] # Ordered list of snow layers from top (surface) to bottom
-    angle: float # Slope angle of the slab in degrees
+    layers: List[Layer]  # Ordered list of snow layers from top (surface) to bottom
+    angle: float  # Slope angle of the slab in degrees
     weak_layer: Optional[Layer] = None  # Weak layer of the slab
 
-    # Stability Test Results
-    ECT_results: Optional[List[Any]] = None  # ECT test results
-    CT_results: Optional[List[Any]] = None  # CT test results
-    PST_results: Optional[List[Any]] = None  # PST test results
-    layer_of_concern: Optional[Layer] = None  # Layer of concern
+    # Parent Reference - access test results through pit.ECT_results, pit.CT_results, etc.
+    pit: Optional["Pit"] = None  # Reference to parent Pit object
 
     # Metadata - tracks which test result was used to create this slab
     pit_id: Optional[str] = None  # Source pit identifier
@@ -864,7 +782,7 @@ class Slab:
 
         If any layers have uncertain thickness values, the result will
         automatically include propagated uncertainties.
-        Returns None if any layer has a None thickness value.
+        Returns None if no layers have thickness values.
 
         Returns
         -------
@@ -872,6 +790,4 @@ class Slab:
             Total thickness in centimeters (cm), with uncertainty if applicable, or None
         """
         thicknesses = [layer.thickness for layer in self.layers if layer.thickness is not None]
-        if not thicknesses:
-            return None
-        return sum(thicknesses)
+        return sum(thicknesses) if thicknesses else None

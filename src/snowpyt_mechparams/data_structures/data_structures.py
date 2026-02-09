@@ -32,10 +32,12 @@ class Layer:
     hand_hardness: str
         Layer hand hardness 
     grain_form: str
-        Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available, 
+        Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available,
         otherwise basic class (e.g., 'FC', 'PP', 'RG')
     grain_size_avg: Union[float, uncertainties.UFloat]
         Average grain size in millimeters (mm). Can include uncertainty.
+    layer_of_concern: bool
+        Whether this layer is marked as layer of concern (default: False)
 
 
     # Calculated Parameters
@@ -72,6 +74,7 @@ class Layer:
     hand_hardness: Optional[str] = None  # Layer hand hardness
     grain_form: Optional[str] = None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
     grain_size_avg: Optional[UncertainValue] = None  # mm - Average grain size
+    layer_of_concern: bool = False  # Whether this layer is marked as layer of concern
     
     # ==========================================
     # Calculated Parameters - From Method Implementations
@@ -178,8 +181,6 @@ class Pit:
         Compression Test results from stability tests
     PST_results : Optional[List[Any]]
         Propagation Saw Test results from stability tests
-    layer_of_concern : Optional[Layer]
-        Layer marked as layer of concern in the profile
 
     Notes
     -----
@@ -214,7 +215,6 @@ class Pit:
     ECT_results: Optional[List[Any]] = None
     CT_results: Optional[List[Any]] = None
     PST_results: Optional[List[Any]] = None
-    layer_of_concern: Optional[Layer] = None
     
     def __post_init__(self) -> None:
         """
@@ -240,9 +240,6 @@ class Pit:
             self.ECT_results = self.snow_pit.stability_tests.ECT if self.snow_pit.stability_tests.ECT else []
             self.CT_results = self.snow_pit.stability_tests.CT if self.snow_pit.stability_tests.CT else []
             self.PST_results = self.snow_pit.stability_tests.PST if self.snow_pit.stability_tests.PST else []
-
-        # Extract layer of concern
-        self.layer_of_concern = next((layer for layer in self.snow_pit.snow_profile.layers if layer.layer_of_concern), None)
     
     @classmethod
     def from_snow_pit(cls, snow_pit: Any) -> "Pit":
@@ -275,6 +272,18 @@ class Pit:
         >>> print(f"Pit has {len(pit.layers)} layers")
         """
         return cls(snow_pit=snow_pit)
+
+    @property
+    def layer_of_concern(self) -> Optional[Layer]:
+        """
+        Get the layer marked as layer of concern.
+
+        Returns
+        -------
+        Optional[Layer]
+            First layer with layer_of_concern=True, or None if no layer is marked
+        """
+        return next((layer for layer in self.layers if layer.layer_of_concern), None)
 
     def create_slabs(
         self,
@@ -440,7 +449,10 @@ class Pit:
             
             # Extract hand hardness
             hand_hardness = layer.hardness if hasattr(layer, "hardness") else None
-            
+
+            # Extract layer_of_concern flag
+            is_layer_of_concern = getattr(layer, "layer_of_concern", False)
+
             # Extract grain form from grain_form_primary
             grain_form = None
             if hasattr(layer, "grain_form_primary") and layer.grain_form_primary:
@@ -488,32 +500,12 @@ class Pit:
                 hand_hardness=hand_hardness,
                 grain_form=grain_form,
                 grain_size_avg=grain_size_avg,
+                layer_of_concern=is_layer_of_concern,
             )
             
             layers.append(layer_obj)
         
         return layers
-    
-    def _extract_layer_of_concern(self) -> Optional[Layer]:
-        """
-        Extract the layer of concern from snowpylot SnowPit.
-
-        Returns
-        -------
-        Optional[Layer]
-            Layer object for the layer of concern, or None if not found
-        """
-        try:
-            for caaml_layer in self.snow_pit.snow_profile.layers:
-                if hasattr(caaml_layer, "layer_of_concern") and caaml_layer.layer_of_concern:
-                    depth_top = self._get_value_safe(caaml_layer.depth_top)
-                    if depth_top is not None:
-                        for layer in self.layers:
-                            if layer.depth_top is not None and abs(layer.depth_top - depth_top) < 0.01:
-                                return layer
-        except (AttributeError, TypeError):
-            pass
-        return None
     
     @staticmethod
     def _get_value_safe(obj: Any) -> Optional[float]:

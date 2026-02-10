@@ -7,22 +7,56 @@ from standard snowpit observations including density, grain size, hardness, and
 temperature measurements. Developed through collaboration between multiple
 academic researchers and institutions in the snow science community.
 
-Main Modules
-------------
-- data_structures: Core data structures (Layer, Slab)
-- models: Mechanical models (static load calculations)
-- slab_parameters: Slab mechanical properties (density, modulus, etc.)
-- weak_layer_parameters: Weak layer properties (strength, fracture toughness)
-- execution: Parameterization pathway execution engine
+Main Components
+---------------
+Data Structures
+    Layer, Slab, Pit - Core data structures for snow profiles
+
+Parameter Calculation
+    layer_parameters - Methods for layer-level properties (density, E, ν, G)
+    slab_parameters - Methods for slab-level plate theory parameters (A11, B11, D11, A55)
+
+Parameterization Graph
+    graph - Directed graph of all available calculation methods
+    algorithm - Functions to find all calculation pathways
+
+Execution Engine
+    ExecutionEngine - Execute calculations across all pathways with dynamic programming
+    ExecutionResults - Results from pathway execution with cache statistics
+
+Quick Start
+-----------
+>>> from snowpyt_mechparams import ExecutionEngine
+>>> from snowpyt_mechparams.graph import graph
+>>> from snowpyt_mechparams.data_structures import Slab, Layer
+>>>
+>>> # Create slab with measured data
+>>> layers = [Layer(thickness=30, density_measured=250, grain_form='RG')]
+>>> slab = Slab(layers=layers, angle=35)
+>>>
+>>> # Execute all pathways to calculate D11
+>>> engine = ExecutionEngine(graph)
+>>> results = engine.execute_all(slab, target_parameter='D11')
+>>> print(f"Computed D11 via {results.successful_pathways} pathways")
+>>> print(f"Cache hit rate: {results.cache_stats['hit_rate']:.1%}")
 """
 
+# Data structures
 from snowpyt_mechparams.data_structures import Layer, Slab
+
+# Constants
 from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE
+
+# Layer parameter calculations
 from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
+
+# Weak layer parameters
 from snowpyt_mechparams.weak_layer_parameters import (
     calculate_sigma_c_minus,
     calculate_sigma_c_plus,
 )
+
+# Execution engine
 from snowpyt_mechparams.execution import (
     ExecutionEngine,
     ExecutionResults,
@@ -31,7 +65,11 @@ from snowpyt_mechparams.execution import (
     MethodDispatcher,
 )
 
-__version__ = "0.1.0"
+# Graph and algorithm modules (imported as modules, not individual items)
+from snowpyt_mechparams import graph
+from snowpyt_mechparams import algorithm
+
+__version__ = "0.3.0"
 __author__ = "Mary Connelly and SnowPyt-MechParams Contributors"
 __email__ = "connellymarykate@gmail.com"
 __maintainer__ = "SnowPyt-MechParams Contributors"
@@ -54,5 +92,8 @@ __all__ = [
     "PathwayResult",
     "PathwayExecutor",
     "MethodDispatcher",
+    # Graph and algorithm (as modules)
+    "graph",
+    "algorithm",
 ]
 

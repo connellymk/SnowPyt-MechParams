@@ -142,12 +142,15 @@ class ExecutionResults:
         Number of pathways that succeeded (at least partial results)
     failed_pathways : int
         Number of pathways that completely failed
+    cache_stats : Dict[str, float]
+        Cache performance statistics (hits, misses, hit_rate)
 
     Examples
     --------
     >>> results = engine.execute_all(slab, "elastic_modulus")
     >>> for pathway_desc, pathway_result in results.results.items():
     ...     print(f"{pathway_desc}: {pathway_result.success}")
+    >>> print(f"Cache hit rate: {results.cache_stats['hit_rate']:.1%}")
     """
     target_parameter: str
     source_slab: Slab
@@ -155,6 +158,7 @@ class ExecutionResults:
     total_pathways: int
     successful_pathways: int
     failed_pathways: int = 0
+    cache_stats: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Calculate failed_pathways if not provided."""

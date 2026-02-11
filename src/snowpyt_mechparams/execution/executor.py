@@ -1,18 +1,43 @@
 """
 Pathway executor for parameterization execution.
 
-This module provides the PathwayExecutor class that executes a single
-parameterization pathway on Layer/Slab objects.
+This module provides the PathwayExecutor class that executes parameterization
+pathways on Layer/Slab objects. The executor implements dynamic programming
+by caching computed values across pathway executions for the same slab,
+significantly reducing redundant calculations.
+
+Key Features
+------------
+- **Dynamic Programming**: Persistent cache across pathways for same slab
+- **Layer Properties**: Handles thickness as direct data flow (no calculation)
+- **Slab Parameters**: Computes A11, B11, D11, A55 with prerequisite checks
+- **Cache Statistics**: Tracks hit/miss rates for performance analysis
+- **Provenance Tracking**: Records which method computed each parameter
+
+Cache Strategy
+--------------
+The executor maintains three types of caches:
+
+1. **Layer-level cache**: (layer_index, parameter, method) -> value
+   - Caches computed layer parameters across pathways
+   - Cleared between different slabs
+
+2. **Slab-level cache**: (parameter, method) -> value
+   - Caches computed slab parameters
+   - Cleared between different slabs
+
+3. **Provenance tracking**: (layer_index, parameter) -> method_name
+   - Records which method was used for each parameter
+   - Useful for understanding calculation paths
+
+The cache persists across pathway executions for the same slab but is
+cleared when moving to a new slab via clear_cache().
 """
 
-import sys
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 
-# Add algorithm directory to path for imports
-sys.path.insert(0, '/Users/marykate/Desktop/Snow/SnowPyt-MechParams/algorithm')
-from parameterization_algorithm import Parameterization, PathSegment, Branch
-
+from snowpyt_mechparams.algorithm import Parameterization, PathSegment, Branch
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
 from snowpyt_mechparams.execution.results import (
@@ -24,15 +49,30 @@ class PathwayExecutor:
     """
     Executes parameterization pathways on Layer/Slab objects.
 
-    This class walks through a Parameterization object and executes
-    each method in the pathway, computing values for layers and slabs.
+    This class walks through Parameterization objects and executes each method
+    in the pathway, computing values for layers and slabs. Implements dynamic
+    programming by caching computed values across pathways for the same slab.
 
     Attributes
     ----------
     dispatcher : MethodDispatcher
         The method dispatcher for executing calculations
-    _cache : Dict[Tuple[int, str, str], UncertainValue]
-        Cache for dynamic programming (layer_index, parameter, method) -> result
+    _layer_cache : Dict[Tuple[int, str, str], UncertainValue]
+        Layer-level cache: (layer_index, parameter, method) -> value
+    _slab_cache : Dict[Tuple[str, str], UncertainValue]
+        Slab-level cache: (parameter, method) -> value
+    _layer_provenance : Dict[Tuple[int, str], str]
+        Provenance tracking: (layer_index, parameter) -> method_name
+    _cache_hits : int
+        Number of cache hits (for statistics)
+    _cache_misses : int
+        Number of cache misses (for statistics)
+
+    Notes
+    -----
+    The cache persists across pathway executions for the same slab,
+    enabling dynamic programming. Call clear_cache() when switching
+    to a new slab.
     """
 
     def __init__(self, dispatcher: Optional[MethodDispatcher] = None):
@@ -45,7 +85,50 @@ class PathwayExecutor:
             Method dispatcher to use. If None, creates a new one.
         """
         self.dispatcher = dispatcher or MethodDispatcher()
-        self._cache: Dict[Tuple[int, str, str], UncertainValue] = {}
+        
+        # Layer-level cache: (layer_index, parameter, method) -> value
+        self._layer_cache: Dict[Tuple[int, str, str], UncertainValue] = {}
+        
+        # Slab-level cache: (parameter, method) -> value
+        self._slab_cache: Dict[Tuple[str, str], UncertainValue] = {}
+        
+        # Provenance tracking: (layer_index, parameter) -> method_name
+        self._layer_provenance: Dict[Tuple[int, str], str] = {}
+        
+        # Cache statistics
+        self._cache_hits = 0
+        self._cache_misses = 0
+    
+    def clear_cache(self) -> None:
+        """
+        Clear all caches and statistics.
+        
+        Call this when switching to a new slab to ensure caches don't
+        carry over between different slabs.
+        """
+        self._layer_cache.clear()
+        self._slab_cache.clear()
+        self._layer_provenance.clear()
+        self._cache_hits = 0
+        self._cache_misses = 0
+    
+    def get_cache_stats(self) -> Dict[str, float]:
+        """
+        Get cache performance statistics.
+        
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary with keys 'hits', 'misses', 'hit_rate'
+        """
+        total = self._cache_hits + self._cache_misses
+        hit_rate = self._cache_hits / total if total > 0 else 0.0
+        
+        return {
+            'hits': self._cache_hits,
+            'misses': self._cache_misses,
+            'hit_rate': hit_rate
+        }
 
     def execute_parameterization(
         self,
@@ -56,6 +139,10 @@ class PathwayExecutor:
     ) -> PathwayResult:
         """
         Execute a single parameterization pathway on a slab.
+
+        This method does NOT clear the cache, allowing dynamic programming
+        across multiple pathway executions for the same slab. Call clear_cache()
+        when switching to a new slab.
 
         Parameters
         ----------
@@ -72,9 +159,15 @@ class PathwayExecutor:
         -------
         PathwayResult
             Results containing computed layers/slab and pathway trace
+
+        Notes
+        -----
+        The cache persists across pathway executions to enable dynamic
+        programming. When multiple pathways share common subpaths, the
+        cached values avoid redundant calculations.
         """
-        # Clear cache for fresh execution
-        self._cache.clear()
+        # DO NOT clear cache - this enables dynamic programming across pathways
+        # Only clear cache when switching to a new slab (via clear_cache())
 
         # Deep copy the slab so we don't modify the original
         working_slab = deepcopy(slab)
@@ -265,35 +358,16 @@ class PathwayExecutor:
 
             method_name = methods_used[param]
 
-            # Check cache first (dynamic programming)
-            cache_key = (layer_index, param, method_name)
-            if cache_key in self._cache:
-                result = self._cache[cache_key]
-                self._set_layer_parameter(working_layer, param, result)
-                method_calls.append(MethodCall(
-                    parameter=param,
-                    method_name=method_name,
-                    inputs={"cached": True},
-                    output=result,
-                    success=True
-                ))
-                continue
-
-            # Get inputs for tracing
-            inputs_used = self._get_inputs_used(working_layer, param, method_name)
-
-            # Execute the method
-            result, error = self.dispatcher.execute(
-                parameter=param,
-                method_name=method_name,
-                layer=working_layer
+            # Use get_or_compute helper for caching and statistics
+            result, was_cached = self._get_or_compute_layer_param(
+                working_layer,
+                layer_index,
+                param,
+                method_name
             )
 
-            if result is not None:
-                # Cache the result
-                self._cache[cache_key] = result
-                # Update the layer
-                self._set_layer_parameter(working_layer, param, result)
+            # Get inputs for tracing
+            inputs_used = self._get_inputs_used(working_layer, param, method_name) if not was_cached else {"cached": True}
 
             method_calls.append(MethodCall(
                 parameter=param,
@@ -301,7 +375,7 @@ class PathwayExecutor:
                 inputs=inputs_used,
                 output=result,
                 success=result is not None,
-                failure_reason=error
+                failure_reason=None if result is not None else "Computation failed"
             ))
 
         return LayerResult(
@@ -309,6 +383,66 @@ class PathwayExecutor:
             method_calls=method_calls,
             layer_index=layer_index
         )
+
+    def _get_or_compute_layer_param(
+        self,
+        layer: Layer,
+        layer_index: int,
+        parameter: str,
+        method: str
+    ) -> Tuple[Optional[UncertainValue], bool]:
+        """
+        Get parameter from cache or compute it.
+
+        Handles special cases for layer properties (thickness) which are
+        direct data flow and require no calculation.
+
+        Parameters
+        ----------
+        layer : Layer
+            The layer object
+        layer_index : int
+            Index of this layer
+        parameter : str
+            Parameter to compute
+        method : str
+            Method to use
+
+        Returns
+        -------
+        Tuple[Optional[UncertainValue], bool]
+            (value, was_cached) - The computed/cached value and whether it came from cache
+        """
+        # Special handling for layer properties (direct data flow)
+        if parameter == "layer_thickness":
+            # Direct from layer.thickness - no calculation needed
+            return layer.thickness, False
+
+        cache_key = (layer_index, parameter, method)
+
+        # Check cache first
+        if cache_key in self._layer_cache:
+            self._cache_hits += 1
+            value = self._layer_cache[cache_key]
+            # Update the layer with cached value
+            self._set_layer_parameter(layer, parameter, value)
+            return value, True
+
+        # Compute and store
+        self._cache_misses += 1
+        value, error = self.dispatcher.execute(
+            parameter=parameter,
+            method_name=method,
+            layer=layer
+        )
+
+        if value is not None:
+            self._layer_cache[cache_key] = value
+            self._layer_provenance[(layer_index, parameter)] = method
+            # Update the layer
+            self._set_layer_parameter(layer, parameter, value)
+
+        return value, False
 
     def _determine_execution_order(
         self,
@@ -424,8 +558,11 @@ class PathwayExecutor:
         """
         Execute slab-level calculations (plate theory parameters).
 
-        These require that layers have elastic_modulus and poissons_ratio
-        computed (for A11, B11, D11) and shear_modulus (for A55).
+        Slab parameters require all layers to have certain properties:
+        - A11, B11, D11: thickness + elastic_modulus + poissons_ratio
+        - A55: thickness + shear_modulus
+
+        This method checks prerequisites before attempting each calculation.
 
         Parameters
         ----------
@@ -438,68 +575,130 @@ class PathwayExecutor:
         -------
         SlabResult
             Slab result with plate theory parameters
+
+        Notes
+        -----
+        Uses caching to avoid redundant calculations if slab parameters
+        were already computed in a previous pathway.
         """
         slab_method_calls = []
 
-        # Calculate A11
-        A11_result, A11_error = self.dispatcher.execute(
-            parameter="A11",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
+        # Check layer properties availability (always available if layer exists)
+        all_layers_have_thickness = all(
+            lr.layer.thickness is not None
+            for lr in layer_results
         )
-        slab_method_calls.append(MethodCall(
-            parameter="A11",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=A11_result,
-            success=A11_result is not None,
-            failure_reason=A11_error
-        ))
 
-        # Calculate B11
-        B11_result, B11_error = self.dispatcher.execute(
-            parameter="B11",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
-        )
-        slab_method_calls.append(MethodCall(
-            parameter="B11",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=B11_result,
-            success=B11_result is not None,
-            failure_reason=B11_error
-        ))
+        # Check if we can compute each slab parameter
 
-        # Calculate D11
-        D11_result, D11_error = self.dispatcher.execute(
-            parameter="D11",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
+        # A11, B11, D11: Require E and ν on all layers, plus thickness
+        can_compute_A11_B11_D11 = (
+            all_layers_have_thickness and
+            all(lr.layer.elastic_modulus is not None for lr in layer_results) and
+            all(lr.layer.poissons_ratio is not None for lr in layer_results)
         )
-        slab_method_calls.append(MethodCall(
-            parameter="D11",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=D11_result,
-            success=D11_result is not None,
-            failure_reason=D11_error
-        ))
 
-        # Calculate A55
-        A55_result, A55_error = self.dispatcher.execute(
-            parameter="A55",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
+        # A55: Requires G on all layers, plus thickness
+        can_compute_A55 = (
+            all_layers_have_thickness and
+            all(lr.layer.shear_modulus is not None for lr in layer_results)
         )
-        slab_method_calls.append(MethodCall(
-            parameter="A55",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=A55_result,
-            success=A55_result is not None,
-            failure_reason=A55_error
-        ))
+
+        # Compute A11 if possible
+        if can_compute_A11_B11_D11:
+            A11_result, A11_was_cached = self._get_or_compute_slab_param(
+                slab, "A11", "weissgraeber_rosendahl"
+            )
+            slab_method_calls.append(MethodCall(
+                parameter="A11",
+                method_name="weissgraeber_rosendahl",
+                inputs={"cached": True} if A11_was_cached else {"slab": "computed"},
+                output=A11_result,
+                success=A11_result is not None,
+                failure_reason=None if A11_result is not None else "Computation failed"
+            ))
+        else:
+            A11_result = None
+            slab_method_calls.append(MethodCall(
+                parameter="A11",
+                method_name="weissgraeber_rosendahl",
+                inputs={},
+                output=None,
+                success=False,
+                failure_reason="Missing prerequisites: need E, ν, and thickness on all layers"
+            ))
+
+        # Compute B11 if possible
+        if can_compute_A11_B11_D11:
+            B11_result, B11_was_cached = self._get_or_compute_slab_param(
+                slab, "B11", "weissgraeber_rosendahl"
+            )
+            slab_method_calls.append(MethodCall(
+                parameter="B11",
+                method_name="weissgraeber_rosendahl",
+                inputs={"cached": True} if B11_was_cached else {"slab": "computed"},
+                output=B11_result,
+                success=B11_result is not None,
+                failure_reason=None if B11_result is not None else "Computation failed"
+            ))
+        else:
+            B11_result = None
+            slab_method_calls.append(MethodCall(
+                parameter="B11",
+                method_name="weissgraeber_rosendahl",
+                inputs={},
+                output=None,
+                success=False,
+                failure_reason="Missing prerequisites: need E, ν, and thickness on all layers"
+            ))
+
+        # Compute D11 if possible
+        if can_compute_A11_B11_D11:
+            D11_result, D11_was_cached = self._get_or_compute_slab_param(
+                slab, "D11", "weissgraeber_rosendahl"
+            )
+            slab_method_calls.append(MethodCall(
+                parameter="D11",
+                method_name="weissgraeber_rosendahl",
+                inputs={"cached": True} if D11_was_cached else {"slab": "computed"},
+                output=D11_result,
+                success=D11_result is not None,
+                failure_reason=None if D11_result is not None else "Computation failed"
+            ))
+        else:
+            D11_result = None
+            slab_method_calls.append(MethodCall(
+                parameter="D11",
+                method_name="weissgraeber_rosendahl",
+                inputs={},
+                output=None,
+                success=False,
+                failure_reason="Missing prerequisites: need E, ν, and thickness on all layers"
+            ))
+
+        # Compute A55 if possible
+        if can_compute_A55:
+            A55_result, A55_was_cached = self._get_or_compute_slab_param(
+                slab, "A55", "weissgraeber_rosendahl"
+            )
+            slab_method_calls.append(MethodCall(
+                parameter="A55",
+                method_name="weissgraeber_rosendahl",
+                inputs={"cached": True} if A55_was_cached else {"slab": "computed"},
+                output=A55_result,
+                success=A55_result is not None,
+                failure_reason=None if A55_result is not None else "Computation failed"
+            ))
+        else:
+            A55_result = None
+            slab_method_calls.append(MethodCall(
+                parameter="A55",
+                method_name="weissgraeber_rosendahl",
+                inputs={},
+                output=None,
+                success=False,
+                failure_reason="Missing prerequisites: need G and thickness on all layers"
+            ))
 
         return SlabResult(
             slab=slab,
@@ -510,6 +709,54 @@ class PathwayExecutor:
             D11=D11_result,
             A55=A55_result
         )
+
+    def _get_or_compute_slab_param(
+        self,
+        slab: Slab,
+        parameter: str,
+        method: str
+    ) -> Tuple[Optional[UncertainValue], bool]:
+        """
+        Get slab parameter from cache or compute it.
+
+        Parameters
+        ----------
+        slab : Slab
+            The slab object with computed layer properties
+        parameter : str
+            Slab parameter to compute (A11, B11, D11, or A55)
+        method : str
+            Method to use (typically "weissgraeber_rosendahl")
+
+        Returns
+        -------
+        Tuple[Optional[UncertainValue], bool]
+            (value, was_cached) - The computed/cached value and whether it came from cache
+        """
+        cache_key = (parameter, method)
+
+        # Check cache
+        if cache_key in self._slab_cache:
+            self._cache_hits += 1
+            value = self._slab_cache[cache_key]
+            # Update the slab with cached value
+            setattr(slab, parameter, value)
+            return value, True
+
+        # Compute
+        self._cache_misses += 1
+        value, error = self.dispatcher.execute(
+            parameter=parameter,
+            method_name=method,
+            slab=slab
+        )
+
+        if value is not None:
+            self._slab_cache[cache_key] = value
+            # Update the slab
+            setattr(slab, parameter, value)
+
+        return value, False
 
     def _check_success(
         self,

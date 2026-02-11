@@ -2,21 +2,26 @@
 Execution engine for parameterization execution.
 
 This module provides the ExecutionEngine class, which is the high-level API
-for executing all parameterizations on a slab.
+for executing all parameterizations on a slab with dynamic programming.
+
+The engine manages cache lifecycle across pathway executions, ensuring that:
+1. Cache persists across pathways for the same slab (dynamic programming)
+2. Cache is cleared between different slabs
+3. Cache statistics are collected and reported
+
+This significantly reduces computation time when multiple pathways share
+common subpaths (e.g., multiple methods to calculate elastic modulus all
+using the same density calculation).
 """
 
-import sys
 from typing import Optional
 
-# Add algorithm directory to path for imports
-sys.path.insert(0, '/Users/marykate/Desktop/Snow/SnowPyt-MechParams/algorithm')
-from data_structures import Graph, Node
-from parameterization_algorithm import find_parameterizations
-
+from snowpyt_mechparams.algorithm import find_parameterizations
 from snowpyt_mechparams.data_structures import Slab
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.execution.results import ExecutionResults, PathwayResult
+from snowpyt_mechparams.graph.structures import Graph, Node
 
 
 class ExecutionEngine:
@@ -74,7 +79,9 @@ class ExecutionEngine:
         Execute all possible parameterizations for a target parameter.
 
         This method finds all possible calculation pathways for the target
-        parameter and executes each one on the provided slab.
+        parameter and executes each one on the provided slab. The executor's
+        cache persists across pathway executions for the same slab, enabling
+        dynamic programming.
 
         Parameters
         ----------
@@ -88,13 +95,24 @@ class ExecutionEngine:
         Returns
         -------
         ExecutionResults
-            Dictionary-like container with pathway_description -> PathwayResult
+            Dictionary-like container with pathway_description -> PathwayResult,
+            including cache statistics showing dynamic programming efficiency
 
         Raises
         ------
         ValueError
             If target_parameter is not found in the graph
+
+        Notes
+        -----
+        The executor cache is cleared at the start of this method to ensure
+        fresh execution for each slab. The cache then persists across all
+        pathway executions, avoiding redundant calculations when pathways
+        share common subpaths.
         """
+        # Clear cache for this slab (fresh execution)
+        self.executor.clear_cache()
+
         # Get the target node
         target_node = self.graph.get_node(target_parameter)
         if target_node is None:
@@ -103,7 +121,7 @@ class ExecutionEngine:
         # Find all parameterizations
         parameterizations = find_parameterizations(self.graph, target_node)
 
-        # Execute each parameterization
+        # Execute each parameterization (cache persists across pathways)
         results = {}
         successful = 0
         failed = 0
@@ -123,13 +141,17 @@ class ExecutionEngine:
             else:
                 failed += 1
 
+        # Get cache statistics
+        cache_stats = self.executor.get_cache_stats()
+
         return ExecutionResults(
             target_parameter=target_parameter,
             source_slab=slab,
             results=results,
             total_pathways=len(parameterizations),
             successful_pathways=successful,
-            failed_pathways=failed
+            failed_pathways=failed,
+            cache_stats=cache_stats  # NEW: Include cache performance
         )
 
     def execute_single(

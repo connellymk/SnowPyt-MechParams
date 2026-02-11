@@ -238,6 +238,39 @@ def test_new_method():
 - **Execution Engine** (`/src/snowpyt_mechparams/execution/`) - How pathways are executed
 - **Implementation Plan** (`/docs/implementation_plan_graph_integration_REVISED.md`) - This integration
 
+## Visualization
+
+The graph can be visualized as a mermaid diagram for documentation and understanding:
+
+```python
+from snowpyt_mechparams.graph import graph, generate_mermaid_diagram
+
+# Generate mermaid diagram
+diagram = generate_mermaid_diagram(graph)
+print(diagram)
+
+# Or save to file
+from snowpyt_mechparams.graph import save_mermaid_diagram
+save_mermaid_diagram(graph, "docs/parameter_graph.md")
+```
+
+You can also generate the diagram from the command line:
+
+```bash
+# Print to stdout
+python -m snowpyt_mechparams.graph.visualize
+
+# Save to file
+python -m snowpyt_mechparams.graph.visualize docs/parameter_graph.md
+```
+
+Or use the standalone script:
+
+```bash
+cd src/snowpyt_mechparams/graph
+python generate_diagram.py ../../../docs/parameter_graph.md
+```
+
 ## Module Structure
 
 ```
@@ -245,6 +278,8 @@ graph/
 ├── __init__.py          # Module exports
 ├── structures.py        # Node, Edge, Graph, GraphBuilder classes
 ├── definitions.py       # Complete graph definition
+├── visualize.py         # Mermaid diagram generation
+├── generate_diagram.py  # Standalone diagram generator script
 └── README.md           # This file
 ```
 

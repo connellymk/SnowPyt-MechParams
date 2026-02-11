@@ -77,6 +77,12 @@ from snowpyt_mechparams.graph.definitions import (
     A55,
 )
 
+from snowpyt_mechparams.graph.visualize import (
+    generate_mermaid_diagram,
+    save_mermaid_diagram,
+    print_mermaid_diagram,
+)
+
 __all__ = [
     # Classes
     "Node",
@@ -105,4 +111,8 @@ __all__ = [
     "B11",
     "D11",
     "A55",
+    # Visualization
+    "generate_mermaid_diagram",
+    "save_mermaid_diagram",
+    "print_mermaid_diagram",
 ]

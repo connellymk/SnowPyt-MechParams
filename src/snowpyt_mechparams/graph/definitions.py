@@ -41,8 +41,9 @@ Layer Parameters:
 - schottner: From density and grain form [Schöttner et al. 2024]
 
 **Poisson's Ratio** (dimensionless):
-- kochle: From grain form [Köchle & Schneebeli 2014]
-- srivastava: From density and grain form [Srivastava et al. 2016]
+- kochle: From grain form only [Köchle & Schneebeli 2014]
+- srivastava: From hand hardness and grain form [Srivastava et al. 2016]
+  Note: Uses the same merge_hh_gf node as density estimation, NOT the calculated density
 
 **Shear Modulus** (MPa):
 - wautier: From density and grain form [Wautier et al. 2015]
@@ -264,9 +265,9 @@ build_graph.flow(measured_grain_form, merge_hh_gf)
 build_graph.method_edge(merge_hh_gf, density, "geldsetzer")
 build_graph.method_edge(merge_hh_gf, density, "kim_jamieson_table2")
 
-# Path 2: hand_hardness + grain_form + grain_size -> density
-build_graph.flow(measured_hand_hardness, merge_hh_gf_gs)
-build_graph.flow(measured_grain_form, merge_hh_gf_gs)
+# Path 2: (hand_hardness + grain_form) + grain_size -> density
+# This merge node takes the RESULT of merge_hh_gf and combines it with grain_size
+build_graph.flow(merge_hh_gf, merge_hh_gf_gs)
 build_graph.flow(measured_grain_size, merge_hh_gf_gs)
 build_graph.method_edge(merge_hh_gf_gs, density, "kim_jamieson_table5")
 
@@ -284,11 +285,12 @@ build_graph.method_edge(merge_d_gf, elastic_modulus, "schottner")
 
 # --- Poisson's ratio calculation paths ---
 
-# Single input method
+# Single input method: grain_form only
 build_graph.method_edge(measured_grain_form, poissons_ratio, "kochle")
 
-# Method using density + grain_form (reuses merge_d_gf)
-build_graph.method_edge(merge_d_gf, poissons_ratio, "srivastava")
+# Method using hand_hardness + grain_form (NOT density)
+# Srivastava method uses merge_hh_gf, the same merge node used for density estimation
+build_graph.method_edge(merge_hh_gf, poissons_ratio, "srivastava")
 
 # --- Shear modulus calculation paths ---
 

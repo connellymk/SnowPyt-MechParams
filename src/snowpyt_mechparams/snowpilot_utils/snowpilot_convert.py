@@ -38,7 +38,7 @@ from typing import Any, List, Optional
 
 from snowpylot import caaml_parser
 
-from snowpyt_mechparams.snowpilot_utils.snowpilot_constants import GRAIN_FORM_METHODS
+from snowpyt_mechparams.snowpilot_utils.snowpilot_constants import resolve_grain_form_for_method
 
 logger = logging.getLogger(__name__)
 
@@ -112,11 +112,17 @@ def parse_caaml_directory(directory: str, pattern: str = "*.xml") -> List[Any]:
 def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[str]:
     """
     Convert grain form object to code needed for specified method's lookup table.
+    
+    This function extracts grain form codes from CAAML grain form objects and
+    delegates to the centralized resolve_grain_form_for_method() utility to
+    determine which code is valid for the specified method.
 
     Parameters
     ----------
     grain_form_obj : Optional[Any]
-        Grain form object from CAAML data
+        Grain form object from CAAML data (snowpylot). Should have attributes:
+        - sub_grain_class_code (e.g., 'RGmx', 'FCxr', 'PPgp')
+        - basic_grain_class_code (e.g., 'RG', 'FC', 'PP')
     method : str
         Method name - one of: "geldsetzer", "kim_jamieson_table2", "kim_jamieson_table5"
 
@@ -125,31 +131,26 @@ def convert_grain_form(grain_form_obj: Optional[Any], method: str) -> Optional[s
     Optional[str]
         Grain form code for the specified method's table lookup, or None if
         not mappable
-
-    Raises
-    ------
-    ValueError
-        If method is not recognized
+        
+    Notes
+    -----
+    This function extracts string codes from CAAML objects and uses the
+    centralized resolve_grain_form_for_method() utility which is the single
+    source of truth for grain form validation logic.
     """
     if grain_form_obj is None:
         return None
 
-    # Select appropriate grain code sets based on method
-    method_lower = method.lower()
-    if method_lower not in GRAIN_FORM_METHODS:
-        valid_methods = ", ".join(GRAIN_FORM_METHODS.keys())
-        raise ValueError(
-            f"Invalid method '{method}'. Valid options: {valid_methods}"
-        )
-
-    sub_codes = GRAIN_FORM_METHODS[method_lower]["sub_grain_class"]
-    basic_codes = GRAIN_FORM_METHODS[method_lower]["basic_grain_class"]
-
-    # Check sub_grain_class_code first (more specific)
+    # Try sub_grain_class_code first (more specific, e.g., 'RGmx', 'FCxr')
     sub_code = getattr(grain_form_obj, "sub_grain_class_code", None)
-    if sub_code and sub_code in sub_codes:
-        return str(sub_code)
+    if sub_code:
+        result = resolve_grain_form_for_method(str(sub_code), method)
+        if result is not None:
+            return result
 
-    # Fall back to basic_grain_class_code
+    # Fall back to basic_grain_class_code (e.g., 'RG', 'FC')
     basic_code = getattr(grain_form_obj, "basic_grain_class_code", None)
-    return str(basic_code) if basic_code in basic_codes else None
+    if basic_code:
+        return resolve_grain_form_for_method(str(basic_code), method)
+    
+    return None

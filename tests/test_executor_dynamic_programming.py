@@ -230,5 +230,131 @@ class TestSlabCaching:
         assert value1 == value2  # Same value
 
 
+class TestMetadataPreservation:
+    """Test that slab metadata and attributes are preserved during execution."""
+    
+    def test_metadata_preserved_in_result_slab(self):
+        """Result slab should preserve all metadata from original slab."""
+        from snowpyt_mechparams.data_structures import Pit
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a slab with rich metadata (simulating creation from Pit.create_slabs)
+        weak_layer = Layer(
+            depth_top=50,
+            thickness=ufloat(5, 0.5),
+            grain_form="FC",
+            hand_hardness="F"
+        )
+        
+        layer1 = Layer(
+            depth_top=0,
+            thickness=ufloat(20, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            density_measured=ufloat(150, 10)
+        )
+        
+        layer2 = Layer(
+            depth_top=20,
+            thickness=ufloat(30, 1),
+            grain_form="FC",
+            hand_hardness="4F",
+            density_measured=ufloat(250, 15)
+        )
+        
+        # Create slab with full metadata (as would be created by Pit.create_slabs)
+        original_slab = Slab(
+            layers=[layer1, layer2],
+            angle=38.0,
+            weak_layer=weak_layer,
+            pit_id="test_pit_12345",
+            slab_id="test_pit_12345_slab_0",
+            weak_layer_source="ECTP_failure_layer",
+            test_result_index=0,
+            test_result_properties={"score": "ECTP12", "propagation": True, "depth_top": 50},
+            n_test_results_in_pit=2,
+            # Optionally pre-existing calculated parameters
+            A11=ufloat(1000, 50)
+        )
+        
+        # Execute a parameterization (density calculation)
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        pathway = pathways[0]  # Use first pathway
+        
+        config = ExecutionConfig(verbose=False)
+        result = executor.execute_parameterization(
+            parameterization=pathway,
+            slab=original_slab,
+            target_parameter="density",
+            config=config
+        )
+        
+        # Verify metadata is preserved in result slab
+        result_slab = result.slab
+        
+        assert result_slab.pit_id == "test_pit_12345"
+        assert result_slab.slab_id == "test_pit_12345_slab_0"
+        assert result_slab.weak_layer_source == "ECTP_failure_layer"
+        assert result_slab.test_result_index == 0
+        assert result_slab.test_result_properties == {"score": "ECTP12", "propagation": True, "depth_top": 50}
+        assert result_slab.n_test_results_in_pit == 2
+        assert result_slab.angle == 38.0
+        
+        # Verify weak_layer reference is preserved
+        assert result_slab.weak_layer is not None
+        assert result_slab.weak_layer.depth_top == 50
+        assert result_slab.weak_layer.grain_form == "FC"
+        
+        # Verify pre-existing calculated parameter is preserved
+        assert result_slab.A11 is not None
+        assert result_slab.A11.nominal_value == 1000
+    
+    def test_pit_reference_preserved(self):
+        """Pit reference should be preserved in result slab."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a mock pit (simplified, just to test reference preservation)
+        class MockSnowPit:
+            pass
+        
+        mock_snow_pit = MockSnowPit()
+        
+        # Create a minimal Pit (without using from_snow_pit to avoid complex dependencies)
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            density_measured=ufloat(200, 15)
+        )
+        
+        slab = Slab(
+            layers=[layer],
+            angle=35.0,
+            pit_id="test_pit_999"
+        )
+        
+        # Execute a parameterization
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        pathway = pathways[0]
+        
+        config = ExecutionConfig(verbose=False)
+        result = executor.execute_parameterization(
+            parameterization=pathway,
+            slab=slab,
+            target_parameter="density",
+            config=config
+        )
+        
+        # Verify pit_id is preserved
+        assert result.slab.pit_id == "test_pit_999"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

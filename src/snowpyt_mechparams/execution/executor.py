@@ -213,11 +213,10 @@ class PathwayExecutor:
                 result_layers.append(original_layer)
 
         # Create result slab with computed layers
-        # Shallow copy the slab with new layers (fast!)
-        result_slab = Slab(
-            layers=result_layers,
-            angle=slab.angle
-        )
+        # Use dataclasses.replace to preserve all slab attributes (metadata, weak_layer, etc.)
+        # while only updating the layers list
+        from dataclasses import replace
+        result_slab = replace(slab, layers=result_layers)
 
         # Execute slab-level calculations if target requires them
         # The algorithm only includes slab parameters in the parameterization

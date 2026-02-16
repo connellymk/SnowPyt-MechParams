@@ -112,8 +112,7 @@ class TestGrainFormInExecution:
         try:
             results = engine.execute_all(
                 slab=slab,
-                target_parameter='density',
-                include_plate_theory=False
+                target_parameter='density'
             )
             # Check that at least one pathway succeeded
             assert results.successful_pathways > 0
@@ -143,14 +142,13 @@ class TestGrainFormInExecution:
         try:
             results = engine.execute_all(
                 slab=slab,
-                target_parameter='D11',
-                include_plate_theory=True
+                target_parameter='D11'
             )
             
             # Check that some D11 values were computed
             d11_count = sum(
-                1 for pr in results.results.values()
-                if pr.slab_result and pr.slab_result.D11 is not None
+                1 for pr in results.pathways.values()
+                if pr.slab and pr.slab.D11 is not None
             )
             
             # Should have at least one D11 value

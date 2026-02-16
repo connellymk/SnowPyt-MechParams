@@ -319,7 +319,7 @@ def test_parse_caaml_directory_with_failures(tmp_path, caplog):
 
 def test_pit_layers_basic(mock_caaml_profile_basic):
     """Test Pit creating layers from CAAML profile."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    pit = Pit.from_snow_pit(mock_caaml_profile_basic)
     
     assert len(pit.layers) == 2
     assert isinstance(pit.layers[0], Layer)
@@ -340,7 +340,7 @@ def test_pit_layers_basic(mock_caaml_profile_basic):
 
 def test_pit_layers_with_density(mock_caaml_profile_with_density):
     """Test Pit creating layers with density from CAAML profile."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_density)
+    pit = Pit.from_snow_pit(mock_caaml_profile_with_density)
     
     assert len(pit.layers) == 1
     assert pit.layers[0].density_measured == 200.0
@@ -356,7 +356,7 @@ def test_pit_layers_empty_profile():
     profile.core_info.location.slope_angle = None
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert pit.layers == []
 
 
@@ -373,7 +373,7 @@ def test_pit_layers_no_layers():
     profile.core_info.location.slope_angle = [30.0, "deg"]
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert pit.layers == []
 
 
@@ -398,7 +398,7 @@ def test_pit_layers_missing_attributes():
     profile.core_info.location.slope_angle = [30.0, "deg"]
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert len(pit.layers) == 1
     assert pit.layers[0].depth_top is None
     assert pit.layers[0].thickness is None
@@ -431,7 +431,7 @@ def test_pit_layers_grain_size_array():
     profile.core_info.location.slope_angle = [30.0, "deg"]
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert len(pit.layers) == 1
     assert pit.layers[0].grain_size_avg == 2.5
 
@@ -443,7 +443,7 @@ def test_pit_layers_grain_size_array():
 
 def test_pit_create_slab_no_weak_layer_def(mock_caaml_profile_basic):
     """Test Pit creating slab without weak layer definition."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    pit = Pit.from_snow_pit(mock_caaml_profile_basic)
     slabs = pit.create_slabs(weak_layer_def=None)
 
     slab = slabs[0] if slabs else None
@@ -463,7 +463,7 @@ def test_pit_create_slab_no_weak_layer_def(mock_caaml_profile_basic):
 
 def test_pit_create_slab_layer_of_concern(mock_caaml_profile_basic):
     """Test Pit creating slab with layer_of_concern."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    pit = Pit.from_snow_pit(mock_caaml_profile_basic)
     slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
 
     slab = slabs[0] if slabs else None
@@ -477,7 +477,7 @@ def test_pit_create_slab_layer_of_concern(mock_caaml_profile_basic):
 
 def test_pit_create_slab_ct_failure_layer(mock_caaml_profile_with_tests):
     """Test Pit creating slab with CT failure layer."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    pit = Pit.from_snow_pit(mock_caaml_profile_with_tests)
     slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
 
     assert len(slabs) == 1
@@ -493,7 +493,7 @@ def test_pit_create_slab_ct_failure_layer(mock_caaml_profile_with_tests):
 
 def test_pit_create_slab_ectp_failure_layer(mock_caaml_profile_with_tests):
     """Test Pit creating slab with ECTP failure layer."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    pit = Pit.from_snow_pit(mock_caaml_profile_with_tests)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
     assert len(slabs) == 1
@@ -538,7 +538,7 @@ def test_pit_create_slab_no_weak_layer_found():
     profile.stability_tests = stability_tests
     
     # Try to find layer_of_concern when none exists
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
 
     slab = slabs[0] if slabs else None
@@ -580,7 +580,7 @@ def test_pit_create_slab_no_layers_above_weak_layer():
     profile.stability_tests = stability_tests
     
     # Weak layer is at depth 0, so no layers above it
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
 
     slab = slabs[0] if slabs else None
@@ -590,7 +590,7 @@ def test_pit_create_slab_no_layers_above_weak_layer():
 
 def test_pit_create_slab_with_stability_tests(mock_caaml_profile_with_tests):
     """Test Pit creating slab has access to stability test results through pit reference."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    pit = Pit.from_snow_pit(mock_caaml_profile_with_tests)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
     assert len(slabs) == 1
@@ -608,7 +608,7 @@ def test_pit_create_slab_with_stability_tests(mock_caaml_profile_with_tests):
 
 def test_pit_create_slab_with_layer_of_concern(mock_caaml_profile_with_tests):
     """Test Pit creating slab has access to layer_of_concern through pit reference."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    pit = Pit.from_snow_pit(mock_caaml_profile_with_tests)
     slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
 
     assert len(slabs) == 1
@@ -633,7 +633,7 @@ def test_pit_create_slab_empty_profile():
     profile.core_info.location.slope_angle = None
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs()
 
     slab = slabs[0] if slabs else None
@@ -690,7 +690,7 @@ def test_pit_create_slab_weak_layer_contains_failure_depth():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
 
     assert len(slabs) == 1
@@ -749,7 +749,7 @@ def test_convert_grain_form_invalid_method():
 
 def test_pit_slope_angle_extraction(mock_caaml_profile_basic):
     """Test Pit extracting valid slope angle."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    pit = Pit.from_snow_pit(mock_caaml_profile_basic)
     assert pit.slope_angle == 30.0
 
 
@@ -762,7 +762,7 @@ def test_pit_slope_angle_missing():
     profile.core_info = None
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert math.isnan(pit.slope_angle)
 
 
@@ -779,13 +779,13 @@ def test_pit_slope_angle_empty_array():
     profile.core_info = core_info
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert math.isnan(pit.slope_angle)
 
 
 def test_pit_layer_of_concern_extraction(mock_caaml_profile_basic):
     """Test Pit extracting layer of concern."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_basic)
+    pit = Pit.from_snow_pit(mock_caaml_profile_basic)
     
     assert pit.layer_of_concern is not None
     assert pit.layer_of_concern.depth_top == 10.0
@@ -811,13 +811,13 @@ def test_pit_layer_of_concern_not_found():
     profile.core_info.location.slope_angle = None
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert pit.layer_of_concern is None
 
 
 def test_pit_stability_test_extraction(mock_caaml_profile_with_tests):
     """Test Pit extracting stability test results."""
-    pit = Pit.from_snowpylot_profile(mock_caaml_profile_with_tests)
+    pit = Pit.from_snow_pit(mock_caaml_profile_with_tests)
     
     assert pit.ECT_results is not None
     assert len(pit.ECT_results) == 1
@@ -838,7 +838,7 @@ def test_pit_stability_test_none():
     profile.core_info.location.slope_angle = None
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert pit.ECT_results is None
     assert pit.CT_results is None
     assert pit.PST_results is None
@@ -866,7 +866,7 @@ def test_pit_from_caaml_file_real():
         profile = parse_caaml_file(test_file)
         
         # Step 2: Create Pit from snowpylot profile
-        pit = Pit.from_snowpylot_profile(profile)
+        pit = Pit.from_snow_pit(profile)
         
         assert pit is not None
         assert len(pit.layers) > 0
@@ -936,7 +936,7 @@ def test_pit_ectp_test_score_string():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
     # Since layer1 is the weak layer and there are no layers above it, no slab can be created
 
@@ -984,7 +984,7 @@ def test_pit_ct_multiple_tests():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
     # Since layer1 is the weak layer and there are no layers above it, no slab can be created
 
@@ -1012,7 +1012,7 @@ def test_pit_stability_single_test():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert pit.CT_results is not None
     assert len(pit.CT_results) == 1
 
@@ -1038,7 +1038,7 @@ def test_pit_pst_alternative_names():
     stability_tests.CT = []
     profile.stability_tests = stability_tests
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     assert pit.PST_results is not None
     assert len(pit.PST_results) == 1
 
@@ -1091,7 +1091,7 @@ def test_pit_weak_layer_at_boundary():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
 
     slab = slabs[0] if slabs else None
@@ -1135,7 +1135,7 @@ def test_pit_no_stability_tests():
     # No PST attribute - using spec to prevent Mock from auto-creating it
     profile.stability_tests = stability_tests
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
 
     # Test that pit correctly extracts test results
     assert pit.ECT_results == []
@@ -1170,7 +1170,7 @@ def test_pit_layer_of_concern_depth_matching():
     profile.core_info = core_info
     profile.stability_tests = None
     
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
 
     # Should match within tolerance (0.01)
     assert pit.layer_of_concern is not None
@@ -1256,7 +1256,7 @@ def test_pit_create_slabs_multiple_ectp():
     # Add pit_id
     profile.obs_id = "test_pit_001"
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
     # Should create 3 slabs
@@ -1335,7 +1335,7 @@ def test_pit_create_slabs_single_ectp():
 
     profile.obs_id = "pit_002"
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
     # Should create 1 slab
@@ -1383,7 +1383,7 @@ def test_pit_create_slabs_no_ectp():
     stability_tests.PST = []
     profile.stability_tests = stability_tests
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
     # Should return empty list
@@ -1451,7 +1451,7 @@ def test_pit_create_slabs_multiple_ct():
 
     profile.obs_id = "pit_003"
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="CT_failure_layer")
 
     # Should create 2 slabs (ct_test3 excluded due to RP fracture character)
@@ -1513,7 +1513,7 @@ def test_pit_create_slabs_layer_of_concern():
 
     profile.obs_id = "pit_004"
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
 
     # Should create 1 slab
@@ -1560,7 +1560,7 @@ def test_pit_create_slabs_none_weak_layer():
 
     profile.obs_id = "pit_005"
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def=None)
 
     # Should create 1 slab with all layers
@@ -1628,7 +1628,7 @@ def test_pit_create_slabs_no_pit_id():
     del profile.obs_id
     del profile.profile_id
 
-    pit = Pit.from_snowpylot_profile(profile)
+    pit = Pit.from_snow_pit(profile)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
     # Should still generate slab_ids

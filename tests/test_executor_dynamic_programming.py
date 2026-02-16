@@ -34,19 +34,25 @@ class TestCacheManagement:
         """clear_cache should reset all caches and statistics."""
         executor = PathwayExecutor()
         
-        # Simulate some cache activity
-        executor._cache_hits = 10
-        executor._cache_misses = 5
-        executor._layer_cache[(0, "density", "data_flow")] = ufloat(250, 10)
+        # Simulate some cache activity using the cache API
+        executor.cache.set_layer_param(0, "density", "geldsetzer", ufloat(250, 10))
+        executor.cache._stats.hits = 10
+        executor.cache._stats.misses = 5
+        
+        # Verify cache has data
+        stats_before = executor.get_cache_stats()
+        assert stats_before['hits'] == 10
+        assert stats_before['misses'] == 5
         
         # Clear cache
         executor.clear_cache()
         
         # Verify everything is reset
-        assert executor._cache_hits == 0
-        assert executor._cache_misses == 0
-        assert len(executor._layer_cache) == 0
-        assert len(executor._slab_cache) == 0
+        stats_after = executor.get_cache_stats()
+        assert stats_after['hits'] == 0
+        assert stats_after['misses'] == 0
+        # hit_rate should be 0.0 when there are no hits or misses
+        assert stats_after['hit_rate'] == 0.0
 
 
 class TestLayerPropertyHandling:
@@ -93,11 +99,14 @@ class TestDynamicProgramming:
         kochle_pathway = [p for p in pathways if 'kochle' in str(p)][0]
         
         # Execute first time
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        config = ExecutionConfig(verbose=False)
+        
         result1 = executor.execute_parameterization(
             parameterization=kochle_pathway,
             slab=slab,
             target_parameter="poissons_ratio",
-            include_plate_theory=False
+            config=config
         )
         
         # Check that we had some cache misses (first execution)
@@ -110,7 +119,7 @@ class TestDynamicProgramming:
             parameterization=kochle_pathway,
             slab=slab,
             target_parameter="poissons_ratio",
-            include_plate_theory=False
+            config=config
         )
         
         # Check that we had cache hits this time
@@ -141,20 +150,16 @@ class TestSlabParameterExecution:
         )
         slab = Slab(layers=[layer1, layer2], angle=35)
         
-        # Execute slab calculations
-        from snowpyt_mechparams.execution.results import LayerResult
-        layer_results = [
-            LayerResult(layer=layer1, method_calls=[], layer_index=0),
-            LayerResult(layer=layer2, method_calls=[], layer_index=1)
-        ]
+        # Execute slab calculations using the new v2 method
+        slab_traces = executor._execute_slab_calculations_v2(slab)
         
-        slab_result = executor._execute_slab_calculations(slab, layer_results)
+        # Should have traces for A11, B11, D11, A55
+        assert len(slab_traces) == 4
         
-        # All slab parameters should be computed
-        assert slab_result.A11 is not None
-        assert slab_result.B11 is not None
-        assert slab_result.D11 is not None
-        assert slab_result.A55 is not None
+        # All should be successful
+        for trace in slab_traces:
+            assert trace.success, f"{trace.parameter} failed"
+            assert trace.output is not None, f"{trace.parameter} has no output"
         
         # Check that slab object was updated
         assert slab.A11 is not None
@@ -173,23 +178,22 @@ class TestSlabParameterExecution:
         )
         slab = Slab(layers=[layer], angle=35)
         
-        from snowpyt_mechparams.execution.results import LayerResult
-        layer_results = [
-            LayerResult(layer=layer, method_calls=[], layer_index=0)
-        ]
+        # Execute slab calculations using the new v2 method
+        slab_traces = executor._execute_slab_calculations_v2(slab)
         
-        slab_result = executor._execute_slab_calculations(slab, layer_results)
+        # Should have traces for A11, B11, D11, A55
+        assert len(slab_traces) == 4
         
-        # All slab parameters should be None
-        assert slab_result.A11 is None
-        assert slab_result.B11 is None
-        assert slab_result.D11 is None
-        assert slab_result.A55 is None
+        # All should have failed due to missing prerequisites
+        for trace in slab_traces:
+            assert not trace.success, f"{trace.parameter} should have failed"
+            assert trace.output is None, f"{trace.parameter} should have no output"
+            assert trace.error is not None, f"{trace.parameter} should have error message"
         
-        # Check that method calls show failure reasons
-        a11_call = [c for c in slab_result.slab_method_calls if c.parameter == "A11"][0]
-        assert not a11_call.success
-        assert "prerequisites" in a11_call.failure_reason.lower()
+        # Check that error messages mention prerequisites
+        a11_trace = [t for t in slab_traces if t.parameter == "A11"][0]
+        assert not a11_trace.success
+        assert "prerequisite" in a11_trace.error.lower() or "missing" in a11_trace.error.lower()
 
 
 class TestSlabCaching:

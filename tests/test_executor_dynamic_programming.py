@@ -64,7 +64,7 @@ class TestLayerPropertyHandling:
         layer = Layer(thickness=ufloat(30, 1))
         
         # Get thickness via the cache-aware method
-        value, was_cached = executor._get_or_compute_layer_param(
+        value, was_cached, error_msg = executor._get_or_compute_layer_param(
             layer=layer,
             layer_index=0,
             parameter="layer_thickness",
@@ -74,6 +74,7 @@ class TestLayerPropertyHandling:
         # Should return the thickness directly
         assert value == layer.thickness
         assert was_cached == False  # No caching for direct properties
+        assert error_msg is None  # No error for direct properties
 
 
 class TestDynamicProgramming:
@@ -213,21 +214,119 @@ class TestSlabCaching:
         slab = Slab(layers=[layer], angle=35)
         
         # Compute D11 first time
-        value1, cached1 = executor._get_or_compute_slab_param(
+        value1, cached1, error1 = executor._get_or_compute_slab_param(
             slab, "D11", "weissgraeber_rosendahl"
         )
         
         assert value1 is not None
         assert cached1 == False  # First computation
+        assert error1 is None  # No error
         
         # Compute D11 second time
-        value2, cached2 = executor._get_or_compute_slab_param(
+        value2, cached2, error2 = executor._get_or_compute_slab_param(
             slab, "D11", "weissgraeber_rosendahl"
         )
         
         assert value2 is not None
         assert cached2 == True  # Retrieved from cache
+        assert error2 is None  # No error
         assert value1 == value2  # Same value
+
+
+class TestErrorMessagePreservation:
+    """Test that error messages from dispatcher are preserved in computation traces."""
+    
+    def test_layer_param_error_message_preserved(self):
+        """Error messages from failed layer computations should be preserved."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a layer missing required data for elastic_modulus calculation
+        # (elastic_modulus needs density, which requires either measured density or hand_hardness)
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            # Missing: density_measured and hand_hardness
+            # This will cause density calculation to fail, which cascades to E
+        )
+        
+        slab = Slab(layers=[layer], angle=35.0)
+        
+        # Execute a parameterization that calculates elastic_modulus
+        # This requires density first, which will fail
+        E_node = graph.get_node("elastic_modulus")
+        pathways = find_parameterizations(graph, E_node)
+        
+        # Use first pathway (any will do)
+        config = ExecutionConfig(verbose=False)
+        result = executor.execute_parameterization(
+            parameterization=pathways[0],
+            slab=slab,
+            target_parameter="elastic_modulus",
+            config=config
+        )
+        
+        # Find failed computation traces
+        failed_traces = [t for t in result.computation_trace if not t.success]
+        assert len(failed_traces) > 0, "Should have at least one failed computation"
+        
+        # Check that failed traces have specific error messages, not generic ones
+        for trace in failed_traces:
+            if trace.error is not None:
+                # Error should not be the generic "Computation failed" message
+                # It should be a specific error from the dispatcher
+                assert trace.error != "Computation failed" or trace.cached, \
+                    f"Failed trace for {trace.parameter} should have specific error or be cached: {trace.error}"
+    
+    def test_slab_param_error_message_preserved(self):
+        """Error messages from failed slab computations should be preserved."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a layer with density and grain form but no elastic modulus or poisson's ratio
+        # This will cause slab parameter calculation to fail with a specific error
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            density_measured=ufloat(200, 15)
+        )
+        
+        slab = Slab(layers=[layer], angle=35.0)
+        
+        # Execute density calculation first
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        
+        config = ExecutionConfig(verbose=False)
+        density_result = executor.execute_parameterization(
+            parameterization=pathways[0],
+            slab=slab,
+            target_parameter="density",
+            config=config
+        )
+        
+        # Now the layer has density but not E or nu
+        # Try to execute slab calculations manually
+        result_slab = density_result.slab
+        traces = executor._execute_slab_calculations_v2(result_slab)
+        
+        # Find D11 trace
+        D11_traces = [t for t in traces if t.parameter == "D11"]
+        assert len(D11_traces) > 0, "No D11 traces found"
+        
+        D11_trace = D11_traces[0]
+        
+        # Verify the trace shows failure with a specific prerequisite error message
+        assert not D11_trace.success, "D11 computation should have failed"
+        assert D11_trace.error is not None, "Error message should not be None"
+        # Should have the specific prerequisite error, not generic "Computation failed"
+        assert "prerequisite" in D11_trace.error.lower() or "missing" in D11_trace.error.lower(), \
+            f"Error should mention prerequisites: {D11_trace.error}"
 
 
 class TestMetadataPreservation:

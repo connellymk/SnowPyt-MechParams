@@ -183,7 +183,7 @@ class PathwayExecutor:
                     method_name = methods_used[param]
                     
                     # Get or compute (with caching)
-                    value, was_cached = self._get_or_compute_layer_param(
+                    value, was_cached, error_msg = self._get_or_compute_layer_param(
                         working_layer, layer_idx, param, method_name
                     )
                     
@@ -202,7 +202,7 @@ class PathwayExecutor:
                         output=value,
                         success=value is not None,
                         cached=was_cached,
-                        error=None if value is not None else "Computation failed",
+                        error=error_msg,  # Use actual error message from dispatcher
                         inputs_summary=inputs_summary
                     )
                     computation_trace.append(trace)
@@ -347,7 +347,7 @@ class PathwayExecutor:
         layer_index: int,
         parameter: str,
         method: str
-    ) -> Tuple[Optional[UncertainValue], bool]:
+    ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get parameter from cache or compute it.
 
@@ -367,20 +367,21 @@ class PathwayExecutor:
 
         Returns
         -------
-        Tuple[Optional[UncertainValue], bool]
-            (value, was_cached) - The computed/cached value and whether it came from cache
+        Tuple[Optional[UncertainValue], bool, Optional[str]]
+            (value, was_cached, error_message) - The computed/cached value, whether it came from cache,
+            and error message if computation failed (None if successful or cached)
         """
         # Special handling for layer properties (direct data flow)
         if parameter == "layer_thickness":
             # Direct from layer.thickness - no calculation needed
-            return layer.thickness, False
+            return layer.thickness, False, None
 
         # Check cache first
         cached_value = self.cache.get_layer_param(layer_index, parameter, method)
         if cached_value is not None:
             # Update the layer with cached value
             self._set_layer_parameter(layer, parameter, cached_value)
-            return cached_value, True
+            return cached_value, True, None
 
         # Compute and store
         value, error = self.dispatcher.execute(
@@ -394,7 +395,7 @@ class PathwayExecutor:
             # Update the layer
             self._set_layer_parameter(layer, parameter, value)
 
-        return value, False
+        return value, False, error
 
     def _determine_execution_order(
         self,
@@ -507,7 +508,7 @@ class PathwayExecutor:
         slab: Slab,
         parameter: str,
         method: str
-    ) -> Tuple[Optional[UncertainValue], bool]:
+    ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get slab parameter from cache or compute it.
 
@@ -522,15 +523,16 @@ class PathwayExecutor:
 
         Returns
         -------
-        Tuple[Optional[UncertainValue], bool]
-            (value, was_cached) - The computed/cached value and whether it came from cache
+        Tuple[Optional[UncertainValue], bool, Optional[str]]
+            (value, was_cached, error_message) - The computed/cached value, whether it came from cache,
+            and error message if computation failed (None if successful or cached)
         """
         # Check cache
         cached_value = self.cache.get_slab_param(parameter, method)
         if cached_value is not None:
             # Update the slab with cached value
             setattr(slab, parameter, cached_value)
-            return cached_value, True
+            return cached_value, True, None
 
         # Compute
         value, error = self.dispatcher.execute(
@@ -544,7 +546,7 @@ class PathwayExecutor:
             # Update the slab
             setattr(slab, parameter, value)
 
-        return value, False
+        return value, False, error
 
     def _execute_slab_calculations_v2(
         self,
@@ -589,7 +591,7 @@ class PathwayExecutor:
 
         # Compute A11 if possible
         if can_compute_A11_B11_D11:
-            value, was_cached = self._get_or_compute_slab_param(
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
                 slab, "A11", "weissgraeber_rosendahl"
             )
             traces.append(ComputationTrace(
@@ -599,7 +601,7 @@ class PathwayExecutor:
                 output=value,
                 success=value is not None,
                 cached=was_cached,
-                error=None if value is not None else "Computation failed"
+                error=error_msg  # Use actual error message from dispatcher
             ))
         else:
             traces.append(ComputationTrace(
@@ -614,7 +616,7 @@ class PathwayExecutor:
 
         # Compute B11 if possible
         if can_compute_A11_B11_D11:
-            value, was_cached = self._get_or_compute_slab_param(
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
                 slab, "B11", "weissgraeber_rosendahl"
             )
             traces.append(ComputationTrace(
@@ -624,7 +626,7 @@ class PathwayExecutor:
                 output=value,
                 success=value is not None,
                 cached=was_cached,
-                error=None if value is not None else "Computation failed"
+                error=error_msg  # Use actual error message from dispatcher
             ))
         else:
             traces.append(ComputationTrace(
@@ -639,7 +641,7 @@ class PathwayExecutor:
 
         # Compute D11 if possible
         if can_compute_A11_B11_D11:
-            value, was_cached = self._get_or_compute_slab_param(
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
                 slab, "D11", "weissgraeber_rosendahl"
             )
             traces.append(ComputationTrace(
@@ -649,7 +651,7 @@ class PathwayExecutor:
                 output=value,
                 success=value is not None,
                 cached=was_cached,
-                error=None if value is not None else "Computation failed"
+                error=error_msg  # Use actual error message from dispatcher
             ))
         else:
             traces.append(ComputationTrace(
@@ -664,7 +666,7 @@ class PathwayExecutor:
 
         # Compute A55 if possible
         if can_compute_A55:
-            value, was_cached = self._get_or_compute_slab_param(
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
                 slab, "A55", "weissgraeber_rosendahl"
             )
             traces.append(ComputationTrace(
@@ -674,7 +676,7 @@ class PathwayExecutor:
                 output=value,
                 success=value is not None,
                 cached=was_cached,
-                error=None if value is not None else "Computation failed"
+                error=error_msg  # Use actual error message from dispatcher
             ))
         else:
             traces.append(ComputationTrace(

@@ -190,9 +190,9 @@ sequenceDiagram
     Note over Engine: For each pit in dataset
     
     Engine->>Graph: find_all_parameterizations("D11")
-    Graph-->>Engine: List[Parameterization] (24 pathways)
+    Graph-->>Engine: List[Parameterization] (32 pathways)
     
-    Note over Engine: D11 requires:<br/>3 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 24 pathways
+    Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 pathways<br/>(data_flow needs measured_density)
     
     Engine->>Executor: clear_cache()
     Note over Cache: Fresh cache<br/>for new pit
@@ -255,9 +255,9 @@ sequenceDiagram
     Cache-->>Engine: CacheStats (hits, misses, hit_rate)
     
     Engine->>Results: new ExecutionResults(pathways, stats)
-    Results-->>User: ExecutionResults with 24 pathways
+    Results-->>User: ExecutionResults with 32 pathways
     
-    Note over User: Access results:<br/>results.pathways[...].slab.D11
+    Note over User: Access results:<br/>results.pathways[...].slab.D11<br/>(data_flow succeeds if measured_density available)
 ```
 
 ### Detailed Single-Pathway Execution
@@ -347,9 +347,9 @@ flowchart TD
 
 ---
 
-## Example: D11 Calculation with 3×4×2 Pathways
+## Example: D11 Calculation with 4×4×2 Pathways
 
-For D11, the graph finds **24 pathways** (3 density methods × 4 elastic_modulus methods × 2 poissons_ratio methods), each computing:
+For D11, the graph finds **32 pathways** (4 density methods × 4 elastic_modulus methods × 2 poissons_ratio methods), each computing:
 
 ```
 density → elastic_modulus → poissons_ratio → plate_theory → D11
@@ -357,14 +357,16 @@ density → elastic_modulus → poissons_ratio → plate_theory → D11
 
 ### Available Methods
 
-| Parameter | Methods | Count |
-|-----------|---------|-------|
-| **density** | `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table5` | 3 |
-| **elastic_modulus** | `bergfeld`, `kochle`, `wautier`, `schottner` | 4 |
-| **poissons_ratio** | `kochle`, `srivastava` | 2 |
-| **Plate Theory** | `weissgraeber_rosendahl` (A11, B11, D11, A55) | 1 |
+| Parameter | Methods | Count | Notes |
+|-----------|---------|-------|-------|
+| **density** | `data_flow`, `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table5` | 4 | data_flow requires measured_density |
+| **elastic_modulus** | `bergfeld`, `kochle`, `wautier`, `schottner` | 4 | All require calculated density |
+| **poissons_ratio** | `kochle`, `srivastava` | 2 | kochle uses grain_form only |
+| **Plate Theory** | `weissgraeber_rosendahl` (A11, B11, D11, A55) | 1 | Classical laminate theory |
 
-**Total pathways**: 3 × 4 × 2 × 1 = **24 pathways**
+**Total pathways**: 4 × 4 × 2 × 1 = **32 pathways**
+
+**Note**: The `data_flow` pathway uses measured density directly (no calculation). It only succeeds when `layer.density_measured` is available; otherwise it fails gracefully at runtime.
 
 ### Pathway Breakdown
 
@@ -433,18 +435,24 @@ graph LR
 
 ### Cache Effectiveness Example
 
-For a 10-layer slab with 24 pathways:
+For a 10-layer slab with 32 D11 pathways (when measured_density is available):
 
 **Without Caching**: 
-- 24 pathways × 10 layers × 3 params = **720 computations**
+- 32 pathways × 10 layers × 3 params = **960 computations**
 
 **With Dynamic Programming Cache**:
 - Pathway 1: 30 computations (10 layers × 3 params) - all MISS
-- Pathways 2-8: Share density from Pathway 1 → ~20 computations each
-- Pathways 9-16: Share density from Pathway 2 → ~20 computations each
-- Pathways 17-24: Similar sharing patterns
+- Pathways 2-8: Share density from Pathway 1 (data_flow) → ~20 computations each
+- Pathways 9-16: Share density from Pathway 2 (geldsetzer) → ~20 computations each
+- Pathways 17-24: Share density from Pathway 3 (kim_jamieson_table2) → ~20 computations each
+- Pathways 25-32: Share density from Pathway 4 (kim_jamieson_table5) → ~20 computations each
 
-**Result**: ~400 computations instead of 720 = **44% reduction**
+**Calculation**:
+- 4 density methods × (30 initial + 7 × 20 cached) = 4 × 170 = ~680 computations
+
+**Result**: ~680 computations instead of 960 = **29% reduction**
+
+(With more layers or pathways, the benefit increases significantly)
 
 ---
 

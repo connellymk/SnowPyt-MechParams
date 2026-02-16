@@ -55,19 +55,21 @@ All slab parameters calculated using classical laminate theory (Weißgraeber & R
 
 The graph-based calculation system enables:
 
-- **32 unique pathways to D11**: Automatically discovers all valid method combinations
+- **32 unique pathways to D11**: Automatically discovers all valid method combinations (4 density × 4 elastic modulus × 2 Poisson's ratio)
 - **Method independence**: Each method implemented independently, graph handles dependencies
 - **Extensibility**: Add new methods by implementing the function and adding a graph edge
 - **Provenance tracking**: Know exactly which methods produced each value
 - **Failure analysis**: Understand why calculations fail (missing data, unsupported grain forms, etc.)
 
 **Example:** To calculate D11 (bending stiffness), the system needs:
-1. Density (4 possible methods)
-2. Elastic modulus (4 possible methods, depends on density)
-3. Poisson's ratio (2 possible methods)
+1. Density (4 possible methods: data_flow, geldsetzer, kim_jamieson_table2, kim_jamieson_table5)
+2. Elastic modulus (4 possible methods: bergfeld, kochle, wautier, schottner)
+3. Poisson's ratio (2 possible methods: kochle, srivastava)
 4. Layer positions and thicknesses (from measurements)
 
 The graph automatically finds all valid combinations: 4 × 4 × 2 = **32 pathways**
+
+**Note**: The `data_flow` density method uses measured density directly when available on the layer.
 
 ## Installation
 
@@ -224,9 +226,9 @@ from uncertainties import ufloat
 
 # Create a slab with multiple layers
 layers = [
-    Layer(depth_top=0, thickness=20, hand_hardness='1F', grain_form='RG'),
-    Layer(depth_top=20, thickness=15, hand_hardness='P', grain_form='FC'),
-    Layer(depth_top=35, thickness=25, density_measured=ufloat(200, 18), grain_form='DF')
+    Layer(depth_top=0, thickness=ufloat(20, 1), hand_hardness='1F', grain_form='RG'),
+    Layer(depth_top=20, thickness=ufloat(15, 1), hand_hardness='P', grain_form='FC'),
+    Layer(depth_top=35, thickness=ufloat(25, 1), density_measured=ufloat(200, 18), grain_form='DF')
 ]
 slab = Slab(layers=layers, angle=35.0)  # 35° slope
 
@@ -236,23 +238,26 @@ engine = ExecutionEngine(graph)
 # Execute ALL pathways to calculate D11 (bending stiffness)
 results = engine.execute_all(
     slab=slab,
-    target_parameter='D11',
-    include_plate_theory=True
+    target_parameter='D11'
 )
 
 print(f"Total pathways attempted: {results.total_pathways}")
 print(f"Successful pathways: {results.successful_pathways}")
+print(f"Cache hit rate: {results.cache_stats['hit_rate']:.1%}")
 
 # Examine results from different pathways
-for pathway_desc, result in results.results.items():
-    if result.success and result.slab_result.D11:
+for pathway_desc, pathway_result in results.pathways.items():
+    if pathway_result.success and pathway_result.slab.D11:
         print(f"\nPathway: {pathway_desc}")
-        print(f"D11 = {result.slab_result.D11:.1f} N·mm")
+        print(f"  Methods: {pathway_result.methods_used}")
+        print(f"  D11 = {pathway_result.slab.D11:.1f} N·mm")
 ```
 
 ### Using with SnowPilot Data
 
 ```python
+from snowpyt_mechparams import ExecutionEngine
+from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
 from snowpyt_mechparams.data_structures import Pit
 
@@ -265,10 +270,20 @@ pit = Pit.from_snow_pit(snow_pit)
 # Create slabs from ECTP (Extended Column Test with Propagation) failures
 slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
 
+# Initialize execution engine
+engine = ExecutionEngine(graph)
+
 # Execute all pathways for each slab
 for slab in slabs:
     results = engine.execute_all(slab, target_parameter='D11')
-    # Analyze results...
+    
+    print(f"Slab {slab.slab_id}: {results.successful_pathways}/{results.total_pathways} pathways succeeded")
+    print(f"Cache hit rate: {results.cache_stats['hit_rate']:.1%}")
+    
+    # Access successful D11 values
+    for desc, pathway_result in results.get_successful_pathways().items():
+        if pathway_result.slab.D11:
+            print(f"  {desc}: D11 = {pathway_result.slab.D11:.1f} N·mm")
 ```
 
 ## Core Modules
@@ -323,31 +338,43 @@ from snowpyt_mechparams.graph import graph
 # Find all pathways to calculate D11
 D11_node = graph.get_node("D11")
 pathways = find_parameterizations(graph, D11_node)
-print(f"Found {len(pathways)} pathways to calculate D11")
+print(f"Found {len(pathways)} pathways to calculate D11")  # Output: 32 pathways
 ```
 
 **Algorithm features:**
-- Recursive backtracking from target to measured inputs
+- Recursive backtracking from target parameter to measured inputs
 - Memoization to avoid recomputing shared subgraphs
 - OR logic for parameter nodes (alternative methods)
 - AND logic for merge nodes (all inputs required)
+- Automatic discovery of all valid method combinations
 
-See `/algorithm/README.md` and `/algorithm/algorithm_flowchart.md` for detailed explanation.
+**Example output for D11:**
+- 32 unique pathways combining:
+  - 4 density methods (including direct measurement via data_flow)
+  - 4 elastic modulus methods
+  - 2 Poisson's ratio methods
+
+See `docs/execution_engine_architecture.md` for detailed architecture documentation with Mermaid diagrams.
 
 ### Execution Engine (`snowpyt_mechparams.execution`)
 
 Executes parameterization pathways with dynamic programming:
 
-- **`ExecutionEngine`**: Orchestrates pathway execution
-- **`PathwayExecutor`**: Executes individual pathways with caching
+- **`ExecutionEngine`**: Orchestrates pathway execution for all pathways
+- **`PathwayExecutor`**: Executes individual pathways with layer-level caching
 - **`MethodDispatcher`**: Routes method calls to implementations
-- **`ExecutionResults`**: Container for results with cache statistics
+- **`ComputationCache`**: Layer-level cache with provenance tracking
+- **`ExecutionConfig`**: Optional configuration (verbose mode)
+- **`ExecutionResults`**: Container for all pathway results with cache statistics
+- **`PathwayResult`**: Individual pathway result with slab parameters and computation traces
 
 **Key features:**
-- **Dynamic programming**: Caches computed values within each slab
-- **Provenance tracking**: Records which methods computed each value
+- **Dynamic programming**: Caches layer-level parameters within each slab (density, elastic modulus, Poisson's ratio)
+- **Copy-on-write optimization**: Efficient layer copying for minimal memory overhead
+- **Provenance tracking**: Full computation traces showing which methods computed each value
+- **Cache statistics**: Real-time hit rates and performance metrics
 - **Graceful failure handling**: Continues when methods fail (unsupported grain forms, missing data)
-- **Performance optimization**: 60-80% speedup from caching on real datasets
+- **Performance**: 40-50% cache hit rates on typical D11 calculations, significantly reducing redundant computations
 
 ## Examples
 
@@ -362,18 +389,21 @@ Comprehensive examples are available in the `examples/` directory:
 
 ### Advanced Analysis
 
-- **`compare_D11_across_pathways.ipynb`** - Comprehensive D11 analysis across all 80 pathways
+- **`compare_D11_across_pathways_v3.ipynb`** - Comprehensive D11 analysis across all 32 pathways
   - Processes ~50,000 snow pits from SnowPilot dataset
-  - Executes ~1.2 million pathway calculations
-  - Analyzes success rates, variability, and method comparisons
-  - **Runtime**: 30-60 minutes
+  - Executes ~473,000 pathway calculations (14,776 slabs × 32 pathways)
+  - Analyzes success rates, inter-pathway variability, and method comparisons
+  - Explores relationships between variability and slab properties
+  - Generates publication-ready figures
+  - **Runtime**: 15-30 minutes
 
-- **`compare_D11_across_pathways_TEST.ipynb`** - Quick test version (recommended first)
-  - Processes 1,000 pits for rapid testing
-  - Verifies implementation and estimates full runtime
-  - **Runtime**: 3-5 minutes
+- **`compare_D11_across_pathways.ipynb`** - Legacy analysis (archived)
+  - Original notebook, superseded by v3
 
-See `examples/README_D11_comparison.md` for detailed documentation on the D11 analysis notebooks.
+### Visualization Examples
+
+- `dataset_stats.ipynb` - Dataset statistics and visualizations
+- Example outputs include pathway success rate charts, D11 distributions, and variability analysis
 
 ### Dataset Examples
 
@@ -388,30 +418,43 @@ SnowPyt-MechParams/
 ├── src/snowpyt_mechparams/       # Main package source
 │   ├── data_structures/          # Layer, Slab, Pit classes
 │   ├── layer_parameters/         # Layer-level calculation methods
-│   ├── slab_parameters/          # Slab-level calculation methods (A11, B11, D11, A55)
+│   │   ├── density.py            # 4 density methods
+│   │   ├── elastic_modulus.py    # 4 elastic modulus methods
+│   │   ├── poissons_ratio.py     # 2 Poisson's ratio methods
+│   │   └── shear_modulus.py      # Shear modulus method
+│   ├── slab_parameters/          # Slab-level calculation methods
+│   │   ├── A11.py                # Extensional stiffness
+│   │   ├── B11.py                # Bending-extension coupling
+│   │   ├── D11.py                # Bending stiffness
+│   │   └── A55.py                # Shear stiffness
 │   ├── graph/                    # Parameterization graph
 │   │   ├── structures.py         # Graph data structures
-│   │   ├── definitions.py        # Parameter dependency graph
+│   │   ├── definitions.py        # Complete parameter dependency graph
+│   │   ├── visualize.py          # Mermaid diagram generation
 │   │   └── README.md             # Graph documentation
 │   ├── algorithm.py              # Pathway discovery algorithm
 │   ├── execution/                # Execution engine with dynamic programming
 │   │   ├── engine.py             # ExecutionEngine
-│   │   ├── executor.py           # PathwayExecutor
+│   │   ├── executor.py           # PathwayExecutor with caching
 │   │   ├── dispatcher.py         # MethodDispatcher
+│   │   ├── cache.py              # ComputationCache
+│   │   ├── config.py             # ExecutionConfig
 │   │   └── results.py            # Result containers
 │   └── snowpilot_utils.py        # SnowPilot CAAML parsing
-├── algorithm/                    # Original algorithm development (historical)
-│   ├── README.md                 # Algorithm explanation
-│   ├── algorithm_flowchart.md    # Visual flowchart
-│   └── test_algorithm.ipynb      # Original testing
 ├── examples/                     # Jupyter notebook examples
-│   ├── compare_D11_across_pathways.ipynb       # Full D11 analysis
-│   ├── compare_D11_across_pathways_TEST.ipynb  # Test version
-│   ├── README_D11_comparison.md  # Analysis documentation
+│   ├── compare_D11_across_pathways_v3.ipynb    # Full D11 analysis (current)
+│   ├── compare_D11_across_pathways.ipynb       # Legacy analysis
+│   ├── dataset_stats.ipynb       # Dataset statistics
 │   └── data/                     # SnowPilot dataset (50,278 CAAML files)
-├── tests/                        # Test suite
+├── tests/                        # Test suite (pytest)
+│   ├── test_integration.py       # Integration tests
+│   ├── test_executor_dynamic_programming.py  # Cache tests
+│   ├── test_computation_cache.py # Cache unit tests
+│   └── ...                       # Additional test modules
 ├── docs/                         # Documentation
-│   └── implementation_plan_graph_integration_REVISED.md
+│   ├── execution_engine_architecture.md  # Architecture with Mermaid diagrams
+│   ├── parameter_graph.md        # Complete graph visualization
+│   └── REFACTORING_COMPLETE.md   # Implementation summary
 └── README.md                     # This file
 ```
 
@@ -430,11 +473,10 @@ make html
 ### Key Documentation Files
 
 - **`README.md`** (this file): Project overview and quick start
-- **`examples/README_D11_comparison.md`**: D11 analysis notebook documentation
+- **`docs/execution_engine_architecture.md`**: Complete architecture with Mermaid diagrams
+- **`docs/parameter_graph.md`**: Full graph visualization
 - **`src/snowpyt_mechparams/graph/README.md`**: Graph structure and extension guide
-- **`algorithm/README.md`**: Algorithm explanation and theory
-- **`algorithm/algorithm_flowchart.md`**: Visual algorithm flowchart
-- **`docs/implementation_plan_graph_integration_REVISED.md`**: Full implementation plan
+- **`src/snowpyt_mechparams/graph/definitions.py`**: Comprehensive inline documentation of all methods
 
 ## Testing
 
@@ -456,22 +498,30 @@ pytest tests/test_executor_dynamic_programming.py  # Dynamic programming tests
 pytest tests/test_integration.py        # Integration tests
 ```
 
-**Current test status**: 135 tests, core graph and algorithm tests passing ✓
+**Current test status**: 
+- Integration tests: ✓ Passing
+- Dynamic programming/caching tests: ✓ Passing  
+- Graph and algorithm tests: ✓ Passing
+- Dispatcher tests: ✓ Passing
+- Total: 135+ tests
 
 ## Current Status (v0.3.0)
 
 ### ✅ Completed Features
 
-- [x] Layer parameter calculations (density, E, ν, G)
-- [x] Slab parameter calculations (A11, B11, D11, A55)
-- [x] Parameterization graph with 80+ pathways
-- [x] Automatic pathway discovery algorithm
-- [x] Dynamic programming execution engine
-- [x] SnowPilot CAAML parsing
-- [x] Uncertainty propagation
-- [x] Comprehensive test suite
+- [x] Layer parameter calculations (density, E, ν, G) with 4+4+2+1 methods
+- [x] Slab parameter calculations (A11, B11, D11, A55) using classical laminate theory
+- [x] Parameterization graph with 32 D11 pathways
+- [x] Automatic pathway discovery algorithm with memoization
+- [x] Dynamic programming execution engine with layer-level caching
+- [x] Copy-on-write optimization for efficient memory usage
+- [x] Provenance tracking and computation traces
+- [x] SnowPilot CAAML parsing and integration
+- [x] Uncertainty propagation throughout all calculations
+- [x] Comprehensive test suite (135+ tests)
 - [x] D11 comparison analysis across all pathways
 - [x] Production-ready examples and documentation
+- [x] Performance optimization (40-50% cache hit rates)
 
 ### 🚧 In Development
 
@@ -485,7 +535,8 @@ pytest tests/test_integration.py        # Integration tests
 
 - **SnowPilot dataset**: 50,278 CAAML files parsed successfully
 - **ECTP slabs**: ~14,776 slabs from ~12,347 pits (24.6% ECTP rate)
-- **D11 analysis**: Full pathway comparison available in examples
+- **D11 pathways**: 32 unique pathways (4 density × 4 E × 2 ν)
+- **Analysis**: Comprehensive pathway comparison in `compare_D11_across_pathways_v3.ipynb`
 
 ## Troubleshooting
 

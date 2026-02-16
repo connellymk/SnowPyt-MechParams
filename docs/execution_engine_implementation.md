@@ -11,6 +11,16 @@ The execution engine bridges the gap between:
 
 Instead of just returning pathway descriptions as strings, the engine now **executes** each pathway, applying the appropriate methods to compute parameter values.
 
+### Module Structure
+
+The implementation consists of:
+- **Graph Module**: `src/snowpyt_mechparams/graph/` - Defines the parameter dependency graph
+- **Algorithm Module**: `src/snowpyt_mechparams/algorithm.py` - Finds all calculation pathways
+- **Execution Module**: `src/snowpyt_mechparams/execution/` - Executes pathways on data
+- **Data Structures**: `src/snowpyt_mechparams/data_structures/` - Layer, Slab, UncertainValue
+
+**Note**: There is also a legacy `algorithm/` directory in the project root that contains the original prototypes. The actual package uses the implementations in `src/snowpyt_mechparams/`.
+
 ## Architecture
 
 ```
@@ -18,7 +28,8 @@ Instead of just returning pathway descriptions as strings, the engine now **exec
 │                      ExecutionEngine                             │
 │  - High-level API for executing pathways                        │
 │  - Discovers all parameterizations from graph                   │
-│  - Coordinates execution across slabs                           │
+│  - Manages cache lifecycle across pathways                      │
+│  - Provides cache statistics for performance analysis           │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -26,7 +37,8 @@ Instead of just returning pathway descriptions as strings, the engine now **exec
 │                      PathwayExecutor                             │
 │  - Executes a single parameterization on a slab                 │
 │  - Handles layer-level and slab-level calculations              │
-│  - Implements caching/dynamic programming                       │
+│  - Implements dynamic programming via persistent cache          │
+│  - Tracks cache hits/misses for statistics                      │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -35,7 +47,46 @@ Instead of just returning pathway descriptions as strings, the engine now **exec
 │  - Maps graph edge names to function implementations            │
 │  - Extracts inputs from Layer/Slab objects                      │
 │  - Handles method-specific grain form resolution                │
+│  - Uses resolve_grain_form_for_method() from constants          │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+## Dynamic Programming & Caching
+
+A key feature of the execution engine is **dynamic programming** via persistent caching across pathway executions for the same slab:
+
+### Cache Strategy
+
+The `PathwayExecutor` maintains three types of caches:
+
+1. **Layer-level cache**: `(layer_index, parameter, method) -> value`
+   - Caches computed layer parameters across pathways
+   - Cleared between different slabs
+
+2. **Slab-level cache**: `(parameter, method) -> value`
+   - Caches computed slab parameters (A11, B11, D11, A55)
+   - Cleared between different slabs
+
+3. **Provenance tracking**: `(layer_index, parameter) -> method_name`
+   - Records which method was used for each parameter
+   - Useful for understanding calculation paths
+
+### Cache Lifecycle
+
+- **Persists** across pathway executions for the same slab (enabling dynamic programming)
+- **Cleared** when `ExecutionEngine.execute_all()` is called for a new slab
+- **Statistics** tracked and reported in `ExecutionResults.cache_stats`
+
+### Benefits
+
+When multiple pathways share common subpaths (e.g., all elastic modulus methods need density), the cache significantly reduces redundant calculations:
+
+```python
+# Example: 16 pathways for elastic_modulus
+# (4 density methods × 4 elastic modulus methods)
+# Without caching: 16 density calculations
+# With caching: 4 density calculations (one per method)
+# Cache hit rate: ~75%
 ```
 
 ## New Files Created
@@ -66,18 +117,24 @@ class LayerResult:
 @dataclass
 class SlabResult:
     """Results for slab-level calculations."""
-    slab: Slab
-    method_calls: List[MethodCall]
-    success: bool
+    slab: Slab  # Deep copy with layers containing computed values
+    layer_results: List[LayerResult]  # Per-layer computation details
+    slab_method_calls: List[MethodCall]  # Slab-level calculations
+    A11: Optional[UncertainValue]  # Extensional stiffness
+    B11: Optional[UncertainValue]  # Bending-extension coupling stiffness
+    D11: Optional[UncertainValue]  # Bending stiffness
+    A55: Optional[UncertainValue]  # Shear stiffness
 
 @dataclass
 class PathwayResult:
     """Complete results for one calculation pathway."""
-    pathway_description: str
-    methods_used: List[str]
+    pathway_id: str  # Unique identifier (e.g., "density:geldsetzer->elastic_modulus:bergfeld")
+    pathway_description: str  # Human-readable description
+    methods_used: Dict[str, str]  # Mapping of parameter -> method_name
     layer_results: List[LayerResult]
     slab_result: Optional[SlabResult]
     success: bool
+    warnings: List[str]  # Non-fatal issues encountered
 
 @dataclass
 class ExecutionResults:
@@ -87,6 +144,8 @@ class ExecutionResults:
     results: Dict[str, PathwayResult]  # Keyed by pathway description
     total_pathways: int
     successful_pathways: int
+    failed_pathways: int
+    cache_stats: Dict[str, float]  # Cache performance metrics (hits, misses, hit_rate)
 ```
 
 ### 2. `src/snowpyt_mechparams/execution/dispatcher.py`
@@ -96,45 +155,63 @@ Central registry mapping graph method names to implementations.
 **Key Features:**
 - `MethodSpec` dataclass defining method metadata (parameter, level, function, required inputs)
 - `ParameterLevel` enum distinguishing layer-level vs slab-level calculations
-- Method-specific grain form resolution for density methods
-- Automatic input extraction from Layer objects
+- Method-specific grain form resolution using `resolve_grain_form_for_method()`
+- Automatic input extraction from Layer objects via `_get_layer_input()`
+- Smart density resolution: prefers `density_calculated` over `density_measured`
+- NaN detection and handling in method results
 
 **Registered Methods:**
 
-| Parameter | Method | Level | Required Inputs |
-|-----------|--------|-------|-----------------|
-| density | data_flow | layer | density_measured |
-| density | geldsetzer | layer | hand_hardness, grain_form |
-| density | kim_jamieson_table2 | layer | hand_hardness, grain_form |
-| density | kim_jamieson_table5 | layer | hand_hardness, grain_form, grain_size |
-| elastic_modulus | bergfeld | layer | density, grain_form |
-| elastic_modulus | kochle | layer | density, grain_form |
-| elastic_modulus | wautier | layer | density, grain_form |
-| elastic_modulus | schottner | layer | density, grain_form |
-| poissons_ratio | kochle | layer | grain_form |
-| poissons_ratio | srivastava | layer | density, grain_form |
-| shear_modulus | wautier | layer | density, grain_form |
-| A11 | weissgraeber_rosendahl | slab | slab |
-| B11 | weissgraeber_rosendahl | slab | slab |
-| D11 | weissgraeber_rosendahl | slab | slab |
-| A55 | weissgraeber_rosendahl | slab | slab |
+| Parameter | Method | Level | Required Inputs | Notes |
+|-----------|--------|-------|-----------------|-------|
+| density | data_flow | layer | density_measured | Direct measurement |
+| density | geldsetzer | layer | hand_hardness, grain_form | Geldsetzer lookup table |
+| density | kim_jamieson_table2 | layer | hand_hardness, grain_form | Kim-Jamieson Table 2 |
+| density | kim_jamieson_table5 | layer | hand_hardness, grain_form, grain_size | Kim-Jamieson Table 5 |
+| elastic_modulus | bergfeld | layer | density, grain_form | Bergfeld (2023) |
+| elastic_modulus | kochle | layer | density, grain_form | Köchle & Schneebeli (2014) |
+| elastic_modulus | wautier | layer | density, grain_form | Wautier et al. (2015) |
+| elastic_modulus | schottner | layer | density, grain_form | Scapozza (2004) via Schottner |
+| poissons_ratio | kochle | layer | grain_form | Köchle (grain-form dependent) |
+| poissons_ratio | srivastava | layer | density, grain_form | Srivastava et al. (2016) |
+| shear_modulus | wautier | layer | density, grain_form | Wautier et al. (2015) |
+| A11 | weissgraeber_rosendahl | slab | slab | Requires E, ν on all layers |
+| B11 | weissgraeber_rosendahl | slab | slab | Requires E, ν on all layers |
+| D11 | weissgraeber_rosendahl | slab | slab | Requires E, ν on all layers |
+| A55 | weissgraeber_rosendahl | slab | slab | Requires G on all layers |
 
 **Grain Form Resolution:**
 
-The dispatcher implements method-specific grain form resolution to maximize compatibility:
+The grain form resolution logic is centralized in `snowpilot_constants.py` to maximize compatibility:
 
 ```python
-DENSITY_METHOD_GRAIN_CODES = {
-    "geldsetzer": {"PP", "PPgp", "DF", "RG", "RGmx", "FC", "FCmx", "DH"},
-    "kim_jamieson_table2": {"PP", "PPgp", "DF", "RGxf", "FC", "FCxr", "DH", "MFcr", "RG"},
-    "kim_jamieson_table5": {"FC", "FCxr", "PP", "PPgp", "DF", "MF"},
+# In snowpilot_constants.py
+GRAIN_FORM_METHODS = {
+    "geldsetzer": {
+        "sub_grain_class": {"PPgp", "RGmx", "FCmx"},
+        "basic_grain_class": {"PP", "DF", "RG", "FC", "DH"},
+    },
+    "kim_jamieson_table2": {
+        "sub_grain_class": {"PPgp", "RGxf", "FCxr", "MFcr"},
+        "basic_grain_class": {"PP", "DF", "FC", "DH", "RG"},
+    },
+    "kim_jamieson_table5": {
+        "sub_grain_class": {"FCxr", "PPgp"},
+        "basic_grain_class": {"FC", "PP", "DF", "MF"},
+    },
 }
+
+def resolve_grain_form_for_method(grain_form, method):
+    """Resolve which grain form code to use for a given density method."""
+    # Try full grain_form first (could be a sub-grain code)
+    # Fall back to basic grain class (first 2 characters)
+    # Return None if no valid mapping found
 ```
 
 When resolving grain form for a method:
-1. Try sub-grain class code first (e.g., `FCxr`) if it's in the method's valid set
-2. Fall back to basic grain class code (e.g., `FC`)
-3. Return the code even if invalid (method will return NaN)
+1. Try the full `grain_form` first (could be a sub-grain code like `FCxr`)
+2. If not valid, try the basic grain class (first 2 characters, e.g., `FC`)
+3. Return `None` if no valid mapping found (method will return `None`)
 
 ### 3. `src/snowpyt_mechparams/execution/executor.py`
 
@@ -143,21 +220,46 @@ Executes a single parameterization pathway on a slab.
 **Key Features:**
 - Deep copies the slab to avoid modifying the original
 - Processes methods in dependency order (from parameterization branches)
-- Caches computed values on Layer objects for reuse
+- Implements persistent caching across pathways for dynamic programming
 - Tracks all method calls for traceability
+- Provides cache statistics (hits, misses, hit rate)
 
 **Execution Flow:**
 ```
-1. Deep copy slab
-2. For each branch in parameterization:
-   a. Extract method name from edge
-   b. For each layer:
-      - Gather inputs from layer
-      - Execute method via dispatcher
-      - Store result on layer (e.g., layer.density_calculated)
-      - Record method call
-3. Return PathwayResult with all layer results
+1. Deep copy slab (don't modify original)
+2. Extract methods from parameterization:
+   - Walk through branches and merge points
+   - Build mapping: parameter -> method_name
+   - Generate pathway_id and pathway_description
+3. For each layer:
+   a. Determine execution order (density first, then E, ν, G)
+   b. For each parameter in order:
+      - Check cache: (layer_index, parameter, method)
+      - If cached: retrieve and update layer (cache hit)
+      - If not cached: execute via dispatcher, cache result (cache miss)
+      - Record method call for traceability
+4. If include_plate_theory:
+   a. Check prerequisites for each slab parameter
+   b. Compute A11, B11, D11 (if E and ν available on all layers)
+   c. Compute A55 (if G available on all layers)
+   d. Use slab-level cache: (parameter, method)
+5. Return PathwayResult with layers, slab, and traces
 ```
+
+**Helper Methods:**
+
+- `_extract_methods_from_parameterization()`: Extracts parameter->method mapping
+- `_build_pathway_description()`: Creates human-readable description
+- `_build_pathway_id()`: Creates unique identifier
+- `_determine_execution_order()`: Orders parameters by dependencies
+- `_get_or_compute_layer_param()`: Implements caching for layer parameters
+- `_get_or_compute_slab_param()`: Implements caching for slab parameters
+
+**Special Handling:**
+
+- **Layer thickness**: Direct data flow from `layer.thickness`, no calculation needed
+- **Slab parameters**: Require all layers to have necessary properties before attempting calculation
+- **Cache persistence**: Cache is NOT cleared between pathways (enables dynamic programming)
 
 ### 4. `src/snowpyt_mechparams/execution/engine.py`
 
@@ -167,7 +269,11 @@ High-level API for executing pathways.
 
 ```python
 class ExecutionEngine:
-    def __init__(self, graph: nx.DiGraph):
+    def __init__(
+        self,
+        graph: Graph,
+        dispatcher: Optional[MethodDispatcher] = None
+    ):
         """Initialize with the parameterization graph."""
 
     def execute_all(
@@ -176,20 +282,39 @@ class ExecutionEngine:
         target_parameter: str,
         include_plate_theory: bool = True
     ) -> ExecutionResults:
-        """Execute all pathways for a target parameter."""
+        """
+        Execute all pathways for a target parameter.
+        
+        Clears the cache at the start, then cache persists across
+        pathway executions for dynamic programming.
+        """
 
     def execute_single(
         self,
         slab: Slab,
-        parameterization: Parameterization
-    ) -> PathwayResult:
-        """Execute a specific parameterization."""
+        target_parameter: str,
+        methods: Dict[str, str],
+        include_plate_theory: bool = True
+    ) -> Optional[PathwayResult]:
+        """
+        Execute a single specific parameterization pathway.
+        
+        Parameters
+        ----------
+        methods : dict
+            Mapping of parameter -> method to use
+            (e.g., {"density": "geldsetzer", "elastic_modulus": "bergfeld"})
+        """
 
     def list_available_pathways(
         self,
         target_parameter: str
     ) -> List[Dict[str, Any]]:
-        """List all available pathways for a parameter."""
+        """
+        List all available pathways for a parameter.
+        
+        Returns list of dicts with keys: 'id', 'description', 'methods'
+        """
 ```
 
 ### 5. `src/snowpyt_mechparams/execution/__init__.py`
@@ -197,47 +322,103 @@ class ExecutionEngine:
 Package exports:
 ```python
 from .engine import ExecutionEngine
-from .results import ExecutionResults, PathwayResult, LayerResult, SlabResult, MethodCall
+from .results import (
+    ExecutionResults, 
+    PathwayResult, 
+    LayerResult, 
+    SlabResult, 
+    MethodCall
+)
 from .executor import PathwayExecutor
 from .dispatcher import MethodDispatcher, MethodSpec, ParameterLevel
+```
+
+### 6. `src/snowpyt_mechparams/snowpilot_utils/snowpilot_constants.py`
+
+Centralized constants and grain form resolution:
+```python
+# Grain form codes organized by method
+GRAIN_FORM_METHODS = {
+    "geldsetzer": {
+        "sub_grain_class": {"PPgp", "RGmx", "FCmx"},
+        "basic_grain_class": {"PP", "DF", "RG", "FC", "DH"},
+    },
+    # ... other methods ...
+}
+
+def resolve_grain_form_for_method(grain_form, method):
+    """
+    Resolve which grain form code to use for a given density method.
+    This is the single source of truth for grain form validation logic.
+    """
 ```
 
 ## Modified Files
 
 ### 1. `src/snowpyt_mechparams/__init__.py`
 
-Added exports for the execution module:
+Added exports for the execution module and graph:
 ```python
-from .execution import (
+# Execution engine
+from snowpyt_mechparams.execution import (
     ExecutionEngine,
     ExecutionResults,
     PathwayResult,
     PathwayExecutor,
     MethodDispatcher,
 )
+
+# Graph and algorithm modules (imported as modules)
+from snowpyt_mechparams import graph
+from snowpyt_mechparams import algorithm
+```
+
+**Recommended imports for users:**
+```python
+# Main execution engine
+from snowpyt_mechparams import ExecutionEngine, Slab, Layer
+
+# Graph for parameterization
+from snowpyt_mechparams.graph import graph
+
+# Algorithm for finding pathways
+from snowpyt_mechparams.algorithm import find_parameterizations
 ```
 
 ### 2. `src/snowpyt_mechparams/data_structures/data_structures.py`
 
-Added `grain_form_sub` field to Layer dataclass:
+The `grain_form` field in Layer dataclass can now store either basic or sub-grain codes:
 ```python
 @dataclass
 class Layer:
     # ... existing fields ...
-    grain_form: Optional[str] = None  # Basic grain class code (e.g., 'PP', 'RG', 'FC')
-    grain_form_sub: Optional[str] = None  # Sub-grain class code (e.g., 'PPgp', 'RGmx', 'FCxr')
+    grain_form: Optional[str] = None  
+    # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available,
+    # otherwise basic class (e.g., 'FC', 'PP', 'RG')
 ```
 
-### 3. `examples/snowpilot_utils.py`
-
-Updated `pit_to_layers()` to extract both grain form codes:
+The `main_grain_form` property extracts the 2-character basic code:
 ```python
-# Extract grain form from grain_form_primary (both basic and sub codes)
+@property
+def main_grain_form(self) -> Optional[str]:
+    """Return first 2 characters of grain_form (basic grain class code)."""
+    if self.grain_form and len(self.grain_form) >= 2:
+        return self.grain_form[:2]
+    return self.grain_form
+```
+
+### 3. `src/snowpyt_mechparams/snowpilot_utils/snowpilot_convert.py`
+
+The grain form conversion logic extracts grain forms from SnowPilot/CAAML data:
+```python
+# Extract grain form - prefer sub-grain class code if available
 grain_form = None
-grain_form_sub = None
 if hasattr(layer, 'grain_form_primary') and layer.grain_form_primary:
-    grain_form = getattr(layer.grain_form_primary, 'basic_grain_class_code', None)
-    grain_form_sub = getattr(layer.grain_form_primary, 'sub_grain_class_code', None)
+    # Try sub-grain class code first (more specific)
+    grain_form = getattr(layer.grain_form_primary, 'sub_grain_class_code', None)
+    # Fall back to basic grain class code
+    if not grain_form:
+        grain_form = getattr(layer.grain_form_primary, 'basic_grain_class_code', None)
 ```
 
 ## Example Notebooks
@@ -274,23 +455,24 @@ Calculates elastic modulus using chained pathways:
 
 ```python
 from snowpyt_mechparams import ExecutionEngine, Slab, Layer
-from algorithm.definitions import graph
+from snowpyt_mechparams.graph import graph
 
 # Create a slab with layers
+# Note: grain_form can contain either basic codes (e.g., 'PP', 'RG')
+# or sub-grain codes (e.g., 'PPgp', 'RGmx')
 slab = Slab(
     layers=[
         Layer(
             depth_top=0,
             thickness=20,
             hand_hardness="F",
-            grain_form="PP",
-            grain_form_sub="PPgp"
+            grain_form="PPgp"  # Sub-grain class code
         ),
         Layer(
             depth_top=20,
             thickness=30,
             hand_hardness="4F",
-            grain_form="RG"
+            grain_form="RG"  # Basic grain class code
         )
     ],
     angle=38.0
@@ -304,6 +486,7 @@ results = engine.execute_all(slab, "density")
 
 # Examine results
 print(f"Successful: {results.successful_pathways}/{results.total_pathways}")
+print(f"Cache hit rate: {results.cache_stats['hit_rate']:.1%}")
 
 for pathway_desc, pathway_result in results.results.items():
     if pathway_result.success:
@@ -343,12 +526,16 @@ Pathway success depends on data availability in the snow pit:
 
 ## Design Decisions
 
-1. **Deep Copy Strategy**: Each pathway execution works on a deep copy of the slab to ensure pathways don't interfere with each other.
+1. **Deep Copy Strategy**: Each pathway execution works on a deep copy of the slab to ensure the original slab is never modified. However, the cache persists across pathway executions for the same slab.
 
-2. **Silent Failure**: Missing data causes methods to return None rather than raising exceptions, allowing partial results.
+2. **Persistent Cache for Dynamic Programming**: The cache is NOT cleared between pathway executions for the same slab. This enables dynamic programming where common subpaths are computed once and reused. The cache is only cleared when switching to a new slab via `ExecutionEngine.execute_all()`.
 
-3. **Full Traceability**: Every method call is recorded with inputs, outputs, and any error messages.
+3. **Silent Failure**: Missing data causes methods to return `None` rather than raising exceptions, allowing partial results. Failures are recorded in `MethodCall.failure_reason` for traceability.
 
-4. **Dynamic Programming**: Computed values are stored on Layer objects and reused within a pathway (e.g., density computed once, used by multiple downstream methods).
+4. **Full Traceability**: Every method call is recorded with inputs, outputs, and failure reasons. The `PathwayResult` includes complete provenance information.
 
-5. **Method-Specific Grain Forms**: The dispatcher handles grain form resolution per-method to maximize compatibility with the lookup tables.
+5. **Method-Specific Grain Forms**: Grain form resolution is centralized in `snowpilot_constants.resolve_grain_form_for_method()` to maximize compatibility with method-specific lookup tables.
+
+6. **Layer Properties vs Parameters**: Layer properties like `thickness` are direct data flow (no calculation), while parameters like `density` require calculation methods.
+
+7. **Slab Parameter Prerequisites**: Slab-level calculations (A11, B11, D11, A55) check prerequisites before attempting computation. Missing prerequisites result in `None` with a descriptive failure reason.

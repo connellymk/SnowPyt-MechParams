@@ -45,7 +45,10 @@ Quick Start
 from snowpyt_mechparams.data_structures import Layer, Slab
 
 # Constants
-from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE
+from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE, WEAK_LAYER_DEFINITIONS
+
+# SnowPilot parsing (import module, not individual functions)
+from snowpyt_mechparams import snowpilot
 
 # Layer parameter calculations
 from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
@@ -86,6 +89,9 @@ __all__ = [
     # Constants
     "HARDNESS_MAPPING",
     "RHO_ICE",
+    "WEAK_LAYER_DEFINITIONS",
+    # SnowPilot parsing
+    "snowpilot",
     # Calculation functions
     "calculate_shear_modulus",
     "calculate_sigma_c_minus",

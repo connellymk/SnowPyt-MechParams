@@ -8,8 +8,7 @@ using the Pit class.
 import os
 
 from snowpyt_mechparams.data_structures import Pit
-from snowpyt_mechparams.snowpilot_utils import (
-    convert_grain_form,
+from snowpyt_mechparams.snowpilot import (
     parse_caaml_directory,
     parse_caaml_file,
 )
@@ -44,8 +43,8 @@ def example_convert_to_layers():
         print("❌ No profiles found")
         return
     
-    # Create Pit object from profile
-    pit = Pit.from_snowpylot_profile(profiles[0])
+    # Create Pit object from SnowPit (automatically extracts layers)
+    pit = Pit.from_snow_pit(profiles[0])
     
     print(f"✅ Converted profile to {len(pit.layers)} layers")
     if pit.layers:
@@ -69,63 +68,30 @@ def example_convert_to_slab():
         print("❌ No profiles found")
         return
     
-    # Create Pit object from profile
-    pit = Pit.from_snowpylot_profile(profiles[0])
-
-    # Convert to slabs (all layers, no weak layer filtering)
-    slabs_all = pit.create_slabs()
-
-    if slabs_all:
-        slab_all = slabs_all[0]
-        print(f"✅ Slab with all layers:")
-        print(f"  - Number of layers: {len(slab_all.layers)}")
-        print(f"  - Total thickness: {slab_all.total_thickness} cm")
-        print(f"  - Slope angle: {slab_all.angle}°")
+    # Create Pit object from SnowPit
+    pit = Pit.from_snow_pit(profiles[0])
 
     # Try to get slabs above layer of concern
     slabs_loc = pit.create_slabs(weak_layer_def="layer_of_concern")
 
     if slabs_loc:
         slab_loc = slabs_loc[0]
-        print(f"\n✅ Slab above layer of concern:")
+        print(f"✅ Slab above layer of concern:")
         print(f"  - Number of layers: {len(slab_loc.layers)}")
         print(f"  - Total thickness: {slab_loc.total_thickness} cm")
+        print(f"  - Slope angle: {slab_loc.angle}°")
     else:
-        print(f"\n⚠️  No layer of concern found in this profile")
-    print()
-
-
-def example_grain_form_conversion():
-    """Example: Convert grain form codes."""
-    print("=" * 60)
-    print("Example 4: Grain Form Conversion")
-    print("=" * 60)
-    
-    # Parse one file
-    profiles = parse_caaml_directory(DATA_DIR)
-    if not profiles:
-        print("❌ No profiles found")
-        return
-    
-    # Create Pit object
-    pit = Pit.from_snowpylot_profile(profiles[0])
-    
-    # Get layers from snowpylot profile for grain form conversion
-    if not hasattr(pit.snowpylot_profile, 'snow_profile') or not pit.snowpylot_profile.snow_profile.layers:
-        print("❌ No layers in profile")
-        return
-    
-    layer = pit.snowpylot_profile.snow_profile.layers[0]
-    
-    if hasattr(layer, 'grain_form_primary') and layer.grain_form_primary:
-        print(f"Original grain form:")
-        print(f"  - Basic: {getattr(layer.grain_form_primary, 'basic_grain_class_code', None)}")
-        print(f"  - Sub: {getattr(layer.grain_form_primary, 'sub_grain_class_code', None)}")
+        print(f"⚠️  No layer of concern found in this profile")
         
-        # Convert for different methods
-        for method in ["geldsetzer", "kim_jamieson_table2", "kim_jamieson_table5"]:
-            code = convert_grain_form(layer.grain_form_primary, method)
-            print(f"\n  - {method}: {code}")
+    # Try to get slabs from ECTP test results
+    slabs_ectp = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+    
+    if slabs_ectp:
+        print(f"\n✅ Found {len(slabs_ectp)} ECTP slab(s):")
+        for slab in slabs_ectp:
+            print(f"  - Slab {slab.slab_id}: {len(slab.layers)} layers, {slab.total_thickness:.1f} cm thick")
+    else:
+        print(f"\n⚠️  No ECTP test results found in this profile")
     print()
 
 
@@ -141,7 +107,6 @@ def main():
         example_parse_directory()
         example_convert_to_layers()
         example_convert_to_slab()
-        example_grain_form_conversion()
         
         print("=" * 60)
         print("✅ All examples completed successfully!")

@@ -6,7 +6,7 @@ source of truth for grain form validation logic.
 """
 
 import pytest
-from snowpyt_mechparams.snowpilot_utils.snowpilot_constants import (
+from snowpyt_mechparams.constants import (
     resolve_grain_form_for_method,
     GRAIN_FORM_METHODS,
 )

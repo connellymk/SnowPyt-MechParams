@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from uncertainties import ufloat
 
+from snowpyt_mechparams.constants import resolve_grain_form_for_method
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
 from snowpyt_mechparams.layer_parameters.density import calculate_density
 from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
@@ -21,7 +22,6 @@ from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
 from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
 from snowpyt_mechparams.slab_parameters.D11 import calculate_D11
 from snowpyt_mechparams.slab_parameters.A55 import calculate_A55
-from snowpyt_mechparams.snowpilot_utils.snowpilot_constants import resolve_grain_form_for_method
 
 
 class ParameterLevel(Enum):
@@ -71,9 +71,9 @@ LAYER_INPUT_MAPPING = {
 }
 
 
-# Note: Valid grain form codes for each density method are now defined in
-# snowpilot_utils.snowpilot_constants.GRAIN_FORM_METHODS and accessed via
-# the resolve_grain_form_for_method() utility function.
+# Note: Valid grain form codes for each density method are defined in
+# constants.GRAIN_FORM_METHODS and accessed via the resolve_grain_form_for_method()
+# utility function.
 
 
 def _resolve_density(layer: Layer) -> Optional[UncertainValue]:
@@ -132,9 +132,8 @@ def _resolve_grain_form(layer: Layer, method_name: Optional[str] = None) -> Opti
         
     Notes
     -----
-    This function delegates to resolve_grain_form_for_method() in
-    snowpilot_utils.snowpilot_constants, which is the single source of truth
-    for grain form validation logic.
+    This function delegates to resolve_grain_form_for_method() in constants.py,
+    which is the single source of truth for grain form validation logic.
     """
     if not method_name:
         return layer.grain_form

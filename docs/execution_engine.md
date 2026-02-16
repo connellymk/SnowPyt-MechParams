@@ -709,7 +709,7 @@ for desc, pathway in results.get_successful_pathways().items():
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
+from snowpyt_mechparams.snowpilot import parse_caaml_file
 
 # Load dataset
 pit_files = glob.glob("data/snowpits-*.xml")

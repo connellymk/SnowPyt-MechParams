@@ -258,7 +258,7 @@ for pathway_desc, pathway_result in results.pathways.items():
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
+from snowpyt_mechparams.snowpilot import parse_caaml_file
 from snowpyt_mechparams.data_structures import Pit
 
 # Parse CAAML file from SnowPilot

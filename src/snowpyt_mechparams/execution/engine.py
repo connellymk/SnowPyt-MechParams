@@ -18,6 +18,8 @@ from typing import Optional
 
 from snowpyt_mechparams.algorithm import find_parameterizations
 from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.execution.cache import ComputationCache
+from snowpyt_mechparams.execution.config import ExecutionConfig
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.execution.results import ExecutionResults, PathwayResult
@@ -54,7 +56,8 @@ class ExecutionEngine:
     def __init__(
         self,
         graph: Graph,
-        dispatcher: Optional[MethodDispatcher] = None
+        dispatcher: Optional[MethodDispatcher] = None,
+        cache: Optional[ComputationCache] = None
     ):
         """
         Initialize the ExecutionEngine.
@@ -65,38 +68,51 @@ class ExecutionEngine:
             The parameter dependency graph
         dispatcher : Optional[MethodDispatcher]
             Method dispatcher to use. If None, creates a new one.
+        cache : Optional[ComputationCache]
+            Shared cache for all executions. If None, creates a new one.
+            
+        Notes
+        -----
+        The cache is shared across all execute_all() calls, but is cleared
+        at the start of each execute_all() to ensure fresh execution per slab.
         """
         self.graph = graph
-        self.executor = PathwayExecutor(dispatcher)
+        self.cache = cache or ComputationCache()
+        self.executor = PathwayExecutor(dispatcher, self.cache)
 
     def execute_all(
         self,
         slab: Slab,
         target_parameter: str,
-        include_plate_theory: bool = True
+        config: Optional[ExecutionConfig] = None
     ) -> ExecutionResults:
         """
-        Execute all possible parameterizations for a target parameter.
+        Execute all possible calculation pathways for a target parameter.
 
-        This method finds all possible calculation pathways for the target
-        parameter and executes each one on the provided slab. The executor's
-        cache persists across pathway executions for the same slab, enabling
-        dynamic programming.
+        The algorithm automatically:
+        1. Finds ALL valid pathways from measured data to the target parameter
+        2. Executes each pathway on the provided slab
+        3. Uses dynamic programming (caching) to avoid redundant calculations
+        4. Computes all dependent parameters as needed
 
         Parameters
         ----------
         slab : Slab
-            The input slab with measured values
+            The input slab with measured values (not modified)
         target_parameter : str
-            The target parameter node name (e.g., "elastic_modulus")
-        include_plate_theory : bool
-            Whether to also compute A11, B11, D11, A55
+            What you want to compute. Examples:
+            - "density": Finds all ways to estimate density
+            - "elastic_modulus": Finds all ways (via density) to compute E
+            - "D11": Finds all ways to compute D11 (density → E → ν → D11)
+              and all other plate theory parameters (A11, B11, A55)
+        config : Optional[ExecutionConfig]
+            Configuration for execution behavior (verbose output, etc.)
+            If None, uses defaults (silent execution)
 
         Returns
         -------
         ExecutionResults
-            Dictionary-like container with pathway_description -> PathwayResult,
-            including cache statistics showing dynamic programming efficiency
+            Container with all pathway results and cache statistics
 
         Raises
         ------
@@ -105,12 +121,41 @@ class ExecutionEngine:
 
         Notes
         -----
-        The executor cache is cleared at the start of this method to ensure
-        fresh execution for each slab. The cache then persists across all
-        pathway executions, avoiding redundant calculations when pathways
-        share common subpaths.
+        **Dynamic Programming**: The cache is cleared at the start for this slab,
+        then persists across all pathway executions. When multiple pathways share
+        common calculations (e.g., all elastic modulus methods need density),
+        cached values avoid redundant work.
+        
+        **Automatic Dependencies**: You only specify what you want. The algorithm
+        determines what intermediate parameters are needed. For example:
+        - Ask for "density" → computes only density
+        - Ask for "D11" → computes density, E, ν, then D11 (and A11, B11, A55)
+        
+        Examples
+        --------
+        Compute density using all available methods:
+        
+        >>> results = engine.execute_all(slab, "density")
+        >>> print(f"{results.successful_pathways}/{results.total_pathways} succeeded")
+        
+        Compute D11 with verbose output:
+        
+        >>> config = ExecutionConfig(verbose=True)
+        >>> results = engine.execute_all(slab, "D11", config=config)
+        Executing pathway 1/16...
+        Executing pathway 2/16...
+        ...
+        
+        Access results:
+        
+        >>> for desc, pathway in results.get_successful_pathways().items():
+        ...     print(f"{desc}: D11 = {pathway.slab.D11}")
         """
-        # Clear cache for this slab (fresh execution)
+        # Use default config if not provided
+        if config is None:
+            config = ExecutionConfig()
+        
+        # Clear cache for this slab (fresh execution with dynamic programming)
         self.executor.clear_cache()
 
         # Get the target node
@@ -118,28 +163,24 @@ class ExecutionEngine:
         if target_node is None:
             raise ValueError(f"Unknown target parameter: {target_parameter}")
 
-        # Find all parameterizations
+        # Find all parameterizations (algorithm determines what's needed)
         parameterizations = find_parameterizations(self.graph, target_node)
 
         # Execute each parameterization (cache persists across pathways)
         results = {}
-        successful = 0
-        failed = 0
 
-        for param in parameterizations:
+        for idx, param in enumerate(parameterizations):
+            if config.verbose:
+                print(f"Executing pathway {idx + 1}/{len(parameterizations)}...")
+            
             result = self.executor.execute_parameterization(
                 parameterization=param,
                 slab=slab,
                 target_parameter=target_parameter,
-                include_plate_theory=include_plate_theory
+                config=config
             )
 
             results[result.pathway_description] = result
-
-            if result.success:
-                successful += 1
-            else:
-                failed += 1
 
         # Get cache statistics
         cache_stats = self.executor.get_cache_stats()
@@ -147,11 +188,8 @@ class ExecutionEngine:
         return ExecutionResults(
             target_parameter=target_parameter,
             source_slab=slab,
-            results=results,
-            total_pathways=len(parameterizations),
-            successful_pathways=successful,
-            failed_pathways=failed,
-            cache_stats=cache_stats  # NEW: Include cache performance
+            pathways=results,
+            cache_stats=cache_stats
         )
 
     def execute_single(
@@ -159,7 +197,7 @@ class ExecutionEngine:
         slab: Slab,
         target_parameter: str,
         methods: dict,
-        include_plate_theory: bool = True
+        config: Optional[ExecutionConfig] = None
     ) -> Optional[PathwayResult]:
         """
         Execute a single specific parameterization pathway.
@@ -176,8 +214,8 @@ class ExecutionEngine:
         methods : dict
             Mapping of parameter -> method to use
             (e.g., {"density": "geldsetzer", "elastic_modulus": "bergfeld"})
-        include_plate_theory : bool
-            Whether to also compute A11, B11, D11, A55
+        config : Optional[ExecutionConfig]
+            Configuration controlling execution behavior. If None, uses defaults.
 
         Returns
         -------
@@ -189,7 +227,16 @@ class ExecutionEngine:
         This method finds the parameterization that matches the specified
         methods and executes only that one. If no matching parameterization
         is found, returns None.
+        
+        Examples
+        --------
+        >>> methods = {"density": "geldsetzer", "elastic_modulus": "bergfeld"}
+        >>> result = engine.execute_single(slab, "elastic_modulus", methods)
         """
+        # Use default config if not provided
+        if config is None:
+            config = ExecutionConfig()
+        
         # Get the target node
         target_node = self.graph.get_node(target_parameter)
         if target_node is None:
@@ -206,7 +253,7 @@ class ExecutionEngine:
                     parameterization=param,
                     slab=slab,
                     target_parameter=target_parameter,
-                    include_plate_theory=include_plate_theory
+                    config=config
                 )
 
         return None

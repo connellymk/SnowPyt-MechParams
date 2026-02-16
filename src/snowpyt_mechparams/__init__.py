@@ -59,8 +59,12 @@ from snowpyt_mechparams.weak_layer_parameters import (
 # Execution engine
 from snowpyt_mechparams.execution import (
     ExecutionEngine,
+    ExecutionConfig,
     ExecutionResults,
     PathwayResult,
+    ComputationTrace,
+    ComputationCache,
+    CacheStats,
     PathwayExecutor,
     MethodDispatcher,
 )
@@ -88,8 +92,12 @@ __all__ = [
     "calculate_sigma_c_plus",
     # Execution engine
     "ExecutionEngine",
+    "ExecutionConfig",
     "ExecutionResults",
     "PathwayResult",
+    "ComputationTrace",
+    "ComputationCache",
+    "CacheStats",
     "PathwayExecutor",
     "MethodDispatcher",
     # Graph and algorithm (as modules)

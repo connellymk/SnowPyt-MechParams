@@ -82,12 +82,10 @@ class TestEndToEndExecution:
         slab = Slab(layers=[layer], angle=35)
         
         # Create engine and execute
+        # For poissons_ratio (layer-level parameter), algorithm only computes
+        # what's needed - no slab parameters
         engine = ExecutionEngine(graph)
-        results = engine.execute_all(
-            slab,
-            target_parameter='poissons_ratio',
-            include_plate_theory=False
-        )
+        results = engine.execute_all(slab, 'poissons_ratio')
         
         # Verify results structure
         assert results.target_parameter == 'poissons_ratio'
@@ -113,25 +111,25 @@ class TestEndToEndExecution:
         )
         slab = Slab(layers=[layer], angle=35)
         
-        # Execute with plate theory
+        # Execute - when asking for poissons_ratio with layer already having
+        # E and ν, the algorithm will compute plate theory parameters
         engine = ExecutionEngine(graph)
-        results = engine.execute_all(
-            slab,
-            target_parameter='poissons_ratio',
-            include_plate_theory=True
-        )
+        results = engine.execute_all(slab, 'poissons_ratio')
         
         # Check that slab parameters were computed
         successful = results.get_successful_pathways()
         if successful:
             first_result = list(successful.values())[0]
-            if first_result.slab_result:
-                slab_result = first_result.slab_result
-                # Should have slab parameters computed
-                assert slab_result.A11 is not None
-                assert slab_result.B11 is not None
-                assert slab_result.D11 is not None
-                assert slab_result.A55 is not None
+            # Check slab-level traces were created
+            slab_traces = first_result.get_slab_traces()
+            assert len(slab_traces) > 0
+            
+            # Check that slab parameters were set
+            computed_slab = first_result.slab
+            assert computed_slab.A11 is not None
+            assert computed_slab.B11 is not None
+            assert computed_slab.D11 is not None
+            assert computed_slab.A55 is not None
 
 
 class TestDynamicProgramming:
@@ -147,13 +145,9 @@ class TestDynamicProgramming:
         layer2 = Layer(thickness=ufloat(30, 1), grain_form="FC")
         slab = Slab(layers=[layer1, layer2], angle=35)
         
-        # Execute multiple pathways
+        # Execute multiple pathways - caching is always enabled
         engine = ExecutionEngine(graph)
-        results = engine.execute_all(
-            slab,
-            target_parameter='poissons_ratio',
-            include_plate_theory=False
-        )
+        results = engine.execute_all(slab, 'poissons_ratio')
         
         # With multiple pathways and multiple layers, expect some cache activity
         # Cache stats should be present (even if hit rate is 0 for simple cases)

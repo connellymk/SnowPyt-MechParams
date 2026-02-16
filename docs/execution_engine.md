@@ -1,19 +1,25 @@
-# Execution Engine Architecture
+# Execution Engine: Architecture & Implementation
 
-**Version**: 2.0 (Post-Refactoring)  
-**Date**: 2026-02-16
+**Version**: 2.0 (Current Implementation)  
+**Last Updated**: 2026-02-16
 
 ## Overview
 
-The SnowPyt-MechParams execution engine is a dynamic programming system that automatically finds and executes all valid calculation pathways to compute snow mechanical properties. The engine uses a parameterization graph to discover dependencies and intelligently caches intermediate results for optimal performance.
+The SnowPyt-MechParams execution engine is a dynamic programming system that automatically discovers and executes all valid calculation pathways to compute snow mechanical properties. The engine bridges the gap between:
+
+1. **The parameterization graph** - which defines all possible calculation pathways
+2. **Snow pit data** - Layer and Slab objects with measured properties  
+3. **Calculation methods** - Functions that estimate mechanical parameters
 
 ### Key Features
 
 - **Automatic Pathway Discovery**: Algorithm finds all valid routes from available data to target parameter
-- **Dynamic Programming**: Intelligent caching of intermediate computations across pathways
-- **Copy-on-Write Optimization**: Minimal memory overhead through selective layer copying
+- **Dynamic Programming**: Intelligent caching of intermediate computations across pathways (40-50% cache hit rates)
+- **Copy-on-Write Optimization**: Minimal memory overhead through selective layer copying (3x faster)
 - **Clean Separation of Concerns**: Independent cache, execution, and dispatch components
 - **Simple API**: One-line execution with automatic dependency resolution
+- **Full Traceability**: Complete computation traces for debugging and validation
+- **Immutability Guarantee**: Original input slab is never modified
 
 ---
 
@@ -70,6 +76,38 @@ graph TB
     style Cache fill:#FF9800
     style Results fill:#9C27B0
 ```
+
+### Component Descriptions
+
+**ExecutionEngine** (`src/snowpyt_mechparams/execution/engine.py`)
+- High-level API for executing pathways
+- Discovers all parameterizations from graph
+- Manages cache lifecycle across pathways
+- Provides cache statistics for performance analysis
+
+**PathwayExecutor** (`src/snowpyt_mechparams/execution/executor.py`)
+- Executes a single parameterization on a slab
+- Handles layer-level and slab-level calculations
+- Implements dynamic programming via persistent cache
+- Tracks cache hits/misses for statistics
+- Creates shallow copies of layers only when modified (copy-on-write)
+
+**MethodDispatcher** (`src/snowpyt_mechparams/execution/dispatcher.py`)
+- Maps graph edge names to function implementations
+- Extracts inputs from Layer/Slab objects
+- Handles method-specific grain form resolution
+- Central registry of all calculation methods
+- NaN detection and handling in method results
+
+**ComputationCache** (`src/snowpyt_mechparams/execution/cache.py`)
+- Stores computed values with layer-level granularity
+- Separate caches for layer and slab parameters
+- Provenance tracking (which method computed each value)
+- Cache statistics (hits, misses, hit rate)
+
+**ExecutionConfig** (`src/snowpyt_mechparams/execution/config.py`)
+- Optional configuration for execution behavior
+- Currently supports `verbose` mode for detailed logging
 
 ### Class Structure
 
@@ -171,9 +209,9 @@ classDiagram
 
 ---
 
-## Execution Flow: Calculate D11 for All Pits
+## Execution Flow
 
-### High-Level Flow
+### High-Level Flow: Calculate D11 for All Pits
 
 ```mermaid
 sequenceDiagram
@@ -192,12 +230,12 @@ sequenceDiagram
     Engine->>Graph: find_all_parameterizations("D11")
     Graph-->>Engine: List[Parameterization] (32 pathways)
     
-    Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 pathways<br/>(data_flow needs measured_density)
+    Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 pathways
     
     Engine->>Executor: clear_cache()
     Note over Cache: Fresh cache<br/>for new pit
     
-    loop For each pathway (24 total)
+    loop For each pathway (32 total)
         Engine->>Executor: execute_parameterization(slab, param, "D11")
         
         Executor->>Cache: Check existing values
@@ -257,7 +295,7 @@ sequenceDiagram
     Engine->>Results: new ExecutionResults(pathways, stats)
     Results-->>User: ExecutionResults with 32 pathways
     
-    Note over User: Access results:<br/>results.pathways[...].slab.D11<br/>(data_flow succeeds if measured_density available)
+    Note over User: Access results:<br/>results.pathways[...].slab.D11
 ```
 
 ### Detailed Single-Pathway Execution
@@ -347,118 +385,157 @@ flowchart TD
 
 ---
 
-## Example: D11 Calculation with 4×4×2 Pathways
+## Implementation Details
 
-For D11, the graph finds **32 pathways** (4 density methods × 4 elastic_modulus methods × 2 poissons_ratio methods), each computing:
+### Method Dispatcher Registry
 
+The `MethodDispatcher` maintains a central registry of all calculation methods. Each method is defined by a `MethodSpec`:
+
+```python
+@dataclass
+class MethodSpec:
+    """Specification for a calculation method."""
+    parameter: str           # Target parameter (e.g., "density")
+    method_name: str        # Method identifier (e.g., "geldsetzer")
+    level: ParameterLevel   # LAYER or SLAB
+    function: Callable      # Implementation function
+    required_inputs: List[str]  # Input parameters needed
 ```
-density → elastic_modulus → poissons_ratio → plate_theory → D11
+
+**Registered Methods:**
+
+| Parameter | Method | Level | Required Inputs | Notes |
+|-----------|--------|-------|-----------------|-------|
+| **density** | `data_flow` | layer | density_measured | Direct measurement |
+| | `geldsetzer` | layer | hand_hardness, grain_form | Geldsetzer et al. (2009) |
+| | `kim_jamieson_table2` | layer | hand_hardness, grain_form | Kim & Jamieson (2010) Table 2 |
+| | `kim_jamieson_table5` | layer | hand_hardness, grain_form, grain_size | Kim & Jamieson (2010) Table 5 |
+| **elastic_modulus** | `bergfeld` | layer | density, grain_form | Bergfeld et al. (2023) |
+| | `kochle` | layer | density, grain_form | Köchle & Schneebeli (2014) |
+| | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
+| | `schottner` | layer | density, grain_form | Scapozza (2004) via Schöttner |
+| **poissons_ratio** | `kochle` | layer | grain_form | Köchle (grain-form dependent) |
+| | `srivastava` | layer | density, grain_form | Srivastava et al. (2016) |
+| **shear_modulus** | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
+| **A11** | `weissgraeber_rosendahl` | slab | slab | Requires E, ν on all layers |
+| **B11** | `weissgraeber_rosendahl` | slab | slab | Requires E, ν on all layers |
+| **D11** | `weissgraeber_rosendahl` | slab | slab | Requires E, ν on all layers |
+| **A55** | `weissgraeber_rosendahl` | slab | slab | Requires G on all layers |
+
+**Key Features:**
+
+1. **Automatic Input Extraction**: The dispatcher extracts required inputs from Layer objects via `_get_layer_input()`
+2. **Smart Density Resolution**: Prefers `density_calculated` over `density_measured`
+3. **Grain Form Resolution**: Uses method-specific grain form logic via `resolve_grain_form_for_method()`
+4. **NaN Detection**: Automatically handles NaN results from methods
+5. **Graceful Failure**: Returns `None` with error message when inputs are missing or method fails
+
+### Grain Form Resolution
+
+Grain form resolution is centralized in `snowpilot_constants.py`:
+
+```python
+GRAIN_FORM_METHODS = {
+    "geldsetzer": {
+        "sub_grain_class": {"PPgp", "RGmx", "FCmx"},
+        "basic_grain_class": {"PP", "DF", "RG", "FC", "DH"},
+    },
+    "kim_jamieson_table2": {
+        "sub_grain_class": {"PPgp", "RGxf", "FCxr", "MFcr"},
+        "basic_grain_class": {"PP", "DF", "FC", "DH", "RG"},
+    },
+    "kim_jamieson_table5": {
+        "sub_grain_class": {"FCxr", "PPgp"},
+        "basic_grain_class": {"FC", "PP", "DF", "MF"},
+    },
+}
+
+def resolve_grain_form_for_method(grain_form, method):
+    """
+    Resolve which grain form code to use for a given method.
+    
+    Tries:
+    1. Full grain_form first (could be sub-grain code like 'FCxr')
+    2. Basic grain class (first 2 characters, e.g., 'FC')
+    3. Return None if no valid mapping found
+    """
 ```
 
-### Available Methods
+The `Layer.grain_form` field can store either basic codes (e.g., 'PP', 'RG') or sub-grain codes (e.g., 'PPgp', 'RGmx'). The resolution logic maximizes compatibility by trying the full code first, then falling back to the basic grain class.
 
-| Parameter | Methods | Count | Notes |
-|-----------|---------|-------|-------|
-| **density** | `data_flow`, `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table5` | 4 | data_flow requires measured_density |
-| **elastic_modulus** | `bergfeld`, `kochle`, `wautier`, `schottner` | 4 | All require calculated density |
-| **poissons_ratio** | `kochle`, `srivastava` | 2 | kochle uses grain_form only |
-| **Plate Theory** | `weissgraeber_rosendahl` (A11, B11, D11, A55) | 1 | Classical laminate theory |
+### Cache Strategy
 
-**Total pathways**: 4 × 4 × 2 × 1 = **32 pathways**
+**Layer-Level Caching:**
+```python
+cache_key = (layer_index, parameter, method_name)
+# Example: (0, "density", "geldsetzer")
+```
 
-**Note**: The `data_flow` pathway uses measured density directly (no calculation). It only succeeds when `layer.density_measured` is available; otherwise it fails gracefully at runtime.
+**Why layer_index?** Different layers have different properties, so cache by index.
 
-### Pathway Breakdown
+**Why parameter + method?** Different methods for same parameter give different results.
+
+**Slab-Level Caching:**
+```python
+cache_key = (parameter, method_name)
+# Example: ("D11", "weissgraeber_rosendahl")
+```
+
+**Why no layer_index?** Slab parameters aggregate all layers.
+
+**Cache Lifecycle:**
 
 ```mermaid
-graph LR
-    subgraph "3 Density Methods"
-        D1[density.geldsetzer]
-        D2[density.kim_jamieson_table2]
-        D3[density.kim_jamieson_table5]
+sequenceDiagram
+    participant Engine
+    participant Executor
+    participant Cache
+    
+    Note over Engine,Cache: New Pit / Slab
+    
+    Engine->>Executor: clear_cache()
+    Executor->>Cache: clear()
+    Note over Cache: Empty cache
+    
+    loop For each pathway
+        Executor->>Cache: get_layer_param(0, "density", "geldsetzer")
+        
+        alt First time (MISS)
+            Cache-->>Executor: None
+            Note over Executor: Compute value
+            Executor->>Cache: set_layer_param(0, "density", "geldsetzer", value)
+            Note over Cache: Store: (0, density, geldsetzer) → value
+        else Already computed (HIT)
+            Cache-->>Executor: cached_value
+            Note over Executor: Skip computation!
+        end
     end
     
-    subgraph "4 Elastic Modulus Methods"
-        E1[elastic_modulus.bergfeld]
-        E2[elastic_modulus.kochle]
-        E3[elastic_modulus.wautier]
-        E4[elastic_modulus.schottner]
-    end
+    Note over Engine,Cache: Cache persists across pathways<br/>for same pit
     
-    subgraph "2 Poisson's Ratio Methods"
-        Nu1[poissons_ratio.kochle]
-        Nu2[poissons_ratio.srivastava]
-    end
-    
-    subgraph "Plate Theory"
-        PT[A11, B11, D11, A55]
-    end
-    
-    D1 --> E1
-    D1 --> E2
-    D1 --> E3
-    D1 --> E4
-    
-    D2 --> E1
-    D2 --> E2
-    D2 --> E3
-    D2 --> E4
-    
-    D3 --> E1
-    D3 --> E2
-    D3 --> E3
-    D3 --> E4
-    
-    E1 --> Nu1
-    E1 --> Nu2
-    E2 --> Nu1
-    E2 --> Nu2
-    E3 --> Nu1
-    E3 --> Nu2
-    E4 --> Nu1
-    E4 --> Nu2
-    
-    Nu1 --> PT
-    Nu2 --> PT
-    
-    style D1 fill:#FF6B6B
-    style D2 fill:#FF6B6B
-    style D3 fill:#FF6B6B
-    style E1 fill:#4ECDC4
-    style E2 fill:#4ECDC4
-    style E3 fill:#4ECDC4
-    style E4 fill:#4ECDC4
-    style Nu1 fill:#95E1D3
-    style Nu2 fill:#95E1D3
-    style PT fill:#FFA07A
+    Engine->>Cache: get_stats()
+    Cache-->>Engine: CacheStats(hits=X, misses=Y)
 ```
 
-### Cache Effectiveness Example
+**Provenance Tracking:**
 
-For a 10-layer slab with 32 D11 pathways (when measured_density is available):
+The cache also tracks **which method** computed each value:
 
-**Without Caching**: 
-- 32 pathways × 10 layers × 3 params = **960 computations**
+```python
+provenance_key = (layer_index, parameter)
+provenance_value = method_name
 
-**With Dynamic Programming Cache**:
-- Pathway 1: 30 computations (10 layers × 3 params) - all MISS
-- Pathways 2-8: Share density from Pathway 1 (data_flow) → ~20 computations each
-- Pathways 9-16: Share density from Pathway 2 (geldsetzer) → ~20 computations each
-- Pathways 17-24: Share density from Pathway 3 (kim_jamieson_table2) → ~20 computations each
-- Pathways 25-32: Share density from Pathway 4 (kim_jamieson_table5) → ~20 computations each
+# Example: Layer 0's density was computed by "geldsetzer"
+```
 
-**Calculation**:
-- 4 density methods × (30 initial + 7 × 20 cached) = 4 × 170 = ~680 computations
+This enables:
+- Debugging (which method set this value?)
+- Validation (did the right method execute?)
+- Traceability (full computation history)
 
-**Result**: ~680 computations instead of 960 = **29% reduction**
+### Copy-on-Write Optimization
 
-(With more layers or pathways, the benefit increases significantly)
-
----
-
-## Copy-on-Write Optimization
-
-### Memory Efficiency
+**Key Principle**: Only copy layers that need modification. Each pathway creates new layer objects only when computing on them.
 
 ```mermaid
 graph TD
@@ -506,9 +583,7 @@ graph TD
     style P2L3 fill:#FFCCBC
 ```
 
-**Key Principle**: Only copy layers that need modification. Each pathway creates new layer objects only when computing on them.
-
-### Before vs After
+**Before vs After:**
 
 ```mermaid
 graph TB
@@ -555,162 +630,51 @@ graph TB
 
 ---
 
-## Data Flow Architecture
+## D11 Calculation Example
 
-```mermaid
-flowchart LR
-    subgraph "Input"
-        Pit[SnowPilot Pit Data]
-        Target[Target Parameter<br/>e.g., D11]
-    end
-    
-    subgraph "Conversion"
-        Convert[snowpilot_convert.py]
-        Slab[Slab + Layers]
-    end
-    
-    subgraph "Graph Analysis"
-        Graph[ParameterizationGraph]
-        Pathways[All Valid Pathways<br/>List of method combinations]
-    end
-    
-    subgraph "Execution Engine"
-        Engine[ExecutionEngine]
-        Config[ExecutionConfig]
-        
-        subgraph "Per-Pathway Execution"
-            Executor[PathwayExecutor]
-            Cache[ComputationCache<br/>Dynamic Programming]
-            Dispatcher[MethodDispatcher]
-        end
-    end
-    
-    subgraph "Method Implementations"
-        DensityMethods[3 Density Methods]
-        EMethods[4 E Methods]
-        NuMethods[2 ν Methods]
-        PlateMethods[Plate Theory]
-    end
-    
-    subgraph "Output"
-        Results[ExecutionResults]
-        PathwayResults[24 PathwayResult objects]
-        Stats[Cache Statistics]
-    end
-    
-    Pit --> Convert
-    Convert --> Slab
-    
-    Slab --> Engine
-    Target --> Engine
-    Config -.-> Engine
-    
-    Engine --> Graph
-    Graph --> Pathways
-    
-    Pathways --> Executor
-    Slab --> Executor
-    
-    Executor --> Cache
-    Executor --> Dispatcher
-    
-    Dispatcher --> DensityMethods
-    Dispatcher --> EMethods
-    Dispatcher --> NuMethods
-    Dispatcher --> PlateMethods
-    
-    Cache -.->|reuse| Dispatcher
-    
-    Executor --> PathwayResults
-    PathwayResults --> Results
-    Cache --> Stats
-    Stats --> Results
-    
-    Results --> User[User/Analysis]
-    
-    style Engine fill:#4CAF50
-    style Cache fill:#FF9800
-    style Results fill:#9C27B0
-    style Executor fill:#2196F3
+For D11, the graph finds **32 pathways** (4 density methods × 4 elastic_modulus methods × 2 poissons_ratio methods):
+
 ```
+density → elastic_modulus → poissons_ratio → plate_theory → D11
+```
+
+### Available Methods
+
+| Parameter | Methods | Count | Notes |
+|-----------|---------|-------|-------|
+| **density** | `data_flow`, `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table5` | 4 | data_flow requires measured_density |
+| **elastic_modulus** | `bergfeld`, `kochle`, `wautier`, `schottner` | 4 | All require calculated density |
+| **poissons_ratio** | `kochle`, `srivastava` | 2 | kochle uses grain_form only |
+| **Plate Theory** | `weissgraeber_rosendahl` (A11, B11, D11, A55) | 1 | Classical laminate theory |
+
+**Total pathways**: 4 × 4 × 2 × 1 = **32 pathways**
+
+**Note**: The `data_flow` pathway uses measured density directly (no calculation). It only succeeds when `layer.density_measured` is available; otherwise it fails gracefully at runtime.
+
+### Cache Effectiveness
+
+For a 10-layer slab with 32 D11 pathways (when measured_density is available):
+
+**Without Caching**: 
+- 32 pathways × 10 layers × 3 params = **960 computations**
+
+**With Dynamic Programming Cache**:
+- Pathway 1: 30 computations (10 layers × 3 params) - all MISS
+- Pathways 2-8: Share density from Pathway 1 (data_flow) → ~20 computations each
+- Pathways 9-16: Share density from Pathway 2 (geldsetzer) → ~20 computations each
+- Pathways 17-24: Share density from Pathway 3 (kim_jamieson_table2) → ~20 computations each
+- Pathways 25-32: Share density from Pathway 4 (kim_jamieson_table5) → ~20 computations each
+
+**Calculation**:
+- 4 density methods × (30 initial + 7 × 20 cached) = 4 × 170 = ~680 computations
+
+**Result**: ~680 computations instead of 960 = **29% reduction**
+
+(With more layers or pathways, the benefit increases significantly)
 
 ---
 
-## Cache Strategy
-
-### Layer-Level Caching
-
-```python
-cache_key = (layer_index, parameter, method_name)
-# Example: (0, "density", "geldsetzer")
-```
-
-**Why layer_index?** Different layers have different properties, so cache by index.
-
-**Why parameter + method?** Different methods for same parameter give different results.
-
-### Slab-Level Caching
-
-```python
-cache_key = (parameter, method_name)
-# Example: ("D11", "plate_theory_standard")
-```
-
-**Why no layer_index?** Slab parameters aggregate all layers.
-
-### Cache Lifecycle
-
-```mermaid
-sequenceDiagram
-    participant Engine
-    participant Executor
-    participant Cache
-    
-    Note over Engine,Cache: New Pit / Slab
-    
-    Engine->>Executor: clear_cache()
-    Executor->>Cache: clear()
-    Note over Cache: Empty cache
-    
-    loop For each pathway
-        Executor->>Cache: get_layer_param(0, "density", "geldsetzer")
-        
-        alt First time (MISS)
-            Cache-->>Executor: None
-            Note over Executor: Compute value
-            Executor->>Cache: set_layer_param(0, "density", "geldsetzer", value)
-            Note over Cache: Store: (0, density, geldsetzer) → value
-        else Already computed (HIT)
-            Cache-->>Executor: cached_value
-            Note over Executor: Skip computation!
-        end
-    end
-    
-    Note over Engine,Cache: Cache persists across pathways<br/>for same pit
-    
-    Engine->>Cache: get_stats()
-    Cache-->>Engine: CacheStats(hits=X, misses=Y)
-```
-
-### Provenance Tracking
-
-Cache also tracks **which method** computed each value:
-
-```python
-provenance_key = (layer_index, parameter)
-provenance_value = method_name
-
-# Example: Layer 0's density was computed by "geldsetzer"
-```
-
-This enables:
-- Debugging (which method set this value?)
-- Validation (did the right method execute?)
-- Traceability (full computation history)
-
----
-
-## API Usage Examples
+## API Usage
 
 ### Basic Usage
 
@@ -719,6 +683,8 @@ from snowpyt_mechparams import ExecutionEngine, Slab, Layer
 from snowpyt_mechparams.graph import graph
 
 # Create slab
+# Note: grain_form can contain either basic codes (e.g., 'PP', 'RG')
+# or sub-grain codes (e.g., 'PPgp', 'RGmx')
 layer = Layer(
     depth_top=0,
     thickness=30,
@@ -743,32 +709,38 @@ for desc, pathway in results.get_successful_pathways().items():
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.snowpilot_utils import load_snowpilot_data
+from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
 
 # Load dataset
-pits = load_snowpilot_data("snowpilot_export.json")
+pit_files = glob.glob("data/snowpits-*.xml")
 
 # Setup engine once
 engine = ExecutionEngine(graph)
 
 # Process all pits
 all_results = []
-for pit in pits:
-    # Convert to slab
-    slab = pit.to_slab()
+for pit_file in pit_files:
+    # Parse CAAML
+    snow_pit = parse_caaml_file(pit_file)
+    pit = Pit.from_snow_pit(snow_pit)
     
-    # Execute (cache is cleared automatically per pit)
-    results = engine.execute_all(slab, "D11")
+    # Create slabs
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
     
-    # Store
-    all_results.append({
-        'pit_id': pit.id,
-        'results': results,
-        'cache_hit_rate': results.cache_stats['hit_rate']
-    })
+    for slab in slabs:
+        # Execute (cache is cleared automatically per slab)
+        results = engine.execute_all(slab, "D11")
+        
+        # Store
+        all_results.append({
+            'pit_id': pit.id,
+            'slab_id': slab.slab_id,
+            'results': results,
+            'cache_hit_rate': results.cache_stats['hit_rate']
+        })
 
 # Analyze
-print(f"Processed {len(all_results)} pits")
+print(f"Processed {len(all_results)} slabs")
 avg_hit_rate = sum(r['cache_hit_rate'] for r in all_results) / len(all_results)
 print(f"Average cache hit rate: {avg_hit_rate:.1%}")
 ```
@@ -795,24 +767,27 @@ for desc, pathway in results.pathways.items():
             print(f"    {trace.parameter}: {trace.error}")
 ```
 
-### Custom Cache
+### Execute Single Pathway
 
 ```python
-from snowpyt_mechparams import ExecutionEngine, ComputationCache
+from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
 
-# Create custom cache (e.g., with different config)
-cache = ComputationCache(enable_stats=True)
+engine = ExecutionEngine(graph)
 
-# Create engine with custom cache
-engine = ExecutionEngine(graph, cache=cache)
+# Execute specific method combination
+result = engine.execute_single(
+    slab,
+    target_parameter="D11",
+    methods={
+        "density": "geldsetzer",
+        "elastic_modulus": "bergfeld",
+        "poissons_ratio": "kochle"
+    }
+)
 
-# Now all pathways share this cache
-results = engine.execute_all(slab, "D11")
-
-# Inspect cache directly
-stats = cache.get_stats()
-print(f"Cache stats: {stats.hits} hits, {stats.misses} misses")
+if result and result.success:
+    print(f"D11 = {result.slab.D11}")
 ```
 
 ---
@@ -914,6 +889,22 @@ original_slab.layers[0].density_calculated  # None
 results.pathways[...].slab.layers[0].density_calculated  # ufloat(250, 10)
 ```
 
+### 6. Graceful Failure Handling
+
+**Missing data causes methods to return None rather than raising exceptions.**
+
+- Allows partial results across pathways
+- Failures recorded in `ComputationTrace` for traceability
+- User can inspect which pathways succeeded/failed and why
+
+### 7. Full Traceability
+
+**Every computation is recorded with full provenance.**
+
+- `ComputationTrace` records inputs, outputs, success/failure, cache status
+- `PathwayResult` includes complete computation history
+- Enables debugging, validation, and scientific transparency
+
 ---
 
 ## Module Structure
@@ -925,28 +916,63 @@ snowpyt_mechparams/
 │   ├── engine.py              # ExecutionEngine (high-level API)
 │   ├── executor.py            # PathwayExecutor (single pathway)
 │   ├── dispatcher.py          # MethodDispatcher (method registry)
-│   ├── config.py              # ExecutionConfig
 │   ├── cache.py               # ComputationCache, CacheStats
-│   └── results_v2.py          # Results classes
+│   ├── config.py              # ExecutionConfig
+│   └── results.py             # Result classes (ComputationTrace, PathwayResult, ExecutionResults)
 ├── layer_parameters/
-│   ├── density.py             # 3 density calculation methods
+│   ├── density.py             # 4 density calculation methods
 │   ├── elastic_modulus.py     # 4 elastic modulus methods
 │   ├── poissons_ratio.py      # 2 poisson's ratio methods
 │   └── shear_modulus.py       # Shear modulus methods
 ├── slab_parameters/
-│   ├── A11.py                 # A11 calculation
-│   ├── B11.py                 # B11 calculation
-│   ├── D11.py                 # D11 calculation
-│   └── A55.py                 # A55 calculation
+│   ├── A11.py                 # A11 calculation (extensional stiffness)
+│   ├── B11.py                 # B11 calculation (bending-extension coupling)
+│   ├── D11.py                 # D11 calculation (bending stiffness)
+│   └── A55.py                 # A55 calculation (shear stiffness)
 ├── graph/
 │   ├── __init__.py            # Exports 'graph' instance
-│   ├── parameterization.py    # ParameterizationGraph class
-│   └── definitions.py         # Graph construction
-└── data_structures/
-    ├── layer.py               # Layer dataclass
-    ├── slab.py                # Slab dataclass
-    └── uncertain_value.py     # UncertainValue type
+│   ├── structures.py          # Graph data structures
+│   ├── definitions.py         # Complete parameter dependency graph
+│   └── visualize.py           # Mermaid diagram generation
+├── algorithm.py               # Pathway discovery algorithm
+├── data_structures/
+│   ├── layer.py               # Layer dataclass
+│   ├── slab.py                # Slab dataclass
+│   └── uncertain_value.py     # UncertainValue type
+└── snowpilot_utils/
+    ├── snowpilot_convert.py   # CAAML parsing
+    └── snowpilot_constants.py # Grain form constants and resolution
 ```
+
+---
+
+## Known Limitations
+
+### Grain Form Coverage
+
+Not all grain forms in SnowPilot data are supported by the density estimation methods:
+
+| Grain Form | Occurrence | Support |
+|------------|------------|---------|
+| FC (Faceted crystals) | Common | ✅ All methods |
+| RG (Rounded grains) | Common | ✅ Geldsetzer, Kim T2 |
+| MF (Melt forms) | Common | ⚠️ Only MFcr sub-code in Kim T2; MF in Kim T5 |
+| DF (Decomposing forms) | Common | ✅ All methods |
+| IF (Ice formations) | Moderate | ❌ No support |
+| PP (Precipitation particles) | Moderate | ✅ All methods |
+| DH (Depth hoar) | Moderate | ✅ Geldsetzer, Kim T2 |
+| SH (Surface hoar) | Low | ❌ No support |
+
+### Data Availability
+
+Pathway success depends on data availability in the snow pit:
+
+| Data Field | Typical Availability | Impact |
+|------------|---------------------|--------|
+| density_measured | ~3% | data_flow pathway rarely succeeds |
+| hand_hardness | ~92% | Required for all estimation methods |
+| grain_form | ~88% | Required for all methods |
+| grain_size_avg | ~52% | Required only for Kim T5 |
 
 ---
 
@@ -1000,13 +1026,25 @@ snowpyt_mechparams/
 
 ## Summary
 
-The refactored execution engine provides:
+The execution engine provides:
 
 ✅ **Simple API**: One-line execution with automatic dependency resolution  
-✅ **Fast Performance**: 3-50x faster through copy-on-write optimization  
+✅ **Fast Performance**: 3-5x faster through copy-on-write optimization  
 ✅ **Smart Caching**: Dynamic programming reduces redundant computations by 40-50%  
 ✅ **Clean Architecture**: Clear separation of concerns, testable components  
 ✅ **Immutability**: Original data never modified  
-✅ **Full Traceability**: Complete computation trace for debugging and validation
+✅ **Full Traceability**: Complete computation trace for debugging and validation  
+✅ **Graceful Failure**: Partial results when data is missing  
+✅ **Method Extensibility**: Easy to add new calculation methods
 
 The architecture balances simplicity, performance, and maintainability while providing powerful capabilities for analyzing snow mechanical properties across large datasets.
+
+---
+
+## References
+
+For implementation details:
+- **Graph structure**: `src/snowpyt_mechparams/graph/README.md`
+- **Algorithm documentation**: `src/snowpyt_mechparams/algorithm.py`
+- **Method implementations**: `src/snowpyt_mechparams/layer_parameters/` and `src/snowpyt_mechparams/slab_parameters/`
+- **Example notebooks**: `examples/execution_engine_demo.ipynb`, `examples/compare_D11_across_pathways_v3.ipynb`

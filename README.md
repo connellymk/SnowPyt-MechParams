@@ -354,7 +354,7 @@ print(f"Found {len(pathways)} pathways to calculate D11")  # Output: 32 pathways
   - 4 elastic modulus methods
   - 2 Poisson's ratio methods
 
-See `docs/execution_engine_architecture.md` for detailed architecture documentation with Mermaid diagrams.
+See `docs/execution_engine.md` for detailed architecture and implementation documentation with Mermaid diagrams.
 
 ### Execution Engine (`snowpyt_mechparams.execution`)
 
@@ -452,7 +452,7 @@ SnowPyt-MechParams/
 │   ├── test_computation_cache.py # Cache unit tests
 │   └── ...                       # Additional test modules
 ├── docs/                         # Documentation
-│   ├── execution_engine_architecture.md  # Architecture with Mermaid diagrams
+│   ├── execution_engine.md       # Complete architecture & implementation
 │   ├── parameter_graph.md        # Complete graph visualization
 │   └── REFACTORING_COMPLETE.md   # Implementation summary
 └── README.md                     # This file
@@ -473,7 +473,7 @@ make html
 ### Key Documentation Files
 
 - **`README.md`** (this file): Project overview and quick start
-- **`docs/execution_engine_architecture.md`**: Complete architecture with Mermaid diagrams
+- **`docs/execution_engine.md`**: Complete architecture and implementation with Mermaid diagrams
 - **`docs/parameter_graph.md`**: Full graph visualization
 - **`src/snowpyt_mechparams/graph/README.md`**: Graph structure and extension guide
 - **`src/snowpyt_mechparams/graph/definitions.py`**: Comprehensive inline documentation of all methods

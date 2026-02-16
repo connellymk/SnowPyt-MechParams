@@ -190,7 +190,7 @@ class Pit:
 
     Examples
     --------
-    >>> from snowpyt_mechparams.snowpilot_utils import parse_caaml_file
+    >>> from snowpyt_mechparams.snowpilot import parse_caaml_file
     >>> from snowpyt_mechparams.data_structures import Pit
     >>>
     >>> # Parse CAAML file to get snowpylot SnowPit

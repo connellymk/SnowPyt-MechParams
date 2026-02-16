@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snowpyt-mechparams"
-version = "0.1.0"
+version = "0.3.0"
 authors = [
     {name = "Mary Connelly", email = "your.email@example.com"},
 ]
 maintainers = [
     {name = "SnowPyt-MechParams Contributors"},
 ]
-description = "Collaborative Python library for estimating mechanical parameters from snow pit measurements, developed by academic researchers"
+description = "Collaborative Python library for estimating mechanical parameters from snow pit measurements with graph-based parameterization and dynamic programming"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.8"

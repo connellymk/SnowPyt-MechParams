@@ -1,41 +1,80 @@
 """
 Pathway executor for parameterization execution.
 
-This module provides the PathwayExecutor class that executes a single
-parameterization pathway on Layer/Slab objects.
+This module provides the PathwayExecutor class that executes parameterization
+pathways on Layer/Slab objects. The executor implements dynamic programming
+by caching computed values across pathway executions for the same slab,
+significantly reducing redundant calculations.
+
+Key Features
+------------
+- **Dynamic Programming**: Persistent cache across pathways for same slab
+- **Layer Properties**: Handles thickness as direct data flow (no calculation)
+- **Slab Parameters**: Computes A11, B11, D11, A55 with prerequisite checks
+- **Cache Statistics**: Tracks hit/miss rates for performance analysis
+- **Provenance Tracking**: Records which method computed each parameter
+
+Cache Strategy
+--------------
+The executor maintains three types of caches:
+
+1. **Layer-level cache**: (layer_index, parameter, method) -> value
+   - Caches computed layer parameters across pathways
+   - Cleared between different slabs
+
+2. **Slab-level cache**: (parameter, method) -> value
+   - Caches computed slab parameters
+   - Cleared between different slabs
+
+3. **Provenance tracking**: (layer_index, parameter) -> method_name
+   - Records which method was used for each parameter
+   - Useful for understanding calculation paths
+
+The cache persists across pathway executions for the same slab but is
+cleared when moving to a new slab via clear_cache().
 """
 
-import sys
-from copy import deepcopy
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-# Add algorithm directory to path for imports
-sys.path.insert(0, '/Users/marykate/Desktop/Snow/SnowPyt-MechParams/algorithm')
-from parameterization_algorithm import Parameterization, PathSegment, Branch
-
+from snowpyt_mechparams.algorithm import Parameterization
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
+from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
 from snowpyt_mechparams.execution.results import (
-    MethodCall, LayerResult, SlabResult, PathwayResult
+    ComputationTrace, PathwayResult
 )
+
+if TYPE_CHECKING:
+    from snowpyt_mechparams.execution.config import ExecutionConfig
 
 
 class PathwayExecutor:
     """
     Executes parameterization pathways on Layer/Slab objects.
 
-    This class walks through a Parameterization object and executes
-    each method in the pathway, computing values for layers and slabs.
+    This class walks through Parameterization objects and executes each method
+    in the pathway, computing values for layers and slabs. Uses a dedicated
+    ComputationCache for dynamic programming across pathways.
 
     Attributes
     ----------
     dispatcher : MethodDispatcher
         The method dispatcher for executing calculations
-    _cache : Dict[Tuple[int, str, str], UncertainValue]
-        Cache for dynamic programming (layer_index, parameter, method) -> result
+    cache : ComputationCache
+        Cache for storing computed values across pathways
+
+    Notes
+    -----
+    The cache persists across pathway executions for the same slab,
+    enabling dynamic programming. Call clear_cache() when switching
+    to a new slab.
     """
 
-    def __init__(self, dispatcher: Optional[MethodDispatcher] = None):
+    def __init__(
+        self,
+        dispatcher: Optional[MethodDispatcher] = None,
+        cache: Optional[ComputationCache] = None
+    ):
         """
         Initialize the PathwayExecutor.
 
@@ -43,19 +82,45 @@ class PathwayExecutor:
         ----------
         dispatcher : Optional[MethodDispatcher]
             Method dispatcher to use. If None, creates a new one.
+        cache : Optional[ComputationCache]
+            Computation cache to use. If None, creates a new one.
         """
         self.dispatcher = dispatcher or MethodDispatcher()
-        self._cache: Dict[Tuple[int, str, str], UncertainValue] = {}
+        self.cache = cache or ComputationCache()
+    
+    def clear_cache(self) -> None:
+        """
+        Clear the computation cache.
+        
+        Call this when switching to a new slab to ensure cached values
+        don't carry over between different slabs.
+        """
+        self.cache.clear()
+    
+    def get_cache_stats(self) -> Dict[str, float]:
+        """
+        Get cache performance statistics.
+        
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary with keys 'hits', 'misses', 'hit_rate'
+        """
+        return self.cache.get_stats().to_dict()
 
     def execute_parameterization(
         self,
         parameterization: Parameterization,
         slab: Slab,
         target_parameter: str,
-        include_plate_theory: bool = True
+        config: 'ExecutionConfig'
     ) -> PathwayResult:
         """
         Execute a single parameterization pathway on a slab.
+
+        This method does NOT clear the cache, allowing dynamic programming
+        across multiple pathway executions for the same slab. Call clear_cache()
+        when switching to a new slab.
 
         Parameters
         ----------
@@ -65,19 +130,22 @@ class PathwayExecutor:
             The input slab with measured values
         target_parameter : str
             The target parameter to compute (e.g., "elastic_modulus")
-        include_plate_theory : bool
-            Whether to also compute A11, B11, D11, A55 after layer params
+        config : ExecutionConfig
+            Configuration controlling execution behavior
 
         Returns
         -------
         PathwayResult
             Results containing computed layers/slab and pathway trace
-        """
-        # Clear cache for fresh execution
-        self._cache.clear()
 
-        # Deep copy the slab so we don't modify the original
-        working_slab = deepcopy(slab)
+        Notes
+        -----
+        The cache persists across pathway executions to enable dynamic
+        programming. When multiple pathways share common subpaths, the
+        cached values avoid redundant calculations.
+        """
+        # DO NOT clear cache - this enables dynamic programming across pathways
+        # Only clear cache when switching to a new slab (via clear_cache())
 
         # Extract the methods used from the parameterization
         methods_used = self._extract_methods_from_parameterization(parameterization)
@@ -86,37 +154,89 @@ class PathwayExecutor:
         pathway_description = self._build_pathway_description(methods_used)
         pathway_id = self._build_pathway_id(methods_used)
 
-        # Execute layer-level calculations
-        layer_results = []
-        warnings = []
+        # Track all computations in a flat list
+        computation_trace: List[ComputationTrace] = []
+        warnings: List[str] = []
 
-        for layer_idx, layer in enumerate(working_slab.layers):
-            layer_result = self._execute_layer_pathway(
-                layer=layer,
-                layer_index=layer_idx,
-                methods_used=methods_used,
-                target_parameter=target_parameter
-            )
-            layer_results.append(layer_result)
+        # Determine execution order once
+        execution_order = self._determine_execution_order(target_parameter, methods_used)
 
-            # Update the working slab's layer with computed values
-            working_slab.layers[layer_idx] = layer_result.layer
+        # Build result layers using copy-on-write pattern
+        # Only copy layers that need modification
+        result_layers: List[Layer] = []
 
-        # Execute slab-level calculations if requested
-        slab_result = None
-        if include_plate_theory:
-            slab_result = self._execute_slab_calculations(working_slab, layer_results)
+        for layer_idx, original_layer in enumerate(slab.layers):
+            # Check if this layer needs any computation
+            needs_computation = any(param in methods_used for param in execution_order)
+            
+            if needs_computation:
+                # This layer needs computation - create a shallow copy
+                # (Using dataclass replace is faster than deepcopy)
+                from dataclasses import replace
+                working_layer = replace(original_layer)
+                
+                # Execute computations on this layer
+                for param in execution_order:
+                    if param not in methods_used:
+                        continue
+                    
+                    method_name = methods_used[param]
+                    
+                    # Get or compute (with caching)
+                    value, was_cached, error_msg = self._get_or_compute_layer_param(
+                        working_layer, layer_idx, param, method_name
+                    )
+                    
+                    # Get inputs for tracing
+                    inputs_summary = {}
+                    if not was_cached:
+                        inputs_summary = self._get_inputs_summary(working_layer, param, method_name)
+                    else:
+                        inputs_summary = {"cached": True}
+                    
+                    # Create trace
+                    trace = ComputationTrace(
+                        parameter=param,
+                        method_name=method_name,
+                        layer_index=layer_idx,
+                        output=value,
+                        success=value is not None,
+                        cached=was_cached,
+                        error=error_msg,  # Use actual error message from dispatcher
+                        inputs_summary=inputs_summary
+                    )
+                    computation_trace.append(trace)
+                
+                result_layers.append(working_layer)
+            else:
+                # No computation needed - reuse original layer
+                result_layers.append(original_layer)
+
+        # Create result slab with computed layers
+        # Use dataclasses.replace to preserve all slab attributes (metadata, weak_layer, etc.)
+        # while only updating the layers list
+        from dataclasses import replace
+        result_slab = replace(slab, layers=result_layers)
+
+        # Execute slab-level calculations if target requires them
+        # The algorithm only includes slab parameters in the parameterization
+        # if they're needed to reach the target, so we always execute them
+        slab_traces = self._execute_slab_calculations_v2(result_slab)
+        computation_trace.extend(slab_traces)
 
         # Determine overall success
-        # Success if at least one layer has the target parameter computed
-        success = self._check_success(layer_results, target_parameter)
+        # Success if at least one computation of the target parameter succeeded
+        success = any(
+            t.success and t.parameter == target_parameter 
+            for t in computation_trace
+        )
 
         return PathwayResult(
             pathway_id=pathway_id,
             pathway_description=pathway_description,
             methods_used=methods_used,
-            layer_results=layer_results,
-            slab_result=slab_result,
+            slab=result_slab,
+            computation_trace=computation_trace,
             success=success,
             warnings=warnings
         )
@@ -221,94 +341,61 @@ class PathwayExecutor:
         sorted_items = sorted(methods_used.items())
         return "->".join(f"{p}:{m}" for p, m in sorted_items)
 
-    def _execute_layer_pathway(
+    def _get_or_compute_layer_param(
         self,
         layer: Layer,
         layer_index: int,
-        methods_used: Dict[str, str],
-        target_parameter: str
-    ) -> LayerResult:
+        parameter: str,
+        method: str
+    ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
-        Execute the pathway for a single layer.
+        Get parameter from cache or compute it.
 
-        This method walks through the dependency chain and computes
-        each parameter in order, respecting the methods_used mapping.
+        Handles special cases for layer properties (thickness) which are
+        direct data flow and require no calculation.
 
         Parameters
         ----------
         layer : Layer
-            The layer to compute values for (will be modified)
+            The layer object
         layer_index : int
-            Index of this layer in the slab
-        methods_used : Dict[str, str]
-            Mapping of parameter to method name
-        target_parameter : str
-            The target parameter to compute
+            Index of this layer
+        parameter : str
+            Parameter to compute
+        method : str
+            Method to use
 
         Returns
         -------
-        LayerResult
-            Layer with computed values and method call trace
+        Tuple[Optional[UncertainValue], bool, Optional[str]]
+            (value, was_cached, error_message) - The computed/cached value, whether it came from cache,
+            and error message if computation failed (None if successful or cached)
         """
-        working_layer = deepcopy(layer)
-        method_calls = []
+        # Special handling for layer properties (direct data flow)
+        if parameter == "layer_thickness":
+            # Direct from layer.thickness - no calculation needed
+            return layer.thickness, False, None
 
-        # Determine execution order based on dependencies
-        # density -> elastic_modulus (needs density)
-        # density -> poissons_ratio (some methods need density)
-        # density -> shear_modulus (needs density)
-        execution_order = self._determine_execution_order(target_parameter, methods_used)
+        # Check cache first
+        cached_value = self.cache.get_layer_param(layer_index, parameter, method)
+        if cached_value is not None:
+            # Update the layer with cached value
+            self._set_layer_parameter(layer, parameter, cached_value)
+            return cached_value, True, None
 
-        for param in execution_order:
-            if param not in methods_used:
-                continue
-
-            method_name = methods_used[param]
-
-            # Check cache first (dynamic programming)
-            cache_key = (layer_index, param, method_name)
-            if cache_key in self._cache:
-                result = self._cache[cache_key]
-                self._set_layer_parameter(working_layer, param, result)
-                method_calls.append(MethodCall(
-                    parameter=param,
-                    method_name=method_name,
-                    inputs={"cached": True},
-                    output=result,
-                    success=True
-                ))
-                continue
-
-            # Get inputs for tracing
-            inputs_used = self._get_inputs_used(working_layer, param, method_name)
-
-            # Execute the method
-            result, error = self.dispatcher.execute(
-                parameter=param,
-                method_name=method_name,
-                layer=working_layer
-            )
-
-            if result is not None:
-                # Cache the result
-                self._cache[cache_key] = result
-                # Update the layer
-                self._set_layer_parameter(working_layer, param, result)
-
-            method_calls.append(MethodCall(
-                parameter=param,
-                method_name=method_name,
-                inputs=inputs_used,
-                output=result,
-                success=result is not None,
-                failure_reason=error
-            ))
-
-        return LayerResult(
-            layer=working_layer,
-            method_calls=method_calls,
-            layer_index=layer_index
+        # Compute and store
+        value, error = self.dispatcher.execute(
+            parameter=parameter,
+            method_name=method,
+            layer=layer
         )
+
+        if value is not None:
+            self.cache.set_layer_param(layer_index, parameter, method, value)
+            # Update the layer
+            self._set_layer_parameter(layer, parameter, value)
+
+        return value, False, error
 
     def _determine_execution_order(
         self,
@@ -377,14 +464,14 @@ class PathwayExecutor:
         elif parameter == "shear_modulus":
             layer.shear_modulus = value
 
-    def _get_inputs_used(
+    def _get_inputs_summary(
         self,
         layer: Layer,
         parameter: str,
         method_name: str
     ) -> Dict[str, Any]:
         """
-        Get the inputs that were used for a calculation (for tracing).
+        Get a summary of inputs used for a calculation (for tracing).
 
         Parameters
         ----------
@@ -407,146 +494,199 @@ class PathwayExecutor:
         inputs = {}
         for input_name in spec.required_inputs:
             from snowpyt_mechparams.execution.dispatcher import _get_layer_input
-            value = _get_layer_input(layer, input_name)
+            value = _get_layer_input(layer, input_name, method_name=method_name)
             if value is not None:
                 # Simplify ufloat for display
                 if hasattr(value, 'nominal_value'):
                     inputs[input_name] = f"{value.nominal_value:.2f} +/- {value.std_dev:.2f}"
                 else:
-                    inputs[input_name] = value
+                    inputs[input_name] = str(value)
         return inputs
 
-    def _execute_slab_calculations(
+    def _get_or_compute_slab_param(
         self,
         slab: Slab,
-        layer_results: List[LayerResult]
-    ) -> SlabResult:
+        parameter: str,
+        method: str
+    ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
-        Execute slab-level calculations (plate theory parameters).
+        Get slab parameter from cache or compute it.
 
-        These require that layers have elastic_modulus and poissons_ratio
-        computed (for A11, B11, D11) and shear_modulus (for A55).
+        Parameters
+        ----------
+        slab : Slab
+            The slab object with computed layer properties
+        parameter : str
+            Slab parameter to compute (A11, B11, D11, or A55)
+        method : str
+            Method to use (typically "weissgraeber_rosendahl")
+
+        Returns
+        -------
+        Tuple[Optional[UncertainValue], bool, Optional[str]]
+            (value, was_cached, error_message) - The computed/cached value, whether it came from cache,
+            and error message if computation failed (None if successful or cached)
+        """
+        # Check cache
+        cached_value = self.cache.get_slab_param(parameter, method)
+        if cached_value is not None:
+            # Update the slab with cached value
+            setattr(slab, parameter, cached_value)
+            return cached_value, True, None
+
+        # Compute
+        value, error = self.dispatcher.execute(
+            parameter=parameter,
+            method_name=method,
+            slab=slab
+        )
+
+        if value is not None:
+            self.cache.set_slab_param(parameter, method, value)
+            # Update the slab
+            setattr(slab, parameter, value)
+
+        return value, False, error
+
+    def _execute_slab_calculations_v2(
+        self,
+        slab: Slab
+    ) -> List[ComputationTrace]:
+        """
+        Execute slab-level calculations and return computation traces.
+
+        This is the new simplified version that returns a flat list of 
+        ComputationTrace objects instead of a nested SlabResult.
 
         Parameters
         ----------
         slab : Slab
             The slab with computed layer values
-        layer_results : List[LayerResult]
-            The layer results from layer-level execution
 
         Returns
         -------
-        SlabResult
-            Slab result with plate theory parameters
+        List[ComputationTrace]
+            List of slab-level computation traces
         """
-        slab_method_calls = []
+        traces: List[ComputationTrace] = []
 
-        # Calculate A11
-        A11_result, A11_error = self.dispatcher.execute(
-            parameter="A11",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
-        )
-        slab_method_calls.append(MethodCall(
-            parameter="A11",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=A11_result,
-            success=A11_result is not None,
-            failure_reason=A11_error
-        ))
-
-        # Calculate B11
-        B11_result, B11_error = self.dispatcher.execute(
-            parameter="B11",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
-        )
-        slab_method_calls.append(MethodCall(
-            parameter="B11",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=B11_result,
-            success=B11_result is not None,
-            failure_reason=B11_error
-        ))
-
-        # Calculate D11
-        D11_result, D11_error = self.dispatcher.execute(
-            parameter="D11",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
-        )
-        slab_method_calls.append(MethodCall(
-            parameter="D11",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=D11_result,
-            success=D11_result is not None,
-            failure_reason=D11_error
-        ))
-
-        # Calculate A55
-        A55_result, A55_error = self.dispatcher.execute(
-            parameter="A55",
-            method_name="weissgraeber_rosendahl",
-            slab=slab
-        )
-        slab_method_calls.append(MethodCall(
-            parameter="A55",
-            method_name="weissgraeber_rosendahl",
-            inputs={"slab": "computed"},
-            output=A55_result,
-            success=A55_result is not None,
-            failure_reason=A55_error
-        ))
-
-        return SlabResult(
-            slab=slab,
-            layer_results=layer_results,
-            slab_method_calls=slab_method_calls,
-            A11=A11_result,
-            B11=B11_result,
-            D11=D11_result,
-            A55=A55_result
+        # Check prerequisites for each slab parameter
+        all_layers_have_thickness = all(
+            layer.thickness is not None
+            for layer in slab.layers
         )
 
-    def _check_success(
-        self,
-        layer_results: List[LayerResult],
-        target_parameter: str
-    ) -> bool:
-        """
-        Check if the pathway execution was successful.
+        # A11, B11, D11: Require E and ν on all layers
+        can_compute_A11_B11_D11 = (
+            all_layers_have_thickness and
+            all(layer.elastic_modulus is not None for layer in slab.layers) and
+            all(layer.poissons_ratio is not None for layer in slab.layers)
+        )
 
-        Success is defined as at least one layer having the target
-        parameter computed.
+        # A55: Requires G on all layers
+        can_compute_A55 = (
+            all_layers_have_thickness and
+            all(layer.shear_modulus is not None for layer in slab.layers)
+        )
 
-        Parameters
-        ----------
-        layer_results : List[LayerResult]
-            The layer results from execution
-        target_parameter : str
-            The target parameter to check
+        # Compute A11 if possible
+        if can_compute_A11_B11_D11:
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
+                slab, "A11", "weissgraeber_rosendahl"
+            )
+            traces.append(ComputationTrace(
+                parameter="A11",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,  # Slab-level
+                output=value,
+                success=value is not None,
+                cached=was_cached,
+                error=error_msg  # Use actual error message from dispatcher
+            ))
+        else:
+            traces.append(ComputationTrace(
+                parameter="A11",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=None,
+                success=False,
+                cached=False,
+                error="Missing prerequisites: need E, ν, and thickness on all layers"
+            ))
 
-        Returns
-        -------
-        bool
-            True if at least one layer has the target parameter computed
-        """
-        for lr in layer_results:
-            layer = lr.layer
-            value = None
-            if target_parameter == "density":
-                value = layer.density_calculated
-            elif target_parameter == "elastic_modulus":
-                value = layer.elastic_modulus
-            elif target_parameter == "poissons_ratio":
-                value = layer.poissons_ratio
-            elif target_parameter == "shear_modulus":
-                value = layer.shear_modulus
+        # Compute B11 if possible
+        if can_compute_A11_B11_D11:
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
+                slab, "B11", "weissgraeber_rosendahl"
+            )
+            traces.append(ComputationTrace(
+                parameter="B11",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=value,
+                success=value is not None,
+                cached=was_cached,
+                error=error_msg  # Use actual error message from dispatcher
+            ))
+        else:
+            traces.append(ComputationTrace(
+                parameter="B11",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=None,
+                success=False,
+                cached=False,
+                error="Missing prerequisites: need E, ν, and thickness on all layers"
+            ))
 
-            if value is not None:
-                return True
+        # Compute D11 if possible
+        if can_compute_A11_B11_D11:
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
+                slab, "D11", "weissgraeber_rosendahl"
+            )
+            traces.append(ComputationTrace(
+                parameter="D11",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=value,
+                success=value is not None,
+                cached=was_cached,
+                error=error_msg  # Use actual error message from dispatcher
+            ))
+        else:
+            traces.append(ComputationTrace(
+                parameter="D11",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=None,
+                success=False,
+                cached=False,
+                error="Missing prerequisites: need E, ν, and thickness on all layers"
+            ))
 
-        return False
+        # Compute A55 if possible
+        if can_compute_A55:
+            value, was_cached, error_msg = self._get_or_compute_slab_param(
+                slab, "A55", "weissgraeber_rosendahl"
+            )
+            traces.append(ComputationTrace(
+                parameter="A55",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=value,
+                success=value is not None,
+                cached=was_cached,
+                error=error_msg  # Use actual error message from dispatcher
+            ))
+        else:
+            traces.append(ComputationTrace(
+                parameter="A55",
+                method_name="weissgraeber_rosendahl",
+                layer_index=None,
+                output=None,
+                success=False,
+                cached=False,
+                error="Missing prerequisites: need G and thickness on all layers"
+            ))
+
+        return traces

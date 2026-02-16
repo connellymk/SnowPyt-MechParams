@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from uncertainties import ufloat
 
+from snowpyt_mechparams.constants import resolve_grain_form_for_method
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
 from snowpyt_mechparams.layer_parameters.density import calculate_density
 from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
@@ -70,13 +71,9 @@ LAYER_INPUT_MAPPING = {
 }
 
 
-# Grain form codes accepted by each density method
-# The dispatcher will try sub-grain code first if in the method's accepted set
-DENSITY_METHOD_GRAIN_CODES = {
-    "geldsetzer": {"PP", "PPgp", "DF", "RG", "RGmx", "FC", "FCmx", "DH"},
-    "kim_jamieson_table2": {"PP", "PPgp", "DF", "RGxf", "FC", "FCxr", "DH", "MFcr", "RG"},
-    "kim_jamieson_table5": {"FC", "FCxr", "PP", "PPgp", "DF", "MF"},
-}
+# Note: Valid grain form codes for each density method are defined in
+# constants.GRAIN_FORM_METHODS and accessed via the resolve_grain_form_for_method()
+# utility function.
 
 
 def _resolve_density(layer: Layer) -> Optional[UncertainValue]:
@@ -114,6 +111,10 @@ def _resolve_grain_form(layer: Layer, method_name: Optional[str] = None) -> Opti
 
     For density methods, uses method-specific grain code sets to determine
     whether to use sub-grain class code (more specific) or basic grain class code.
+    
+    The grain_form attribute can contain either:
+    - A 2-character basic grain class code (e.g., 'RG', 'FC')
+    - A longer sub-grain class code (e.g., 'RGmx', 'FCxr')
 
     Parameters
     ----------
@@ -121,30 +122,24 @@ def _resolve_grain_form(layer: Layer, method_name: Optional[str] = None) -> Opti
         The layer to extract grain form from
     method_name : Optional[str]
         The method name to determine which grain codes are valid.
-        If None, returns basic grain form.
+        If None, returns the layer's grain form as-is.
 
     Returns
     -------
     Optional[str]
-        The resolved grain form code, or None if not available
+        The resolved grain form code, or None if not available or cannot be
+        mapped to the method's valid codes
+        
+    Notes
+    -----
+    This function delegates to resolve_grain_form_for_method() in constants.py,
+    which is the single source of truth for grain form validation logic.
     """
-    # If method has specific grain code requirements, try sub code first
-    if method_name and method_name in DENSITY_METHOD_GRAIN_CODES:
-        valid_codes = DENSITY_METHOD_GRAIN_CODES[method_name]
-
-        # Try sub-grain class code first (more specific)
-        if layer.grain_form_sub and layer.grain_form_sub in valid_codes:
-            return layer.grain_form_sub
-
-        # Fall back to basic grain class code
-        if layer.grain_form and layer.grain_form in valid_codes:
-            return layer.grain_form
-
-        # Neither code is in the valid set
-        return layer.grain_form  # Let the method return NaN
-
-    # Default: return basic grain form
-    return layer.grain_form
+    if not method_name:
+        return layer.grain_form
+    
+    # Use the centralized utility function
+    return resolve_grain_form_for_method(layer.grain_form, method_name)
 
 
 def _get_layer_input(

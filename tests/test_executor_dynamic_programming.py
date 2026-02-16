@@ -1,0 +1,459 @@
+"""
+Tests for executor dynamic programming enhancements.
+
+This module tests the enhanced PathwayExecutor with:
+- Persistent caching across pathways
+- Cache statistics tracking
+- Layer property handling (thickness)
+- Slab parameter execution with prerequisite checks
+"""
+
+import pytest
+from uncertainties import ufloat
+
+from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.execution.executor import PathwayExecutor
+from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
+from snowpyt_mechparams.graph import graph
+from snowpyt_mechparams.algorithm import find_parameterizations
+
+
+class TestCacheManagement:
+    """Test cache management and statistics."""
+    
+    def test_cache_starts_empty(self):
+        """Cache should start empty."""
+        executor = PathwayExecutor()
+        stats = executor.get_cache_stats()
+        
+        assert stats['hits'] == 0
+        assert stats['misses'] == 0
+        assert stats['hit_rate'] == 0.0
+    
+    def test_clear_cache(self):
+        """clear_cache should reset all caches and statistics."""
+        executor = PathwayExecutor()
+        
+        # Simulate some cache activity using the cache API
+        executor.cache.set_layer_param(0, "density", "geldsetzer", ufloat(250, 10))
+        executor.cache._stats.hits = 10
+        executor.cache._stats.misses = 5
+        
+        # Verify cache has data
+        stats_before = executor.get_cache_stats()
+        assert stats_before['hits'] == 10
+        assert stats_before['misses'] == 5
+        
+        # Clear cache
+        executor.clear_cache()
+        
+        # Verify everything is reset
+        stats_after = executor.get_cache_stats()
+        assert stats_after['hits'] == 0
+        assert stats_after['misses'] == 0
+        # hit_rate should be 0.0 when there are no hits or misses
+        assert stats_after['hit_rate'] == 0.0
+
+
+class TestLayerPropertyHandling:
+    """Test handling of layer properties (thickness)."""
+    
+    def test_layer_thickness_direct_flow(self):
+        """Layer thickness should be direct data flow (no calculation)."""
+        executor = PathwayExecutor()
+        layer = Layer(thickness=ufloat(30, 1))
+        
+        # Get thickness via the cache-aware method
+        value, was_cached, error_msg = executor._get_or_compute_layer_param(
+            layer=layer,
+            layer_index=0,
+            parameter="layer_thickness",
+            method="data_flow"
+        )
+        
+        # Should return the thickness directly
+        assert value == layer.thickness
+        assert was_cached == False  # No caching for direct properties
+        assert error_msg is None  # No error for direct properties
+
+
+class TestDynamicProgramming:
+    """Test dynamic programming across pathways."""
+    
+    def test_cache_persists_across_calls(self):
+        """Cache should persist across execute_parameterization calls."""
+        executor = PathwayExecutor()
+        
+        # Create a simple slab
+        # Use poissons_ratio pathways (simpler - just grain_form, no density dependency for kochle)
+        layer = Layer(
+            thickness=ufloat(30, 1),
+            grain_form="RG"
+        )
+        slab = Slab(layers=[layer], angle=35)
+        
+        # Get pathways for poissons_ratio (simpler - kochle uses only grain_form)
+        nu_node = graph.get_node("poissons_ratio")
+        pathways = find_parameterizations(graph, nu_node)
+        
+        # Find the kochle pathway (no density dependency)
+        kochle_pathway = [p for p in pathways if 'kochle' in str(p)][0]
+        
+        # Execute first time
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        config = ExecutionConfig(verbose=False)
+        
+        result1 = executor.execute_parameterization(
+            parameterization=kochle_pathway,
+            slab=slab,
+            target_parameter="poissons_ratio",
+            config=config
+        )
+        
+        # Check that we had some cache misses (first execution)
+        stats1 = executor.get_cache_stats()
+        assert stats1['misses'] > 0
+        assert stats1['hits'] == 0  # Nothing cached yet
+        
+        # Execute second time (same pathway - should hit cache)
+        result2 = executor.execute_parameterization(
+            parameterization=kochle_pathway,
+            slab=slab,
+            target_parameter="poissons_ratio",
+            config=config
+        )
+        
+        # Check that we had cache hits this time
+        stats2 = executor.get_cache_stats()
+        assert stats2['hits'] > stats1['hits']  # More hits now
+        assert stats2['hit_rate'] > 0.0  # Some hits occurred
+
+
+class TestSlabParameterExecution:
+    """Test slab parameter execution with prerequisites."""
+    
+    def test_slab_params_computed_when_prerequisites_met(self):
+        """Slab parameters should be computed when prerequisites are met."""
+        executor = PathwayExecutor()
+        
+        # Create a slab with all necessary layer properties
+        layer1 = Layer(
+            thickness=ufloat(20, 1),
+            elastic_modulus=ufloat(1.5, 0.2),
+            poissons_ratio=ufloat(0.3, 0.02),
+            shear_modulus=ufloat(0.5, 0.1)
+        )
+        layer2 = Layer(
+            thickness=ufloat(30, 1),
+            elastic_modulus=ufloat(2.0, 0.3),
+            poissons_ratio=ufloat(0.3, 0.02),
+            shear_modulus=ufloat(0.7, 0.1)
+        )
+        slab = Slab(layers=[layer1, layer2], angle=35)
+        
+        # Execute slab calculations using the new v2 method
+        slab_traces = executor._execute_slab_calculations_v2(slab)
+        
+        # Should have traces for A11, B11, D11, A55
+        assert len(slab_traces) == 4
+        
+        # All should be successful
+        for trace in slab_traces:
+            assert trace.success, f"{trace.parameter} failed"
+            assert trace.output is not None, f"{trace.parameter} has no output"
+        
+        # Check that slab object was updated
+        assert slab.A11 is not None
+        assert slab.B11 is not None
+        assert slab.D11 is not None
+        assert slab.A55 is not None
+    
+    def test_slab_params_fail_when_prerequisites_missing(self):
+        """Slab parameters should fail gracefully when prerequisites missing."""
+        executor = PathwayExecutor()
+        
+        # Create a slab with missing properties
+        layer = Layer(
+            thickness=ufloat(30, 1),
+            # Missing elastic_modulus, poissons_ratio, shear_modulus
+        )
+        slab = Slab(layers=[layer], angle=35)
+        
+        # Execute slab calculations using the new v2 method
+        slab_traces = executor._execute_slab_calculations_v2(slab)
+        
+        # Should have traces for A11, B11, D11, A55
+        assert len(slab_traces) == 4
+        
+        # All should have failed due to missing prerequisites
+        for trace in slab_traces:
+            assert not trace.success, f"{trace.parameter} should have failed"
+            assert trace.output is None, f"{trace.parameter} should have no output"
+            assert trace.error is not None, f"{trace.parameter} should have error message"
+        
+        # Check that error messages mention prerequisites
+        a11_trace = [t for t in slab_traces if t.parameter == "A11"][0]
+        assert not a11_trace.success
+        assert "prerequisite" in a11_trace.error.lower() or "missing" in a11_trace.error.lower()
+
+
+class TestSlabCaching:
+    """Test slab-level parameter caching."""
+    
+    def test_slab_params_cached(self):
+        """Slab parameters should be cached after first computation."""
+        executor = PathwayExecutor()
+        
+        # Create a slab with all necessary properties
+        layer = Layer(
+            thickness=ufloat(30, 1),
+            elastic_modulus=ufloat(2.0, 0.2),
+            poissons_ratio=ufloat(0.3, 0.02),
+            shear_modulus=ufloat(0.7, 0.1)
+        )
+        slab = Slab(layers=[layer], angle=35)
+        
+        # Compute D11 first time
+        value1, cached1, error1 = executor._get_or_compute_slab_param(
+            slab, "D11", "weissgraeber_rosendahl"
+        )
+        
+        assert value1 is not None
+        assert cached1 == False  # First computation
+        assert error1 is None  # No error
+        
+        # Compute D11 second time
+        value2, cached2, error2 = executor._get_or_compute_slab_param(
+            slab, "D11", "weissgraeber_rosendahl"
+        )
+        
+        assert value2 is not None
+        assert cached2 == True  # Retrieved from cache
+        assert error2 is None  # No error
+        assert value1 == value2  # Same value
+
+
+class TestErrorMessagePreservation:
+    """Test that error messages from dispatcher are preserved in computation traces."""
+    
+    def test_layer_param_error_message_preserved(self):
+        """Error messages from failed layer computations should be preserved."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a layer missing required data for elastic_modulus calculation
+        # (elastic_modulus needs density, which requires either measured density or hand_hardness)
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            # Missing: density_measured and hand_hardness
+            # This will cause density calculation to fail, which cascades to E
+        )
+        
+        slab = Slab(layers=[layer], angle=35.0)
+        
+        # Execute a parameterization that calculates elastic_modulus
+        # This requires density first, which will fail
+        E_node = graph.get_node("elastic_modulus")
+        pathways = find_parameterizations(graph, E_node)
+        
+        # Use first pathway (any will do)
+        config = ExecutionConfig(verbose=False)
+        result = executor.execute_parameterization(
+            parameterization=pathways[0],
+            slab=slab,
+            target_parameter="elastic_modulus",
+            config=config
+        )
+        
+        # Find failed computation traces
+        failed_traces = [t for t in result.computation_trace if not t.success]
+        assert len(failed_traces) > 0, "Should have at least one failed computation"
+        
+        # Check that failed traces have specific error messages, not generic ones
+        for trace in failed_traces:
+            if trace.error is not None:
+                # Error should not be the generic "Computation failed" message
+                # It should be a specific error from the dispatcher
+                assert trace.error != "Computation failed" or trace.cached, \
+                    f"Failed trace for {trace.parameter} should have specific error or be cached: {trace.error}"
+    
+    def test_slab_param_error_message_preserved(self):
+        """Error messages from failed slab computations should be preserved."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a layer with density and grain form but no elastic modulus or poisson's ratio
+        # This will cause slab parameter calculation to fail with a specific error
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            density_measured=ufloat(200, 15)
+        )
+        
+        slab = Slab(layers=[layer], angle=35.0)
+        
+        # Execute density calculation first
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        
+        config = ExecutionConfig(verbose=False)
+        density_result = executor.execute_parameterization(
+            parameterization=pathways[0],
+            slab=slab,
+            target_parameter="density",
+            config=config
+        )
+        
+        # Now the layer has density but not E or nu
+        # Try to execute slab calculations manually
+        result_slab = density_result.slab
+        traces = executor._execute_slab_calculations_v2(result_slab)
+        
+        # Find D11 trace
+        D11_traces = [t for t in traces if t.parameter == "D11"]
+        assert len(D11_traces) > 0, "No D11 traces found"
+        
+        D11_trace = D11_traces[0]
+        
+        # Verify the trace shows failure with a specific prerequisite error message
+        assert not D11_trace.success, "D11 computation should have failed"
+        assert D11_trace.error is not None, "Error message should not be None"
+        # Should have the specific prerequisite error, not generic "Computation failed"
+        assert "prerequisite" in D11_trace.error.lower() or "missing" in D11_trace.error.lower(), \
+            f"Error should mention prerequisites: {D11_trace.error}"
+
+
+class TestMetadataPreservation:
+    """Test that slab metadata and attributes are preserved during execution."""
+    
+    def test_metadata_preserved_in_result_slab(self):
+        """Result slab should preserve all metadata from original slab."""
+        from snowpyt_mechparams.data_structures import Pit
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a slab with rich metadata (simulating creation from Pit.create_slabs)
+        weak_layer = Layer(
+            depth_top=50,
+            thickness=ufloat(5, 0.5),
+            grain_form="FC",
+            hand_hardness="F"
+        )
+        
+        layer1 = Layer(
+            depth_top=0,
+            thickness=ufloat(20, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            density_measured=ufloat(150, 10)
+        )
+        
+        layer2 = Layer(
+            depth_top=20,
+            thickness=ufloat(30, 1),
+            grain_form="FC",
+            hand_hardness="4F",
+            density_measured=ufloat(250, 15)
+        )
+        
+        # Create slab with full metadata (as would be created by Pit.create_slabs)
+        original_slab = Slab(
+            layers=[layer1, layer2],
+            angle=38.0,
+            weak_layer=weak_layer,
+            pit_id="test_pit_12345",
+            slab_id="test_pit_12345_slab_0",
+            weak_layer_source="ECTP_failure_layer",
+            test_result_index=0,
+            test_result_properties={"score": "ECTP12", "propagation": True, "depth_top": 50},
+            n_test_results_in_pit=2,
+            # Optionally pre-existing calculated parameters
+            A11=ufloat(1000, 50)
+        )
+        
+        # Execute a parameterization (density calculation)
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        pathway = pathways[0]  # Use first pathway
+        
+        config = ExecutionConfig(verbose=False)
+        result = executor.execute_parameterization(
+            parameterization=pathway,
+            slab=original_slab,
+            target_parameter="density",
+            config=config
+        )
+        
+        # Verify metadata is preserved in result slab
+        result_slab = result.slab
+        
+        assert result_slab.pit_id == "test_pit_12345"
+        assert result_slab.slab_id == "test_pit_12345_slab_0"
+        assert result_slab.weak_layer_source == "ECTP_failure_layer"
+        assert result_slab.test_result_index == 0
+        assert result_slab.test_result_properties == {"score": "ECTP12", "propagation": True, "depth_top": 50}
+        assert result_slab.n_test_results_in_pit == 2
+        assert result_slab.angle == 38.0
+        
+        # Verify weak_layer reference is preserved
+        assert result_slab.weak_layer is not None
+        assert result_slab.weak_layer.depth_top == 50
+        assert result_slab.weak_layer.grain_form == "FC"
+        
+        # Verify pre-existing calculated parameter is preserved
+        assert result_slab.A11 is not None
+        assert result_slab.A11.nominal_value == 1000
+    
+    def test_pit_reference_preserved(self):
+        """Pit reference should be preserved in result slab."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a mock pit (simplified, just to test reference preservation)
+        class MockSnowPit:
+            pass
+        
+        mock_snow_pit = MockSnowPit()
+        
+        # Create a minimal Pit (without using from_snow_pit to avoid complex dependencies)
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            density_measured=ufloat(200, 15)
+        )
+        
+        slab = Slab(
+            layers=[layer],
+            angle=35.0,
+            pit_id="test_pit_999"
+        )
+        
+        # Execute a parameterization
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        pathway = pathways[0]
+        
+        config = ExecutionConfig(verbose=False)
+        result = executor.execute_parameterization(
+            parameterization=pathway,
+            slab=slab,
+            target_parameter="density",
+            config=config
+        )
+        
+        # Verify pit_id is preserved
+        assert result.slab.pit_id == "test_pit_999"
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

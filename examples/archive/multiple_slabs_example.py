@@ -5,7 +5,7 @@ This example demonstrates how to use the create_slabs() method to create
 multiple slabs from a single pit when there are multiple ECT or CT test results.
 """
 
-from snowpyt_mechparams.snowpilot_utils import parse_caaml_directory
+from snowpyt_mechparams.snowpilot import parse_caaml_directory
 from snowpyt_mechparams.data_structures import Pit
 import pandas as pd
 

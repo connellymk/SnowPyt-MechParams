@@ -455,5 +455,111 @@ class TestMetadataPreservation:
         assert result.slab.pit_id == "test_pit_999"
 
 
+class TestDataFlowTracking:
+    """Test that data_flow edges are properly tracked in methods_used."""
+    
+    def test_data_flow_recorded_for_direct_measurements(self):
+        """methods_used should include 'data_flow' for directly measured parameters."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a layer with directly measured density
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            density_measured=ufloat(250, 15)  # Direct measurement
+        )
+        
+        slab = Slab(layers=[layer], angle=35.0)
+        
+        # Find pathways for elastic_modulus (which requires density)
+        E_node = graph.get_node("elastic_modulus")
+        pathways = find_parameterizations(graph, E_node)
+        
+        # Find a pathway that uses directly measured density (data_flow)
+        # The first pathway typically uses measured_density → density via data_flow
+        config = ExecutionConfig(verbose=False)
+        
+        # Test all pathways to ensure data_flow is tracked when used
+        found_data_flow = False
+        for pathway in pathways:
+            result = executor.execute_parameterization(
+                parameterization=pathway,
+                slab=slab,
+                target_parameter="elastic_modulus",
+                config=config
+            )
+            
+            # Check if density method is in methods_used
+            if "density" in result.methods_used:
+                # If density is in the pathway, it should have a method recorded
+                density_method = result.methods_used["density"]
+                assert density_method is not None, "Density method should not be None"
+                assert isinstance(density_method, str), "Density method should be a string"
+                
+                # If the pathway uses measured density, it should be "data_flow"
+                if density_method == "data_flow":
+                    found_data_flow = True
+                    # Verify the pathway succeeded
+                    assert result.success, "Pathway with data_flow should succeed when density is measured"
+        
+        # Verify we found at least one pathway using data_flow
+        assert found_data_flow, "Should find at least one pathway using data_flow for density"
+    
+    def test_all_elastic_modulus_pathways_have_density_method(self):
+        """All elastic modulus pathways should record the density method used."""
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        
+        executor = PathwayExecutor()
+        
+        # Create a layer with multiple ways to get density
+        layer = Layer(
+            depth_top=0,
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            hand_hardness="1F",
+            grain_size_avg=ufloat(0.5, 0.05),
+            density_measured=ufloat(250, 15)  # Direct measurement
+        )
+        
+        slab = Slab(layers=[layer], angle=35.0)
+        
+        # Find all pathways for elastic_modulus
+        E_node = graph.get_node("elastic_modulus")
+        pathways = find_parameterizations(graph, E_node)
+        
+        config = ExecutionConfig(verbose=False)
+        
+        # Test each pathway
+        density_methods_found = set()
+        for pathway in pathways:
+            result = executor.execute_parameterization(
+                parameterization=pathway,
+                slab=slab,
+                target_parameter="elastic_modulus",
+                config=config
+            )
+            
+            # Every elastic modulus pathway must go through density
+            assert "density" in result.methods_used, \
+                f"Pathway {result.pathway_description} should include density method"
+            
+            density_method = result.methods_used["density"]
+            assert density_method is not None, "Density method should not be None"
+            assert isinstance(density_method, str), "Density method should be a string"
+            
+            density_methods_found.add(density_method)
+        
+        # Should find data_flow among the methods
+        assert "data_flow" in density_methods_found, \
+            f"Should find data_flow method. Found: {density_methods_found}"
+        
+        # Should also find other methods (geldsetzer, kim_jamieson, etc.)
+        assert len(density_methods_found) > 1, \
+            f"Should find multiple density methods. Found: {density_methods_found}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -487,7 +487,11 @@ class Pit:
                     for density_obs in self.snow_pit.snow_profile.density_profile:
                         if (density_obs.depth_top == layer.depth_top and
                             density_obs.thickness == layer.thickness):
-                            density_measured = density_obs.density
+                            # density_obs.density returns [value, 'unit'] - extract just the value
+                            if isinstance(density_obs.density, list) and len(density_obs.density) > 0:
+                                density_measured = float(density_obs.density[0])
+                            else:
+                                density_measured = density_obs.density
                             break
                 except (AttributeError, TypeError):
                     pass

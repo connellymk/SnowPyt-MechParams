@@ -277,9 +277,12 @@ class PathwayExecutor:
                     continue
 
                 # The to_node is the parameter, edge_name is the method
-                if segment.edge_name and segment.edge_name != "data_flow":
+                # edge_name is None for data_flow edges
+                if segment.edge_name:
+                    # Has an explicit method name (e.g., "geldsetzer", "bergfeld")
                     methods[segment.to_node] = segment.edge_name
-                elif segment.edge_name == "data_flow":
+                else:
+                    # edge_name is None - this is a data_flow edge
                     methods[segment.to_node] = "data_flow"
 
         # Process merge point continuations
@@ -295,9 +298,12 @@ class PathwayExecutor:
                 if segment.to_node == "snow_pit":
                     continue
 
-                if segment.edge_name and segment.edge_name != "data_flow":
+                # edge_name is None for data_flow edges
+                if segment.edge_name:
+                    # Has an explicit method name (e.g., "geldsetzer", "bergfeld")
                     methods[segment.to_node] = segment.edge_name
-                elif segment.edge_name == "data_flow":
+                else:
+                    # edge_name is None - this is a data_flow edge
                     methods[segment.to_node] = "data_flow"
 
         return methods

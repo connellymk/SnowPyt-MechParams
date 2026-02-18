@@ -63,7 +63,7 @@ graph TB
     
     %% Poisson's ratio pathways
     measured_grain_form -->|kochle| poissons_ratio
-    merge_hand_hardness_grain_form -->|srivastava| poissons_ratio
+    merge_density_grain_form -->|srivastava| poissons_ratio
     
     %% Shear modulus pathways
     merge_density_grain_form -->|wautier| shear_modulus

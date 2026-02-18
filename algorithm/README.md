@@ -26,6 +26,10 @@ The algorithm traverses **backwards** from the target parameter to the `snow_pit
 
 3. **Memoization**: Results for each node are cached to avoid redundant computation.
 
+4. **Deduplication**: After all structural traversals are generated, any two traversals that produce the same `(parameter → method)` mapping are considered identical. Only the first occurrence of each unique fingerprint is returned.
+
+   This matters when a parameter node is reachable via more than one branch of a merge node. For example, `density` is used by both `elastic_modulus` and `srivastava` (Poisson's ratio). The Cartesian-product merge logic internally generates all cross-combinations of density sub-paths, but since only one density method can be in use at a time, all but one combination per unique density choice are duplicates. Deduplication removes them before the caller sees the result.
+
 ## Files
 
 - `data_structures.py`: Defines `Node`, `Edge`, `Graph`, and `GraphBuilder` classes

@@ -179,11 +179,12 @@ def test_immutability_guarantee_with_optimization():
     assert slab.layers[0].poissons_ratio is None
     assert slab.layers[1].poissons_ratio is None
     
-    # Verify results have computed values
+    # Verify results have computed values.
+    # Every "successful" pathway must have computed poissons_ratio on all layers.
     successful = results.get_successful_pathways()
+    assert len(successful) > 0, "Expected at least one successful pathway"
     for pathway in successful.values():
         assert pathway.slab.layers[0].poissons_ratio is not None
         assert pathway.slab.layers[1].poissons_ratio is not None
-        
-        # Each pathway has its own slab
+        # Every pathway result must be a distinct slab object (not the original)
         assert pathway.slab is not slab

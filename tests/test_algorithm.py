@@ -131,10 +131,11 @@ class TestFindParameterizationsLayerLevel:
         node = graph.get_node("poissons_ratio")
         pathways = find_parameterizations(graph, node)
 
-        # kochle (grain_form only) + srivastava (hand_hardness + grain_form)
-        # Note: srivastava uses merge_hh_gf directly, NOT calculated density
-        # Total: 1 (kochle) + 1 (srivastava) = 2 pathways
-        assert len(pathways) == 2
+        # kochle (grain_form only) + srivastava (density + grain_form)
+        # srivastava goes through merge_d_gf and needs density (4 sources):
+        #   data_flow, geldsetzer, kim_jamieson_table2, kim_jamieson_table5
+        # Total: 1 (kochle) + 4 (srivastava) = 5 pathways
+        assert len(pathways) == 5
     
     def test_find_shear_modulus_parameterizations(self):
         """Should find all shear modulus calculation pathways."""
@@ -154,9 +155,10 @@ class TestFindParameterizationsSlabLevel:
         pathways = find_parameterizations(graph, node)
 
         # A11 requires: thickness + E + ν
-        # - layer_thickness: 1 pathway
+        # - layer_thickness: 1 pathway (data_flow)
         # - E: 4 density methods × 4 E methods = 16 pathways
-        # - ν: 1 kochle (grain_form) + 1 srivastava (hh + gf) = 2 pathways
+        # - ν: kochle (grain_form) or srivastava (density + grain_form, same
+        #      density already used for E) = 2 methods
         # Total: 16 (E) × 2 (ν) × 1 (thickness) = 32 pathways
         assert len(pathways) == 32
         
@@ -286,15 +288,15 @@ class TestPathwayCount:
         # For D11:
         # - layer_thickness: 1 pathway (data_flow)
         # - E (elastic_modulus): 4 density × 4 E methods = 16 pathways
-        # - ν (poissons_ratio): kochle (1) + srivastava (1) = 2 pathways
-        #   Note: srivastava uses hand_hardness + grain_form directly, NOT density
+        # - ν (poissons_ratio): 2 methods (kochle via grain_form; srivastava
+        #   via density + grain_form, where density is the same shared node
+        #   used for E)
         #
-        # These combine via merge nodes:
-        # - merge_E_nu combines all E and ν pathways: 16 × 2 = 32 combinations
-        # - zi uses layer_thickness: 1 pathway
-        # - merge_zi_E_nu combines zi with merge_E_nu: 1 × 32 = 32
+        # Duplicate structural traversals (where the graph's Cartesian-product
+        # logic enumerates all cross-combinations of the two density sub-paths)
+        # are removed by find_parameterizations before returning.
         #
-        # Total: 32 pathways
+        # Total: 16 (E) × 2 (ν) = 32 unique pathways
 
         D11_node = graph.get_node("D11")
         pathways = find_parameterizations(graph, D11_node)

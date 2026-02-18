@@ -163,7 +163,9 @@ class ExecutionEngine:
         if target_node is None:
             raise ValueError(f"Unknown target parameter: {target_parameter}")
 
-        # Find all parameterizations (algorithm determines what's needed)
+        # Find all parameterizations (algorithm determines what's needed).
+        # find_parameterizations already deduplicates by method fingerprint,
+        # so every entry here represents a genuinely distinct calculation.
         parameterizations = find_parameterizations(self.graph, target_node)
 
         # Execute each parameterization (cache persists across pathways)

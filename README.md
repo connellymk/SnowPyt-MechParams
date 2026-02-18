@@ -55,7 +55,7 @@ All slab parameters calculated using classical laminate theory (Weißgraeber & R
 
 The graph-based calculation system enables:
 
-- **32 unique pathways to D11**: Automatically discovers all valid method combinations (4 density × 4 elastic modulus × 2 Poisson's ratio)
+- **32 unique pathways to D11**: Automatically discovers all valid method combinations (4 density × 4 elastic modulus × 2 Poisson's ratio methods, with density shared between E and srivastava)
 - **Method independence**: Each method implemented independently, graph handles dependencies
 - **Extensibility**: Add new methods by implementing the function and adding a graph edge
 - **Provenance tracking**: Know exactly which methods produced each value
@@ -64,7 +64,7 @@ The graph-based calculation system enables:
 **Example:** To calculate D11 (bending stiffness), the system needs:
 1. Density (4 possible methods: data_flow, geldsetzer, kim_jamieson_table2, kim_jamieson_table5)
 2. Elastic modulus (4 possible methods: bergfeld, kochle, wautier, schottner)
-3. Poisson's ratio (2 possible methods: kochle, srivastava)
+3. Poisson's ratio (2 methods: kochle from grain form; srivastava using the same density already computed for E)
 4. Layer positions and thicknesses (from measurements)
 
 The graph automatically finds all valid combinations: 4 × 4 × 2 = **32 pathways**
@@ -346,13 +346,13 @@ print(f"Found {len(pathways)} pathways to calculate D11")  # Output: 32 pathways
 - Memoization to avoid recomputing shared subgraphs
 - OR logic for parameter nodes (alternative methods)
 - AND logic for merge nodes (all inputs required)
-- Automatic discovery of all valid method combinations
+- Automatic deduplication: structurally distinct traversals that resolve to the same `(parameter → method)` mapping are collapsed before returning
 
 **Example output for D11:**
 - 32 unique pathways combining:
   - 4 density methods (including direct measurement via data_flow)
   - 4 elastic modulus methods
-  - 2 Poisson's ratio methods
+  - 2 Poisson's ratio methods (kochle via grain form; srivastava using the same density as E)
 
 See `docs/execution_engine.md` for detailed architecture and implementation documentation with Mermaid diagrams.
 
@@ -391,7 +391,7 @@ Comprehensive examples are available in the `examples/` directory:
 
 - **`compare_D11_across_pathways_v3.ipynb`** - Comprehensive D11 analysis across all 32 pathways
   - Processes ~50,000 snow pits from SnowPilot dataset
-  - Executes ~473,000 pathway calculations (14,776 slabs × 32 pathways)
+  - Executes ~473,032 pathway calculations (14,776 slabs × 32 pathways)
   - Analyzes success rates, inter-pathway variability, and method comparisons
   - Explores relationships between variability and slab properties
   - Generates publication-ready figures

@@ -93,6 +93,7 @@ Finding all ways to calculate D11:
 >>> pathways = find_parameterizations(graph, D11_node)
 >>> print(f"Found {len(pathways)} pathways")
 Found 32 pathways  # (4 density methods) × (4 E methods) × (2 ν methods)
+                   # Duplicate structural traversals are removed before returning.
 >>>
 >>> # D11 requires elastic_modulus and poissons_ratio on all layers
 >>> # Plus layer thickness for spatial weighting
@@ -118,6 +119,49 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from snowpyt_mechparams.graph.structures import Graph, Node
+
+
+def _method_fingerprint(parameterization: 'Parameterization') -> str:
+    """
+    Return a canonical string key that uniquely identifies the set of
+    (parameter, method) choices made by a Parameterization.
+
+    Two Parameterization objects with different graph-traversal structures
+    but identical (parameter → method) mappings will produce the same key.
+    This is used inside find_parameterizations to discard redundant traversals
+    before returning.
+
+    Parameters
+    ----------
+    parameterization : Parameterization
+        The parameterization to fingerprint.
+
+    Returns
+    -------
+    str
+        Sorted, joined ``parameter:method`` pairs, e.g.
+        ``"D11:weissgraeber_rosendahl->density:geldsetzer->elastic_modulus:bergfeld->..."``.
+    """
+    methods: Dict[str, str] = {}
+
+    skip_prefixes = ("measured_", "merge_")
+    skip_names = {"snow_pit"}
+
+    def _record(segment: 'PathSegment') -> None:
+        node = segment.to_node
+        if any(node.startswith(p) for p in skip_prefixes) or node in skip_names:
+            return
+        methods[node] = segment.edge_name if segment.edge_name else "data_flow"
+
+    for branch in parameterization.branches:
+        for seg in branch.segments:
+            _record(seg)
+
+    for _indices, _merge_node, continuation in parameterization.merge_points:
+        for seg in continuation:
+            _record(seg)
+
+    return "->".join(f"{p}:{m}" for p, m in sorted(methods.items()))
 
 
 @dataclass
@@ -465,13 +509,25 @@ def find_parameterizations(
     
     # Get all path trees starting from target
     path_trees = backtrack(target_parameter)
-    
-    # Convert PathTree objects to Parameterization objects
+
+    # Convert PathTree objects to Parameterization objects, then deduplicate.
+    #
+    # The graph traversal can produce multiple structurally distinct trees that
+    # resolve to the same (parameter → method) mapping.  This happens when a
+    # parameter node is reachable via more than one branch of a merge node
+    # (e.g. `density` feeds both `elastic_modulus` and `srivastava`, so the
+    # Cartesian-product merge logic enumerates all cross-combinations of the
+    # two density sub-paths).  At execution time those combinations are
+    # identical, so only the first occurrence of each unique fingerprint is kept.
+    seen: set = set()
     parameterizations = []
     for tree in path_trees:
         param = _tree_to_parameterization(tree)
-        parameterizations.append(param)
-    
+        key = _method_fingerprint(param)
+        if key not in seen:
+            seen.add(key)
+            parameterizations.append(param)
+
     return parameterizations
 
 
@@ -639,4 +695,5 @@ __all__ = [
     "Parameterization",
     "PathTree",
     "find_parameterizations",
+    "_method_fingerprint",
 ]

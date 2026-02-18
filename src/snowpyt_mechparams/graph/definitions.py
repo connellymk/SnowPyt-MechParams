@@ -42,8 +42,7 @@ Layer Parameters:
 
 **Poisson's Ratio** (dimensionless):
 - kochle: From grain form only [Köchle & Schneebeli 2014]
-- srivastava: From hand hardness and grain form [Srivastava et al. 2016]
-  Note: Uses the same merge_hh_gf node as density estimation, NOT the calculated density
+- srivastava: From density and grain form [Srivastava et al. 2016]
 
 **Shear Modulus** (MPa):
 - wautier: From density and grain form [Wautier et al. 2015]
@@ -89,6 +88,16 @@ layer-level calculations before attempting slab-level calculations.
 - merge_zi_E_nu: Combines spatial info with E/ν (for D11 bending calculation)
 - merge_hi_G: Combines thickness with shear modulus (for A55)
 - merge_hi_E_nu: Combines thickness with E/ν (for A11, B11)
+
+**Shared Density Node**: The ``density`` node is an input to both
+``elastic_modulus`` (via ``merge_density_grain_form``) and to the
+``srivastava`` Poisson's ratio method (also via ``merge_density_grain_form``).
+Because it is a single shared node, any pathway that uses ``srivastava`` for
+Poisson's ratio must use the *same* density method as is used for elastic
+modulus — there is no independent density choice for Poisson's ratio. This
+constrains D11 to 4 density × 4 E × 2 ν = **32 unique pathways**.
+``find_parameterizations`` enforces this through deduplication; see
+``snowpyt_mechparams.algorithm._method_fingerprint`` for details.
 
 Adding New Methods
 ------------------
@@ -288,9 +297,8 @@ build_graph.method_edge(merge_d_gf, elastic_modulus, "schottner")
 # Single input method: grain_form only
 build_graph.method_edge(measured_grain_form, poissons_ratio, "kochle")
 
-# Method using hand_hardness + grain_form (NOT density)
-# Srivastava method uses merge_hh_gf, the same merge node used for density estimation
-build_graph.method_edge(merge_hh_gf, poissons_ratio, "srivastava")
+# Method using density + grain_form (reuses merge_d_gf, same as elastic modulus)
+build_graph.method_edge(merge_d_gf, poissons_ratio, "srivastava")
 
 # --- Shear modulus calculation paths ---
 

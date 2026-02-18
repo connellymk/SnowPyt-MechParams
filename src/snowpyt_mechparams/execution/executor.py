@@ -14,6 +14,12 @@ Key Features
 - **Cache Statistics**: Tracks hit/miss rates for performance analysis
 - **Provenance Tracking**: Records which method computed each parameter
 
+The executor assumes each ``Parameterization`` it receives represents a
+genuinely distinct set of ``(parameter, method)`` choices.
+``find_parameterizations`` guarantees this by deduplicating via
+``_method_fingerprint`` before returning, so the executor never needs to
+skip or merge pathway results.
+
 Cache Strategy
 --------------
 The executor maintains three types of caches:
@@ -224,12 +230,35 @@ class PathwayExecutor:
         slab_traces = self._execute_slab_calculations_v2(result_slab)
         computation_trace.extend(slab_traces)
 
-        # Determine overall success
-        # Success if at least one computation of the target parameter succeeded
-        success = any(
-            t.success and t.parameter == target_parameter 
-            for t in computation_trace
-        )
+        # Determine overall success.
+        #
+        # For slab-level targets (A11, B11, D11, A55) _execute_slab_calculations_v2
+        # always emits one trace per slab parameter (four total).  The filter
+        # t.parameter == target_parameter isolates the one that matters.
+        #
+        # For layer-level targets (density, elastic_modulus, poissons_ratio,
+        # shear_modulus) a pathway specifies exactly ONE method per parameter.
+        # That method is applied independently to each layer in the slab, but
+        # the SAME method is used for every layer — never srivastava for one
+        # layer and kochle for another within the same pathway.
+        # A partial success (method succeeded on some layers but failed on
+        # others) is therefore treated as pathway failure: if the method cannot
+        # produce a value for every layer, the pathway as a whole has failed.
+        _SLAB_PARAMS = {"A11", "B11", "D11", "A55"}
+
+        if target_parameter in _SLAB_PARAMS:
+            success = any(
+                t.success and t.parameter == target_parameter
+                for t in computation_trace
+            )
+        else:
+            layer_target_traces = [
+                t for t in computation_trace
+                if t.parameter == target_parameter and t.layer_index is not None
+            ]
+            success = bool(layer_target_traces) and all(
+                t.success for t in layer_target_traces
+            )
 
         return PathwayResult(
             pathway_id=pathway_id,
@@ -414,7 +443,8 @@ class PathwayExecutor:
         Based on the dependency graph:
         - density has no dependencies (measured or calculated from hardness/grain)
         - elastic_modulus depends on density
-        - poissons_ratio may depend on density (srivastava) or not (kochle)
+        - poissons_ratio depends on density when using srivastava, not when
+          using kochle; density always comes first so either case is covered
         - shear_modulus depends on density
 
         Parameters

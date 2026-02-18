@@ -228,9 +228,9 @@ sequenceDiagram
     Note over Engine: For each pit in dataset
     
     Engine->>Graph: find_all_parameterizations("D11")
-    Graph-->>Engine: List[Parameterization] (32 pathways)
+    Graph-->>Engine: List[Parameterization] (32 unique pathways)
     
-    Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 pathways
+    Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 unique pathways<br/>(deduplication done by algorithm)
     
     Engine->>Executor: clear_cache()
     Note over Cache: Fresh cache<br/>for new pit
@@ -338,7 +338,7 @@ flowchart TD
     TraceE1 --> ParamLoop
     
     ParamLoop -->|poissons_ratio| CheckCache3[Check cache:<br/>get_layer_param]
-    CheckCache3 -->|MISS| ComputeNu[Compute poissons_ratio<br/>may need density]
+    CheckCache3 -->|MISS| ComputeNu[Compute poissons_ratio<br/>kochle: grain_form only<br/>srivastava: needs density]
     CheckCache3 -->|HIT| UseCached3[Use cached value]
     ComputeNu --> CacheNu[Cache result]
     CacheNu --> TraceNu[Add ComputationTrace]
@@ -632,7 +632,7 @@ graph TB
 
 ## D11 Calculation Example
 
-For D11, the graph finds **32 pathways** (4 density methods × 4 elastic_modulus methods × 2 poissons_ratio methods):
+For D11, `find_parameterizations` returns **32 unique pathways** (4 density methods × 4 elastic_modulus methods × 2 poissons_ratio methods). Internally the backward traversal generates 80 structural paths, but `find_parameterizations` deduplicates them via `_method_fingerprint` before returning — so the engine receives an already-clean list and executes each combination exactly once:
 
 ```
 density → elastic_modulus → poissons_ratio → plate_theory → D11
@@ -644,7 +644,7 @@ density → elastic_modulus → poissons_ratio → plate_theory → D11
 |-----------|---------|-------|-------|
 | **density** | `data_flow`, `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table5` | 4 | data_flow requires measured_density |
 | **elastic_modulus** | `bergfeld`, `kochle`, `wautier`, `schottner` | 4 | All require calculated density |
-| **poissons_ratio** | `kochle`, `srivastava` | 2 | kochle uses grain_form only |
+| **poissons_ratio** | `kochle`, `srivastava` | 2 | kochle: grain_form only; srivastava: density + grain_form (density shared with E) |
 | **Plate Theory** | `weissgraeber_rosendahl` (A11, B11, D11, A55) | 1 | Classical laminate theory |
 
 **Total pathways**: 4 × 4 × 2 × 1 = **32 pathways**
@@ -660,15 +660,9 @@ For a 10-layer slab with 32 D11 pathways (when measured_density is available):
 
 **With Dynamic Programming Cache**:
 - Pathway 1: 30 computations (10 layers × 3 params) - all MISS
-- Pathways 2-8: Share density from Pathway 1 (data_flow) → ~20 computations each
-- Pathways 9-16: Share density from Pathway 2 (geldsetzer) → ~20 computations each
-- Pathways 17-24: Share density from Pathway 3 (kim_jamieson_table2) → ~20 computations each
-- Pathways 25-32: Share density from Pathway 4 (kim_jamieson_table5) → ~20 computations each
+- Subsequent pathways sharing the same density method reuse cached values
 
-**Calculation**:
-- 4 density methods × (30 initial + 7 × 20 cached) = 4 × 170 = ~680 computations
-
-**Result**: ~680 computations instead of 960 = **29% reduction**
+**Result**: Significant reduction through cache sharing of density and elastic modulus values across pathways
 
 (With more layers or pathways, the benefit increases significantly)
 

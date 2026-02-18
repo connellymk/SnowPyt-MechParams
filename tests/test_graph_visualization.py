@@ -23,7 +23,7 @@ def test_classify_node_measured():
     """Test classification of measured nodes."""
     assert _classify_node(Node(type="parameter", parameter="measured_density")) == "measured"
     assert _classify_node(Node(type="parameter", parameter="measured_hand_hardness")) == "measured"
-    assert _classify_node(Node(type="parameter", parameter="layer_thickness")) == "measured"
+    assert _classify_node(Node(type="parameter", parameter="measured_layer_thickness")) == "measured"
 
 
 def test_classify_node_merge():
@@ -33,19 +33,19 @@ def test_classify_node_merge():
 
 
 def test_classify_node_layer_calc():
-    """Test classification of layer calculated parameters."""
-    assert _classify_node(Node(type="parameter", parameter="density")) == "layer_calc"
-    assert _classify_node(Node(type="parameter", parameter="elastic_modulus")) == "layer_calc"
-    assert _classify_node(Node(type="parameter", parameter="poissons_ratio")) == "layer_calc"
-    assert _classify_node(Node(type="parameter", parameter="shear_modulus")) == "layer_calc"
+    """Test classification of layer calculated parameters (level='layer')."""
+    assert _classify_node(Node(type="parameter", parameter="density", level="layer")) == "layer_calc"
+    assert _classify_node(Node(type="parameter", parameter="elastic_modulus", level="layer")) == "layer_calc"
+    assert _classify_node(Node(type="parameter", parameter="poissons_ratio", level="layer")) == "layer_calc"
+    assert _classify_node(Node(type="parameter", parameter="shear_modulus", level="layer")) == "layer_calc"
 
 
 def test_classify_node_slab_calc():
-    """Test classification of slab calculated parameters."""
-    assert _classify_node(Node(type="parameter", parameter="D11")) == "slab_calc"
-    assert _classify_node(Node(type="parameter", parameter="A11")) == "slab_calc"
-    assert _classify_node(Node(type="parameter", parameter="B11")) == "slab_calc"
-    assert _classify_node(Node(type="parameter", parameter="A55")) == "slab_calc"
+    """Test classification of slab calculated parameters (level='slab')."""
+    assert _classify_node(Node(type="parameter", parameter="D11", level="slab")) == "slab_calc"
+    assert _classify_node(Node(type="parameter", parameter="A11", level="slab")) == "slab_calc"
+    assert _classify_node(Node(type="parameter", parameter="B11", level="slab")) == "slab_calc"
+    assert _classify_node(Node(type="parameter", parameter="A55", level="slab")) == "slab_calc"
 
 
 def test_sanitize_node_id():

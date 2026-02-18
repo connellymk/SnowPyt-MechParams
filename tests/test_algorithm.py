@@ -155,7 +155,7 @@ class TestFindParameterizationsSlabLevel:
         pathways = find_parameterizations(graph, node)
 
         # A11 requires: thickness + E + ν
-        # - layer_thickness: 1 pathway (data_flow)
+        # - measured_layer_thickness: 1 pathway (data_flow)
         # - E: 4 density methods × 4 E methods = 16 pathways
         # - ν: kochle (grain_form) or srivastava (density + grain_form, same
         #      density already used for E) = 2 methods
@@ -286,7 +286,7 @@ class TestPathwayCount:
     def test_slab_pathway_count_formula(self):
         """Slab pathway count should match layer parameter combinations."""
         # For D11:
-        # - layer_thickness: 1 pathway (data_flow)
+        # - measured_layer_thickness: 1 pathway (data_flow)
         # - E (elastic_modulus): 4 density × 4 E methods = 16 pathways
         # - ν (poissons_ratio): 2 methods (kochle via grain_form; srivastava
         #   via density + grain_form, where density is the same shared node

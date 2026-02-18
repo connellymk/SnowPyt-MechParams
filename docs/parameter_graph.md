@@ -10,7 +10,7 @@ graph TB
     measured_hand_hardness[measured_hand_hardness<br/>MEASURED]
     measured_grain_form[measured_grain_form<br/>MEASURED]
     measured_grain_size[measured_grain_size<br/>MEASURED]
-    layer_thickness[layer_thickness<br/>MEASURED]
+    measured_layer_thickness[measured_layer_thickness<br/>MEASURED]
     
     %% Layer-level merge nodes
     merge_hand_hardness_grain_form{merge_hand<br/>_hardness<br/>_grain<br/>_form}
@@ -41,7 +41,7 @@ graph TB
     snow_pit --> measured_hand_hardness
     snow_pit --> measured_grain_form
     snow_pit --> measured_grain_size
-    snow_pit --> layer_thickness
+    snow_pit --> measured_layer_thickness
     
     %% Density pathways
     measured_density --> density
@@ -69,14 +69,14 @@ graph TB
     merge_density_grain_form -->|wautier| shear_modulus
     
     %% Slab-level calculations
-    layer_thickness --> zi
+    measured_layer_thickness --> zi
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
     zi --> merge_zi_E_nu
     merge_E_nu --> merge_zi_E_nu
-    layer_thickness --> merge_hi_G
+    measured_layer_thickness --> merge_hi_G
     shear_modulus --> merge_hi_G
-    layer_thickness --> merge_hi_E_nu
+    measured_layer_thickness --> merge_hi_E_nu
     merge_E_nu --> merge_hi_E_nu
     merge_zi_E_nu -->|weissgraeber_rosendahl| D11
     merge_hi_G -->|weissgraeber_rosendahl| A55
@@ -91,7 +91,7 @@ graph TB
     classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
     
     class snow_pit rootNode
-    class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,layer_thickness measuredNode
+    class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
     class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc

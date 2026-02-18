@@ -35,13 +35,13 @@ snow_pit → measured_density → density → elastic_modulus
 ### Slab-Level Parameters
 
 ```
-layer_thickness → zi ↘
-                      merge_zi_E_nu → D11
+measured_layer_thickness → zi ↘
+                                merge_zi_E_nu → D11
 elastic_modulus → merge_E_nu ↗ ↓
-poissons_ratio → ↗               merge_hi_E_nu → A11, B11
-layer_thickness → ↗
+poissons_ratio → ↗              merge_hi_E_nu → A11, B11
+measured_layer_thickness → ↗
 
-layer_thickness → merge_hi_G → A55
+measured_layer_thickness → merge_hi_G → A55
 shear_modulus → ↗
 ```
 
@@ -124,7 +124,7 @@ for edge in density_node.outgoing_edges:
 
 **Important distinction:**
 
-- **Layer properties** like `layer_thickness` are **already available** on Layer objects
+- **Layer properties** like `measured_layer_thickness` are **already available** on Layer objects
 - These nodes in the graph represent **data flow**, not calculations
 - No method is needed - the values are directly accessed from `layer.thickness`
 

@@ -10,7 +10,7 @@ Key Features
 ------------
 - **Dynamic Programming**: Persistent cache across pathways for same slab
 - **Layer Properties**: Handles thickness as direct data flow (no calculation)
-- **Slab Parameters**: Computes A11, B11, D11, A55 with prerequisite checks
+- **Slab Parameters**: Computes slab parameters with prerequisite checks
 - **Cache Statistics**: Tracks hit/miss rates for performance analysis
 - **Provenance Tracking**: Records which method computed each parameter
 
@@ -49,6 +49,7 @@ from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterL
 from snowpyt_mechparams.execution.results import (
     ComputationTrace, PathwayResult
 )
+from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
 
 if TYPE_CHECKING:
     from snowpyt_mechparams.execution.config import ExecutionConfig
@@ -224,17 +225,18 @@ class PathwayExecutor:
         from dataclasses import replace
         result_slab = replace(slab, layers=result_layers)
 
-        # Execute slab-level calculations if target requires them
-        # The algorithm only includes slab parameters in the parameterization
-        # if they're needed to reach the target, so we always execute them
-        slab_traces = self._execute_slab_calculations_v2(result_slab)
-        computation_trace.extend(slab_traces)
+        # Execute slab-level calculations only when the target is a slab parameter.
+        # A11, B11, D11, A55 are target parameters like any other — compute only
+        # the one that was requested.
+        if target_parameter in SLAB_PARAMS:
+            slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
+            computation_trace.extend(slab_traces)
 
         # Determine overall success.
         #
-        # For slab-level targets (A11, B11, D11, A55) _execute_slab_calculations_v2
-        # always emits one trace per slab parameter (four total).  The filter
-        # t.parameter == target_parameter isolates the one that matters.
+        # For slab-level targets, _execute_slab_calculations
+        # emits exactly one trace for the requested parameter.  The filter
+        # t.parameter == target_parameter isolates that trace.
         #
         # For layer-level targets (density, elastic_modulus, poissons_ratio,
         # shear_modulus) a pathway specifies exactly ONE method per parameter.
@@ -244,9 +246,8 @@ class PathwayExecutor:
         # A partial success (method succeeded on some layers but failed on
         # others) is therefore treated as pathway failure: if the method cannot
         # produce a value for every layer, the pathway as a whole has failed.
-        _SLAB_PARAMS = {"A11", "B11", "D11", "A55"}
 
-        if target_parameter in _SLAB_PARAMS:
+        if target_parameter in SLAB_PARAMS:
             success = any(
                 t.success and t.parameter == target_parameter
                 for t in computation_trace
@@ -407,7 +408,7 @@ class PathwayExecutor:
             and error message if computation failed (None if successful or cached)
         """
         # Special handling for layer properties (direct data flow)
-        if parameter == "layer_thickness":
+        if parameter == "measured_layer_thickness":
             # Direct from layer.thickness - no calculation needed
             return layer.thickness, False, None
 
@@ -584,145 +585,87 @@ class PathwayExecutor:
 
         return value, False, error
 
-    def _execute_slab_calculations_v2(
+    def _execute_slab_calculations(
         self,
-        slab: Slab
+        slab: Slab,
+        target_parameter: str
     ) -> List[ComputationTrace]:
         """
-        Execute slab-level calculations and return computation traces.
-
-        This is the new simplified version that returns a flat list of 
-        ComputationTrace objects instead of a nested SlabResult.
+        Execute the slab-level calculation for a single target parameter.
 
         Parameters
         ----------
         slab : Slab
             The slab with computed layer values
+        target_parameter : str
+            Which slab parameter to compute
 
         Returns
         -------
         List[ComputationTrace]
-            List of slab-level computation traces
+            Single-item list with the trace for the requested parameter
         """
-        traces: List[ComputationTrace] = []
-
-        # Check prerequisites for each slab parameter
         all_layers_have_thickness = all(
-            layer.thickness is not None
-            for layer in slab.layers
+            layer.thickness is not None for layer in slab.layers
         )
 
-        # A11, B11, D11: Require E and ν on all layers
-        can_compute_A11_B11_D11 = (
-            all_layers_have_thickness and
-            all(layer.elastic_modulus is not None for layer in slab.layers) and
-            all(layer.poissons_ratio is not None for layer in slab.layers)
-        )
-
-        # A55: Requires G on all layers
-        can_compute_A55 = (
-            all_layers_have_thickness and
-            all(layer.shear_modulus is not None for layer in slab.layers)
-        )
-
-        # Compute A11 if possible
-        if can_compute_A11_B11_D11:
-            value, was_cached, error_msg = self._get_or_compute_slab_param(
-                slab, "A11", "weissgraeber_rosendahl"
+        if target_parameter in SLAB_PARAMS:
+            can_compute = (
+                all_layers_have_thickness and
+                all(layer.elastic_modulus is not None for layer in slab.layers) and
+                all(layer.poissons_ratio is not None for layer in slab.layers)
             )
-            traces.append(ComputationTrace(
-                parameter="A11",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,  # Slab-level
-                output=value,
-                success=value is not None,
-                cached=was_cached,
-                error=error_msg  # Use actual error message from dispatcher
-            ))
-        else:
-            traces.append(ComputationTrace(
-                parameter="A11",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=None,
-                success=False,
-                cached=False,
-                error="Missing prerequisites: need E, ν, and thickness on all layers"
-            ))
+            if can_compute:
+                value, was_cached, error_msg = self._get_or_compute_slab_param(
+                    slab, target_parameter, "weissgraeber_rosendahl"
+                )
+                return [ComputationTrace(
+                    parameter=target_parameter,
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=value,
+                    success=value is not None,
+                    cached=was_cached,
+                    error=error_msg
+                )]
+            else:
+                return [ComputationTrace(
+                    parameter=target_parameter,
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=None,
+                    success=False,
+                    cached=False,
+                    error="Missing prerequisites: need E, ν, and thickness on all layers"
+                )]
 
-        # Compute B11 if possible
-        if can_compute_A11_B11_D11:
-            value, was_cached, error_msg = self._get_or_compute_slab_param(
-                slab, "B11", "weissgraeber_rosendahl"
+        elif target_parameter == "A55":
+            can_compute = (
+                all_layers_have_thickness and
+                all(layer.shear_modulus is not None for layer in slab.layers)
             )
-            traces.append(ComputationTrace(
-                parameter="B11",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=value,
-                success=value is not None,
-                cached=was_cached,
-                error=error_msg  # Use actual error message from dispatcher
-            ))
-        else:
-            traces.append(ComputationTrace(
-                parameter="B11",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=None,
-                success=False,
-                cached=False,
-                error="Missing prerequisites: need E, ν, and thickness on all layers"
-            ))
+            if can_compute:
+                value, was_cached, error_msg = self._get_or_compute_slab_param(
+                    slab, "A55", "weissgraeber_rosendahl"
+                )
+                return [ComputationTrace(
+                    parameter="A55",
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=value,
+                    success=value is not None,
+                    cached=was_cached,
+                    error=error_msg
+                )]
+            else:
+                return [ComputationTrace(
+                    parameter="A55",
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=None,
+                    success=False,
+                    cached=False,
+                    error="Missing prerequisites: need G and thickness on all layers"
+                )]
 
-        # Compute D11 if possible
-        if can_compute_A11_B11_D11:
-            value, was_cached, error_msg = self._get_or_compute_slab_param(
-                slab, "D11", "weissgraeber_rosendahl"
-            )
-            traces.append(ComputationTrace(
-                parameter="D11",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=value,
-                success=value is not None,
-                cached=was_cached,
-                error=error_msg  # Use actual error message from dispatcher
-            ))
-        else:
-            traces.append(ComputationTrace(
-                parameter="D11",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=None,
-                success=False,
-                cached=False,
-                error="Missing prerequisites: need E, ν, and thickness on all layers"
-            ))
-
-        # Compute A55 if possible
-        if can_compute_A55:
-            value, was_cached, error_msg = self._get_or_compute_slab_param(
-                slab, "A55", "weissgraeber_rosendahl"
-            )
-            traces.append(ComputationTrace(
-                parameter="A55",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=value,
-                success=value is not None,
-                cached=was_cached,
-                error=error_msg  # Use actual error message from dispatcher
-            ))
-        else:
-            traces.append(ComputationTrace(
-                parameter="A55",
-                method_name="weissgraeber_rosendahl",
-                layer_index=None,
-                output=None,
-                success=False,
-                cached=False,
-                error="Missing prerequisites: need G and thickness on all layers"
-            ))
-
-        return traces
+        return []

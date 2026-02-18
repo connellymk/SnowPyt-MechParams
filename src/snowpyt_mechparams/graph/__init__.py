@@ -25,8 +25,8 @@ Quick Start
 Key Concepts
 ------------
 **Layer Properties**: Thickness is already available on Layer objects as
-`layer.thickness`. The node `layer_thickness` represents it in the graph but
-requires no calculation - it is direct data flow from measurements.
+`layer.thickness`. The node `measured_layer_thickness` represents it in the graph
+but requires no calculation - it is direct data flow from measurements.
 
 **Slab Parameters**: A11, B11, D11, A55 require ALL layers to have necessary
 properties computed. The execution engine handles this by completing all
@@ -64,7 +64,7 @@ from snowpyt_mechparams.graph.definitions import (
     measured_grain_form,
     measured_grain_size,
     # Layer properties (measured)
-    layer_thickness,
+    measured_layer_thickness,
     # Layer parameters (calculated)
     density,
     elastic_modulus,
@@ -100,7 +100,7 @@ __all__ = [
     "measured_grain_form",
     "measured_grain_size",
     # Layer properties (measured)
-    "layer_thickness",
+    "measured_layer_thickness",
     # Layer parameters (calculated)
     "density",
     "elastic_modulus",

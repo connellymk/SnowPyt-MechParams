@@ -49,10 +49,16 @@ snowpyt_mechparams.algorithm : Pathfinding algorithms for the graph
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Optional
+from typing import Dict, FrozenSet, List, Literal, Optional
 
 # Type alias for node types
 NodeType = Literal["parameter", "merge"]
+
+# Type alias for parameter level classification
+# "layer"  — per-layer calculated parameter (density, elastic_modulus, …)
+# "slab"   — whole-slab calculated parameter (A11, B11, D11, A55, …)
+# None     
+NodeLevel = Optional[Literal["layer", "slab"]]
 
 
 @dataclass
@@ -70,6 +76,11 @@ class Node:
         Type of node: either 'parameter' or 'merge'
     parameter : str
         The parameter name or identifier for this node
+    level : NodeLevel
+        Classification for calculated parameter nodes:
+        - ``"layer"`` — per-layer parameter (density, elastic_modulus, …)
+        - ``"slab"``  — whole-slab parameter (A11, B11, D11, A55, …)
+        - ``None``    
     incoming_edges : List[Edge]
         List of edges pointing to this node (defaults to empty list)
     outgoing_edges : List[Edge]
@@ -77,9 +88,11 @@ class Node:
     
     Examples
     --------
-    >>> node = Node(type="parameter", parameter="density")
+    >>> node = Node(type="parameter", parameter="density", level="layer")
     >>> print(node.parameter)
     density
+    >>> print(node.level)
+    layer
     >>> print(len(node.incoming_edges))
     0
     
@@ -91,6 +104,7 @@ class Node:
     """
     type: NodeType
     parameter: str
+    level: NodeLevel = None
     incoming_edges: List[Edge] = field(default_factory=list, repr=False)
     outgoing_edges: List[Edge] = field(default_factory=list, repr=False)
 
@@ -101,6 +115,10 @@ class Node:
         if self.type not in ("parameter", "merge"):
             raise ValueError(
                 f"Node type must be 'parameter' or 'merge', got '{self.type}'"
+            )
+        if self.level not in (None, "layer", "slab"):
+            raise ValueError(
+                f"Node level must be 'layer', 'slab', or None, got '{self.level}'"
             )
     
     def __hash__(self) -> int:
@@ -207,6 +225,30 @@ class Graph:
                     f"Edge references node not in graph: {edge.end}"
                 )
     
+    @property
+    def layer_params(self) -> FrozenSet[str]:
+        """
+        Names of all layer-level calculated parameter nodes.
+
+        Returns
+        -------
+        FrozenSet[str]
+            Parameter names whose ``level == "layer"``
+        """
+        return frozenset(n.parameter for n in self.nodes if n.level == "layer")
+
+    @property
+    def slab_params(self) -> FrozenSet[str]:
+        """
+        Names of all slab-level calculated parameter nodes.
+
+        Returns
+        -------
+        FrozenSet[str]
+            Parameter names whose ``level == "slab"``
+        """
+        return frozenset(n.parameter for n in self.nodes if n.level == "slab")
+
     def get_node(self, parameter: str) -> Optional[Node]:
         """
         Get a node by its parameter name.
@@ -324,29 +366,39 @@ class GraphBuilder:
         self._nodes: Dict[str, Node] = {}
         self._edges: List[Edge] = []
     
-    def param(self, name: str) -> Node:
+    def param(self, name: str, level: NodeLevel = None) -> Node:
         """
         Create or get a parameter node.
-        
+
         Parameters
         ----------
         name : str
             The parameter name
-        
+        level : NodeLevel, optional
+            Classification of the parameter:
+            - ``"layer"`` for per-layer calculated parameters
+              (e.g. density, elastic_modulus)
+            - ``"slab"`` for whole-slab calculated parameters
+              (e.g. A11, D11)
+            - ``None`` (default) for special nodes such as snow_pit,
+              measured_*, merge_*, and measured_layer_thickness
+
         Returns
         -------
         Node
             The parameter node (created if new, existing if already created)
-        
+
         Examples
         --------
         >>> builder = GraphBuilder()
-        >>> density = builder.param("density")
+        >>> density = builder.param("density", level="layer")
         >>> print(density.type)
         parameter
+        >>> print(density.level)
+        layer
         """
         if name not in self._nodes:
-            self._nodes[name] = Node(type="parameter", parameter=name)
+            self._nodes[name] = Node(type="parameter", parameter=name, level=level)
         return self._nodes[name]
     
     def merge(self, name: str) -> Node:

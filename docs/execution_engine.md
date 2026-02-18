@@ -1,7 +1,7 @@
 # Execution Engine: Architecture & Implementation
 
 **Version**: 2.0 (Current Implementation)  
-**Last Updated**: 2026-02-16
+**Last Updated**: 2026-02-18
 
 ## Overview
 
@@ -87,7 +87,7 @@ graph TB
 
 **PathwayExecutor** (`src/snowpyt_mechparams/execution/executor.py`)
 - Executes a single parameterization on a slab
-- Handles layer-level and slab-level calculations
+- Handles layer-level calculations; computes the requested slab parameter only when the target is a slab parameter
 - Implements dynamic programming via persistent cache
 - Tracks cache hits/misses for statistics
 - Creates shallow copies of layers only when modified (copy-on-write)
@@ -264,13 +264,7 @@ sequenceDiagram
             Executor->>Cache: set_layer_param(idx, "poissons_ratio", method, value)
         end
         
-        Note over Executor: Calculate slab-level<br/>plate theory parameters
-        
-        Executor->>Cache: get_slab_param("A11", method)
-        Cache-->>Executor: None (MISS)
-        Executor->>Dispatcher: execute("A11", method, slab)
-        Dispatcher-->>Executor: A11_value
-        Executor->>Cache: set_slab_param("A11", method, value)
+        Note over Executor: Target is a slab param —<br/>compute only "D11"
         
         Executor->>Cache: get_slab_param("D11", method)
         Cache-->>Executor: None (MISS)
@@ -354,19 +348,14 @@ flowchart TD
     
     LayerLoop -->|All layers done| BuildSlab[Build result slab<br/>new Slab with result_layers]
     
-    BuildSlab --> SlabCalcs{Target requires<br/>slab parameters?}
+    BuildSlab --> SlabCalcs{"target_parameter<br/>in SLAB_PARAMS?"}
     
-    SlabCalcs -->|Yes D11| ComputeA11[Compute A11<br/>uses all layer E, ν]
-    ComputeA11 --> TraceA11[Add ComputationTrace<br/>layer_index=None]
-    TraceA11 --> ComputeB11[Compute B11]
-    ComputeB11 --> TraceB11[Add ComputationTrace]
-    TraceB11 --> ComputeD11[Compute D11]
-    ComputeD11 --> TraceD11[Add ComputationTrace]
-    TraceD11 --> ComputeA55[Compute A55<br/>uses all layer G]
-    ComputeA55 --> TraceA55[Add ComputationTrace]
+    SlabCalcs -->|"Yes (e.g. D11)"| CheckPrereqs["Check prerequisites<br/>for target_parameter only<br/>(D11/A11/B11: need E+ν; A55: need G)"]
+    CheckPrereqs --> ComputeTarget["Compute target_parameter<br/>via _execute_slab_calculations"]
+    ComputeTarget --> TraceTarget["Add single ComputationTrace<br/>layer_index=None"]
     
     SlabCalcs -->|No| CheckSuccess
-    TraceA55 --> CheckSuccess
+    TraceTarget --> CheckSuccess
     
     CheckSuccess[Check success:<br/>any trace for target succeeded?]
     CheckSuccess --> BuildResult[Build PathwayResult<br/>with slab + traces]
@@ -532,6 +521,45 @@ This enables:
 - Debugging (which method set this value?)
 - Validation (did the right method execute?)
 - Traceability (full computation history)
+
+### Parameter Classification
+
+Parameter nodes in the graph carry an optional `level` tag that classifies them as layer-level or slab-level. This tag drives execution logic without hardcoded lists.
+
+**`Node.level`** (`graph/structures.py`):
+
+| Value | Meaning | Examples |
+|-------|---------|---------|
+| `"layer"` | Per-layer calculated parameter | `density`, `elastic_modulus`, `poissons_ratio`, `shear_modulus` |
+| `"slab"` | Whole-slab calculated parameter | `A11`, `B11`, `D11`, `A55` |
+| `None` | Special/input node | `snow_pit`, `measured_*` (including `measured_layer_thickness`), `merge_*` |
+
+The level is set when registering a node in `definitions.py`:
+
+```python
+density        = build_graph.param("density",        level="layer")
+elastic_modulus = build_graph.param("elastic_modulus", level="layer")
+D11            = build_graph.param("D11",            level="slab")
+```
+
+**Derived classification sets** (`graph/definitions.py`):
+
+```python
+LAYER_PARAMS = graph.layer_params  # frozenset derived from nodes with level="layer"
+SLAB_PARAMS  = graph.slab_params   # frozenset derived from nodes with level="slab"
+```
+
+These sets are imported into `executor.py` to decide whether to call `_execute_slab_calculations`. Adding a new parameter to the graph with the appropriate `level` automatically updates both sets — no manual maintenance required.
+
+**In `executor.py`** the gate is:
+
+```python
+from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+
+if target_parameter in SLAB_PARAMS:
+    slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
+    computation_trace.extend(slab_traces)
+```
 
 ### Copy-on-Write Optimization
 
@@ -829,10 +857,10 @@ Cache hit rates typically: **40-50%** for D11 calculations
 results = engine.execute_all(slab, "D11")
 
 # Engine figures out the full dependency chain:
-# D11 requires → A11, B11, D11, A55
-# These require → elastic_modulus, poissons_ratio, shear_modulus
-# These require → density
+# D11 requires → elastic_modulus, poissons_ratio (all layers)
+# These require → density (all layers)
 # density requires → hand_hardness + grain_form (already available)
+# After all layers: compute D11 (slab-level, via weissgraeber_rosendahl)
 ```
 
 ### 2. Dynamic Programming by Default
@@ -925,8 +953,8 @@ snowpyt_mechparams/
 │   └── A55.py                 # A55 calculation (shear stiffness)
 ├── graph/
 │   ├── __init__.py            # Exports 'graph' instance
-│   ├── structures.py          # Graph data structures
-│   ├── definitions.py         # Complete parameter dependency graph
+│   ├── structures.py          # Graph data structures (Node with level, Graph with layer_params/slab_params)
+│   ├── definitions.py         # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
 │   └── visualize.py           # Mermaid diagram generation
 ├── algorithm.py               # Pathway discovery algorithm
 ├── data_structures/

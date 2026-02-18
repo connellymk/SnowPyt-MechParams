@@ -316,9 +316,20 @@ for slab in slabs:
 - **`README.md`**: Documentation on graph structure and extending the graph
 
 The graph represents:
-- **Parameter nodes**: Measured or calculated parameters
+- **Parameter nodes**: Measured or calculated parameters. Calculated parameter nodes carry a `level` tag (`"layer"` or `"slab"`) that classifies them.
 - **Merge nodes**: Combinations of inputs required for methods
 - **Edges**: Calculation methods or data flow connections
+
+**Parameter classification** is derived automatically from the graph:
+
+```python
+from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+
+# LAYER_PARAMS = graph.layer_params  → frozenset of layer-level parameter names
+# SLAB_PARAMS  = graph.slab_params   → frozenset of slab-level parameter names
+```
+
+Adding a new parameter node with `level="layer"` or `level="slab"` automatically updates these sets.
 
 **Visualization**: Generate mermaid diagrams to visualize the graph:
 ```python
@@ -503,7 +514,7 @@ pytest tests/test_integration.py        # Integration tests
 - Dynamic programming/caching tests: ✓ Passing  
 - Graph and algorithm tests: ✓ Passing
 - Dispatcher tests: ✓ Passing
-- Total: 135+ tests
+- Total: 154 tests
 
 ## Current Status (v0.3.0)
 
@@ -518,7 +529,7 @@ pytest tests/test_integration.py        # Integration tests
 - [x] Provenance tracking and computation traces
 - [x] SnowPilot CAAML parsing and integration
 - [x] Uncertainty propagation throughout all calculations
-- [x] Comprehensive test suite (135+ tests)
+- [x] Comprehensive test suite (154 tests)
 - [x] D11 comparison analysis across all pathways
 - [x] Production-ready examples and documentation
 - [x] Performance optimization (40-50% cache hit rates)
@@ -605,10 +616,10 @@ pre-commit install
 
 ### Adding New Methods
 
-To add a new calculation method:
+To add a new calculation method to an existing parameter:
 
 1. **Implement the method** in the appropriate module (`layer_parameters/` or `slab_parameters/`)
-2. **Add to the graph**: Update `src/snowpyt_mechparams/graph/definitions.py`
+2. **Add a method edge** in `src/snowpyt_mechparams/graph/definitions.py`:
    ```python
    build_graph.method_edge(merge_node, parameter_node, "your_method_name")
    ```
@@ -616,7 +627,26 @@ To add a new calculation method:
 4. **Write tests**: Add tests to `tests/`
 5. **Document**: Add method citation to graph documentation
 
-The execution engine will automatically discover and use your new method!
+### Adding New Parameters
+
+To add an entirely new calculated parameter:
+
+1. **Implement the calculation** in `layer_parameters/` (per-layer) or `slab_parameters/` (whole-slab)
+2. **Create the parameter node** in `src/snowpyt_mechparams/graph/definitions.py` with the appropriate `level`:
+   ```python
+   # For a per-layer parameter
+   new_param = build_graph.param("new_param", level="layer")
+
+   # For a whole-slab parameter
+   new_slab_param = build_graph.param("new_slab_param", level="slab")
+   ```
+3. **Wire it into the graph** with the required merge nodes and method edges
+4. **Register in dispatcher**: Update `execution/dispatcher.py`
+5. **Write tests** and **document**
+
+Setting `level="layer"` or `level="slab"` automatically adds the parameter to `LAYER_PARAMS` or `SLAB_PARAMS` (derived from `graph.layer_params` / `graph.slab_params`). The execution engine picks up the classification without any further changes.
+
+The execution engine will automatically discover and use your new parameter and methods!
 
 See `src/snowpyt_mechparams/graph/README.md` for detailed instructions.
 

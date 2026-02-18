@@ -13,15 +13,15 @@ Layer-Level:
                                     → poissons_ratio
                                     → shear_modulus
 
-    snow_pit → layer_thickness (thickness)
+    snow_pit → measured_layer_thickness (thickness)
 
 Slab-Level:
-    layer_thickness → zi (spatial information)
+    measured_layer_thickness → zi (spatial information)
     elastic_modulus + poissons_ratio → merge_E_nu
     
     zi + merge_E_nu → merge_zi_E_nu → D11
-    layer_thickness + shear_modulus → merge_hi_G → A55
-    layer_thickness + merge_E_nu → merge_hi_E_nu → A11, B11
+    measured_layer_thickness + shear_modulus → merge_hi_G → A55
+    measured_layer_thickness + merge_E_nu → merge_hi_E_nu → A11, B11
 
 Methods Available
 -----------------
@@ -75,8 +75,8 @@ Key Concepts
 ------------
 
 **Layer Properties**: Layer thickness is already available on Layer objects as
-`layer.thickness`. The node `layer_thickness` represents it in the graph but
-requires no calculation - it is direct data flow from measurements.
+`layer.thickness`. The node `measured_layer_thickness` represents it in the graph
+but requires no calculation - it is direct data flow from measurements.
 
 **Slab Parameters**: A11, B11, D11, A55 require ALL layers to have necessary
 properties computed. The execution engine handles this by completing all
@@ -194,19 +194,19 @@ measured_grain_form = build_graph.param("measured_grain_form")
 measured_grain_size = build_graph.param("measured_grain_size")
 
 # Layer property nodes (measured, data flow from snow_pit)
-layer_thickness = build_graph.param("layer_thickness")  # hi (thickness)
+measured_layer_thickness = build_graph.param("measured_layer_thickness")  # hi (thickness)
 
 # Calculated layer parameter nodes (outputs)
-density = build_graph.param("density")
-elastic_modulus = build_graph.param("elastic_modulus")
-poissons_ratio = build_graph.param("poissons_ratio")
-shear_modulus = build_graph.param("shear_modulus")
+density = build_graph.param("density", level="layer")
+elastic_modulus = build_graph.param("elastic_modulus", level="layer")
+poissons_ratio = build_graph.param("poissons_ratio", level="layer")
+shear_modulus = build_graph.param("shear_modulus", level="layer")
 
 # Calculated slab parameter nodes (outputs)
-A11 = build_graph.param("A11")  # Extensional stiffness
-B11 = build_graph.param("B11")  # Bending-extension coupling
-D11 = build_graph.param("D11")  # Bending stiffness
-A55 = build_graph.param("A55")  # Shear stiffness
+A11 = build_graph.param("A11", level="slab")  # Extensional stiffness
+B11 = build_graph.param("B11", level="slab")  # Bending-extension coupling
+D11 = build_graph.param("D11", level="slab")  # Bending stiffness
+A55 = build_graph.param("A55", level="slab")  # Shear stiffness
 
 # ==============================================================================
 # STEP 2: Create merge nodes for shared input combinations
@@ -261,7 +261,7 @@ build_graph.flow(snow_pit, measured_grain_form)
 build_graph.flow(snow_pit, measured_grain_size)
 
 # Snow pit to layer properties (data flow)
-build_graph.flow(snow_pit, layer_thickness)
+build_graph.flow(snow_pit, measured_layer_thickness)
 
 # --- Density calculation paths ---
 
@@ -310,7 +310,7 @@ build_graph.method_edge(merge_d_gf, shear_modulus, "wautier")
 # ==============================================================================
 
 # --- Merge 1: zi (spatial/thickness information) ---
-build_graph.flow(layer_thickness, zi)
+build_graph.flow(measured_layer_thickness, zi)
 
 # --- Merge 2: merge_E_nu (elastic properties from all layers) ---
 build_graph.flow(elastic_modulus, merge_E_nu)
@@ -321,11 +321,11 @@ build_graph.flow(zi, merge_zi_E_nu)
 build_graph.flow(merge_E_nu, merge_zi_E_nu)
 
 # --- Merge 4: merge_hi_G (thickness + shear for A55) ---
-build_graph.flow(layer_thickness, merge_hi_G)
+build_graph.flow(measured_layer_thickness, merge_hi_G)
 build_graph.flow(shear_modulus, merge_hi_G)
 
 # --- Merge 5: merge_hi_E_nu (thickness + elastic properties for A11, B11) ---
-build_graph.flow(layer_thickness, merge_hi_E_nu)
+build_graph.flow(measured_layer_thickness, merge_hi_E_nu)
 build_graph.flow(merge_E_nu, merge_hi_E_nu)
 
 # --- Slab parameter calculations ---
@@ -349,6 +349,15 @@ build_graph.method_edge(merge_hi_E_nu, B11, "weissgraeber_rosendahl")
 graph = build_graph.build()
 
 # ==============================================================================
+# Parameter classification sets — derived from node-level tags
+# ==============================================================================
+# Adding a new parameter to the graph with level="layer" or level="slab"
+# automatically makes it appear in the corresponding set here.
+
+LAYER_PARAMS: frozenset = graph.layer_params
+SLAB_PARAMS: frozenset = graph.slab_params
+
+# ==============================================================================
 # Export all nodes for convenient access
 # ==============================================================================
 
@@ -362,7 +371,7 @@ __all__ = [
     'measured_grain_form',
     'measured_grain_size',
     # Layer properties (measured)
-    'layer_thickness',
+    'measured_layer_thickness',
     # Layer parameters (calculated)
     'density',
     'elastic_modulus',
@@ -373,4 +382,7 @@ __all__ = [
     'B11',
     'D11',
     'A55',
+    # Parameter classification sets
+    'LAYER_PARAMS',
+    'SLAB_PARAMS',
 ]

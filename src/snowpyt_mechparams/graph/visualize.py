@@ -54,19 +54,17 @@ def _classify_node(node: Node) -> str:
     if node.type == "merge":
         return "merge"
     
-    # Measured parameters
-    if param.startswith("measured_") or param == "layer_thickness":
+    # Measured parameters (all measured_* names, including measured_layer_thickness)
+    if param.startswith("measured_"):
         return "measured"
     
-    # Slab parameters
-    if param in {"A11", "B11", "D11", "A55"}:
+    # Use the node's level tag to classify calculated parameters
+    if node.level == "slab":
         return "slab_calc"
-    
-    # Layer parameters (calculated)
-    if param in {"density", "elastic_modulus", "poissons_ratio", "shear_modulus"}:
+    if node.level == "layer":
         return "layer_calc"
     
-    # Default to layer_calc for any other parameter nodes
+    # Default to layer_calc for any untagged parameter nodes
     return "layer_calc"
 
 
@@ -112,7 +110,7 @@ def _get_node_label(node: Node) -> str:
         "measured_hand_hardness": "measured_hand_hardness<br/>MEASURED",
         "measured_grain_form": "measured_grain_form<br/>MEASURED",
         "measured_grain_size": "measured_grain_size<br/>MEASURED",
-        "layer_thickness": "layer_thickness<br/>MEASURED",
+        "measured_layer_thickness": "measured_layer_thickness<br/>MEASURED",
         "density": "density<br/>CALCULATED",
         "elastic_modulus": "elastic_modulus<br/>CALCULATED",
         "poissons_ratio": "poissons_ratio<br/>CALCULATED",
@@ -334,7 +332,7 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
     lines.append("    ")
     lines.append("    %% Slab-level calculations")
     slab_edges = [e for e in graph.edges
-                  if (e.start.parameter in {"layer_thickness", "elastic_modulus", 
+                  if (e.start.parameter in {"measured_layer_thickness", "elastic_modulus", 
                                            "poissons_ratio", "shear_modulus",
                                            "zi", "merge_E_nu", "merge_zi_E_nu",
                                            "merge_hi_G", "merge_hi_E_nu"} and

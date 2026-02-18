@@ -20,7 +20,7 @@ from snowpyt_mechparams.graph import (
     measured_grain_form,
     measured_grain_size,
     # Layer properties
-    layer_thickness,
+    measured_layer_thickness,
     # Layer parameters
     density,
     elastic_modulus,
@@ -76,10 +76,10 @@ class TestLayerParameterNodes:
     
     def test_layer_property_nodes_exist(self):
         """Layer property nodes should exist."""
-        node = graph.get_node("layer_thickness")
+        node = graph.get_node("measured_layer_thickness")
         assert node is not None
         assert node.type == "parameter"
-        assert node.parameter == "layer_thickness"
+        assert node.parameter == "measured_layer_thickness"
     
     def test_calculated_layer_parameter_nodes_exist(self):
         """All calculated layer parameter nodes should exist."""
@@ -211,23 +211,23 @@ class TestMergeNodes:
         assert "merge_E_nu" in input_params
     
     def test_merge_hi_G_has_correct_inputs(self):
-        """merge_hi_G should combine layer_thickness and shear_modulus."""
+        """merge_hi_G should combine measured_layer_thickness and shear_modulus."""
         node = graph.get_node("merge_hi_G")
         assert node is not None
         
         # Check incoming edges
         input_params = {edge.start.parameter for edge in node.incoming_edges}
-        assert "layer_thickness" in input_params
+        assert "measured_layer_thickness" in input_params
         assert "shear_modulus" in input_params
     
     def test_merge_hi_E_nu_has_correct_inputs(self):
-        """merge_hi_E_nu should combine layer_thickness and merge_E_nu."""
+        """merge_hi_E_nu should combine measured_layer_thickness and merge_E_nu."""
         node = graph.get_node("merge_hi_E_nu")
         assert node is not None
         
         # Check incoming edges
         input_params = {edge.start.parameter for edge in node.incoming_edges}
-        assert "layer_thickness" in input_params
+        assert "measured_layer_thickness" in input_params
         assert "merge_E_nu" in input_params
 
 

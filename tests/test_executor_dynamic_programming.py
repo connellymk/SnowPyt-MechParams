@@ -67,7 +67,7 @@ class TestLayerPropertyHandling:
         value, was_cached, error_msg = executor._get_or_compute_layer_param(
             layer=layer,
             layer_index=0,
-            parameter="layer_thickness",
+            parameter="measured_layer_thickness",
             method="data_flow"
         )
         
@@ -151,10 +151,12 @@ class TestSlabParameterExecution:
         )
         slab = Slab(layers=[layer1, layer2], angle=35)
         
-        # Execute slab calculations using the new v2 method
-        slab_traces = executor._execute_slab_calculations_v2(slab)
+        # Execute slab calculations — one call per target parameter
+        slab_traces = []
+        for param in ("A11", "B11", "D11", "A55"):
+            slab_traces.extend(executor._execute_slab_calculations(slab, param))
         
-        # Should have traces for A11, B11, D11, A55
+        # Should have one trace per slab parameter
         assert len(slab_traces) == 4
         
         # All should be successful
@@ -179,10 +181,12 @@ class TestSlabParameterExecution:
         )
         slab = Slab(layers=[layer], angle=35)
         
-        # Execute slab calculations using the new v2 method
-        slab_traces = executor._execute_slab_calculations_v2(slab)
+        # Execute slab calculations — one call per target parameter
+        slab_traces = []
+        for param in ("A11", "B11", "D11", "A55"):
+            slab_traces.extend(executor._execute_slab_calculations(slab, param))
         
-        # Should have traces for A11, B11, D11, A55
+        # Should have one trace per slab parameter
         assert len(slab_traces) == 4
         
         # All should have failed due to missing prerequisites
@@ -311,15 +315,12 @@ class TestErrorMessagePreservation:
         )
         
         # Now the layer has density but not E or nu
-        # Try to execute slab calculations manually
+        # Try to execute slab calculations manually targeting D11
         result_slab = density_result.slab
-        traces = executor._execute_slab_calculations_v2(result_slab)
+        traces = executor._execute_slab_calculations(result_slab, "D11")
         
-        # Find D11 trace
-        D11_traces = [t for t in traces if t.parameter == "D11"]
-        assert len(D11_traces) > 0, "No D11 traces found"
-        
-        D11_trace = D11_traces[0]
+        assert len(traces) == 1, "Expected exactly one trace for D11"
+        D11_trace = traces[0]
         
         # Verify the trace shows failure with a specific prerequisite error message
         assert not D11_trace.success, "D11 computation should have failed"

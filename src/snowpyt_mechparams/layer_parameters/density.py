@@ -9,7 +9,7 @@ from uncertainties import ufloat
 from snowpyt_mechparams.constants import HARDNESS_MAPPING
 
 
-def calculate_density(method: str, **kwargs: Any) -> ufloat:
+def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate density of a snow layer based on specified method and input parameters.
 
@@ -23,7 +23,11 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
           on hand hardness and grain form (extended from Geldsetzer)
         - 'kim_jamieson_table5': Uses Kim & Jamieson (2014) Table 5 formulas based
           on hand hardness, grain type, and grain size
-
+    include_method_uncertainty : bool, optional
+        Whether to include the uncertainty inherent to the empirical method
+        (e.g. regression standard error). Default is True. If False, the
+        nominal value is unchanged but no method uncertainty is added;
+        input uncertainties still propagate normally.
     **kwargs
         Method-specific parameters
 
@@ -38,11 +42,11 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'geldsetzer':
-        return _calculate_density_geldsetzer(**kwargs)
+        return _calculate_density_geldsetzer(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'kim_jamieson_table2':
-        return _calculate_density_kim_jamieson_table2(**kwargs)
+        return _calculate_density_kim_jamieson_table2(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'kim_jamieson_table5':
-        return _calculate_density_kim_jamieson_table5(**kwargs)
+        return _calculate_density_kim_jamieson_table5(include_method_uncertainty=include_method_uncertainty, **kwargs)
     else:
         available_methods = ['geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table5']
         raise ValueError(
@@ -50,7 +54,7 @@ def calculate_density(method: str, **kwargs: Any) -> ufloat:
         )
 
 
-def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat:
+def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate density using Geldsetzer et al. empirical formulas.
 
@@ -135,10 +139,10 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str) -> ufloat
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
-    return ufloat(rho, se)
+    return ufloat(rho, se if include_method_uncertainty else 0.0)
 
 def _calculate_density_kim_jamieson_table2(
-    hand_hardness: str, grain_form: str
+    hand_hardness: str, grain_form: str, include_method_uncertainty: bool = True
 ) -> ufloat:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -219,10 +223,10 @@ def _calculate_density_kim_jamieson_table2(
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
-    return ufloat(rho, se)
+    return ufloat(rho, se if include_method_uncertainty else 0.0)
 
 def _calculate_density_kim_jamieson_table5(
-    hand_hardness: str, grain_form: str, grain_size: float
+    hand_hardness: str, grain_form: str, grain_size: float, include_method_uncertainty: bool = True
 ) -> ufloat:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -292,6 +296,6 @@ def _calculate_density_kim_jamieson_table5(
     # Calculate density using equation 5
     rho = a*h + b * grain_size + c
 
-    return ufloat(rho, se)
+    return ufloat(rho, se if include_method_uncertainty else 0.0)
 
 

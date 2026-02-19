@@ -7,7 +7,7 @@ from typing import Any
 
 from uncertainties import ufloat
 
-from snowpyt_mechparams.constants import RHO_ICE
+from snowpyt_mechparams.constants import RHO_ICE, G_ICE
 
 def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
@@ -46,7 +46,7 @@ def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: ufloat = ufloat(407.7, 65.4), include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: ufloat = G_ICE, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate the normalized average shear modulus (G) using the power-law
     relationship fitted by Wautier et al. (2015).

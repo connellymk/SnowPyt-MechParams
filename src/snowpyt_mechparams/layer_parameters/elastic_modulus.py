@@ -10,7 +10,7 @@ from typing import Any
 from uncertainties import ufloat
 from uncertainties import umath
 
-from snowpyt_mechparams.constants import RHO_ICE
+from snowpyt_mechparams.constants import RHO_ICE, E_ICE_KERMANI, E_ICE_POLYCRYSTALLINE
 
 def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
@@ -149,7 +149,7 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str, includ
     
     return E_snow
 
-def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: ufloat = ufloat(10000.0, 0.0), include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate Young's modulus (E) using the exponential relationships fitted by
     Köchle and Schneebeli (2014).
@@ -259,7 +259,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
     
     return E_snow
 
-def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = ufloat(1060, 170), include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_KERMANI, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).
@@ -352,7 +352,7 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     
     return E_snow
 
-def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice: ufloat = ufloat(10000.0, 0.0), include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
 
     """
     Calculate the effective elastic modulus (E_eff) using the volume fraction

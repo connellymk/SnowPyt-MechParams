@@ -280,7 +280,8 @@ def test_pit_from_snow_pit_basic(mock_snowpylot_profile_with_layers):
     assert pit is not None
     assert isinstance(pit, Pit)
     assert pit.pit_id == "test_pit_123"
-    assert pit.slope_angle == 35.0
+    assert pit.slope_angle.nominal_value == 35.0
+    assert pit.slope_angle.std_dev == 2.0
     assert len(pit.layers) == 3
 
 
@@ -295,7 +296,8 @@ def test_pit_from_snow_pit_extracts_layers(mock_snowpylot_profile_with_layers):
     layer1 = pit.layers[0]
     assert isinstance(layer1, Layer)
     assert layer1.depth_top == 0.0
-    assert layer1.thickness == 10.0
+    assert layer1.thickness.nominal_value == 10.0
+    assert layer1.thickness.std_dev == pytest.approx(0.5)
     assert layer1.hand_hardness == "F"
     assert layer1.grain_form == "PPgp"  # Sub grain class (preferred when available)
     assert layer1.layer_of_concern is False
@@ -303,15 +305,17 @@ def test_pit_from_snow_pit_extracts_layers(mock_snowpylot_profile_with_layers):
     # Check second layer (weak layer)
     layer2 = pit.layers[1]
     assert layer2.depth_top == 10.0
-    assert layer2.thickness == 5.0
+    assert layer2.thickness.nominal_value == 5.0
+    assert layer2.thickness.std_dev == pytest.approx(0.25)
     assert layer2.hand_hardness == "F-"
     assert layer2.grain_form == "FCxr"  # Sub grain class (preferred when available)
     assert layer2.layer_of_concern is True
-    
+
     # Check third layer
     layer3 = pit.layers[2]
     assert layer3.depth_top == 15.0
-    assert layer3.thickness == 20.0
+    assert layer3.thickness.nominal_value == 20.0
+    assert layer3.thickness.std_dev == pytest.approx(1.0)
 
 
 def test_pit_from_snow_pit_handles_missing_slope_angle():
@@ -404,7 +408,8 @@ def test_create_slabs_with_layer_of_concern(mock_snowpylot_profile_with_layers):
     
     # Check slab properties
     assert isinstance(slab, Slab)
-    assert slab.angle == 35.0
+    assert slab.angle.nominal_value == 35.0
+    assert slab.angle.std_dev == 2.0
     assert slab.pit_id == "test_pit_123"
     assert slab.slab_id == "test_pit_123_slab_0"
     assert slab.weak_layer_source == "layer_of_concern"
@@ -417,7 +422,8 @@ def test_create_slabs_with_layer_of_concern(mock_snowpylot_profile_with_layers):
     # Check slab layers (should only include layers ABOVE weak layer)
     assert len(slab.layers) == 1
     assert slab.layers[0].depth_top == 0.0
-    assert slab.layers[0].thickness == 10.0
+    assert slab.layers[0].thickness.nominal_value == 10.0
+    assert slab.layers[0].thickness.std_dev == pytest.approx(0.5)
 
 
 def test_create_slabs_layer_of_concern_returns_empty_when_absent():
@@ -468,7 +474,8 @@ def test_create_slabs_with_ectp_failure_layer(mock_snowpylot_profile_with_ectp):
     
     # Check slab properties
     assert isinstance(slab, Slab)
-    assert slab.angle == 38.0
+    assert slab.angle.nominal_value == 38.0
+    assert slab.angle.std_dev == 2.0
     assert slab.pit_id == "test_pit_ectp"
     assert slab.slab_id == "test_pit_ectp_slab_0"
     assert slab.weak_layer_source == "ECTP_failure_layer"
@@ -541,7 +548,8 @@ def test_create_slabs_with_ct_failure_layer(mock_snowpylot_profile_with_ct):
     
     # Check slab properties
     assert isinstance(slab, Slab)
-    assert slab.angle == 40.0
+    assert slab.angle.nominal_value == 40.0
+    assert slab.angle.std_dev == 2.0
     assert slab.pit_id == "test_pit_ct"
     assert slab.weak_layer_source == "CT_failure_layer"
     

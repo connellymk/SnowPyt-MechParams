@@ -5,7 +5,15 @@ from typing import Any, List, Optional, Union
 
 import uncertainties
 
-from snowpyt_mechparams.constants import HARDNESS_MAPPING
+from snowpyt_mechparams.constants import (
+    HARDNESS_MAPPING,
+    U_HAND_HARDNESS_INDEX,
+    U_SLOPE_ANGLE,
+    U_GRAIN_SIZE,
+    U_THICKNESS_FRACTION,
+    U_DENSITY_FRACTION,
+)
+from uncertainties import ufloat as _ufloat
 
 # Type alias for values that can be floats or uncertain numbers
 UncertainValue = Union[float, uncertainties.UFloat]
@@ -119,7 +127,7 @@ class Layer:
             Hand hardness index of the layer, or None
         """
         if self.hand_hardness is not None and self.hand_hardness in HARDNESS_MAPPING:
-            return HARDNESS_MAPPING[self.hand_hardness]
+            return _ufloat(HARDNESS_MAPPING[self.hand_hardness], U_HAND_HARDNESS_INDEX)
         return None
     
     @property
@@ -220,9 +228,9 @@ class Pit:
         """
         Initialize the pit by extracting layers and test results from snowpylot SnowPit.
         """
-        # Extract slope angle
+        # Extract slope angle and apply standard measurement uncertainty
         try:
-            self.slope_angle = self.snow_pit.core_info.location.slope_angle[0]
+            self.slope_angle = _ufloat(self.snow_pit.core_info.location.slope_angle[0], U_SLOPE_ANGLE)
         except (AttributeError, IndexError, TypeError, ValueError):
             self.slope_angle = float('nan')
 
@@ -444,8 +452,12 @@ class Pit:
             # Extract depth_top (array to scalar)
             depth_top = layer.depth_top[0] if layer.depth_top else None
             
-            # Extract thickness (array to scalar)
-            thickness = layer.thickness[0] if layer.thickness else None
+            # Extract thickness (array to scalar) and apply standard measurement uncertainty
+            # U_THICKNESS_FRACTION is a relative uncertainty: std_dev = t * 5%
+            thickness = None
+            if layer.thickness:
+                t = layer.thickness[0]
+                thickness = _ufloat(t, abs(t) * U_THICKNESS_FRACTION)
             
             # Extract hand hardness
             hand_hardness = layer.hardness if hasattr(layer, "hardness") else None
@@ -465,7 +477,7 @@ class Pit:
                 # Prefer sub-grain (more specific), fall back to basic
                 grain_form = grain_form_sub if grain_form_sub else grain_form_basic
             
-            # Extract grain size average
+            # Extract grain size average and apply standard measurement uncertainty
             grain_size_avg = None
             if (
                 hasattr(layer, "grain_form_primary")
@@ -474,13 +486,15 @@ class Pit:
             ):
                 grain_size_data = layer.grain_form_primary.grain_size_avg
                 if grain_size_data:
-                    grain_size_avg = (
+                    gs = (
                         grain_size_data[0]
                         if isinstance(grain_size_data, (list, tuple))
                         else grain_size_data
                     )
+                    grain_size_avg = _ufloat(gs, U_GRAIN_SIZE)
             
-            # Optionally match and extract density from density profile
+            # Optionally match and extract density from density profile and apply
+            # standard measurement uncertainty
             density_measured = None
             if include_density:
                 try:
@@ -489,9 +503,11 @@ class Pit:
                             density_obs.thickness == layer.thickness):
                             # density_obs.density returns [value, 'unit'] - extract just the value
                             if isinstance(density_obs.density, list) and len(density_obs.density) > 0:
-                                density_measured = float(density_obs.density[0])
+                                rho = float(density_obs.density[0])
                             else:
-                                density_measured = density_obs.density
+                                rho = float(density_obs.density)
+                            # U_DENSITY_FRACTION is a relative uncertainty: std_dev = rho * 10%
+                            density_measured = _ufloat(rho, abs(rho) * U_DENSITY_FRACTION)
                             break
                 except (AttributeError, TypeError):
                     pass
@@ -741,7 +757,7 @@ class Slab:
     """
     # Slab Structure
     layers: List[Layer]  # Ordered list of snow layers from top (surface) to bottom
-    angle: float  # Slope angle of the slab in degrees
+    angle: UncertainValue  # Slope angle of the slab in degrees
     weak_layer: Optional[Layer] = None  # Weak layer of the slab
 
     # Parent Reference - access test results through pit.ECT_results, pit.CT_results, etc.

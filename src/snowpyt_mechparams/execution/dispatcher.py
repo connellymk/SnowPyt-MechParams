@@ -5,6 +5,7 @@ This module provides the MethodDispatcher class that maps method names from
 the parameterization graph to actual calculation function implementations.
 """
 
+import inspect
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -227,8 +228,9 @@ class MethodDispatcher:
             parameter="density",
             method_name="geldsetzer",
             level=ParameterLevel.LAYER,
-            function=lambda hand_hardness, grain_form: calculate_density(
-                "geldsetzer", hand_hardness=hand_hardness, grain_form=grain_form
+            function=lambda hand_hardness, grain_form, include_method_uncertainty=True: calculate_density(
+                "geldsetzer", hand_hardness=hand_hardness, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["hand_hardness", "grain_form"],
             optional_inputs={}
@@ -239,8 +241,9 @@ class MethodDispatcher:
             parameter="density",
             method_name="kim_jamieson_table2",
             level=ParameterLevel.LAYER,
-            function=lambda hand_hardness, grain_form: calculate_density(
-                "kim_jamieson_table2", hand_hardness=hand_hardness, grain_form=grain_form
+            function=lambda hand_hardness, grain_form, include_method_uncertainty=True: calculate_density(
+                "kim_jamieson_table2", hand_hardness=hand_hardness, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["hand_hardness", "grain_form"],
             optional_inputs={}
@@ -251,11 +254,12 @@ class MethodDispatcher:
             parameter="density",
             method_name="kim_jamieson_table5",
             level=ParameterLevel.LAYER,
-            function=lambda hand_hardness, grain_form, grain_size: calculate_density(
+            function=lambda hand_hardness, grain_form, grain_size, include_method_uncertainty=True: calculate_density(
                 "kim_jamieson_table5",
                 hand_hardness=hand_hardness,
                 grain_form=grain_form,
-                grain_size=grain_size.nominal_value if hasattr(grain_size, 'nominal_value') else grain_size
+                grain_size=grain_size.nominal_value if hasattr(grain_size, 'nominal_value') else grain_size,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["hand_hardness", "grain_form", "grain_size"],
             optional_inputs={}
@@ -268,8 +272,9 @@ class MethodDispatcher:
             parameter="elastic_modulus",
             method_name="bergfeld",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form: calculate_elastic_modulus(
-                "bergfeld", density=density, grain_form=grain_form
+            function=lambda density, grain_form, include_method_uncertainty=True: calculate_elastic_modulus(
+                "bergfeld", density=density, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["density", "grain_form"],
             optional_inputs={}
@@ -280,8 +285,9 @@ class MethodDispatcher:
             parameter="elastic_modulus",
             method_name="kochle",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form: calculate_elastic_modulus(
-                "kochle", density=density, grain_form=grain_form
+            function=lambda density, grain_form, include_method_uncertainty=True: calculate_elastic_modulus(
+                "kochle", density=density, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["density", "grain_form"],
             optional_inputs={}
@@ -292,8 +298,9 @@ class MethodDispatcher:
             parameter="elastic_modulus",
             method_name="wautier",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form: calculate_elastic_modulus(
-                "wautier", density=density, grain_form=grain_form
+            function=lambda density, grain_form, include_method_uncertainty=True: calculate_elastic_modulus(
+                "wautier", density=density, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["density", "grain_form"],
             optional_inputs={}
@@ -304,8 +311,9 @@ class MethodDispatcher:
             parameter="elastic_modulus",
             method_name="schottner",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form: calculate_elastic_modulus(
-                "schottner", density=density, grain_form=grain_form
+            function=lambda density, grain_form, include_method_uncertainty=True: calculate_elastic_modulus(
+                "schottner", density=density, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["density", "grain_form"],
             optional_inputs={}
@@ -318,8 +326,9 @@ class MethodDispatcher:
             parameter="poissons_ratio",
             method_name="kochle",
             level=ParameterLevel.LAYER,
-            function=lambda grain_form: calculate_poissons_ratio(
-                "kochle", grain_form=grain_form
+            function=lambda grain_form, include_method_uncertainty=True: calculate_poissons_ratio(
+                "kochle", grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["grain_form"],
             optional_inputs={}
@@ -330,8 +339,9 @@ class MethodDispatcher:
             parameter="poissons_ratio",
             method_name="srivastava",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form: calculate_poissons_ratio(
-                "srivastava", density=density, grain_form=grain_form
+            function=lambda density, grain_form, include_method_uncertainty=True: calculate_poissons_ratio(
+                "srivastava", density=density, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["density", "grain_form"],
             optional_inputs={}
@@ -344,8 +354,9 @@ class MethodDispatcher:
             parameter="shear_modulus",
             method_name="wautier",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form: calculate_shear_modulus(
-                "wautier", density=density, grain_form=grain_form
+            function=lambda density, grain_form, include_method_uncertainty=True: calculate_shear_modulus(
+                "wautier", density=density, grain_form=grain_form,
+                include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["density", "grain_form"],
             optional_inputs={}
@@ -410,6 +421,30 @@ class MethodDispatcher:
             The method specification, or None if not found
         """
         return self._registry.get((parameter, method_name))
+
+    def supports_method_uncertainty(self, parameter: str, method_name: str) -> bool:
+        """
+        Return True if the registered function for *(parameter, method_name)*
+        accepts ``include_method_uncertainty`` as a parameter.
+
+        Determined by inspecting the function signature in the registry,
+        so it stays in sync with the dispatcher automatically.
+
+        Parameters
+        ----------
+        parameter : str
+            The target parameter (e.g., "density", "elastic_modulus")
+        method_name : str
+            The method name (e.g., "geldsetzer", "data_flow")
+
+        Returns
+        -------
+        bool
+        """
+        spec = self._registry.get((parameter, method_name))
+        if spec is None:
+            return False
+        return "include_method_uncertainty" in inspect.signature(spec.function).parameters
 
     def execute(
         self,

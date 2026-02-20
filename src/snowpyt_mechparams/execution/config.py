@@ -19,21 +19,31 @@ class ExecutionConfig:
         If True, print progress information during execution.
         Useful for debugging or monitoring long-running executions.
         Default: False
-        
+    include_method_uncertainty : bool
+        If True (default), empirical methods include their regression standard
+        error in the output uncertainty. If False, only input measurement
+        uncertainties propagate; the method's own standard error is suppressed.
+        Default: True
+
     Examples
     --------
     Basic usage with defaults (silent execution):
-    
+
     >>> results = engine.execute_all(slab, "density")
-    
+
     With verbose output:
-    
+
     >>> config = ExecutionConfig(verbose=True)
     >>> results = engine.execute_all(slab, "D11", config=config)
     Executing pathway 1/16...
     Executing pathway 2/16...
     ...
-    
+
+    Without method uncertainty:
+
+    >>> config = ExecutionConfig(include_method_uncertainty=False)
+    >>> results = engine.execute_all(slab, "density", config=config)
+
     Notes
     -----
     The algorithm automatically determines what needs to be computed based on
@@ -43,3 +53,4 @@ class ExecutionConfig:
       parameters (A11, B11, D11, A55)
     """
     verbose: bool = False
+    include_method_uncertainty: bool = True

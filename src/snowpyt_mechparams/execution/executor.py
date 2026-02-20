@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from snowpyt_mechparams.execution.config import ExecutionConfig
 
 
+
 class PathwayExecutor:
     """
     Executes parameterization pathways on Layer/Slab objects.
@@ -191,7 +192,7 @@ class PathwayExecutor:
                     
                     # Get or compute (with caching)
                     value, was_cached, error_msg = self._get_or_compute_layer_param(
-                        working_layer, layer_idx, param, method_name
+                        working_layer, layer_idx, param, method_name, config
                     )
                     
                     # Get inputs for tracing
@@ -382,7 +383,8 @@ class PathwayExecutor:
         layer: Layer,
         layer_index: int,
         parameter: str,
-        method: str
+        method: str,
+        config: 'ExecutionConfig' = None
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get parameter from cache or compute it.
@@ -420,10 +422,14 @@ class PathwayExecutor:
             return cached_value, True, None
 
         # Compute and store
+        extra = {}
+        if config is not None and self.dispatcher.supports_method_uncertainty(parameter, method):
+            extra["include_method_uncertainty"] = config.include_method_uncertainty
         value, error = self.dispatcher.execute(
             parameter=parameter,
             method_name=method,
-            layer=layer
+            layer=layer,
+            **extra
         )
 
         if value is not None:

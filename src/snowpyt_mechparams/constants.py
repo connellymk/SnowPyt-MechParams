@@ -51,25 +51,19 @@ G_ICE = ufloat(407.7, 65.4)  # MPa
 # Standard Measurement Uncertainties
 # ==========================================
 
-# Hand hardness index uncertainty (dimensionless HHI units)
-# The ICSSG hand hardness scale has subclasses separated by 0.33 HHI units.
-# A typical observer uncertainty of ±2 subclasses gives ±0.67 HHI units.
+# Hand hardness index measurement uncertainty: ±2 subclasses = ±0.67 HHI units
 U_HAND_HARDNESS_INDEX = 0.67
 
-# Slope angle uncertainty (degrees)
-# Typical field inclinometer or clinometer precision is ±2°.
+# Slope angle measurement uncertainty: ±2° (degrees)
 U_SLOPE_ANGLE = 2.0  # degrees
 
-# Grain size uncertainty (mm)
-# Crystal card or loupe measurements are typically accurate to ±0.5 mm.
+# Grain size measurement uncertainty: ±0.5 mm
 U_GRAIN_SIZE = 0.5  # mm
 
-# Layer thickness uncertainty (fractional, applied as a percentage of the measured value)
-# Snow profile rulers have a typical relative uncertainty of ±5%.
+# Layer thickness measurement uncertainty: ±5% (relative, multiply by measured value)
 U_THICKNESS_FRACTION = 0.05  # 5%
 
-# Measured density uncertainty (fractional, applied as a percentage of the measured value)
-# Snow cutters and density measurements have a typical relative uncertainty of ±10%.
+# Density measurement uncertainty: ±10% (relative, multiply by measured value)
 U_DENSITY_FRACTION = 0.10  # 10%
 
 

@@ -452,8 +452,7 @@ class Pit:
             # Extract depth_top (array to scalar)
             depth_top = layer.depth_top[0] if layer.depth_top else None
             
-            # Extract thickness (array to scalar) and apply standard measurement uncertainty
-            # U_THICKNESS_FRACTION is a relative uncertainty: std_dev = t * 5%
+            # Extract thickness (array to scalar) and apply measurement uncertainty
             thickness = None
             if layer.thickness:
                 t = layer.thickness[0]
@@ -506,7 +505,6 @@ class Pit:
                                 rho = float(density_obs.density[0])
                             else:
                                 rho = float(density_obs.density)
-                            # U_DENSITY_FRACTION is a relative uncertainty: std_dev = rho * 10%
                             density_measured = _ufloat(rho, abs(rho) * U_DENSITY_FRACTION)
                             break
                 except (AttributeError, TypeError):

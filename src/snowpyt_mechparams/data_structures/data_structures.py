@@ -116,19 +116,25 @@ class Layer:
     @property
     def hand_hardness_index(self) -> Optional[UncertainValue]:
         """
-        Calculate the hand hardness index from the hand hardness string.
-        
-        Uses the HARDNESS_MAPPING to convert hand hardness strings to numeric indices.
-        Returns None if hand_hardness is not defined or not in the mapping.
-        
+        Calculate the hand hardness index from the hand hardness string, with
+        standard measurement uncertainty applied.
+
+        Looks up the nominal HHI from ``HARDNESS_MAPPING`` and wraps it with
+        ``U_HAND_HARDNESS_INDEX``, consistent with how thickness, grain size,
+        density, and slope angle uncertainties are all applied in this module.
+
         Returns
         -------
         Optional[UncertainValue]
-            Hand hardness index of the layer, or None
+            ``ufloat(hhi, U_HAND_HARDNESS_INDEX)``, or ``None`` if
+            ``hand_hardness`` is not set or not in the mapping.
         """
-        if self.hand_hardness is not None and self.hand_hardness in HARDNESS_MAPPING:
-            return _ufloat(HARDNESS_MAPPING[self.hand_hardness], U_HAND_HARDNESS_INDEX)
-        return None
+        if self.hand_hardness is None:
+            return None
+        hhi = HARDNESS_MAPPING.get(self.hand_hardness)
+        if hhi is None:
+            return None
+        return _ufloat(hhi, U_HAND_HARDNESS_INDEX)
     
     @property
     def main_grain_form(self) -> Optional[str]:

@@ -63,7 +63,7 @@ class MethodSpec:
 LAYER_INPUT_MAPPING = {
     "density_measured": "density_measured",
     "density": "_resolve_density",  # Special: prefer calculated, fallback to measured
-    "hand_hardness": "hand_hardness",
+    "hand_hardness_index": "hand_hardness_index",
     "grain_form": "_resolve_grain_form",  # Special: method-specific resolution
     "grain_size": "grain_size_avg",
     "poissons_ratio": "poissons_ratio",
@@ -228,11 +228,11 @@ class MethodDispatcher:
             parameter="density",
             method_name="geldsetzer",
             level=ParameterLevel.LAYER,
-            function=lambda hand_hardness, grain_form, include_method_uncertainty=True: calculate_density(
-                "geldsetzer", hand_hardness=hand_hardness, grain_form=grain_form,
+            function=lambda hand_hardness_index, grain_form, include_method_uncertainty=True: calculate_density(
+                "geldsetzer", hand_hardness_index=hand_hardness_index, grain_form=grain_form,
                 include_method_uncertainty=include_method_uncertainty
             ),
-            required_inputs=["hand_hardness", "grain_form"],
+            required_inputs=["hand_hardness_index", "grain_form"],
             optional_inputs={}
         ))
 
@@ -241,11 +241,11 @@ class MethodDispatcher:
             parameter="density",
             method_name="kim_jamieson_table2",
             level=ParameterLevel.LAYER,
-            function=lambda hand_hardness, grain_form, include_method_uncertainty=True: calculate_density(
-                "kim_jamieson_table2", hand_hardness=hand_hardness, grain_form=grain_form,
+            function=lambda hand_hardness_index, grain_form, include_method_uncertainty=True: calculate_density(
+                "kim_jamieson_table2", hand_hardness_index=hand_hardness_index, grain_form=grain_form,
                 include_method_uncertainty=include_method_uncertainty
             ),
-            required_inputs=["hand_hardness", "grain_form"],
+            required_inputs=["hand_hardness_index", "grain_form"],
             optional_inputs={}
         ))
 
@@ -254,14 +254,14 @@ class MethodDispatcher:
             parameter="density",
             method_name="kim_jamieson_table5",
             level=ParameterLevel.LAYER,
-            function=lambda hand_hardness, grain_form, grain_size, include_method_uncertainty=True: calculate_density(
+            function=lambda hand_hardness_index, grain_form, grain_size, include_method_uncertainty=True: calculate_density(
                 "kim_jamieson_table5",
-                hand_hardness=hand_hardness,
+                hand_hardness_index=hand_hardness_index,
                 grain_form=grain_form,
                 grain_size=grain_size.nominal_value if hasattr(grain_size, 'nominal_value') else grain_size,
                 include_method_uncertainty=include_method_uncertainty
             ),
-            required_inputs=["hand_hardness", "grain_form", "grain_size"],
+            required_inputs=["hand_hardness_index", "grain_form", "grain_size"],
             optional_inputs={}
         ))
 

@@ -1,12 +1,12 @@
 # Methods to calculate density of a layered slab if not known
 
-from math import exp
+from math import exp, sqrt
 from typing import Any, cast
 
 import numpy as np
 from uncertainties import ufloat
 
-from snowpyt_mechparams.constants import HARDNESS_MAPPING
+from snowpyt_mechparams.data_structures import UncertainValue
 
 
 def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
@@ -29,7 +29,10 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
         nominal value is unchanged but no method uncertainty is added;
         input uncertainties still propagate normally.
     **kwargs
-        Method-specific parameters
+        Method-specific parameters. All methods accept:
+        - ``hand_hardness_index`` : UncertainValue
+            Hand hardness index as a ufloat (HHI with measurement uncertainty
+            already applied). Obtain via ``Layer.hand_hardness_index``.
 
     Returns
     -------
@@ -47,6 +50,7 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
         return _calculate_density_kim_jamieson_table2(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'kim_jamieson_table5':
         return _calculate_density_kim_jamieson_table5(include_method_uncertainty=include_method_uncertainty, **kwargs)
+
     else:
         available_methods = ['geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table5']
         raise ValueError(
@@ -54,7 +58,7 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
         )
 
 
-def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate density using Geldsetzer et al. empirical formulas.
 
@@ -63,9 +67,9 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str, include_m
 
     Parameters
     ----------
-    hand_hardness : str
-        Hand hardness measurement in string notation
-        (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
+    hand_hardness_index : UncertainValue
+        Hand hardness index as a ufloat with measurement uncertainty already
+        applied. Obtain via ``Layer.hand_hardness_index``.
     grain_form : str
         Grain form classification. Supported values:
         - 'PP', 'PPgp', 'DF', 'RG', 'RGmx', 'FC', 'FCmx', 'DH'
@@ -100,10 +104,9 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str, include_m
     if grain_form not in valid_grain_forms:
         return ufloat(np.nan, np.nan)
 
-    if hand_hardness not in HARDNESS_MAPPING:
+    if hand_hardness_index is None:
         return ufloat(np.nan, np.nan)
-
-    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
+    h = hand_hardness_index  # already a ufloat from data_structures.py
 
     # Table 3: Linear regressions of density on hardness index h by groups
     # of grain types. From Geldsetzer and Jamieson (2000)
@@ -139,10 +142,15 @@ def _calculate_density_geldsetzer(hand_hardness: str, grain_form: str, include_m
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
-    return ufloat(rho, se if include_method_uncertainty else 0.0)
+    # Combine propagated input uncertainty with method SE in quadrature
+    if include_method_uncertainty:
+        total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+    else:
+        total_std = rho.std_dev
+    return ufloat(rho.nominal_value, total_std)
 
 def _calculate_density_kim_jamieson_table2(
-    hand_hardness: str, grain_form: str, include_method_uncertainty: bool = True
+    hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True
 ) -> ufloat:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -150,9 +158,9 @@ def _calculate_density_kim_jamieson_table2(
 
     Parameters
     ----------
-    hand_hardness : str
-        Hand hardness measurement in string notation
-        (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
+    hand_hardness_index : UncertainValue
+        Hand hardness index as a ufloat with measurement uncertainty already
+        applied. Obtain via ``Layer.hand_hardness_index``.
     grain_form : str
         Grain form classification. Supported values:
         - 'PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG'
@@ -187,10 +195,9 @@ def _calculate_density_kim_jamieson_table2(
     if grain_form not in valid_grain_forms:
         return ufloat(np.nan, np.nan)
 
-    if hand_hardness not in HARDNESS_MAPPING:
+    if hand_hardness_index is None:
         return ufloat(np.nan, np.nan)
-
-    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
+    h = hand_hardness_index  # already a ufloat from data_structures.py
 
     # Table 2: Linear regressions of density on hand hardness index by
     # grain types (Equation 1), except for a non-linear regression for RG (Equation 2)
@@ -219,14 +226,19 @@ def _calculate_density_kim_jamieson_table2(
         rho = a + b * h
     elif params['formula'] == 'nonlinear':
         # Non-linear regression for rounded grains: rho = A*e^(B*h) (Equation 2)
-        rho = a*exp(b*h)
+        rho = a * exp(b * h)
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
-    return ufloat(rho, se if include_method_uncertainty else 0.0)
+    # Combine propagated input uncertainty with method SE in quadrature
+    if include_method_uncertainty:
+        total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+    else:
+        total_std = rho.std_dev
+    return ufloat(rho.nominal_value, total_std)
 
 def _calculate_density_kim_jamieson_table5(
-    hand_hardness: str, grain_form: str, grain_size: float, include_method_uncertainty: bool = True
+    hand_hardness_index: UncertainValue, grain_form: str, grain_size: float, include_method_uncertainty: bool = True
 ) -> ufloat:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -237,9 +249,9 @@ def _calculate_density_kim_jamieson_table5(
 
     Parameters
     ----------
-    hand_hardness : str
-        Hand hardness measurement in string notation
-        (e.g., 'F', '4F', '1F', 'P', 'K', with optional '+' or '-')
+    hand_hardness_index : UncertainValue
+        Hand hardness index as a ufloat with measurement uncertainty already
+        applied. Obtain via ``Layer.hand_hardness_index``.
     grain_form : str
         Grain form classification. Supported values:
         - 'FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF'
@@ -269,10 +281,9 @@ def _calculate_density_kim_jamieson_table5(
     if grain_form not in valid_grain_forms:
         return ufloat(np.nan, np.nan)
 
-    if hand_hardness not in HARDNESS_MAPPING:
+    if hand_hardness_index is None:
         return ufloat(np.nan, np.nan)
-
-    h = HARDNESS_MAPPING[hand_hardness] # hand hardness index
+    h = hand_hardness_index  # already a ufloat from data_structures.py
 
     # Table 6: Significant multivariable linear regression of density on hardness index
     # and grain size by different groups of grain types
@@ -294,8 +305,13 @@ def _calculate_density_kim_jamieson_table5(
     se = params['SE']
 
     # Calculate density using equation 5
-    rho = a*h + b * grain_size + c
+    rho = a * h + b * grain_size + c
 
-    return ufloat(rho, se if include_method_uncertainty else 0.0)
+    # Combine propagated input uncertainty with method SE in quadrature
+    if include_method_uncertainty:
+        total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+    else:
+        total_std = rho.std_dev
+    return ufloat(rho.nominal_value, total_std)
 
 

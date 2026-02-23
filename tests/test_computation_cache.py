@@ -78,23 +78,6 @@ def test_layer_param_different_layers():
     assert cache.get_layer_param(1, "density", "geldsetzer") == value2
 
 
-def test_slab_param_cache():
-    """Test slab parameter caching."""
-    cache = ComputationCache()
-    
-    # Set a slab parameter
-    test_value = ufloat(1500, 50)
-    cache.set_slab_param("D11", "weissgraeber_rosendahl", test_value)
-    
-    # Get it back (hit)
-    value = cache.get_slab_param("D11", "weissgraeber_rosendahl")
-    assert value == test_value
-    
-    stats = cache.get_stats()
-    assert stats.hits == 1
-    assert stats.misses == 0
-
-
 def test_provenance_tracking():
     """Test that provenance is tracked."""
     cache = ComputationCache()
@@ -111,20 +94,20 @@ def test_provenance_tracking():
 def test_cache_clear():
     """Test clearing the cache."""
     cache = ComputationCache()
-    
-    # Set some values
+
+    # Set density values
     cache.set_layer_param(0, "density", "geldsetzer", ufloat(250, 10))
-    cache.set_slab_param("D11", "weissgraeber_rosendahl", ufloat(1500, 50))
-    
+    cache.set_layer_param(1, "density", "geldsetzer", ufloat(280, 12))
+
     # Access to generate stats
     cache.get_layer_param(0, "density", "geldsetzer")
-    
+
     assert len(cache) == 2
     assert cache.get_stats().hits == 1
-    
+
     # Clear
     cache.clear()
-    
+
     assert len(cache) == 0
     assert cache.get_stats().hits == 0
     assert cache.get_stats().misses == 0
@@ -171,17 +154,15 @@ def test_cache_stats_to_dict():
 def test_cache_repr():
     """Test cache string representation."""
     cache = ComputationCache()
-    
-    # Set some values and generate stats
+
+    # Set a density value and generate a hit
     cache.set_layer_param(0, "density", "geldsetzer", ufloat(250, 10))
-    cache.set_slab_param("D11", "weissgraeber_rosendahl", ufloat(1500, 50))
     cache.get_layer_param(0, "density", "geldsetzer")  # hit
-    
+
     repr_str = repr(cache)
-    
+
     assert "ComputationCache" in repr_str
-    assert "layer_entries=1" in repr_str
-    assert "slab_entries=1" in repr_str
+    assert "density_entries=1" in repr_str
     assert "hits=1" in repr_str
     assert "misses=0" in repr_str
 

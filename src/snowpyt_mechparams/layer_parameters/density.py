@@ -1,6 +1,6 @@
 # Methods to calculate density of a layered slab if not known
 
-from math import exp, sqrt
+from math import e, sqrt
 from typing import Any, cast
 
 import numpy as np
@@ -33,6 +33,10 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
         - ``hand_hardness_index`` : UncertainValue
             Hand hardness index as a ufloat (HHI with measurement uncertainty
             already applied). Obtain via ``Layer.hand_hardness_index``.
+        'kim_jamieson_table5' additionally requires:
+        - ``grain_size`` : UncertainValue
+            Grain size in mm as a ufloat with measurement uncertainty already
+            applied. Obtain via ``Layer.grain_size_avg``.
 
     Returns
     -------
@@ -226,7 +230,7 @@ def _calculate_density_kim_jamieson_table2(
         rho = a + b * h
     elif params['formula'] == 'nonlinear':
         # Non-linear regression for rounded grains: rho = A*e^(B*h) (Equation 2)
-        rho = a * exp(b * h)
+        rho = a * e ** (b * h)
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
@@ -238,7 +242,7 @@ def _calculate_density_kim_jamieson_table2(
     return ufloat(rho.nominal_value, total_std)
 
 def _calculate_density_kim_jamieson_table5(
-    hand_hardness_index: UncertainValue, grain_form: str, grain_size: float, include_method_uncertainty: bool = True
+    hand_hardness_index: UncertainValue, grain_form: str, grain_size: UncertainValue, include_method_uncertainty: bool = True
 ) -> ufloat:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -255,8 +259,9 @@ def _calculate_density_kim_jamieson_table5(
     grain_form : str
         Grain form classification. Supported values:
         - 'FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF'
-    grain_size : float
-        Grain size in mm
+    grain_size : UncertainValue
+        Grain size in mm with measurement uncertainty already applied
+        (``ufloat(gs, U_GRAIN_SIZE)``). Obtain via ``Layer.grain_size_avg``.
 
     Returns
     -------

@@ -79,54 +79,104 @@ class TestLayerPropertyHandling:
 
 class TestDynamicProgramming:
     """Test dynamic programming across pathways."""
-    
-    def test_cache_persists_across_calls(self):
-        """Cache should persist across execute_parameterization calls."""
+
+    def test_density_cache_persists_across_calls(self):
+        """
+        Density cache should persist across execute_parameterization calls.
+
+        Only density is cached. When the same density pathway is executed
+        twice for the same slab, the second call should be a cache hit.
+        """
         executor = PathwayExecutor()
-        
-        # Create a simple slab
-        # Use poissons_ratio pathways (simpler - just grain_form, no density dependency for kochle)
+
         layer = Layer(
             thickness=ufloat(30, 1),
-            grain_form="RG"
+            grain_form="RG",
+            hand_hardness="1F"
         )
         slab = Slab(layers=[layer], angle=35)
-        
-        # Get pathways for poissons_ratio (simpler - kochle uses only grain_form)
-        nu_node = graph.get_node("poissons_ratio")
-        pathways = find_parameterizations(graph, nu_node)
-        
-        # Find the kochle pathway (no density dependency)
-        kochle_pathway = [p for p in pathways if 'kochle' in str(p)][0]
-        
-        # Execute first time
+
+        # Get the geldsetzer density pathway
+        density_node = graph.get_node("density")
+        pathways = find_parameterizations(graph, density_node)
+        geldsetzer_pathway = [p for p in pathways if 'geldsetzer' in str(p)][0]
+
         from snowpyt_mechparams.execution.config import ExecutionConfig
         config = ExecutionConfig(verbose=False)
-        
+
+        # Execute first time - should compute (cache miss)
+        result1 = executor.execute_parameterization(
+            parameterization=geldsetzer_pathway,
+            slab=slab,
+            target_parameter="density",
+            config=config
+        )
+
+        # First execution: all misses, no hits
+        stats1 = executor.get_cache_stats()
+        assert stats1['misses'] > 0
+        assert stats1['hits'] == 0
+
+        # Execute second time (same pathway, same slab) - density should be a cache hit
+        result2 = executor.execute_parameterization(
+            parameterization=geldsetzer_pathway,
+            slab=slab,
+            target_parameter="density",
+            config=config
+        )
+
+        # Second execution: should have density cache hits
+        stats2 = executor.get_cache_stats()
+        assert stats2['hits'] > stats1['hits'], "Second run should have density cache hits"
+        assert stats2['hit_rate'] > 0.0
+
+    def test_downstream_params_never_cached(self):
+        """
+        elastic_modulus, poissons_ratio, and shear_modulus must never be cached.
+
+        These parameters depend on which density method was used upstream.
+        Caching them would return wrong values for pathways that use a
+        different density method. They must always be computed fresh.
+        """
+        executor = PathwayExecutor()
+
+        layer = Layer(
+            thickness=ufloat(30, 1),
+            grain_form="RG",
+            hand_hardness="1F"
+        )
+        slab = Slab(layers=[layer], angle=35)
+
+        # Execute a kochle poissons_ratio pathway (grain_form only, no density needed)
+        nu_node = graph.get_node("poissons_ratio")
+        pathways = find_parameterizations(graph, nu_node)
+        kochle_pathway = [p for p in pathways if 'kochle' in str(p)][0]
+
+        from snowpyt_mechparams.execution.config import ExecutionConfig
+        config = ExecutionConfig(verbose=False)
+
         result1 = executor.execute_parameterization(
             parameterization=kochle_pathway,
             slab=slab,
             target_parameter="poissons_ratio",
             config=config
         )
-        
-        # Check that we had some cache misses (first execution)
+
+        # First run: zero hits (poissons_ratio is never cached)
         stats1 = executor.get_cache_stats()
-        assert stats1['misses'] > 0
-        assert stats1['hits'] == 0  # Nothing cached yet
-        
-        # Execute second time (same pathway - should hit cache)
+        assert stats1['hits'] == 0, "Downstream params should never be cached"
+
+        # Execute second time
         result2 = executor.execute_parameterization(
             parameterization=kochle_pathway,
             slab=slab,
             target_parameter="poissons_ratio",
             config=config
         )
-        
-        # Check that we had cache hits this time
+
+        # Still zero hits - poissons_ratio results are never stored in the cache
         stats2 = executor.get_cache_stats()
-        assert stats2['hits'] > stats1['hits']  # More hits now
-        assert stats2['hit_rate'] > 0.0  # Some hits occurred
+        assert stats2['hits'] == 0, "Downstream params must remain uncached on second run"
 
 
 class TestSlabParameterExecution:
@@ -202,12 +252,23 @@ class TestSlabParameterExecution:
 
 
 class TestSlabCaching:
-    """Test slab-level parameter caching."""
-    
-    def test_slab_params_cached(self):
-        """Slab parameters should be cached after first computation."""
+    """Test slab-level parameter caching behavior."""
+
+    def test_slab_params_never_cached(self):
+        """
+        Slab parameters must NOT be cached across calls.
+
+        D11, A11, B11, and A55 are computed from the pathway-specific layer
+        values (elastic_modulus, poissons_ratio, shear_modulus) that are set
+        on the working slab copy. Different pathways set different E/ν/G
+        values, so a cached result from one pathway would be wrong for any
+        other pathway on the same slab.
+
+        ``_get_or_compute_slab_param`` must always recompute and always return
+        ``was_cached=False``.
+        """
         executor = PathwayExecutor()
-        
+
         # Create a slab with all necessary properties
         layer = Layer(
             thickness=ufloat(30, 1),
@@ -216,25 +277,27 @@ class TestSlabCaching:
             shear_modulus=ufloat(0.7, 0.1)
         )
         slab = Slab(layers=[layer], angle=35)
-        
-        # Compute D11 first time
+
+        # First call - should compute (not cached)
         value1, cached1, error1 = executor._get_or_compute_slab_param(
             slab, "D11", "weissgraeber_rosendahl"
         )
-        
+
         assert value1 is not None
-        assert cached1 == False  # First computation
-        assert error1 is None  # No error
-        
-        # Compute D11 second time
+        assert cached1 == False  # Always computed fresh
+        assert error1 is None
+
+        # Second call with identical inputs - must ALSO compute fresh (not cached)
         value2, cached2, error2 = executor._get_or_compute_slab_param(
             slab, "D11", "weissgraeber_rosendahl"
         )
-        
+
         assert value2 is not None
-        assert cached2 == True  # Retrieved from cache
-        assert error2 is None  # No error
-        assert value1 == value2  # Same value
+        assert cached2 == False  # Still not cached - slab params are never cached
+        assert error2 is None
+        # Values are equal because the inputs (layer E/ν/thickness) are the same,
+        # not because of caching
+        assert value1.nominal_value == value2.nominal_value
 
 
 class TestErrorMessagePreservation:

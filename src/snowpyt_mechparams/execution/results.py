@@ -56,14 +56,14 @@ class ComputationTrace:
     ... )
     
     Slab-level computation:
-    
+
     >>> trace = ComputationTrace(
     ...     parameter="D11",
     ...     method_name="weissgraeber_rosendahl",
     ...     layer_index=None,  # Slab-level
     ...     output=ufloat(1500, 50),
     ...     success=True,
-    ...     cached=True
+    ...     cached=False  # Slab parameters are never cached
     ... )
     """
     parameter: str

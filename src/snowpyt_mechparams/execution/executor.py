@@ -22,21 +22,34 @@ skip or merge pathway results.
 
 Cache Strategy
 --------------
-The executor maintains three types of caches:
+The executor caches only **density** values at the layer level.
 
-1. **Layer-level cache**: (layer_index, parameter, method) -> value
-   - Caches computed layer parameters across pathways
-   - Cleared between different slabs
+1. **Layer-level cache (density only)**: (layer_index, "density", method) -> value
+   - Density depends solely on layer-intrinsic data (hand hardness, grain form,
+     grain size). The same density method on the same layer always produces the
+     same result regardless of which downstream methods (E, ν, G) are used.
+   - Safe to share across pathways: the key ``(layer_idx, "density", method)``
+     fully identifies the computation.
 
-2. **Slab-level cache**: (parameter, method) -> value
-   - Caches computed slab parameters
-   - Cleared between different slabs
+2. **Provenance tracking**: (layer_index, parameter) -> method_name
+   - Records which method was used for each parameter.
+   - Useful for understanding calculation paths.
 
-3. **Provenance tracking**: (layer_index, parameter) -> method_name
-   - Records which method was used for each parameter
-   - Useful for understanding calculation paths
+Parameters that depend on density — elastic_modulus, poissons_ratio, and
+shear_modulus — are **never cached**. Their results depend on which density
+value was computed for this specific pathway. Caching them with the key
+``(layer_idx, parameter, method)`` would miss the upstream density method,
+causing the first pathway's E/ν/G values (and their uncertainty budgets) to
+be returned for every subsequent pathway that uses the same E/ν/G method but
+a different density method. Always computing fresh ensures each pathway
+receives the correct uncertainty budget.
 
-The cache persists across pathway executions for the same slab but is
+Slab parameters (D11, A11, B11, A55) are **never cached** for the same
+reason: they depend on the pathway-specific E/ν/G layer values. A cache key
+of ``(parameter, method)`` would not encode which upstream pathway computed
+the layer inputs, collapsing different uncertainty budgets into one.
+
+The density cache persists across pathway executions for the same slab but is
 cleared when moving to a new slab via clear_cache().
 """
 
@@ -378,6 +391,11 @@ class PathwayExecutor:
         sorted_items = sorted(methods_used.items())
         return "->".join(f"{p}:{m}" for p, m in sorted_items)
 
+    # Parameters whose result is the same regardless of upstream density method.
+    # Density depends only on layer-intrinsic data (hand hardness, grain form, grain size),
+    # so the same density method always produces the same result for the same layer.
+    _CACHEABLE_LAYER_PARAMS = frozenset({"density"})
+
     def _get_or_compute_layer_param(
         self,
         layer: Layer,
@@ -388,6 +406,16 @@ class PathwayExecutor:
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get parameter from cache or compute it.
+
+        Only ``density`` values are cached across pathways. Parameters that
+        depend on density (elastic_modulus, poissons_ratio, shear_modulus) are
+        always computed fresh because their values — including the uncertainty
+        budget — differ depending on which density method is used upstream.
+        Caching them under ``(layer_idx, parameter, method)`` would silently
+        return the first pathway's result (computed from density method A) for
+        every subsequent pathway that uses the same E/ν/G method but a
+        different density method (B, C, …), collapsing distinct uncertainty
+        budgets into one incorrect value.
 
         Handles special cases for layer properties (thickness) which are
         direct data flow and require no calculation.
@@ -414,14 +442,16 @@ class PathwayExecutor:
             # Direct from layer.thickness - no calculation needed
             return layer.thickness, False, None
 
-        # Check cache first
-        cached_value = self.cache.get_layer_param(layer_index, parameter, method)
-        if cached_value is not None:
-            # Update the layer with cached value
-            self._set_layer_parameter(layer, parameter, cached_value)
-            return cached_value, True, None
+        # Only cache density. Downstream parameters (E, ν, G) depend on which
+        # density method was used for this pathway and must always be computed fresh.
+        if parameter in self._CACHEABLE_LAYER_PARAMS:
+            cached_value = self.cache.get_layer_param(layer_index, parameter, method)
+            if cached_value is not None:
+                # Update the layer with cached value
+                self._set_layer_parameter(layer, parameter, cached_value)
+                return cached_value, True, None
 
-        # Compute and store
+        # Compute
         extra = {}
         if config is not None and self.dispatcher.supports_method_uncertainty(parameter, method):
             extra["include_method_uncertainty"] = config.include_method_uncertainty
@@ -433,7 +463,9 @@ class PathwayExecutor:
         )
 
         if value is not None:
-            self.cache.set_layer_param(layer_index, parameter, method, value)
+            # Only persist density values in the cache
+            if parameter in self._CACHEABLE_LAYER_PARAMS:
+                self.cache.set_layer_param(layer_index, parameter, method, value)
             # Update the layer
             self._set_layer_parameter(layer, parameter, value)
 
@@ -553,12 +585,26 @@ class PathwayExecutor:
         method: str
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
-        Get slab parameter from cache or compute it.
+        Compute a slab parameter (never cached).
+
+        Slab parameters such as D11, A11, B11, and A55 are computed from the
+        layer-level elastic_modulus, poissons_ratio, and shear_modulus values
+        that are already set on *this pathway's* working slab copy. Those layer
+        values differ between pathways (e.g. wautier vs. schottner produce
+        different E values), so a slab parameter computed for one pathway is
+        not valid for another.
+
+        The layer-level cache key ``(layer_idx, parameter, method)`` correctly
+        identifies reusable sub-computations. Slab parameters have no such
+        stable identity across pathways — caching them would silently return
+        the *first* pathway's result for all subsequent pathways on the same
+        slab, collapsing uncertainty and nominal values to a single incorrect
+        value.
 
         Parameters
         ----------
         slab : Slab
-            The slab object with computed layer properties
+            The slab object with pathway-specific layer properties already set
         parameter : str
             Slab parameter to compute (A11, B11, D11, or A55)
         method : str
@@ -567,17 +613,11 @@ class PathwayExecutor:
         Returns
         -------
         Tuple[Optional[UncertainValue], bool, Optional[str]]
-            (value, was_cached, error_message) - The computed/cached value, whether it came from cache,
-            and error message if computation failed (None if successful or cached)
+            (value, was_cached=False, error_message)
         """
-        # Check cache
-        cached_value = self.cache.get_slab_param(parameter, method)
-        if cached_value is not None:
-            # Update the slab with cached value
-            setattr(slab, parameter, cached_value)
-            return cached_value, True, None
-
-        # Compute
+        # Slab parameters are NEVER cached: each pathway produces different
+        # layer-level E/ν/G values, and the slab cache key does not encode
+        # which upstream methods were used. Always compute fresh.
         value, error = self.dispatcher.execute(
             parameter=parameter,
             method_name=method,
@@ -585,8 +625,6 @@ class PathwayExecutor:
         )
 
         if value is not None:
-            self.cache.set_slab_param(parameter, method, value)
-            # Update the slab
             setattr(slab, parameter, value)
 
         return value, False, error

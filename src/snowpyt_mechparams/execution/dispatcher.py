@@ -258,7 +258,7 @@ class MethodDispatcher:
                 "kim_jamieson_table5",
                 hand_hardness_index=hand_hardness_index,
                 grain_form=grain_form,
-                grain_size=grain_size.nominal_value if hasattr(grain_size, 'nominal_value') else grain_size,
+                grain_size=grain_size,
                 include_method_uncertainty=include_method_uncertainty
             ),
             required_inputs=["hand_hardness_index", "grain_form", "grain_size"],
@@ -498,12 +498,14 @@ class MethodDispatcher:
         try:
             result = spec.function(**all_inputs)
 
-            # Check for NaN results
+            # A ufloat(nan, nan) return value means the method failed (e.g. unsupported
+            # grain form, missing data). Treat any NaN nominal value as a failure so
+            # callers never see a non-None result that carries no information.
             if result is not None:
                 if hasattr(result, 'nominal_value'):
                     if np.isnan(result.nominal_value):
                         return None, f"Method {method_name} returned NaN"
-                elif isinstance(result, float) and np.isnan(result):
+                elif isinstance(result, (float, int)) and np.isnan(result):
                     return None, f"Method {method_name} returned NaN"
 
             return result, None

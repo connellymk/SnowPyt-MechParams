@@ -1,7 +1,7 @@
 # Execution Engine: Architecture & Implementation
 
-**Version**: 2.0 (Current Implementation)  
-**Last Updated**: 2026-02-18
+**Version**: 2.1 (Current Implementation)
+**Last Updated**: 2026-02-23
 
 ## Overview
 
@@ -14,12 +14,13 @@ The SnowPyt-MechParams execution engine is a dynamic programming system that aut
 ### Key Features
 
 - **Automatic Pathway Discovery**: Algorithm finds all valid routes from available data to target parameter
-- **Dynamic Programming**: Intelligent caching of intermediate computations across pathways (40-50% cache hit rates)
+- **Dynamic Programming**: Density values cached across pathways; downstream parameters always computed fresh to preserve correct uncertainty budgets
 - **Copy-on-Write Optimization**: Minimal memory overhead through selective layer copying (3x faster)
 - **Clean Separation of Concerns**: Independent cache, execution, and dispatch components
 - **Simple API**: One-line execution with automatic dependency resolution
 - **Full Traceability**: Complete computation traces for debugging and validation
 - **Immutability Guarantee**: Original input slab is never modified
+- **End-to-End Uncertainty Propagation**: Field measurement uncertainties applied at parse time; `include_method_uncertainty` flag separates input uncertainty from method regression error
 
 ---
 
@@ -100,14 +101,14 @@ graph TB
 - NaN detection and handling in method results
 
 **ComputationCache** (`src/snowpyt_mechparams/execution/cache.py`)
-- Stores computed values with layer-level granularity
-- Separate caches for layer and slab parameters
+- Stores computed **density** values at layer-level granularity (density only — see Cache Strategy)
 - Provenance tracking (which method computed each value)
 - Cache statistics (hits, misses, hit rate)
 
 **ExecutionConfig** (`src/snowpyt_mechparams/execution/config.py`)
 - Optional configuration for execution behavior
-- Currently supports `verbose` mode for detailed logging
+- `verbose`: detailed logging during execution
+- `include_method_uncertainty`: if `True` (default), adds each method's regression standard error to the output uncertainty; if `False`, only input measurement uncertainties propagate
 
 ### Class Structure
 
@@ -122,6 +123,7 @@ classDiagram
     
     class ExecutionConfig {
         +verbose: bool = False
+        +include_method_uncertainty: bool = True
     }
     
     class PathwayExecutor {
@@ -134,13 +136,10 @@ classDiagram
     
     class ComputationCache {
         -_layer_cache: Dict
-        -_slab_cache: Dict
         -_provenance: Dict
         -_stats: CacheStats
         +get_layer_param(idx, param, method) Optional~UncertainValue~
         +set_layer_param(idx, param, method, value) void
-        +get_slab_param(param, method) Optional~UncertainValue~
-        +set_slab_param(param, method, value) void
         +clear() void
         +get_stats() CacheStats
     }
@@ -150,6 +149,7 @@ classDiagram
         +register_method(spec) void
         +execute(parameter, method_name, layer) Tuple
         +get_method(parameter, method_name) Optional~MethodSpec~
+        +supports_method_uncertainty(parameter, method_name) bool
     }
     
     class ExecutionResults {
@@ -242,44 +242,35 @@ sequenceDiagram
         Cache-->>Executor: None (first pathway)
         
         loop For each layer
-            Note over Executor: Calculate density
+            Note over Executor: Calculate density (cacheable)
             Executor->>Cache: get_layer_param(idx, "density", method)
             Cache-->>Executor: None (MISS)
             Executor->>Dispatcher: execute("density", method, layer)
             Dispatcher-->>Executor: density_value
             Executor->>Cache: set_layer_param(idx, "density", method, value)
-            
-            Note over Executor: Calculate elastic_modulus
-            Executor->>Cache: get_layer_param(idx, "elastic_modulus", method)
-            Cache-->>Executor: None (MISS)
+
+            Note over Executor: Calculate elastic_modulus (NOT cached —<br/>depends on upstream density method)
             Executor->>Dispatcher: execute("elastic_modulus", method, layer)
             Dispatcher-->>Executor: E_value
-            Executor->>Cache: set_layer_param(idx, "elastic_modulus", method, value)
-            
-            Note over Executor: Calculate poissons_ratio
-            Executor->>Cache: get_layer_param(idx, "poissons_ratio", method)
-            Cache-->>Executor: None (MISS)
+
+            Note over Executor: Calculate poissons_ratio (NOT cached —<br/>depends on upstream density method)
             Executor->>Dispatcher: execute("poissons_ratio", method, layer)
             Dispatcher-->>Executor: nu_value
-            Executor->>Cache: set_layer_param(idx, "poissons_ratio", method, value)
         end
-        
-        Note over Executor: Target is a slab param —<br/>compute only "D11"
-        
-        Executor->>Cache: get_slab_param("D11", method)
-        Cache-->>Executor: None (MISS)
+
+        Note over Executor: Target is a slab param —<br/>compute only "D11" (NOT cached)
+
         Executor->>Dispatcher: execute("D11", method, slab)
         Dispatcher-->>Executor: D11_value
-        Executor->>Cache: set_slab_param("D11", method, value)
-        
+
         Executor-->>Engine: PathwayResult (with D11)
-        
-        Note over Engine,Cache: Subsequent pathways<br/>reuse cached density values!
-        
+
+        Note over Engine,Cache: Subsequent pathways reuse cached density<br/>values only; E/ν/G/D11 always recomputed
+
         alt Pathway with same density method
             Executor->>Cache: get_layer_param(idx, "density", method)
             Cache-->>Executor: cached_value (HIT!)
-            Note over Executor: Skip computation,<br/>use cached value
+            Note over Executor: Skip density computation,<br/>use cached value
         end
     end
     
@@ -321,25 +312,13 @@ flowchart TD
     TraceDensity --> ParamLoop
     TraceDensity1 --> ParamLoop
     
-    ParamLoop -->|elastic_modulus| CheckCache2[Check cache:<br/>get_layer_param]
-    CheckCache2 -->|MISS| ComputeE[Compute elastic_modulus<br/>needs density]
-    CheckCache2 -->|HIT| UseCached2[Use cached value]
-    ComputeE --> CacheE[Cache result]
-    CacheE --> TraceE[Add ComputationTrace]
-    UseCached2 --> TraceE1[Add ComputationTrace<br/>cached=True]
-    
+    ParamLoop -->|elastic_modulus| ComputeE[Compute elastic_modulus<br/>always fresh — depends on<br/>upstream density method]
+    ComputeE --> TraceE[Add ComputationTrace<br/>cached=False]
     TraceE --> ParamLoop
-    TraceE1 --> ParamLoop
-    
-    ParamLoop -->|poissons_ratio| CheckCache3[Check cache:<br/>get_layer_param]
-    CheckCache3 -->|MISS| ComputeNu[Compute poissons_ratio<br/>kochle: grain_form only<br/>srivastava: needs density]
-    CheckCache3 -->|HIT| UseCached3[Use cached value]
-    ComputeNu --> CacheNu[Cache result]
-    CacheNu --> TraceNu[Add ComputationTrace]
-    UseCached3 --> TraceNu1[Add ComputationTrace<br/>cached=True]
-    
+
+    ParamLoop -->|poissons_ratio| ComputeNu[Compute poissons_ratio<br/>always fresh — depends on<br/>upstream density method]
+    ComputeNu --> TraceNu[Add ComputationTrace<br/>cached=False]
     TraceNu --> ParamLoop
-    TraceNu1 --> ParamLoop
     
     ParamLoop -->|Done| AppendLayer[Append layer to result_layers]
     ReuseLayer --> AppendLayer
@@ -396,9 +375,9 @@ class MethodSpec:
 | Parameter | Method | Level | Required Inputs | Notes |
 |-----------|--------|-------|-----------------|-------|
 | **density** | `data_flow` | layer | density_measured | Direct measurement |
-| | `geldsetzer` | layer | hand_hardness, grain_form | Geldsetzer et al. (2009) |
-| | `kim_jamieson_table2` | layer | hand_hardness, grain_form | Kim & Jamieson (2010) Table 2 |
-| | `kim_jamieson_table5` | layer | hand_hardness, grain_form, grain_size | Kim & Jamieson (2010) Table 5 |
+| | `geldsetzer` | layer | hand_hardness_index, grain_form | Geldsetzer et al. (2009) |
+| | `kim_jamieson_table2` | layer | hand_hardness_index, grain_form | Kim & Jamieson (2010) Table 2 |
+| | `kim_jamieson_table5` | layer | hand_hardness_index, grain_form, grain_size | Kim & Jamieson (2010) Table 5 |
 | **elastic_modulus** | `bergfeld` | layer | density, grain_form | Bergfeld et al. (2023) |
 | | `kochle` | layer | density, grain_form | Köchle & Schneebeli (2014) |
 | | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
@@ -454,23 +433,18 @@ The `Layer.grain_form` field can store either basic codes (e.g., 'PP', 'RG') or 
 
 ### Cache Strategy
 
-**Layer-Level Caching:**
+Only **density** values are cached. The cache key is:
+
 ```python
 cache_key = (layer_index, parameter, method_name)
 # Example: (0, "density", "geldsetzer")
 ```
 
-**Why layer_index?** Different layers have different properties, so cache by index.
+**Why only density?** Density depends solely on layer-intrinsic data (hand hardness, grain form, grain size) and produces the same result regardless of which downstream methods are used. It is therefore safe to share across pathways for the same slab.
 
-**Why parameter + method?** Different methods for same parameter give different results.
+Downstream parameters — `elastic_modulus`, `poissons_ratio`, `shear_modulus` — depend on which density value was computed for each specific pathway, and their uncertainty budgets differ between pathways. Caching them under `(layer_idx, parameter, method)` would miss the upstream density method, causing the first pathway's values to be silently returned for all subsequent pathways that use the same E/ν/G method but a different density method.
 
-**Slab-Level Caching:**
-```python
-cache_key = (parameter, method_name)
-# Example: ("D11", "weissgraeber_rosendahl")
-```
-
-**Why no layer_index?** Slab parameters aggregate all layers.
+Slab parameters (`D11`, `A11`, `B11`, `A55`) are never cached for the same reason: they are computed from the pathway-specific layer E/ν/G values, and a cache key of `(parameter, method)` does not encode which upstream pathway produced those inputs.
 
 **Cache Lifecycle:**
 
@@ -500,7 +474,7 @@ sequenceDiagram
         end
     end
     
-    Note over Engine,Cache: Cache persists across pathways<br/>for same pit
+    Note over Engine,Cache: Density cache persists across pathways<br/>for same slab; E/ν/G/D11 always recomputed
     
     Engine->>Cache: get_stats()
     Cache-->>Engine: CacheStats(hits=X, misses=Y)
@@ -681,18 +655,20 @@ density → elastic_modulus → poissons_ratio → plate_theory → D11
 
 ### Cache Effectiveness
 
-For a 10-layer slab with 32 D11 pathways (when measured_density is available):
+For a 10-layer slab with 32 D11 pathways:
 
-**Without Caching**: 
+**Without Caching**:
 - 32 pathways × 10 layers × 3 params = **960 computations**
 
-**With Dynamic Programming Cache**:
-- Pathway 1: 30 computations (10 layers × 3 params) - all MISS
-- Subsequent pathways sharing the same density method reuse cached values
+**With Density Cache**:
+- There are 4 unique density methods across the 32 pathways
+- Each density method is computed once per layer: 4 × 10 = 40 density computations
+- E/ν/G are always recomputed: 32 × 10 × 2 = 640 computations
+- **Total**: ~680 computations (~29% reduction)
 
-**Result**: Significant reduction through cache sharing of density and elastic modulus values across pathways
+**Result**: The cache eliminates all redundant density computations while ensuring E/ν/G and D11 values carry the correct pathway-specific uncertainty budget for every pathway.
 
-(With more layers or pathways, the benefit increases significantly)
+(Benefit scales with the number of pathways that share the same density method.)
 
 ---
 
@@ -865,11 +841,11 @@ results = engine.execute_all(slab, "D11")
 
 ### 2. Dynamic Programming by Default
 
-**Always cache intermediate results across pathways.**
+**Cache density across pathways; recompute everything else fresh.**
 
-- No config option to disable (why would you?)
-- Transparent to the user
-- Significant performance benefit (40-50% fewer computations)
+- Density cache is always active — no config option to disable
+- E/ν/G/D11 are always recomputed to preserve correct per-pathway uncertainty budgets
+- Transparent to the user; ~29% reduction in computations for typical D11 runs
 
 ### 3. Copy-on-Write
 
@@ -1050,14 +1026,15 @@ Pathway success depends on data availability in the snow pit:
 
 The execution engine provides:
 
-✅ **Simple API**: One-line execution with automatic dependency resolution  
-✅ **Fast Performance**: 3-5x faster through copy-on-write optimization  
-✅ **Smart Caching**: Dynamic programming reduces redundant computations by 40-50%  
-✅ **Clean Architecture**: Clear separation of concerns, testable components  
-✅ **Immutability**: Original data never modified  
-✅ **Full Traceability**: Complete computation trace for debugging and validation  
-✅ **Graceful Failure**: Partial results when data is missing  
+✅ **Simple API**: One-line execution with automatic dependency resolution
+✅ **Fast Performance**: 3-5x faster through copy-on-write optimization
+✅ **Correct Uncertainty Budgets**: Density cached; E/ν/G/D11 recomputed fresh per pathway to preserve pathway-specific uncertainty propagation
+✅ **Clean Architecture**: Clear separation of concerns, testable components
+✅ **Immutability**: Original data never modified
+✅ **Full Traceability**: Complete computation trace for debugging and validation
+✅ **Graceful Failure**: Partial results when data is missing
 ✅ **Method Extensibility**: Easy to add new calculation methods
+✅ **Configurable Uncertainty**: `include_method_uncertainty` flag separates input measurement uncertainty from method regression error
 
 The architecture balances simplicity, performance, and maintainability while providing powerful capabilities for analyzing snow mechanical properties across large datasets.
 

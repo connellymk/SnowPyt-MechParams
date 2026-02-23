@@ -226,6 +226,10 @@ class ExecutionEngine:
 
         Notes
         -----
+        This method clears the cache before executing, so it is safe to call
+        after execute_all (or another execute_single) on a different slab
+        without carrying over stale cached density values.
+
         This method finds the parameterization that matches the specified
         methods and executes only that one. If no matching parameterization
         is found, returns None.
@@ -238,7 +242,11 @@ class ExecutionEngine:
         # Use default config if not provided
         if config is None:
             config = ExecutionConfig()
-        
+
+        # Clear cache for this slab so stale values from a prior execute_all
+        # (on a different slab) don't pollute this single-pathway execution.
+        self.executor.clear_cache()
+
         # Get the target node
         target_node = self.graph.get_node(target_parameter)
         if target_node is None:

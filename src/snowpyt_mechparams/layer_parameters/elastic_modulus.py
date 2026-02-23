@@ -10,9 +10,9 @@ from typing import Any
 from uncertainties import ufloat
 from uncertainties import umath
 
-from snowpyt_mechparams.constants import RHO_ICE
+from snowpyt_mechparams.constants import RHO_ICE, E_ICE_KERMANI, E_ICE_POLYCRYSTALLINE
 
-def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
+def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate elastic modulus of a slab layer based on specified method and
     input parameters.
@@ -27,6 +27,11 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
           the elastic modulus of ice
         - 'schottner': Uses Schöttner et al. (2026) experimental power-law
           fits based on density and grain type (requires scaling constants)
+    include_method_uncertainty : bool, optional
+        Whether to include the uncertainty inherent to the empirical method
+        (e.g. fitted coefficient uncertainties). Default is True. If False,
+        the nominal value is unchanged but no method uncertainty is added;
+        input uncertainties still propagate normally.
     **kwargs
         Method-specific parameters
 
@@ -41,20 +46,20 @@ def calculate_elastic_modulus(method: str, **kwargs: Any) -> ufloat:
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'bergfeld':
-        return _calculate_elastic_modulus_bergfeld(**kwargs)
+        return _calculate_elastic_modulus_bergfeld(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'kochle':
-        return _calculate_elastic_modulus_kochle(**kwargs)
+        return _calculate_elastic_modulus_kochle(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'wautier':
-        return _calculate_elastic_modulus_wautier(**kwargs)
+        return _calculate_elastic_modulus_wautier(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'schottner':
-        return _calculate_elastic_modulus_schottner(**kwargs)
+        return _calculate_elastic_modulus_schottner(include_method_uncertainty=include_method_uncertainty, **kwargs)
     else:
         available_methods = ['bergfeld', 'kochle', 'wautier', 'schottner']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_elastic_modulus_bergfeld(density: ufloat,grain_form: str) -> ufloat:
+def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
     
@@ -137,14 +142,14 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat,grain_form: str) -> uflo
     C0 = 6.5e3  # MPa
     
     # C1 is the fitted exponent: mean 4.4, with a standard deviation of ± 0.18 (Appendix B, Bergfeld et al. (2023)).
-    C1 = ufloat(4.4, 0.18) 
+    C1 = ufloat(4.4, 0.18 if include_method_uncertainty else 0.0)
     
     # Calculate elastic modulus (E) in MPa based solely on density
     E_snow = C0 * (rho_snow / RHO_ICE) ** C1
     
     return E_snow
 
-def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str, E_ice: ufloat = ufloat(10000.0, 0.0)) -> ufloat:
+def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate Young's modulus (E) using the exponential relationships fitted by
     Köchle and Schneebeli (2014).
@@ -254,7 +259,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat,grain_form: str, E_ice: uf
     
     return E_snow
 
-def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = ufloat(1060, 170)) -> ufloat:
+def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_KERMANI, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).
@@ -347,7 +352,7 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     
     return E_snow
 
-def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str,E_ice: ufloat = ufloat(10000.0, 0.0)) -> ufloat:
+def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
 
     """
     Calculate the effective elastic modulus (E_eff) using the volume fraction
@@ -399,15 +404,16 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str,E_ice:
     # Determine the grain category and retrieve parameters
     main_grain_shape = grain_form[:2].upper()
 
+    _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
     if main_grain_shape in ['DF', 'RG']:
-      A = ufloat(0.40, 0.3)
-      n = ufloat(4.6, 0.6)
+      A = _u(0.40, 0.3)
+      n = _u(4.6, 0.6)
     elif main_grain_shape in ['FC', 'DH']:
-      A = ufloat(1.8, 0.7)
-      n = ufloat(5.1, 0.3)
+      A = _u(1.8, 0.7)
+      n = _u(5.1, 0.3)
     elif main_grain_shape in ['SH']:
-      A = ufloat(0.011, 0.009)
-      n = ufloat(1.7, 0.4)
+      A = _u(0.011, 0.009)
+      n = _u(1.7, 0.4)
     else:
       return ufloat(np.nan, np.nan)
 

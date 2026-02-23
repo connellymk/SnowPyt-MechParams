@@ -7,9 +7,9 @@ from typing import Any
 
 from uncertainties import ufloat
 
-from snowpyt_mechparams.constants import RHO_ICE
+from snowpyt_mechparams.constants import RHO_ICE, G_ICE
 
-def calculate_shear_modulus(method: str, **kwargs: Any) -> ufloat:
+def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate shear modulus of a slab layer based on specified method and
     input parameters.
@@ -18,8 +18,13 @@ def calculate_shear_modulus(method: str, **kwargs: Any) -> ufloat:
     ----------
     method : str
         Method to use for shear modulus calculation. Available methods:
-        - 'wautier': Uses Wautier et al. (2015) power-law formula based on 
+        - 'wautier': Uses Wautier et al. (2015) power-law formula based on
           density and the shear modulus of ice
+    include_method_uncertainty : bool, optional
+        Whether to include the uncertainty inherent to the empirical method
+        (e.g. fitted coefficient uncertainties). Default is True. If False,
+        the nominal value is unchanged but no method uncertainty is added;
+        input uncertainties still propagate normally.
     **kwargs
         Method-specific parameters
 
@@ -34,14 +39,14 @@ def calculate_shear_modulus(method: str, **kwargs: Any) -> ufloat:
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'wautier':
-        return _calculate_shear_modulus_wautier(**kwargs)
+        return _calculate_shear_modulus_wautier(include_method_uncertainty=include_method_uncertainty, **kwargs)
     else:
         available_methods = ['wautier']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: ufloat = ufloat(407.7, 65.4)) -> ufloat:
+def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: ufloat = G_ICE, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate the normalized average shear modulus (G) using the power-law
     relationship fitted by Wautier et al. (2015).

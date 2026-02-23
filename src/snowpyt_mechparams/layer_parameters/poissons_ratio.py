@@ -9,7 +9,7 @@ from typing import Any
 
 from uncertainties import ufloat
 
-def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
+def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate Poisson's ratio of a slab layer based on specified method and
     input parameters.
@@ -20,6 +20,11 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
         Method to use for Poisson's ratio calculation. Available methods:
         - 'kochle': Uses Köchle and Schneebeli (2014) formula
         - 'srivastava': Uses Srivastava et al. (2016) formula
+    include_method_uncertainty : bool, optional
+        Whether to include the uncertainty inherent to the empirical method
+        (e.g. grain-type standard deviations from FE simulations). Default is
+        True. If False, the nominal value is unchanged but no method
+        uncertainty is added; input uncertainties still propagate normally.
     **kwargs
         Method-specific parameters
 
@@ -34,16 +39,16 @@ def calculate_poissons_ratio(method: str, **kwargs: Any) -> ufloat:
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'kochle':
-        return _calculate_poissons_ratio_kochle(**kwargs)
+        return _calculate_poissons_ratio_kochle(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'srivastava':
-        return _calculate_poissons_ratio_srivastava(**kwargs)
+        return _calculate_poissons_ratio_srivastava(include_method_uncertainty=include_method_uncertainty, **kwargs)
     else:
         available_methods = ['kochle', 'srivastava']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
-def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
+def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate Poisson's ratio using Köchle and Schneebeli (2014) grain-type-
     specific mean values.
@@ -110,16 +115,17 @@ def _calculate_poissons_ratio_kochle(grain_form: str) -> ufloat:
     if main_grain_shape not in ['RG', 'FC', 'DH']:
         return ufloat(np.nan, np.nan)
     
+    _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
     if main_grain_shape == 'RG':
-        nu_snow = ufloat(0.171, 0.026)
+        nu_snow = _u(0.171, 0.026)
     elif main_grain_shape == 'FC':
-        nu_snow = ufloat(0.130, 0.040)
+        nu_snow = _u(0.130, 0.040)
     elif main_grain_shape == 'DH':
-        nu_snow = ufloat(0.087, 0.063)
-    
+        nu_snow = _u(0.087, 0.063)
+
     return nu_snow
 
-def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> ufloat:
+def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate Poisson's ratio using Srivastava et al. (2016) grain-type-specific
     mean values.
@@ -192,17 +198,18 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str) -> uf
     # Assign Poisson's ratio based on grain form
     # Note: density value is not used in the calculation as the study found 
     # no clear density dependence, but density must be within valid ranges
+    _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
     if main_grain_shape == 'RG':
         # Rounded grains: constant value over density range 200-580 kg/m³
         # Check upper limit for RG
         if density_nominal > 580.0:
             return ufloat(np.nan, np.nan)
-        nu_snow = ufloat(0.191, 0.008)
+        nu_snow = _u(0.191, 0.008)
     elif main_grain_shape in ['PP', 'DF']:
         # Precipitation particles and decomposing/fragmented: largest scatter
-        nu_snow = ufloat(0.132, 0.053)
+        nu_snow = _u(0.132, 0.053)
     elif main_grain_shape in ['FC', 'DH']:
         # Faceted crystals and depth hoar: intermediate scatter
-        nu_snow = ufloat(0.17, 0.02)
-    
+        nu_snow = _u(0.17, 0.02)
+
     return nu_snow

@@ -14,9 +14,10 @@ A collaborative Python library for estimating mechanical parameters of snow laye
 - **Multi-Method Parameter Estimation**: Calculate snow mechanical parameters using multiple published methods
 - **Parameterization Graph**: Directed graph representing all calculation pathways and method dependencies
 - **Automatic Pathway Discovery**: Algorithm finds all valid combinations of methods to reach target parameters
-- **Dynamic Programming Execution**: Cache intermediate results to avoid redundant calculations
+- **Dynamic Programming Execution**: Density values cached across pathways; downstream parameters recomputed fresh to preserve correct per-pathway uncertainty budgets
 - **Layer & Slab Parameters**: Support for both individual layer properties and integrated slab-level stiffnesses
-- **Uncertainty Propagation**: Built-in support for uncertainty quantification via the `uncertainties` package
+- **End-to-End Uncertainty Propagation**: Field measurement uncertainties (thickness ±5%, grain size ±0.5 mm, density ±10%, hand hardness ±0.67 HHI, slope angle ±2°) centralised in `constants.py` and applied at parse time, then propagated through all calculations via the `uncertainties` package
+- **Configurable Method Uncertainty**: `include_method_uncertainty` flag on `ExecutionConfig` (and each `calculate_*` function) separates propagated input measurement uncertainty from empirical method regression error — set to `False` to isolate input-only uncertainties
 - **SnowPilot Integration**: Parse CAAML files directly from the SnowPilot dataset
 
 ### 📊 Supported Parameters & Methods
@@ -33,7 +34,7 @@ A collaborative Python library for estimating mechanical parameters of snow laye
   - Bergfeld et al. (2023) - from density and grain form
   - Köchle & Schneebeli (2014) - from density and grain form
   - Wautier et al. (2015) - from density and grain form
-  - Schöttner et al. (2024) - from density and grain form
+  - Schöttner et al. (2026) - from density and grain form
 
 - **Poisson's Ratio** (ν, dimensionless)
   - Köchle & Schneebeli (2014) - from grain form only
@@ -191,18 +192,21 @@ from snowpyt_mechparams.layer_parameters import calculate_density, calculate_ela
 from uncertainties import ufloat
 
 # Create a layer with measurements
+# Measurement uncertainties are applied automatically:
+#   thickness ±5%, grain_size ±0.5 mm, density ±10%, hand_hardness ±0.67 HHI
 layer = Layer(
     depth_top=10,                          # cm from surface
     thickness=15,                          # cm
     hand_hardness='1F',                    # Hand hardness code
     grain_form='RG',                       # Rounded grains
-    grain_size_avg=ufloat(1.0, 0.1)       # mm ± uncertainty
+    grain_size_avg=ufloat(1.0, 0.5)       # mm (or use Layer.grain_size_avg which applies U_GRAIN_SIZE automatically)
 )
 
 # Calculate density using Kim & Jamieson Table 2 method
+# hand_hardness_index is a ufloat with measurement uncertainty already applied
 density = calculate_density(
     method='kim_jamieson_table2',
-    hand_hardness=layer.hand_hardness,
+    hand_hardness_index=layer.hand_hardness_index,  # ufloat with ±0.67 HHI uncertainty
     grain_form=layer.grain_form
 )
 print(f"Density: {density:.1f} kg/m³")
@@ -214,6 +218,14 @@ E = calculate_elastic_modulus(
     grain_form=layer.grain_form
 )
 print(f"Elastic modulus: {E:.2f} MPa")
+
+# To isolate input measurement uncertainty only (suppress method regression error):
+density_input_unc_only = calculate_density(
+    method='kim_jamieson_table2',
+    hand_hardness_index=layer.hand_hardness_index,
+    grain_form=layer.grain_form,
+    include_method_uncertainty=False
+)
 ```
 
 ### Advanced Usage: Execute All Pathways for a Slab
@@ -236,10 +248,16 @@ slab = Slab(layers=layers, angle=35.0)  # 35° slope
 engine = ExecutionEngine(graph)
 
 # Execute ALL pathways to calculate D11 (bending stiffness)
+# Default: includes both input measurement uncertainty AND method regression error
 results = engine.execute_all(
     slab=slab,
     target_parameter='D11'
 )
+
+# Or isolate input measurement uncertainty only (suppress method regression error):
+from snowpyt_mechparams.execution import ExecutionConfig
+config = ExecutionConfig(include_method_uncertainty=False)
+results = engine.execute_all(slab=slab, target_parameter='D11', config=config)
 
 print(f"Total pathways attempted: {results.total_pathways}")
 print(f"Successful pathways: {results.successful_pathways}")
@@ -291,16 +309,30 @@ for slab in slabs:
 ### Data Structures (`snowpyt_mechparams.data_structures`)
 
 - **`Layer`**: Represents a single snow layer with measured and calculated properties
+  - `hand_hardness_index` property now returns a `ufloat` with `±U_HAND_HARDNESS_INDEX` (±0.67 HHI) applied automatically
 - **`Slab`**: Collection of layers representing a snow slab above a weak layer
+  - `angle` field is now typed as `UncertainValue` (slope angle parsed with `±U_SLOPE_ANGLE` = ±2° uncertainty)
 - **`Pit`**: Complete snow pit profile with layers and stability test results
+  - `_layers_from_snow_pit()` now applies standard measurement uncertainties at parse time: thickness (±5%), grain size (±0.5 mm), density (±10%), and slope angle (±2°) — all sourced from `constants.py`
+
+### Constants (`snowpyt_mechparams.constants`)
+
+All physical constants and standard measurement uncertainties are centralised here:
+
+- **Ice properties**: `RHO_ICE` (917.0 kg/m³), `E_ICE_POLYCRYSTALLINE` (10,000 ± 0 MPa), `E_ICE_KERMANI` (1,060 ± 170 MPa), `G_ICE` (407.7 ± 65.4 MPa)
+- **Standard measurement uncertainties**: `U_HAND_HARDNESS_INDEX` (±0.67 HHI), `U_SLOPE_ANGLE` (±2°), `U_GRAIN_SIZE` (±0.5 mm), `U_THICKNESS_FRACTION` (±5%), `U_DENSITY_FRACTION` (±10%)
+
+Ice constants `E_ICE_KERMANI` and `G_ICE` are stored as `ufloat` values so their literature uncertainties automatically propagate through Wautier et al. calculations. `E_ICE_POLYCRYSTALLINE` has zero uncertainty because it cancels algebraically in Köchle/Schöttner formulations.
+
+Previously these constants were defined inline inside each method function; centralising them here ensures consistency and makes the uncertainty budget explicit.
 
 ### Parameter Calculation
 
 **Layer Parameters** (`snowpyt_mechparams.layer_parameters`):
-- `density.py` - Density estimation methods
-- `elastic_modulus.py` - Elastic modulus estimation methods
-- `poissons_ratio.py` - Poisson's ratio estimation methods
-- `shear_modulus.py` - Shear modulus estimation methods
+- `density.py` - Density estimation methods; all accept `hand_hardness_index` (ufloat) instead of the raw `hand_hardness` string, and support `include_method_uncertainty`
+- `elastic_modulus.py` - Elastic modulus estimation methods; ice modulus constants imported from `constants.py`; all support `include_method_uncertainty`
+- `poissons_ratio.py` - Poisson's ratio estimation methods; all support `include_method_uncertainty`
+- `shear_modulus.py` - Shear modulus estimation methods; all support `include_method_uncertainty`
 
 **Slab Parameters** (`snowpyt_mechparams.slab_parameters`):
 - `A11.py` - Extensional stiffness (classical laminate theory)
@@ -372,20 +404,20 @@ See `docs/execution_engine.md` for detailed architecture and implementation docu
 Executes parameterization pathways with dynamic programming:
 
 - **`ExecutionEngine`**: Orchestrates pathway execution for all pathways
-- **`PathwayExecutor`**: Executes individual pathways with layer-level caching
-- **`MethodDispatcher`**: Routes method calls to implementations
-- **`ComputationCache`**: Layer-level cache with provenance tracking
-- **`ExecutionConfig`**: Optional configuration (verbose mode)
+- **`PathwayExecutor`**: Executes individual pathways with layer-level density caching
+- **`MethodDispatcher`**: Routes method calls to implementations; exposes `supports_method_uncertainty()` to introspect which methods accept the `include_method_uncertainty` flag
+- **`ComputationCache`**: Density-only layer-level cache with provenance tracking (slab-level caching removed)
+- **`ExecutionConfig`**: Optional configuration (`verbose` mode; `include_method_uncertainty` flag)
 - **`ExecutionResults`**: Container for all pathway results with cache statistics
 - **`PathwayResult`**: Individual pathway result with slab parameters and computation traces
 
 **Key features:**
-- **Dynamic programming**: Caches layer-level parameters within each slab (density, elastic modulus, Poisson's ratio)
+- **Dynamic programming**: Only **density** values are cached within each slab; elastic modulus, Poisson's ratio, shear modulus, and slab parameters (A11, B11, D11, A55) are always recomputed fresh to preserve correct per-pathway uncertainty budgets
 - **Copy-on-write optimization**: Efficient layer copying for minimal memory overhead
 - **Provenance tracking**: Full computation traces showing which methods computed each value
-- **Cache statistics**: Real-time hit rates and performance metrics
+- **Cache statistics**: Real-time hit rates and performance metrics; `ComputationCache.__repr__` now reports `density_entries` instead of separate layer/slab entry counts
 - **Graceful failure handling**: Continues when methods fail (unsupported grain forms, missing data)
-- **Performance**: 40-50% cache hit rates on typical D11 calculations, significantly reducing redundant computations
+- **Configurable uncertainty**: `ExecutionConfig(include_method_uncertainty=False)` isolates input measurement uncertainty from method regression error; the dispatcher automatically passes this flag only to methods that support it
 
 ## Examples
 
@@ -400,13 +432,18 @@ Comprehensive examples are available in the `examples/` directory:
 
 ### Advanced Analysis
 
-- **`compare_D11_across_pathways_v3.ipynb`** - Comprehensive D11 analysis across all 32 pathways
+- **`all_D11_pathways.ipynb`** - Comprehensive D11 analysis across all 32 pathways
   - Processes ~50,000 snow pits from SnowPilot dataset
   - Executes ~473,032 pathway calculations (14,776 slabs × 32 pathways)
-  - Analyzes success rates, inter-pathway variability, and method comparisons
-  - Explores relationships between variability and slab properties
+  - Runs with `include_method_uncertainty=False` to isolate propagated input uncertainties
+  - Analyzes success rates, inter-pathway variability, method comparisons, and relative uncertainty per pathway
+  - Includes **Sankey diagrams** visualising the flow from density → elastic modulus → Poisson's ratio for selected pathways
   - Generates publication-ready figures
   - **Runtime**: 15-30 minutes
+
+- **`all_density_pathways.ipynb`** - Analysis across all density methods
+- **`all_e_mod_pathways.ipynb`** - Analysis across all elastic modulus methods
+- **`all_poissons_ratio_pathways.ipynb`** - Analysis across all Poisson's ratio methods
 
 - **`compare_D11_across_pathways.ipynb`** - Legacy analysis (archived)
   - Original notebook, superseded by v3
@@ -427,9 +464,10 @@ Comprehensive examples are available in the `examples/` directory:
 ```
 SnowPyt-MechParams/
 ├── src/snowpyt_mechparams/       # Main package source
+│   ├── constants.py              # Physical constants & standard measurement uncertainties
 │   ├── data_structures/          # Layer, Slab, Pit classes
 │   ├── layer_parameters/         # Layer-level calculation methods
-│   │   ├── density.py            # 4 density methods
+│   │   ├── density.py            # 4 density methods (accept hand_hardness_index ufloat)
 │   │   ├── elastic_modulus.py    # 4 elastic modulus methods
 │   │   ├── poissons_ratio.py     # 2 Poisson's ratio methods
 │   │   └── shear_modulus.py      # Shear modulus method
@@ -446,21 +484,23 @@ SnowPyt-MechParams/
 │   ├── algorithm.py              # Pathway discovery algorithm
 │   ├── execution/                # Execution engine with dynamic programming
 │   │   ├── engine.py             # ExecutionEngine
-│   │   ├── executor.py           # PathwayExecutor with caching
-│   │   ├── dispatcher.py         # MethodDispatcher
-│   │   ├── cache.py              # ComputationCache
-│   │   ├── config.py             # ExecutionConfig
+│   │   ├── executor.py           # PathwayExecutor (density-only caching)
+│   │   ├── dispatcher.py         # MethodDispatcher (+ supports_method_uncertainty())
+│   │   ├── cache.py              # ComputationCache (density-only; slab cache removed)
+│   │   ├── config.py             # ExecutionConfig (verbose + include_method_uncertainty)
 │   │   └── results.py            # Result containers
 │   └── snowpilot_utils.py        # SnowPilot CAAML parsing
 ├── examples/                     # Jupyter notebook examples
-│   ├── compare_D11_across_pathways_v3.ipynb    # Full D11 analysis (current)
-│   ├── compare_D11_across_pathways.ipynb       # Legacy analysis
-│   ├── dataset_stats.ipynb       # Dataset statistics
+│   ├── all_D11_pathways.ipynb              # Full D11 analysis with Sankey diagrams
+│   ├── all_density_pathways.ipynb          # Density method comparison
+│   ├── all_e_mod_pathways.ipynb            # Elastic modulus method comparison
+│   ├── all_poissons_ratio_pathways.ipynb   # Poisson's ratio method comparison
 │   └── data/                     # SnowPilot dataset (50,278 CAAML files)
 ├── tests/                        # Test suite (pytest)
 │   ├── test_integration.py       # Integration tests
-│   ├── test_executor_dynamic_programming.py  # Cache tests
-│   ├── test_computation_cache.py # Cache unit tests
+│   ├── test_executor_dynamic_programming.py   # Dynamic programming / cache tests
+│   ├── test_computation_cache.py              # ComputationCache unit tests
+│   ├── test_layer_parameter_method_uncertainty.py  # include_method_uncertainty tests
 │   └── ...                       # Additional test modules
 ├── docs/                         # Documentation
 │   ├── execution_engine.md       # Complete architecture & implementation
@@ -509,14 +549,15 @@ pytest tests/test_executor_dynamic_programming.py  # Dynamic programming tests
 pytest tests/test_integration.py        # Integration tests
 ```
 
-**Current test status**: 
+**Current test status**:
 - Integration tests: ✓ Passing
-- Dynamic programming/caching tests: ✓ Passing  
+- Dynamic programming/caching tests: ✓ Passing (updated: density-only cache, slab-cache tests removed)
 - Graph and algorithm tests: ✓ Passing
 - Dispatcher tests: ✓ Passing
-- Total: 154 tests
+- Method uncertainty tests: ✓ Passing (new: `test_layer_parameter_method_uncertainty.py`)
+- Total: 204 tests
 
-## Current Status (v0.3.0)
+## Current Status (v0.4.0)
 
 ### ✅ Completed Features
 
@@ -529,8 +570,11 @@ pytest tests/test_integration.py        # Integration tests
 - [x] Provenance tracking and computation traces
 - [x] SnowPilot CAAML parsing and integration
 - [x] Uncertainty propagation throughout all calculations
-- [x] Comprehensive test suite (154 tests)
-- [x] D11 comparison analysis across all pathways
+- [x] Standard measurement uncertainties centralised in `constants.py` and applied at parse time
+- [x] `include_method_uncertainty` flag on all `calculate_*` functions and `ExecutionConfig`
+- [x] Ice modulus constants (`E_ICE_KERMANI`, `E_ICE_POLYCRYSTALLINE`, `G_ICE`) moved to `constants.py`
+- [x] Comprehensive test suite (204 tests)
+- [x] D11 comparison analysis across all pathways with Sankey diagrams
 - [x] Production-ready examples and documentation
 - [x] Performance optimization (40-50% cache hit rates)
 
@@ -547,7 +591,7 @@ pytest tests/test_integration.py        # Integration tests
 - **SnowPilot dataset**: 50,278 CAAML files parsed successfully
 - **ECTP slabs**: ~14,776 slabs from ~12,347 pits (24.6% ECTP rate)
 - **D11 pathways**: 32 unique pathways (4 density × 4 E × 2 ν)
-- **Analysis**: Comprehensive pathway comparison in `compare_D11_across_pathways_v3.ipynb`
+- **Analysis**: Comprehensive pathway comparison in `all_D11_pathways.ipynb`
 
 ## Troubleshooting
 
@@ -659,7 +703,7 @@ If you use SnowPyt-MechParams in your research, please cite:
   author = {Connelly, Mary and Verplanck, Samuel and {SnowPyt-MechParams Contributors}},
   title = {SnowPyt-MechParams: A collaborative Python library for snow mechanical parameter estimation},
   url = {https://github.com/your-username/snowpyt-mechparams},
-  version = {0.3.0},
+  version = {0.4.0},
   year = {2025}
 }
 ```
@@ -676,7 +720,7 @@ When using specific methods, please also cite the relevant publications:
 - Bergfeld et al. (2023) - Temporal evolution of crack propagation
 - Köchle & Schneebeli (2014) - Microstructure-based calculations
 - Wautier et al. (2015) - Numerical homogenization
-- Schöttner et al. (2024) - Finite element modeling
+- Schöttner et al. (2026) - Finite element modeling
 
 **Poisson's Ratio Methods:**
 - Köchle & Schneebeli (2014) - Grain form correlations
@@ -726,4 +770,4 @@ For academic researchers interested in collaborating, please see our [collaborat
 
 ---
 
-**Version**: 0.3.0 | **Last Updated**: February 2026 | **Python**: 3.8+ | **License**: MIT
+**Version**: 0.4.0 | **Last Updated**: February 2026 | **Python**: 3.8+ | **License**: MIT

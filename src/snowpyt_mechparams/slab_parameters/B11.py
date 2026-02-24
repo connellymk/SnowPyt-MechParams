@@ -2,10 +2,10 @@
 
 from typing import Any
 
-import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.slab_parameters._common import integrate_plane_strain_over_layers
 
 
 def calculate_B11(method: str, **kwargs: Any) -> ufloat:
@@ -22,7 +22,7 @@ def calculate_B11(method: str, **kwargs: Any) -> ufloat:
     ----------
     method : str
         Method to use for B11 calculation. Available methods:
-        - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023) 
+        - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023)
           formulation based on classical laminate theory applied to layered
           snow slabs with plane-strain assumptions
 
@@ -147,76 +147,19 @@ def _calculate_B11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
 
     References
     ----------
-    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for 
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
     layered snow slabs. The Cryosphere, 17(4), 1475-1496.
     https://doi.org/10.5194/tc-17-1475-2023
 
     Jones, R. M. (1998). Mechanics of composite materials (2nd ed.). CRC Press.
     https://doi.org/10.1201/9781498711067
 
-    Reddy, J. N. (2003). Mechanics of Laminated Composite Plates and Shells: 
+    Reddy, J. N. (2003). Mechanics of Laminated Composite Plates and Shells:
     Theory and Analysis (2nd ed.). CRC Press.
     https://doi.org/10.1201/b12409
     """
-    # Validate slab input
-    if not slab.layers:
-        return ufloat(np.nan, np.nan)
+    def _accumulate_B11(plane_strain_modulus, z_top, z_bottom):
+        # B11: first-order weighting — (1/2) * Ē * (z_top² - z_bottom²)
+        return 0.5 * plane_strain_modulus * (z_top ** 2 - z_bottom ** 2)
 
-    # Calculate total slab thickness
-    total_thickness = slab.total_thickness
-    if total_thickness is None:
-        return ufloat(np.nan, np.nan)
-
-    # Convert to mm
-    h_total = total_thickness * 10.0  # cm → mm
-
-    # Initialize accumulator for B11
-    B11_sum = 0.0
-
-    # Calculate z-coordinates for each layer
-    # z = 0 at centroid, z = h/2 at top surface, z = -h/2 at bottom
-    z_top_surface = h_total / 2.0  # mm from centroid to top surface
-
-    # Track cumulative depth from top surface
-    depth_from_top = 0.0  # mm
-
-    # Sum contributions from each layer
-    for i, layer in enumerate(slab.layers):
-        # Check that all required properties are present
-        if layer.elastic_modulus is None:
-            return ufloat(np.nan, np.nan)
-        if layer.poissons_ratio is None:
-            return ufloat(np.nan, np.nan)
-        if layer.thickness is None:
-            return ufloat(np.nan, np.nan)
-
-        # Extract layer properties
-        E_i = layer.elastic_modulus  # MPa = N/mm²
-        nu_i = layer.poissons_ratio  # dimensionless
-        h_i = layer.thickness * 10.0  # cm → mm
-
-        # Check for valid Poisson's ratio
-        if hasattr(nu_i, 'nominal_value'):
-            nu_val = nu_i.nominal_value
-        else:
-            nu_val = nu_i
-
-        if nu_val >= 1.0 or nu_val < -1.0:
-            return ufloat(np.nan, np.nan)
-
-        # Calculate z-coordinates of layer boundaries (from centroid)
-        # Top of this layer
-        z_i_plus_1 = z_top_surface - depth_from_top
-        # Bottom of this layer
-        z_i = z_top_surface - (depth_from_top + h_i)
-
-        # Update depth for next layer
-        depth_from_top += h_i
-
-        # Calculate plane-strain modulus term: E_i / (1 - ν_i²)
-        plane_strain_modulus = E_i / (1.0 - nu_i**2)
-
-        # Add contribution from this layer: (1/2) * [E_i / (1 - ν_i²)] * (z_{i+1}² - z_i²)
-        B11_sum += (1.0 / 2.0) * plane_strain_modulus * (z_i_plus_1**2 - z_i**2)
-
-    return B11_sum
+    return integrate_plane_strain_over_layers(slab, _accumulate_B11)

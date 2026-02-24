@@ -2,10 +2,10 @@
 
 from typing import Any
 
-import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.slab_parameters._common import integrate_plane_strain_over_layers
 
 
 def calculate_A11(method: str, **kwargs: Any) -> ufloat:
@@ -21,7 +21,7 @@ def calculate_A11(method: str, **kwargs: Any) -> ufloat:
     ----------
     method : str
         Method to use for A11 calculation. Available methods:
-        - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023) 
+        - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023)
           formulation based on classical laminate theory applied to layered
           snow slabs with plane-strain assumptions
 
@@ -75,7 +75,7 @@ def _calculate_A11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     Notes
     -----
     The extensional stiffness is calculated using the weighted integration of
-    individual layer stiffness properties (Equation 8a in Weißgraeber & 
+    individual layer stiffness properties (Equation 8a in Weißgraeber &
     Rosendahl 2023):
 
     A11 = ∫_{-h/2}^{h/2} E(z)/(1-ν(z)²) dz = Σ_{i=1}^{N} E_i/(1-ν_i²) * h_i
@@ -120,52 +120,22 @@ def _calculate_A11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
 
     References
     ----------
-    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for 
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
     layered snow slabs. The Cryosphere, 17(4), 1475-1496.
     https://doi.org/10.5194/tc-17-1475-2023
 
     Jones, R. M. (1998). Mechanics of composite materials (2nd ed.). CRC Press.
     https://doi.org/10.1201/9781498711067
 
-    Reddy, J. N. (2003). Mechanics of Laminated Composite Plates and Shells: 
+    Reddy, J. N. (2003). Mechanics of Laminated Composite Plates and Shells:
     Theory and Analysis (2nd ed.). CRC Press.
     https://doi.org/10.1201/b12409
     """
-    # Validate slab input
-    if not slab.layers:
-        return ufloat(np.nan, np.nan)
+    def _accumulate_A11(plane_strain_modulus, z_top, z_bottom):
+        # A11: zeroth-order weighting — plane_strain_modulus * h_i
+        h_i = z_top - z_bottom
+        return plane_strain_modulus * h_i
 
-    # Initialize accumulator for A11
-    A11_sum = 0.0
-
-    # Sum contributions from each layer
-    for i, layer in enumerate(slab.layers):
-        # Check that all required properties are present
-        if layer.elastic_modulus is None:
-            return ufloat(np.nan, np.nan)
-        if layer.poissons_ratio is None:
-            return ufloat(np.nan, np.nan)
-        if layer.thickness is None:
-            return ufloat(np.nan, np.nan)
-
-        # Extract layer properties
-        E_i = layer.elastic_modulus  # MPa = N/mm²
-        nu_i = layer.poissons_ratio  # dimensionless
-        h_i = layer.thickness * 10.0  # cm → mm
-
-        # Check for valid Poisson's ratio (must be < 1 to avoid division issues)
-        if hasattr(nu_i, 'nominal_value'):
-            nu_val = nu_i.nominal_value
-        else:
-            nu_val = nu_i
-
-        if nu_val >= 1.0 or nu_val < -1.0:
-            return ufloat(np.nan, np.nan)
-
-        # Calculate plane-strain modulus term: E_i / (1 - ν_i²)
-        plane_strain_modulus = E_i / (1.0 - nu_i**2)
-
-        # Add contribution from this layer: [E_i / (1 - ν_i²)] * h_i
-        A11_sum += plane_strain_modulus * h_i
-
-    return A11_sum
+    return integrate_plane_strain_over_layers(
+        slab, _accumulate_A11, needs_z_coords=True,
+    )

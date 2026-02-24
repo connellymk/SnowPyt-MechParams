@@ -148,6 +148,47 @@ class TestKimJamiesonTable2Numerical:
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-4)
 
+    def test_RG_method_uncertainty_propagated_through_exponent(self):
+        """RG SE=0.2 is the SE of coefficient B (not a density SE).
+
+        With include_method_uncertainty=True and exact input (h=2, std=0),
+        the only source of uncertainty is B=0.270±0.2. The density uncertainty
+        should be rho * h * sigma_B = 91.8*e^(0.54) * 2 * 0.2 ≈ 63 kg/m³.
+        """
+        h = 2.0
+        result_with = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(h, 0.0),
+            grain_form="RG",
+            include_method_uncertainty=True,
+        )
+        result_without = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(h, 0.0),
+            grain_form="RG",
+            include_method_uncertainty=False,
+        )
+        # Nominal values must match regardless of uncertainty flag
+        assert result_with.nominal_value == pytest.approx(
+            result_without.nominal_value, rel=1e-6
+        )
+        # With exact input and no method uncertainty, std_dev should be ~0
+        assert result_without.std_dev == pytest.approx(0.0, abs=1e-10)
+        # With method uncertainty, std_dev should be substantial (~63 kg/m³)
+        expected_rho = 91.8 * math.e ** (0.270 * h)
+        expected_std = expected_rho * h * 0.2  # rho * h * sigma_B
+        assert result_with.std_dev == pytest.approx(expected_std, rel=0.01)
+
+    def test_FC_method_uncertainty_adds_SE(self):
+        """Linear SE for FC is 47 kg/m³; with exact inputs, std_dev should equal SE."""
+        result = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(2.0, 0.0),
+            grain_form="FC",
+            include_method_uncertainty=True,
+        )
+        assert result.std_dev == pytest.approx(47.0, abs=0.01)
+
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_density(
             "kim_jamieson_table2",

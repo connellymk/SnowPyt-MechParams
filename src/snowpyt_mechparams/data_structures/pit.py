@@ -1,13 +1,9 @@
-# Common data structures for snow mechanical parameter calculations
+# Pit data structure for snow mechanical parameter calculations
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Union
-
-import uncertainties
+from typing import Any, List, Optional
 
 from snowpyt_mechparams.constants import (
-    HARDNESS_MAPPING,
-    U_HAND_HARDNESS_INDEX,
     U_SLOPE_ANGLE,
     U_GRAIN_SIZE,
     U_THICKNESS_FRACTION,
@@ -15,160 +11,9 @@ from snowpyt_mechparams.constants import (
 )
 from uncertainties import ufloat as _ufloat
 
-# Type alias for values that can be floats or uncertain numbers
-UncertainValue = Union[float, uncertainties.UFloat]
+from snowpyt_mechparams.data_structures.layer import Layer
+from snowpyt_mechparams.data_structures.slab import Slab
 
-
-@dataclass
-class Layer:
-    """
-    Represents a snow layer with thickness and density.
-
-    Values can be regular floats or uncertain numbers (ufloat) from the
-    uncertainties package. When using uncertain numbers, uncertainties will
-    automatically propagate through calculations.
-
-    Attributes
-    ----------
-    # Field Measurements
-    depth_top: Union[float, uncertainties.UFloat]
-        Layer depth from the top of the snowpack in centimeters (cm). Can include uncertainty.
-    thickness: Union[float, uncertainties.UFloat]
-        Layer thickness in centimeters (cm). Can include uncertainty.
-    density_measured: Union[float, uncertainties.UFloat]
-        Layer density measured directly in kilograms per cubic meter (kg/m³). Can include uncertainty.
-    hand_hardness: str
-        Layer hand hardness 
-    grain_form: str
-        Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available,
-        otherwise basic class (e.g., 'FC', 'PP', 'RG')
-    grain_size_avg: Union[float, uncertainties.UFloat]
-        Average grain size in millimeters (mm). Can include uncertainty.
-    layer_of_concern: bool
-        Whether this layer is marked as layer of concern (default: False)
-
-
-    # Calculated Parameters
-
-    ## From Field Measurements
-    depth_bottom: Union[float, uncertainties.UFloat]
-        Location of the bottom of the layer in centimeters (cm). Can include uncertainty.
-    hand_hardness_index: Union[float, uncertainties.UFloat]
-        Hand hardness index of the layer.
-    main_grain_form: str
-        Basic grain class code extracted from grain_form (first 2 characters).
-        Always returns the 2-character basic code regardless of whether grain_form
-        contains a sub-grain or basic code.
-
-    ## From Method Implementations
-    density_calculated: Union[float, uncertainties.UFloat]
-        Layer density in kilograms per cubic meter (kg/m³). Can include uncertainty.
-    poissons_ratio: Union[float, uncertainties.UFloat]
-        Layer poissons ratio. Can include uncertainty.
-    shear_modulus: Union[float, uncertainties.UFloat]
-        Layer shear modulus. Can include uncertainty.
-    elastic_modulus: Union[float, uncertainties.UFloat]
-        Layer elastic modulus. Can include uncertainty.
-
-    --------
-
-    """
-    # ==========================================
-    # Field Measurements
-    # ==========================================
-    depth_top: Optional[UncertainValue] = None  # cm - Layer depth from the top of the snowpack
-    thickness: Optional[UncertainValue] = None  # cm - Layer thickness
-    density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
-    hand_hardness: Optional[str] = None  # Layer hand hardness
-    grain_form: Optional[str] = None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
-    grain_size_avg: Optional[UncertainValue] = None  # mm - Average grain size
-    layer_of_concern: bool = False  # Whether this layer is marked as layer of concern
-    
-    # ==========================================
-    # Calculated Parameters - From Method Implementations
-    # ==========================================
-    density_calculated: Optional[UncertainValue] = None  # kg/m³ - Layer density
-    poissons_ratio: Optional[UncertainValue] = None  # Layer Poisson's ratio
-    shear_modulus: Optional[UncertainValue] = None  # Layer shear modulus
-    elastic_modulus: Optional[UncertainValue] = None  # Layer elastic modulus
-    
-    # ==========================================
-    # Calculated Parameters - From Field Measurements (Properties)
-    # ==========================================
-    
-    @property
-    def depth_bottom(self) -> Optional[UncertainValue]:
-        """
-        Calculate the bottom depth of the layer.
-        
-        Calculated as depth_top + thickness when both are available.
-        Returns None if either depth_top or thickness is not defined.
-        
-        Returns
-        -------
-        Optional[UncertainValue]
-            Location of the bottom of the layer in centimeters (cm), or None
-        """
-        if self.depth_top is not None and self.thickness is not None:
-            return self.depth_top + self.thickness
-        return None
-    
-    @property
-    def hand_hardness_index(self) -> Optional[UncertainValue]:
-        """
-        Calculate the hand hardness index from the hand hardness string, with
-        standard measurement uncertainty applied.
-
-        Looks up the nominal HHI from ``HARDNESS_MAPPING`` and wraps it with
-        ``U_HAND_HARDNESS_INDEX``, consistent with how thickness, grain size,
-        density, and slope angle uncertainties are all applied in this module.
-
-        Returns
-        -------
-        Optional[UncertainValue]
-            ``ufloat(hhi, U_HAND_HARDNESS_INDEX)``, or ``None`` if
-            ``hand_hardness`` is not set or not in the mapping.
-        """
-        if self.hand_hardness is None:
-            return None
-        hhi = HARDNESS_MAPPING.get(self.hand_hardness)
-        if hhi is None:
-            return None
-        return _ufloat(hhi, U_HAND_HARDNESS_INDEX)
-    
-    @property
-    def main_grain_form(self) -> Optional[str]:
-        """
-        Extract the basic grain form from the grain_form string.
-        
-        Returns the first two characters of grain_form, which extracts the basic
-        grain class code:
-        - For sub-grain codes (e.g., 'FCxr', 'PPgp', 'RGmx'): returns basic form ('FC', 'PP', 'RG')
-        - For basic codes (e.g., 'FC', 'PP', 'RG'): returns same value (already basic)
-        
-        This property is useful when you need the basic grain class regardless of
-        whether the full grain_form contains a sub-grain or basic code.
-        
-        Returns None if grain_form is not defined or has less than 2 characters.
-        
-        Returns
-        -------
-        Optional[str]
-            Basic grain class code (first 2 characters of grain_form), or None
-            
-        Examples
-        --------
-        >>> layer.grain_form = "FCxr"
-        >>> layer.main_grain_form
-        'FC'
-        
-        >>> layer.grain_form = "PP"
-        >>> layer.main_grain_form
-        'PP'
-        """
-        if self.grain_form is not None and len(self.grain_form) >= 2:
-            return self.grain_form[:2]
-        return None
 
 @dataclass
 class Pit:
@@ -229,7 +74,7 @@ class Pit:
     ECT_results: Optional[List[Any]] = None
     CT_results: Optional[List[Any]] = None
     PST_results: Optional[List[Any]] = None
-    
+
     def __post_init__(self) -> None:
         """
         Initialize the pit by extracting layers and test results from snowpylot SnowPit.
@@ -254,7 +99,7 @@ class Pit:
             self.ECT_results = self.snow_pit.stability_tests.ECT if self.snow_pit.stability_tests.ECT else []
             self.CT_results = self.snow_pit.stability_tests.CT if self.snow_pit.stability_tests.CT else []
             self.PST_results = self.snow_pit.stability_tests.PST if self.snow_pit.stability_tests.PST else []
-    
+
     @classmethod
     def from_snow_pit(cls, snow_pit: Any) -> "Pit":
         """
@@ -302,7 +147,7 @@ class Pit:
     def create_slabs(
         self,
         weak_layer_def: Optional[str] = None,
-    ) -> List["Slab"]:
+    ) -> List[Slab]:
         """
         Create multiple Slab objects from the pit's layers, one per matching test result.
 
@@ -431,7 +276,7 @@ class Pit:
     # ============================================================================
     # Private Helper Methods
     # ============================================================================
-    
+
     def _create_layers_from_profile(self, include_density: bool = True) -> List[Layer]:
         """
         Convert snowpylot SnowPit to a list of Layer objects.
@@ -457,13 +302,13 @@ class Pit:
         for layer in self.snow_pit.snow_profile.layers:
             # Extract depth_top (array to scalar)
             depth_top = layer.depth_top[0] if layer.depth_top else None
-            
+
             # Extract thickness (array to scalar) and apply measurement uncertainty
             thickness = None
             if layer.thickness:
                 t = layer.thickness[0]
                 thickness = _ufloat(t, abs(t) * U_THICKNESS_FRACTION)
-            
+
             # Extract hand hardness
             hand_hardness = layer.hardness if hasattr(layer, "hardness") else None
 
@@ -481,7 +326,7 @@ class Pit:
                 )
                 # Prefer sub-grain (more specific), fall back to basic
                 grain_form = grain_form_sub if grain_form_sub else grain_form_basic
-            
+
             # Extract grain size average and apply standard measurement uncertainty
             grain_size_avg = None
             if (
@@ -497,7 +342,7 @@ class Pit:
                         else grain_size_data
                     )
                     grain_size_avg = _ufloat(gs, U_GRAIN_SIZE)
-            
+
             # Optionally match and extract density from density profile and apply
             # standard measurement uncertainty
             density_measured = None
@@ -515,7 +360,7 @@ class Pit:
                             break
                 except (AttributeError, TypeError):
                     pass
-            
+
             # Create Layer object
             layer_obj = Layer(
                 depth_top=depth_top,
@@ -526,11 +371,11 @@ class Pit:
                 grain_size_avg=grain_size_avg,
                 layer_of_concern=is_layer_of_concern,
             )
-            
+
             layers.append(layer_obj)
-        
+
         return layers
-    
+
     @staticmethod
     def _get_value_safe(obj: Any) -> Optional[float]:
         """
@@ -597,7 +442,7 @@ class Pit:
         test_type: str,
         weak_layer_def: str,
         n_total_tests: int,
-    ) -> Optional["Slab"]:
+    ) -> Optional[Slab]:
         """
         Create a slab from a specific test result with metadata.
 
@@ -704,106 +549,4 @@ class Pit:
             if hasattr(test_result, "depth_top"):
                 props["depth_top"] = self._get_value_safe(test_result.depth_top)
 
-        return props 
-
-
-
-@dataclass
-class Slab:
-    """
-    Represents a snow slab as an ordered collection of layers.
-
-    The slab is ordered from top to bottom, where the first layer
-    is at the surface and subsequent layers are deeper in the snowpack.
-
-    Attributes
-    ----------
-
-    # Field Measurements
-    angle: float
-        Angle of the slab in degrees.
-
-    # Layer Structure
-    layers : List[Layer]
-        Ordered list of snow layers from top (surface) to bottom
-
-    # Weak Layer
-    weak_layer: Optional[Layer]
-        Weak layer of the slab.
-
-    # Parent Reference
-    pit: Optional["Pit"]
-        Reference to the parent Pit object (access test results and layer_of_concern through this)
-
-    # Metadata
-    pit_id : Optional[str]
-        Identifier of the source pit
-    slab_id : Optional[str]
-        Unique identifier for this slab (e.g., "pit_001_slab_0")
-    weak_layer_source : Optional[str]
-        Method used to identify weak layer (e.g., "ECTP_failure_layer", "CT_failure_layer", "layer_of_concern")
-    test_result_index : Optional[int]
-        Index of the specific test result used to create this slab (0-indexed)
-    test_result_properties : Optional[dict]
-        Properties of the specific test result used (e.g., {"score": "ECTP12", "propagation": True})
-    n_test_results_in_pit : Optional[int]
-        Total number of test results of this type available in the source pit
-
-    # Calculated Parameters - From Method Implementations
-    A11 : Union[float, uncertainties.UFloat]
-        Extensional stiffness in N/mm. Can include uncertainty.
-    A55 : Union[float, uncertainties.UFloat]
-        Shear stiffness (with shear correction factor κ) in N/mm. Can include uncertainty.
-    B11 : Union[float, uncertainties.UFloat]
-        Bending-extension coupling stiffness in N. Can include uncertainty.
-    D11 : Union[float, uncertainties.UFloat]
-        Bending stiffness in N·mm. Can include uncertainty.
-    """
-    # Slab Structure
-    layers: List[Layer]  # Ordered list of snow layers from top (surface) to bottom
-    angle: UncertainValue  # Slope angle of the slab in degrees
-    weak_layer: Optional[Layer] = None  # Weak layer of the slab
-
-    # Parent Reference - access test results through pit.ECT_results, pit.CT_results, etc.
-    pit: Optional["Pit"] = None  # Reference to parent Pit object
-
-    # Metadata - tracks which test result was used to create this slab
-    pit_id: Optional[str] = None  # Source pit identifier
-    slab_id: Optional[str] = None  # Unique slab identifier
-    weak_layer_source: Optional[str] = None  # Method used to identify weak layer
-    test_result_index: Optional[int] = None  # Index of specific test result used (0-indexed)
-    test_result_properties: Optional[dict] = None  # Properties of the specific test result
-    n_test_results_in_pit: Optional[int] = None  # Total test results available in pit
-
-    # Calculated Parameters - From Method Implementations
-    A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness
-    A55: Optional[UncertainValue] = None  # N/mm - Shear stiffness (with shear correction factor κ)
-    B11: Optional[UncertainValue] = None  # N - Bending-extension coupling stiffness
-    D11: Optional[UncertainValue] = None  # N·mm - Bending stiffness
-
-    def __post_init__(self) -> None:
-        """Validate that the slab contains at least one layer."""
-        if not self.layers:
-            raise ValueError("Slab must contain at least one layer")
-
-        # Validate that all items are Layer objects
-        for i, layer in enumerate(self.layers):
-            if not isinstance(layer, Layer):
-                raise TypeError(f"Layer {i} must be a Layer object, got {type(layer)}")
-
-    @property
-    def total_thickness(self) -> Optional[UncertainValue]:
-        """
-        Calculate the total thickness of the slab.
-
-        If any layers have uncertain thickness values, the result will
-        automatically include propagated uncertainties.
-        Returns None if no layers have thickness values.
-
-        Returns
-        -------
-        Optional[UncertainValue]
-            Total thickness in centimeters (cm), with uncertainty if applicable, or None
-        """
-        thicknesses = [layer.thickness for layer in self.layers if layer.thickness is not None]
-        return sum(thicknesses) if thicknesses else None
+        return props

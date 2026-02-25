@@ -335,10 +335,11 @@ Previously these constants were defined inline inside each method function; cent
 - `shear_modulus.py` - Shear modulus estimation methods; all support `include_method_uncertainty`
 
 **Slab Parameters** (`snowpyt_mechparams.slab_parameters`):
-- `A11.py` - Extensional stiffness (classical laminate theory)
-- `B11.py` - Bending-extension coupling
-- `D11.py` - Bending stiffness (critical for avalanche modeling)
-- `A55.py` - Shear stiffness
+- `_common.py` - Shared helper (`integrate_plane_strain_over_layers`) that handles slab validation, layer iteration, plane-strain modulus computation, and z-coordinate setup for A11/B11/D11
+- `A11.py` - Extensional stiffness (zeroth-order z-weighting)
+- `B11.py` - Bending-extension coupling (first-order z-weighting)
+- `D11.py` - Bending stiffness (second-order z-weighting, critical for avalanche modeling)
+- `A55.py` - Shear stiffness (uses shear modulus directly, independent of `_common.py`)
 
 ### Parameterization Graph (`snowpyt_mechparams.graph`)
 
@@ -467,11 +468,13 @@ SnowPyt-MechParams/
 │   ├── constants.py              # Physical constants & standard measurement uncertainties
 │   ├── data_structures/          # Layer, Slab, Pit classes
 │   ├── layer_parameters/         # Layer-level calculation methods
+│   │   ├── __init__.py           # Public exports (calculate_density, etc.)
 │   │   ├── density.py            # 4 density methods (accept hand_hardness_index ufloat)
 │   │   ├── elastic_modulus.py    # 4 elastic modulus methods
 │   │   ├── poissons_ratio.py     # 2 Poisson's ratio methods
 │   │   └── shear_modulus.py      # Shear modulus method
 │   ├── slab_parameters/          # Slab-level calculation methods
+│   │   ├── _common.py            # Shared plane-strain integration helper
 │   │   ├── A11.py                # Extensional stiffness
 │   │   ├── B11.py                # Bending-extension coupling
 │   │   ├── D11.py                # Bending stiffness
@@ -496,11 +499,17 @@ SnowPyt-MechParams/
 │   ├── all_e_mod_pathways.ipynb            # Elastic modulus method comparison
 │   ├── all_poissons_ratio_pathways.ipynb   # Poisson's ratio method comparison
 │   └── data/                     # SnowPilot dataset (50,278 CAAML files)
-├── tests/                        # Test suite (pytest)
+├── tests/                        # Test suite (pytest, 278 tests)
 │   ├── test_integration.py       # Integration tests
 │   ├── test_executor_dynamic_programming.py   # Dynamic programming / cache tests
 │   ├── test_computation_cache.py              # ComputationCache unit tests
 │   ├── test_layer_parameter_method_uncertainty.py  # include_method_uncertainty tests
+│   ├── test_density_methods.py                # Numerical validation: density methods
+│   ├── test_elastic_modulus_methods.py         # Numerical validation: E methods
+│   ├── test_poissons_ratio_methods.py          # Numerical validation: ν methods
+│   ├── test_shear_modulus_methods.py           # Numerical validation: G methods
+│   ├── test_slab_parameters.py                # Numerical validation: A11/B11/D11
+│   ├── test_graph.py                          # Graph structure + dispatcher consistency
 │   └── ...                       # Additional test modules
 ├── docs/                         # Documentation
 │   ├── execution_engine.md       # Complete architecture & implementation
@@ -554,8 +563,10 @@ pytest tests/test_integration.py        # Integration tests
 - Dynamic programming/caching tests: ✓ Passing (updated: density-only cache, slab-cache tests removed)
 - Graph and algorithm tests: ✓ Passing
 - Dispatcher tests: ✓ Passing
-- Method uncertainty tests: ✓ Passing (new: `test_layer_parameter_method_uncertainty.py`)
-- Total: 204 tests
+- Method uncertainty tests: ✓ Passing (`test_layer_parameter_method_uncertainty.py`)
+- Numerical validation tests: ✓ Passing (`test_density_methods.py`, `test_elastic_modulus_methods.py`, `test_poissons_ratio_methods.py`, `test_shear_modulus_methods.py`, `test_slab_parameters.py`)
+- Graph↔dispatcher consistency tests: ✓ Passing (`test_graph.py`)
+- Total: 278 tests
 
 ## Current Status (v0.4.0)
 
@@ -573,7 +584,10 @@ pytest tests/test_integration.py        # Integration tests
 - [x] Standard measurement uncertainties centralised in `constants.py` and applied at parse time
 - [x] `include_method_uncertainty` flag on all `calculate_*` functions and `ExecutionConfig`
 - [x] Ice modulus constants (`E_ICE_KERMANI`, `E_ICE_POLYCRYSTALLINE`, `G_ICE`) moved to `constants.py`
-- [x] Comprehensive test suite (204 tests)
+- [x] Comprehensive test suite (278 tests) with numerical validation against published coefficients
+- [x] Shared plane-strain integration helper for A11/B11/D11 (`slab_parameters/_common.py`)
+- [x] Debug-level logging at all NaN-return points for silent failure diagnosis
+- [x] Graph↔dispatcher bidirectional consistency validation
 - [x] D11 comparison analysis across all pathways with Sankey diagrams
 - [x] Production-ready examples and documentation
 - [x] Performance optimization (40-50% cache hit rates)

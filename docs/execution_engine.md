@@ -431,6 +431,29 @@ def resolve_grain_form_for_method(grain_form, method):
 
 The `Layer.grain_form` field can store either basic codes (e.g., 'PP', 'RG') or sub-grain codes (e.g., 'PPgp', 'RGmx'). The resolution logic maximizes compatibility by trying the full code first, then falling back to the basic grain class.
 
+### Slab Parameter Shared Helper
+
+A11, B11, and D11 share the same computation structure — validate the slab, iterate layers, compute the plane-strain modulus `E_i / (1 - ν_i²)`, build z-coordinates relative to the centroid, and accumulate a weighted sum. They differ only in the power of z used in the weighting.
+
+This shared logic is extracted into `slab_parameters/_common.py`:
+
+```python
+def integrate_plane_strain_over_layers(
+    slab: Slab,
+    accumulate: LayerAccumulator,
+    *,
+    needs_z_coords: bool = True,
+) -> ufloat:
+```
+
+Each slab parameter module (A11, B11, D11) provides a thin accumulator function:
+
+- **A11**: `plane_strain_modulus * h_i` (zeroth-order — thickness only)
+- **B11**: `0.5 * plane_strain_modulus * (z_top² - z_bottom²)` (first-order — first moment)
+- **D11**: `(1/3) * plane_strain_modulus * (z_top³ - z_bottom³)` (second-order — second moment)
+
+A55 is not included because it uses `shear_modulus` directly rather than the plane-strain modulus.
+
 ### Cache Strategy
 
 Only **density** values are cached. The cache key is:
@@ -894,6 +917,7 @@ results.pathways[...].slab.layers[0].density_calculated  # ufloat(250, 10)
 - Allows partial results across pathways
 - Failures recorded in `ComputationTrace` for traceability
 - User can inspect which pathways succeeded/failed and why
+- **Debug logging**: All layer parameter modules (`density.py`, `elastic_modulus.py`, `poissons_ratio.py`, `shear_modulus.py`) and the shared slab helper (`_common.py`) emit `logger.debug()` messages at every NaN-return point, identifying which layer and which validation check triggered the early exit. Enable with `logging.basicConfig(level=logging.DEBUG)` to trace silent failures.
 
 ### 7. Full Traceability
 
@@ -918,11 +942,13 @@ snowpyt_mechparams/
 │   ├── config.py              # ExecutionConfig
 │   └── results.py             # Result classes (ComputationTrace, PathwayResult, ExecutionResults)
 ├── layer_parameters/
+│   ├── __init__.py            # Public exports (calculate_density, calculate_elastic_modulus, etc.)
 │   ├── density.py             # 4 density calculation methods
 │   ├── elastic_modulus.py     # 4 elastic modulus methods
 │   ├── poissons_ratio.py      # 2 poisson's ratio methods
 │   └── shear_modulus.py       # Shear modulus methods
 ├── slab_parameters/
+│   ├── _common.py             # Shared helper: integrate_plane_strain_over_layers()
 │   ├── A11.py                 # A11 calculation (extensional stiffness)
 │   ├── B11.py                 # B11 calculation (bending-extension coupling)
 │   ├── D11.py                 # D11 calculation (bending stiffness)

@@ -294,5 +294,62 @@ class TestGraphBuilder:
         assert edge.end is node2
 
 
+class TestGraphDispatcherConsistency:
+    """Verify every method edge in the graph has a matching dispatcher registration."""
+
+    def test_all_graph_method_edges_have_dispatcher_entries(self):
+        """Every method_edge in definitions.py must map to a MethodDispatcher key.
+
+        This catches typos in method names that would silently create broken
+        graph edges (the pathway would be discovered but execution would fail
+        at dispatch time).
+        """
+        from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
+
+        dispatcher = MethodDispatcher()
+        registered_keys = set(dispatcher._registry.keys())
+
+        # Collect all (parameter, method_name) pairs from the graph's method edges
+        missing = []
+        for edge in graph.edges:
+            if edge.method_name is not None:
+                key = (edge.end.parameter, edge.method_name)
+                if key not in registered_keys:
+                    missing.append(key)
+
+        assert missing == [], (
+            f"Graph method edges without dispatcher registration: {missing}. "
+            "Either register the method in MethodDispatcher._register_all_methods() "
+            "or fix the method name in graph/definitions.py."
+        )
+
+    def test_all_dispatcher_entries_have_graph_edges(self):
+        """Every dispatcher registration should correspond to at least one graph edge.
+
+        This catches stale dispatcher entries for methods that were removed from
+        the graph.
+        """
+        from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
+
+        dispatcher = MethodDispatcher()
+        registered_keys = set(dispatcher._registry.keys())
+
+        # Collect all (parameter, method_name) from graph edges
+        graph_keys = set()
+        for edge in graph.edges:
+            if edge.method_name is not None:
+                graph_keys.add((edge.end.parameter, edge.method_name))
+
+        # data_flow is registered in the dispatcher but not a method_edge in the graph
+        # (it's a flow edge, i.e., method_name is None). Exclude it.
+        stale = registered_keys - graph_keys - {("density", "data_flow")}
+
+        assert stale == set(), (
+            f"Dispatcher registrations without corresponding graph edges: {stale}. "
+            "Either add the edge to graph/definitions.py or remove the "
+            "stale dispatcher registration."
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

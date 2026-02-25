@@ -1,12 +1,16 @@
 # Methods to calculate density of a layered slab if not known
 
-from math import e, sqrt
-from typing import Any, cast
+import logging
+import math
+from math import sqrt
+from typing import Any
 
 import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.data_structures import UncertainValue
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
@@ -106,9 +110,11 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     # Validate grain form
     valid_grain_forms = ['PP', 'PPgp', 'DF', 'RG', 'RGmx', 'FC', 'FCmx', 'DH']
     if grain_form not in valid_grain_forms:
+        logger.debug("_calculate_density_geldsetzer: unsupported grain_form=%r", grain_form)
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
+        logger.debug("_calculate_density_geldsetzer: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
     h = hand_hardness_index  # already a ufloat from data_structures.py
 
@@ -131,8 +137,8 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = cast(float, params['A'])
-    b = cast(float, params['B'])
+    a = params['A']
+    b = params['B']
     se = params['SE']
 
     # Calculate density using appropriate formula
@@ -178,14 +184,17 @@ def _calculate_density_kim_jamieson_table2(
 
     Notes
     -----
-     The Kim & Jamieson (2014) formulas, adapted from Geldsetzer et al. (2000), apply
+    The Kim & Jamieson (2014) formulas, adapted from Geldsetzer et al. (2000), apply
     different regression models based on grain type:
-    - Linear regression (rho = A + B*h): Used for all supported grain types except RG
+    - Linear regression (rho = A + B*h): Used for all supported grain types except RG.
+      The SE column is a residual standard error of the regression in kg/m³, added in
+      quadrature with propagated input measurement uncertainty.
     - Non-linear regression (rho = A*e^(B*h)): Applied specifically to rounded
-      grain types (RG) which do not conform well to linear relationships
-
-    Standard errors from Table 2 in Kim & Jamieson (2014) are used as uncertainties
-    for density estimates.
+      grain types (RG) which do not conform well to linear relationships. For this
+      model, the SE value (0.2) is the standard error of the fitted exponent
+      coefficient B=0.270, not a residual density SE. It is propagated through the
+      exponential model automatically via the uncertainties library, producing
+      density-dependent method uncertainty (larger at higher densities).
 
     References
     ----------
@@ -197,15 +206,27 @@ def _calculate_density_kim_jamieson_table2(
     # Validate grain form
     valid_grain_forms = ['PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG']
     if grain_form not in valid_grain_forms:
+        logger.debug("_calculate_density_kim_jamieson_table2: unsupported grain_form=%r", grain_form)
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
+        logger.debug("_calculate_density_kim_jamieson_table2: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
     h = hand_hardness_index  # already a ufloat from data_structures.py
 
     # Table 2: Linear regressions of density on hand hardness index by
     # grain types (Equation 1), except for a non-linear regression for RG (Equation 2)
     # From Kim & Jamieson (2014)
+    #
+    # For linear grain forms, SE is the residual standard error of the
+    # regression in kg/m³ (added in quadrature with propagated input
+    # uncertainty).
+    #
+    # For RG (nonlinear: rho = A * e^(B*h)), the SE value (0.2) is the
+    # standard error of coefficient B (0.270 ± 0.2), NOT a residual density
+    # SE. It is propagated through the exponential via the uncertainties
+    # library by encoding B as a ufloat, rather than being added in
+    # quadrature as a density SE. See Kim & Jamieson (2014) Table 2.
     regression_parameters = {
         'PP': {'A': 41.3, 'B': 40.3, 'SE': 27.0, 'formula': 'linear'},
         'PPgp': {'A': 61.8, 'B': 46.4, 'SE': 43.0, 'formula': 'linear'},
@@ -215,30 +236,35 @@ def _calculate_density_kim_jamieson_table2(
         'FCxr': {'A': 68.8, 'B': 58.6, 'SE': 46.0, 'formula': 'linear'},
         'DH': {'A': 214.0, 'B': 19.0, 'SE': 48.0, 'formula': 'linear'},
         'MFcr': {'A': 235, 'B': 15.1, 'SE': 58.0, 'formula': 'linear'},
-        'RG': {'A': 91.8, 'B': 0.270, 'SE': 0.2, 'formula': 'nonlinear'}
+        'RG': {'A': 91.8, 'B': 0.270, 'B_SE': 0.2, 'formula': 'nonlinear'}
     }
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = cast(float, params['A'])
-    b = cast(float, params['B'])
-    se = params['SE']
+    a = params['A']
 
     # Calculate density using appropriate formula
     if params['formula'] == 'linear':
+        b = params['B']
+        se = params['SE']
         # Linear regression: rho = A + B*h (Equation 1)
         rho = a + b * h
+        # Combine propagated input uncertainty with residual density SE in quadrature
+        if include_method_uncertainty:
+            total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+        else:
+            total_std = rho.std_dev
     elif params['formula'] == 'nonlinear':
         # Non-linear regression for rounded grains: rho = A*e^(B*h) (Equation 2)
-        rho = a * e ** (b * h)
+        # B_SE is the standard error of coefficient B, propagated through the
+        # exponential automatically by encoding B as a ufloat.
+        b_se = params['B_SE'] if include_method_uncertainty else 0.0
+        b = ufloat(params['B'], b_se)
+        rho = a * math.e ** (b * h)
+        total_std = rho.std_dev
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
-    # Combine propagated input uncertainty with method SE in quadrature
-    if include_method_uncertainty:
-        total_std = sqrt(rho.std_dev ** 2 + se ** 2)
-    else:
-        total_std = rho.std_dev
     return ufloat(rho.nominal_value, total_std)
 
 def _calculate_density_kim_jamieson_table5(
@@ -284,9 +310,11 @@ def _calculate_density_kim_jamieson_table5(
     # Validate grain form
     valid_grain_forms = ['FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF']
     if grain_form not in valid_grain_forms:
+        logger.debug("_calculate_density_kim_jamieson_table5: unsupported grain_form=%r", grain_form)
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
+        logger.debug("_calculate_density_kim_jamieson_table5: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
     h = hand_hardness_index  # already a ufloat from data_structures.py
 

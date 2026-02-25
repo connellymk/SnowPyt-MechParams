@@ -4,6 +4,7 @@
 # Köchle and Schneebeli (2014)
 # Wautier et al. (2015) ###
 
+import logging
 import numpy as np
 from typing import Any
 
@@ -11,6 +12,8 @@ from uncertainties import ufloat
 from uncertainties import umath
 
 from snowpyt_mechparams.constants import RHO_ICE, E_ICE_KERMANI, E_ICE_POLYCRYSTALLINE
+
+logger = logging.getLogger(__name__)
 
 def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
@@ -132,10 +135,12 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str, includ
     # Check grain form validity (only PP, RG, DF are supported)
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['PP', 'RG', 'DF']:
+        logger.debug("bergfeld: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
-    
+
     # Check density is within the valid range of the fit (110-363 kg/m³)
     if rho_snow.nominal_value < 110 or rho_snow.nominal_value > 363:
+        logger.debug("bergfeld: density %.1f kg/m³ outside valid range 110-363 kg/m³; returning NaN", rho_snow.nominal_value)
         return ufloat(np.nan, np.nan)
     
     # C0 is 6.5e3 MPa, (Eq. 6, Gerling et al. (2017), Eq. 4, Bergfeld et al. (2023)).
@@ -223,6 +228,9 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
     - Although the input samples contained weak layers, the calculated E value
       alone is not a sufficient indicator of weak snow; stiffness (E) should be
       assessed relative to adjacent layers ("the 'sandwich'").
+    - The ``include_method_uncertainty`` parameter is accepted for API
+      consistency but has no effect: the source paper does not report standard
+      errors or confidence intervals for the fitted coefficients.
 
     References
     ----------
@@ -233,9 +241,17 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
 
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['RG', 'RC', 'DH', 'MF']:
+        logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
 
     rho_snow = density # kg/m³
+
+    # NOTE: include_method_uncertainty is accepted for API consistency but has
+    # no effect for this method. Köchle & Schneebeli (2014) report R² values
+    # (0.68 low-density, 0.92 high-density) but do not publish standard errors
+    # or confidence intervals for the fitted coefficients C_0 and C_1.
+    # Method uncertainty cannot be separated from input uncertainty for this
+    # parameterization.
 
     # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
     if 150 <= rho_snow.nominal_value < 250:
@@ -243,7 +259,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
         # E = 0.0061 * exp(0.0396 * ρ)
         C_0 = 0.0061
         C_1 = 0.0396
-        
+
     elif 250 <= rho_snow.nominal_value <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
@@ -251,12 +267,13 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
         C_1 = 0.011
     else:
         # Densities outside 150-450 kg/m³ return NaN
+        logger.debug("kochle: density %.1f kg/m³ outside valid range 150-450 kg/m³; returning NaN", rho_snow.nominal_value)
         return ufloat(np.nan, np.nan)
 
     C_2 = C_0/E_ice
     C_3 = C_1*RHO_ICE
     E_snow = E_ice * C_2 * umath.exp(C_3 * rho_snow/RHO_ICE)
-    
+
     return E_snow
 
 def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_KERMANI, include_method_uncertainty: bool = True) -> ufloat:
@@ -320,6 +337,11 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
       from directional moduli.
     - The fit applies for relative density (ρ_snow / ρ_ice) in the range [0.1;
       0.6], corresponding approximately to densities from 103 to 544 kg m⁻³.
+    - The ``include_method_uncertainty`` parameter is accepted for API
+      consistency but has no effect: Wautier et al. (2015) report R² = 0.97
+      but do not publish standard errors or confidence intervals for the
+      fitted coefficients A and n. Method uncertainty cannot be separated
+      from input uncertainty for this parameterization.
 
     References
     ----------
@@ -334,22 +356,27 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
 
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['DF', 'RG', 'FC', 'DH', 'MF']:
+        logger.debug("wautier: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
 
     # Check for nominal density in range of fit
     if rho_snow.nominal_value < 103 or rho_snow.nominal_value > 544:
-        E_snow = ufloat(np.nan, np.nan)
-    else:
-        # Wautier et al. (2015) power law coefficients (Eq. 5)
-        A = ufloat(0.78, 0.0) 
-        n = ufloat(2.34, 0.0) 
+        logger.debug("wautier: density %.1f kg/m³ outside valid range 103-544 kg/m³; returning NaN", rho_snow.nominal_value)
+        return ufloat(np.nan, np.nan)
 
-        # Calculate normalized Young's Modulus (E_snow / E_ice)
-        # E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
-        E_snow = E_ice * (A * ((rho_snow / RHO_ICE) ** n))
-    
+    # Wautier et al. (2015) power law coefficients (Eq. 5)
+    # NOTE: include_method_uncertainty has no effect here — the paper does not
+    # report standard errors for A and n. Uncertainty propagates only from
+    # input density and E_ice.
+    A = ufloat(0.78, 0.0)
+    n = ufloat(2.34, 0.0)
+
+    # Calculate normalized Young's Modulus (E_snow / E_ice)
+    # E_snow = E_ice * A * (ρ_snow / ρ_ice)^n
+    E_snow = E_ice * (A * ((rho_snow / RHO_ICE) ** n))
+
     return E_snow
 
 def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
@@ -397,6 +424,7 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice
 
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['DF', 'RG', 'FC', 'DH', 'SH']:
+        logger.debug("schottner: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
@@ -415,6 +443,7 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice
       A = _u(0.011, 0.009)
       n = _u(1.7, 0.4)
     else:
+      logger.debug("schottner: grain_form=%r (main_grain_shape=%r) not matched in parameter table; returning NaN", grain_form, main_grain_shape)
       return ufloat(np.nan, np.nan)
 
     E_snow = E_ice * A * (rho_snow / RHO_ICE) ** n

@@ -30,6 +30,19 @@ from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_mo
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Hand hardness index values (from HARDNESS_MAPPING in constants.py)
+# "F" -> 1.0, "1F" -> 3.0, with standard uncertainty ±0.67
+HHI_F = ufloat(1.0, 0.67)    # Fist
+HHI_1F = ufloat(3.0, 0.67)   # One Finger
+# Exact (zero uncertainty) variants for isolating method uncertainty
+HHI_F_EXACT = ufloat(1.0, 0.0)
+HHI_1F_EXACT = ufloat(3.0, 0.0)
+
+# Grain size with standard uncertainty
+GS_1MM = ufloat(1.0, 0.5)
+GS_1MM_EXACT = ufloat(1.0, 0.0)
+
+
 def _nominal(x):
     """Return nominal value regardless of whether x is a ufloat or float."""
     return x.nominal_value if hasattr(x, "nominal_value") else float(x)
@@ -51,37 +64,37 @@ class TestDensityMethodUncertainty:
 
     def test_geldsetzer_default_includes_method_uncertainty(self):
         """Default call should include the regression SE as uncertainty."""
-        result = calculate_density("geldsetzer", hand_hardness="F", grain_form="RG")
+        result = calculate_density("geldsetzer", hand_hardness_index=HHI_F, grain_form="RG")
         assert _std(result) > 0
 
     def test_geldsetzer_false_gives_zero_method_uncertainty(self):
-        """With include_method_uncertainty=False, std_dev should be zero."""
+        """With include_method_uncertainty=False and exact inputs, std_dev should be zero."""
         result = calculate_density(
             "geldsetzer",
             include_method_uncertainty=False,
-            hand_hardness="F",
+            hand_hardness_index=HHI_F_EXACT,
             grain_form="RG",
         )
         assert _std(result) == 0.0
 
     def test_geldsetzer_nominal_value_unchanged(self):
         """Nominal value must be the same regardless of the flag."""
-        on = calculate_density("geldsetzer", hand_hardness="F", grain_form="RG")
+        on = calculate_density("geldsetzer", hand_hardness_index=HHI_F, grain_form="RG")
         off = calculate_density(
             "geldsetzer",
             include_method_uncertainty=False,
-            hand_hardness="F",
+            hand_hardness_index=HHI_F,
             grain_form="RG",
         )
         assert _nominal(on) == pytest.approx(_nominal(off))
 
     def test_geldsetzer_true_explicit_matches_default(self):
         """Passing True explicitly should give the same result as the default."""
-        default = calculate_density("geldsetzer", hand_hardness="1F", grain_form="FC")
+        default = calculate_density("geldsetzer", hand_hardness_index=HHI_1F, grain_form="FC")
         explicit = calculate_density(
             "geldsetzer",
             include_method_uncertainty=True,
-            hand_hardness="1F",
+            hand_hardness_index=HHI_1F,
             grain_form="FC",
         )
         assert _nominal(default) == pytest.approx(_nominal(explicit))
@@ -93,26 +106,26 @@ class TestDensityMethodUncertainty:
         result = calculate_density(
             "kim_jamieson_table2",
             include_method_uncertainty=False,
-            hand_hardness="F",
+            hand_hardness_index=HHI_F_EXACT,
             grain_form="FC",
         )
         assert _std(result) == 0.0
 
     def test_kim_jamieson_table2_nominal_value_unchanged(self):
         on = calculate_density(
-            "kim_jamieson_table2", hand_hardness="F", grain_form="FC"
+            "kim_jamieson_table2", hand_hardness_index=HHI_F, grain_form="FC"
         )
         off = calculate_density(
             "kim_jamieson_table2",
             include_method_uncertainty=False,
-            hand_hardness="F",
+            hand_hardness_index=HHI_F,
             grain_form="FC",
         )
         assert _nominal(on) == pytest.approx(_nominal(off))
 
     def test_kim_jamieson_table2_true_has_nonzero_uncertainty(self):
         result = calculate_density(
-            "kim_jamieson_table2", hand_hardness="F", grain_form="FC"
+            "kim_jamieson_table2", hand_hardness_index=HHI_F, grain_form="FC"
         )
         assert _std(result) > 0
 
@@ -122,34 +135,34 @@ class TestDensityMethodUncertainty:
         result = calculate_density(
             "kim_jamieson_table5",
             include_method_uncertainty=False,
-            hand_hardness="F",
+            hand_hardness_index=HHI_F_EXACT,
             grain_form="FC",
-            grain_size=1.0,
+            grain_size=GS_1MM_EXACT,
         )
         assert _std(result) == 0.0
 
     def test_kim_jamieson_table5_nominal_value_unchanged(self):
         on = calculate_density(
             "kim_jamieson_table5",
-            hand_hardness="F",
+            hand_hardness_index=HHI_F,
             grain_form="FC",
-            grain_size=1.0,
+            grain_size=GS_1MM,
         )
         off = calculate_density(
             "kim_jamieson_table5",
             include_method_uncertainty=False,
-            hand_hardness="F",
+            hand_hardness_index=HHI_F,
             grain_form="FC",
-            grain_size=1.0,
+            grain_size=GS_1MM,
         )
         assert _nominal(on) == pytest.approx(_nominal(off))
 
     def test_kim_jamieson_table5_true_has_nonzero_uncertainty(self):
         result = calculate_density(
             "kim_jamieson_table5",
-            hand_hardness="F",
+            hand_hardness_index=HHI_F,
             grain_form="FC",
-            grain_size=1.0,
+            grain_size=GS_1MM,
         )
         assert _std(result) > 0
 

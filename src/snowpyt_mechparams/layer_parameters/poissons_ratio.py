@@ -4,10 +4,13 @@
 # Srivastava et al. (2016)
 # Wautier et al. (2015)
 
+import logging
 import numpy as np
 from typing import Any
 
 from uncertainties import ufloat
+
+logger = logging.getLogger(__name__)
 
 def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
@@ -113,6 +116,7 @@ def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty
     
     main_grain_shape = grain_form[:2]
     if main_grain_shape not in ['RG', 'FC', 'DH']:
+        logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
     
     _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
@@ -187,12 +191,14 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, inclu
     
     # Check if density is within valid range (> 200 kg/m³)
     if density_nominal <= 200.0:
+        logger.debug("srivastava: density %.1f kg/m³ outside valid range (must be > 200 kg/m³)", density_nominal)
         return ufloat(np.nan, np.nan)
     
     main_grain_shape = grain_form[:2]
     
     # Check if grain form is valid
     if main_grain_shape not in ['RG', 'PP', 'DF', 'FC', 'DH']:
+        logger.debug("srivastava: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
     
     # Assign Poisson's ratio based on grain form
@@ -203,6 +209,7 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, inclu
         # Rounded grains: constant value over density range 200-580 kg/m³
         # Check upper limit for RG
         if density_nominal > 580.0:
+            logger.debug("srivastava: density %.1f kg/m³ outside valid range for RG (must be <= 580 kg/m³)", density_nominal)
             return ufloat(np.nan, np.nan)
         nu_snow = _u(0.191, 0.008)
     elif main_grain_shape in ['PP', 'DF']:

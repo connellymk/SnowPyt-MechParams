@@ -1,0 +1,755 @@
+%% Copernicus Publications Manuscript Preparation Template for LaTeX Submissions
+%% ---------------------------------
+%% This template should be used for copernicus.cls
+%% The class file and some style files are bundled in the Copernicus Latex Package, which can be downloaded from the different journal webpages.
+%% For further assistance please contact Copernicus Publications at: production@copernicus.org
+%% https://publications.copernicus.org/for_authors/manuscript_preparation.html
+
+
+%% Please use the following documentclass and journal abbreviations for preprints and final revised papers.
+
+%% 2-column papers and preprints
+\documentclass[journal abbreviation, manuscript]{copernicus}
+
+
+
+%% Journal abbreviations (please use the same for preprints and final revised papers)
+
+
+% Advances in Geosciences (adgeo)
+% Advances in Radio Science (ars)
+% Advances in Science and Research (asr)
+% Advances in Statistical Climatology, Meteorology and Oceanography (ascmo)
+% Annales Geophysicae (angeo)
+% Archives Animal Breeding (aab)
+% Atmospheric Chemistry and Physics (acp)
+% Atmospheric Measurement Techniques (amt)
+% Biogeosciences (bg)
+% Climate of the Past (cp)
+% DEUQUA Special Publications (deuquasp)
+% Drinking Water Engineering and Science (dwes)
+% Earth Surface Dynamics (esurf)
+% Earth System Dynamics (esd)
+% Earth System Science Data (essd)
+% E&G Quaternary Science Journal (egqsj)
+% EGUsphere (egusphere) | This is only for EGUsphere preprints submitted without relation to an EGU journal.
+% European Journal of Mineralogy (ejm)
+% Fossil Record (fr)
+% Geochronology (gchron)
+% Geographica Helvetica (gh)
+% Geoscience Communication (gc)
+% Geoscientific Instrumentation, Methods and Data Systems (gi)
+% Geoscientific Model Development (gmd)
+% History of Geo- and Space Sciences (hgss)
+% Hydrology and Earth System Sciences (hess)
+% Journal of Bone and Joint Infection (jbji)
+% Journal of Micropalaeontology (jm)
+% Journal of Sensors and Sensor Systems (jsss)
+% Magnetic Resonance (mr)
+% Mechanical Sciences (ms)
+% Natural Hazards and Earth System Sciences (nhess)
+% Nonlinear Processes in Geophysics (npg)
+% Ocean Science (os)
+% Polarforschung - Journal of the German Society for Polar Research (polf)
+% Primate Biology (pb)
+% Proceedings of the International Association of Hydrological Sciences (piahs)
+% Safety of Nuclear Waste Disposal (sand)
+% Scientific Drilling (sd)
+% SOIL (soil)
+% Solid Earth (se)
+% The Cryosphere (tc)
+% Weather and Climate Dynamics (wcd)
+% Web Ecology (we)
+% Wind Energy Science (wes)
+
+
+%% \usepackage commands included in the copernicus.cls:
+%\usepackage[german, english]{babel}
+\usepackage{tabularx}
+%\usepackage{cancel}
+%\usepackage{multirow}
+%\usepackage{supertabular}
+%\usepackage{algorithmic}
+%\usepackage{algorithm}
+%\usepackage{amsthm}
+%\usepackage{float}
+%\usepackage{subfig}
+%\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[section]{placeins}
+\usepackage{booktabs}
+\usepackage{threeparttable}
+\usepackage{xcolor}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{makecell}
+
+\begin{document}
+
+\title{An algorithmic framework to ascertain and compare mechanical properties from common snowpit observations}
+
+% \Author[affil]{given_name}{surname}
+
+\Author[1]{Mary Kate}{Connelly} 
+\Author[2]{Philipp}{Rosendahl}
+\Author[3]{Valentin}{Adam}
+\Author[1]{Samuel}{Verplanck}
+
+\affil[1]{205 Cobleigh Hall, Montana State Universtity, Bozeman, MT, USA 59717}
+\affil[2]{TU Darmstadt}
+\affil[3]{SLF Davos}
+
+
+%% The [] brackets identify the author with the corresponding affiliation. 1, 2, 3, etc. should be inserted.
+
+%% If an author is deceased, please mark the respective author name(s) with a dagger, e.g. "\Author[2,$\dag$]{Anton}{Smith}", and add a further "\affil[$\dag$]{deceased, 1 July 2019}".
+
+%% If authors contributed equally, please mark the respective author names with an asterisk, e.g. "\Author[2,*]{Anton}{Smith}" and "\Author[3,*]{Bradley}{Miller}" and add a further affiliation: "\affil[*]{These authors contributed equally to this work.}".
+
+
+\correspondence{Mary Kate Connelly (connellymarykate@gmail.com), Samuel Verplanck (samuelverplanck@montana.edu)} %TBD correspoinding author
+
+\runningtitle{TEXT}
+
+\runningauthor{TEXT}
+
+
+
+
+
+\received{}
+\pubdiscuss{} %% only important for two-stage journals
+\revised{}
+\accepted{}
+\published{}
+
+%% These dates will be inserted by Copernicus Publications during the typesetting process.
+
+
+\firstpage{1}
+
+\maketitle
+
+
+
+\begin{abstract}
+TEXT
+\end{abstract}
+
+
+\copyrightstatement{TEXT} %% This section is optional and can be used for copyright transfers.
+
+
+\section{INTRODUCTION AND BACKGROUND}  %% \introduction[modified heading if necessary]
+Whether or not a snowy slope will avalanche is fundamentally a question the field of applied mechanics could answer, and there have been numerous attempts to develop mechanically-based avalanche release models over the last 70 years. These mechanical models of snow stability rely on input parameters, often referred to as “mechanical properties”, along with physical properties of the snowpack and loading conditions. Mechanical properties, such as Young’s modulus and Poisson’s ratio, are seldomly measured directly in the field – rather, they are calculated by a parameterization or chain of parameterizations which were established in the scientific literature.
+
+The objective of this paper is to present a framework of calculation pathways to systematically ascertain and compare mechanical properties from common snowpit observations. Then, apply this framework to the last 10 years of snowpit data in the SnowPilot database to gain to reveal insights, limitations, and uncertainty of the calculated parameters.
+
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=160mm]{./figures/intro_flowchart.pdf}
+    \caption{\textcolor{RubineRed}{Elaborate more but the focus of this paper is in the bold boxes.}}
+    \label{fig:intro_figure}
+\end{figure*}
+
+\FloatBarrier
+
+
+
+
+
+\subsection{Snowpits and SnowPilot}
+A snowpit is a hole dug into the snowpack to a depth of interest, which may be all the way to the ground. The observer records information about the snowpack (e.g. layering, grain forms, densities), terrain characteristics (e.g. slope angle, aspect, elevation), weather conditions (e.g. cloud cover, precipitation rate), and stability test results. There are a variety of guiding documents that specify standard techniques and protocols to conduct a snowpit \citep{fierz2009,greene2022,caatechnicalcommittee2024,norwegianwaterresourcesandenergydirectorate2022}.
+
+In this article, we will be utilizing the SnowPilot database \citep{chabot2004,chabot2016}, which is populated from a free, web-based application that allows users to record, plot, and store snow pit data. A summary of the contents of the database for 10 years (September 1, 2014 to September 1, 2025) is shown in Table \ref{tab:snowpilot}.
+
+
+\begin{table}[]
+\begin{threeparttable}
+\caption{A summary of the SnowPilot database.}
+\label{tab:snowpilot}
+\begin{tabular}{ll}
+Total pits                     &  50,278\\
+Unique users                   &  5,381\\
+Unique countries               &  35\\
+Layers                         &  371,429\\
+Layers with hand hardness      &  336,888\\
+Layers with primary grain form &  303,726\\
+Layers with primary grain size &  176,044\\
+Layers with a density observation\tnote{a}&  10,468\\
+Total Compression Test results&  51,599\\
+Total Extended Column Test results&  47,684\\
+Total Propagation Saw Test results&  6,213\\
+Pits "near an avalanche"&  1,568\\
+Pits "on avalanche crown"&  795\\
+Pits "on avalanche flank"&  399\\
+Pits with a slope angle observation&
+45,515\end{tabular}
+\begin{tablenotes}
+\footnotesize
+\item[a] The user can input density via two methods into SnowPilot: as a measurement within a stratigraphic layer of a snow profile, or as part of a separate density profile. 
+Since some measurements within a density profile may not align with the stratigraphic profile, our subsequent analysis only includes density measurements that align with stratigraphic layers. 
+
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\FloatBarrier
+
+\subsection{Mechanical Models of Snow Stability and Their Input Parameters}
+Mechanical models of snow stability have a large range in complexity, underlying theory, and number of input parameters, but they share the common goal of determining a stable or unstable classification (Figure \ref{fig:intro_figure}). Our focus is mostly on stability of potential slab avalanches which begins crack initiation of a weak layer, followed by crack propagation in the weak layer, cracks forming in the overlying slab, release of slab from the slope, transitioning to a dynamic flow state, and eventual return to rest. The whole process is not entirely understood and well-parameterized, however, models of this process or parts of this process depend an three categories of input parameters: loading conditions (e.g. slope angle, gravity, weight of skier), physical snowpack properties (e.g. density, layer heights and positions), and mechanical snowpack properties (e.g. strength, elasticity, plasticity, fracture toughness, viscosity). 
+
+The framework presented in this article will include loading conditions and physical properties ascertained from a snowpit as well as layer effective, isotropic elasticity properties (Young's modulus and Poisson's ratio). These are input parameters for a range of models that could be stress-based \citep{roch1965, reiweger2015}, energy-based \citep{heierli2008}, and combined energy-stress based \citep{rosendahlModelingSnowSlab2020a, weissgraeber2023, siron2023}.  It is out of the scope of this paper to give a detailed analysis of every parameter which effects snow stability, but we aim to demonstrate an algorithm which can extend to more parameters.
+
+
+\textcolor{RubineRed}{We may find time and/or deem it necessary to include strength and critical energy release rate. Mary Kate and I don't have the bandwidth to include models/parameterizations of weak layer failure, if this is something the European team wants to take one, it could add value to the paper, but Mary Kate and I are going to see what a paper looks like without it. I think it could be a worthwhile publication even without weak layer failure models.}
+
+
+In the case of an elastic material stress is linearly related to strain by generalized Hooke's Law:
+
+\begin{equation}
+    \sigma_{ij}=c_{ijkl}\epsilon_{kl}
+\end{equation}
+
+\noindent where $\sigma_{ij}$ is the rank 2 stress tensor, $\epsilon_{kl}$ is the rank 2 strain tensor, and $c_{ijkl}$ is the rank 4 stiffness tensor. Note that indicial notation is used here, and the indices $i,j,k,$ and $l$ are each comprised of [1,2,3] in three-dimensional space. Thus, the stiffness tensor is comprised of 81 coefficients, which is be reduced to 21 independent elastic constants by utilizing symmetry of the stress and strain tensors. In the case of a isotropic, elastic material, the stiffness tensor is further reduced to two unique values, Young's modulus, $E$, and Poisson's ratio, $\nu$.
+
+
+\begin{equation}
+    \sigma_{ij}=\frac{E}{1+\nu}(\epsilon_{ij}+\frac{\nu}{1-2\nu}\delta_{ij}\epsilon_{kk})
+\end{equation}
+
+\noindent where $\delta_{ij}$ is the Kronecker delta.
+
+
+\section{METHODS}
+
+
+\subsection{From snowpit data to object-oriented programming with uncertainties}
+ \textcolor{RubineRed}{This section needs reworking from Mary Kate}
+
+Ten years of data from SnowPilot were downloaded as xml files in the Canadian Avalanche Association Markdown Language (CAAML). CAAML.xml file in the dataset is parsed into a SnowPit object. The SnowPit class serves as the container for all snow pit observations and consists of three main components: core\_info, snow\_profile, and stability\_tests.  
+
+The core\_info class encapsulates core attributes of a snow pit, including the pit's identification details (pit\_id, pit\_name), temporal information (date), and descriptive elements (comment, caaml\_version). There are additional nested objects within the core\_info class including a user object that holds information about the person who created the profile, a location object that contains geographical and environmental details of where the snow pit was dug, and a weather\_conditions object that describes the atmospheric conditions at the time of the profile creation. 
+
+The snow\_profile class contains basic profile information like measurement direction, profile depth, and height of the snowpack. The class also contains information about snow pit layers (stored in a list of layer objects), temperature observations (stored in a list of temp\_obs objects), and density observations (stored in a list of density\_obs objects). In addition, this class houses a subclass containing information about the surface conditions (surface\_condition) and indicates the layer of concern if specified.
+
+The stability\_tests class is a data class that serves as a container for different types of snow stability tests. It contains four lists as attributes, each representing a different type of stability test (Extended Column Test, Compression Test, Rutschblock Test and Propagation Saw Test). More details on the parsing of CAAML.xml files can be found in \citet{connelly2025}.
+
+In SnowPilot, the user is only able to input nominal values of their observations of density, slope angle, hand hardness, and layer thickness. In reality, these nominal values will have some uncertainty associated with them, stemming from the combined effect of both measurement uncertainty and actual variability within the scale of a snow pit.
+
+For density, we assume directly observed values to have an uncertainty of $\pm 11\%$ based of the work of \citep{conger2009}. Alternatively, we could use the work of \citet{proksch2016} agreement within 9\%.
+
+For slope angle, \citet{mccammonSLOPEMEASUREMENTHUMANS2023} observed users making profile measurements of slope angle have an accuracy of $\pm4^{\circ}$ across a variety of inclinometers commonly used by avalanche practitioners. In his study, participants were estimating the slope of lines projected on a screen. In a snowpit, slope angle observations are often made by laying an inclinometer directly on the slope, a method expected to have less uncertainty, yet this has not been quantified to our knowledge. In our study, we assume slope angle observations to be $\pm2^{\circ}$.
+
+\citet{holler2010} provide perhaps the most detailed study of the hand hardness observation, yet they do not include a recommended uncertainty for hand hardness index within a snowpit. The primary hand hardness classes of gloved fist (F), gloved four fingers (4F), gloved one figner (1F), blunt end of pencil (P), knife blade (K), and ice (I) are sub-classified into 16 categories of F-, F, F+, 4F-, 4F, 4F+, and so on. In our study we will assume an uncertainty of $\pm$ two subclass, meaning, a nominal observation of 1F- would range from 4F to 1F+.
+
+
+To the best of our knowledge, a study quantifying uncertainty and variability of layer thickness within a snow pit does not exist. We will assume a $\pm5\%$ uncertainty for thickness of each individual snow layer.
+
+In addition to our own informed estimates, the uncertainty values indicated in the preceding paragraphs were deemed reasonable by a highly experienced snow pack observer \citep{birkeland2025}.
+
+These uncertainties are implemented as ufloat objects \citep{lebigot2010uncertainties}.
+
+
+
+
+
+
+\subsection{Parameterizations}
+
+\textcolor{RubineRed}{All of section 2.2 will quite a bit of cleaning up, but the content will be similar to how it is shown now.}
+
+In this section we review a selection of parameterizations to ascertain properties which are not directly measured in a snowpit. We limit our parameterizations to those suggested by the authors of the original studies, developing new parameterizations based on their data is out of the scope of this article. Furthermore, we do not include every attempt researchers have made to estimate these properties; rather, we select a few recent, relatively well-cited articles to demonstrate the utility of the framework.
+
+\subsubsection{Density}
+We begin with methods to estimate density when it is not measured directly. \citet{geldsetzer2000} provide an empirically-derived estimate of snow density based on an observed grain form and hand hardness. The estimates are limited to the grain forms and hand hardness ranges found in Table \ref{tab:geldesetzer}. \citet{kim2014} then extended the work of \citet{geldsetzer2000} to update the regressions with larger sample sizes, wider range of grain forms and hand hardness. Furthermore, \citet{kim2014} developed alternate regressions that include grain size as an additional regressor.
+
+Machine made snow (MM), surface hoar (SH), and ice formations (IF) are the primary grain forms \citep{fierz2009} not included in \citet{kim2014} nor \citet{geldsetzer2000}. Furthermore, wet snow and melt forms other than melt-freeze crust are also not in these parameterizations.
+
+Others have estimated snow density from measurements such as the Snow MicroPenetrometer \citep{king2020}, however, since it is not a common snow pit observation, it is not included in our analysis.
+
+\citet{monti2014} estimated hand harness from simulated snow density and grain form in the snow cover model SNOWPACK 
+
+\textcolor{orange}{Read Monti \citep{monti2014} Paper and maybe include}
+
+
+
+
+\FloatBarrier
+
+\begin{table}[]
+\caption{Grain forms with their accompanying hand hardness ranges that are included in the empirical relationships from \citet{geldsetzer2000}.}
+\label{tab:geldesetzer}
+\begin{tabular}{l|l|l|l}
+Grain Form & Code & 
+\makecell{Hand Hardness Range\\Geldsetzer \& Jamieson (2000)} &
+\makecell{Hand Hardness Range\\Kim \& Jamieson (2014)} \\ \hline
+Precipitation particles               & PP   & F- to P                    &F- to P\\
+Precipitation particles, graupel      & PPgp & F- to P                    &F- to P\\
+Decomposing and fragmented particles  & DF   & F- to P+                   &F- to K-\\
+Rounded grains                        & RG   & F to K+                    &F- to K+\\
+Rounded grains, mixed forms           & RGmx & F- to P+                   &F- to P+\\
+Faceted crystals                      & FC   & F- to K-                   &F- to K\\
+Faceted crystals, mixed forms         & FCmx & F to K+                    &F- to K+\\
+Depth hoar                            & DH   & F to K                      &F to K\\
+Melt-freeze crust                     & MFcr & None                         &4F to K+\\
+\end{tabular}
+\end{table}
+
+
+\FloatBarrier
+
+
+\subsubsection{Effective, isotropic Young's modulus}
+
+Although the anisotropic, elastic behavior of snow has long been recognized; models such as WEAC assume isotropic, elastic behavior of the slab. Thus an input into such models is an effective, isotropic Young's modulus for each snow layer.
+
+\textcolor{YellowOrange}{combine Wautier, Bergfeld, and Schottner into a single table. Rewrite Kochle in non-dimensional form and maybe put in same table.}
+
+\citet{kochle2014} used X-ray micro-computed tomography ($\mu$-CT) scans of rounded grains, faceted crystals, and depth hoar to provide the geometry input into finite element analysis (FEA) of simulated elastic behavior to determine density-based parameterizations of Young's modulus. They did not find obvious grouping based on grain form, but suggested two different empirical relationships with density. For density values of 150-250 kg m$^{-3}$
+
+\begin{equation}
+\label{eq:E_Kochle_low}
+    E_{i, Kochle-low} =0.0061 e^{0.0396\rho}
+\end{equation}
+
+and for density values of 250-450 kg m$^{-3}$
+
+\begin{equation}
+\label{eq:E_Kochle_high}
+    E_{i, Kochle-High} =6.0457 e^{0.011\rho}
+\end{equation}
+
+Although R$^2$ values were provided for these parameterizations, uncertainty is not calculable without more statistical information. Furthermore, the formulations in eqns. \ref{eq:E_Kochle_low} and \ref{eq:E_Kochle_high} assume input densities to be in in kg  m$^{-3}$ and outputs elastic moduli in MPa. \textcolor{RubineRed}{Mary Kate figured out a non-dimensional form of the Kochle equations.}
+
+\citet{wautier2015} determined orthotropic elastics stiffness tensor values based finite element analysis of X-ray computed tomographic images. A wide range of grain forms were studied (Table \ref{tab:E_applicability}).  They found relationships to normalized averages of elastic moduli
+
+\begin{equation}
+    \label{eq:E_wautier}
+    \frac{E_{i, Wautier}}{E_{ice}}=0.78(\frac{\rho_{i}}{\rho_{ice}})^{2.34}
+\end{equation}
+
+with an $R^2=0.97$ and valid for snow ranging in density ranging from 103 to 544 kg m$^{-3}$.The elastic modulus of ice has been estimated to range from 0.2 to 9.5 GPa \citep{chandel2014}. \textcolor{Orange}{We used 1.06 $\pm$ 0.17 GPa from \citet{kermani_bending_2008} as a default value for preliminary impementation. \citet{schulson2009} has a temperature dependent formulation. Perhaps we just simply use 10 GPa, like was done in Schottner et al. (2026) } 
+
+
+\citet{gerling2017measuring} compared three methods of ascertaining elastic moduli of rounded grains in the laboratory: acoustic wave propagation, FEA of $\mu$-CT scans, and SMP measurements. The acoustic wave and FEA methods calculated a P-wave modulus, and the SMP method calculated a Young's modulus. They then developed density-based parameterizations for these moduli which \citet{bergfeld2023} utilized in the analysis of slab bending during PST experiments. \citet{bergfeld2023} then proposed the parameterization
+
+\begin{equation}\label{eq:E_bergfeld}
+    E_{i, Bergeld} = C_0  (\frac{\rho_i}{\rho_{ice}})^{C_1} 
+\end{equation}
+
+\noindent where $C_0 = 6.5 \times 10^3  \text{ MPa }$, $\rho_{ice}$ is 917 kg $\text{m}^\text{-3}$ which is the density of ice, and $C_1$ was determined to be $4.4 \pm 0.18$. Although \citet{gerling2017measuring} was limited to rounded grains, \citet{bergfeld2023} included precipitation particles, decomposing and fragmented, and rounded grains.
+
+\textcolor{RubineRed}{The only parameterization with a published uncertainty, not including uncertainty in ice, is \citet{bergfeld2023}, and it is uncertainty in the exponent of eqn. \ref{eq:E_bergfeld}. Thus, I think we should not apply uncertainty to each effective, isotropic Young's modulus parameterization, but rather use the three to define a range of Young's moduli when there are multiple applicable parameterizations. Thoughts?}
+
+
+Other efforts to quantify the elastic behavior of snow include \citet{srivastava2016} who utilized micro-computed tomography images to build finite element models to determine orthotropic stiffness tensors for a variety of grain forms. From the orthotropic stiffness tensors, effective elastic moduli and effective Poisson's ratios were found based on the Voigt and Reuss bounds. They did not provide an empirical relationship between any observable snow properties, such as density, thus we do not implement their calculated effective elastic moduli.
+
+\citet{walters2014} quantified the elastic anisotropy of radiation-recrystallized faceted snow and demonstrated the contrast from an isotropic material. \textcolor{Orange}{Perhaps this study could be used for weak layer stiffness parameters since the weak layer isn't necessarily isotropic in WEAC. He also continued the work for the focus of his PhD, it is in dissertation form, not in a journal article. Similarly, the shear modulus parameterization proposed in \citet{wautier2015} could be used for $k_t$}
+
+\begin{table}
+    \centering
+\caption{Matrix of applicability of different parameterizations of effective, isotropic Young's modulus. If the method is applicable, the cell is marked with an "x", if it is not, then the cell is marked with a "-". \textcolor{Orange}{Maybe update this table so it demonstrates which studies are applicable for Poisson's ratio as well.} }
+\label{tab:E_applicability}
+    \begin{tabular}{ccccc}
+         &  Kochle and Schneebeli (2014)&  Wautier et al. (2015)& Bergfeld et al. (2023) & Schottner et al. (2026)\\
+ Valid density range (kg m$^3$)& 150 to 450& 103 to 544&110 to 363 & Varied with grain form\\
+         Precipitation particles (PP)&  -&  x& x&-\\
+         Decomposing and fragmented (DF)&  -&  x& x&x\\
+         Rounded grains (RG)&  x&  x& x&x\\
+         Faceted crystals (FC)&  x&  x& -&x\\
+ Depth hoar (DH)& x& x&-&x\\
+ Surface hoar (SH)& -& -&-&x\\
+ Melt forms (MF)& -& -&-&-\\
+ Ice forms (IF)& -& -&-&-\\
+ Machine made (MM)& -& -& -& -\\
+    \end{tabular}
+    
+    
+\end{table}
+
+\FloatBarrier
+
+\subsubsection{Effective, isotropic Poisson's ratio}
+
+Poisson's ratio can be estimated from grain form according to \citet{kochle2014} Where rounded grains have a Poisson's ratio of 0.171$\pm$.026, faceted crystals are 0.130$\pm$0.040, and depth hoar is 0.087$\pm$0.063. Although melt-freeze grain forms were included in the study, the authors did not provide a mean values and uncertainty  for these grains, so they are excluded in our analysis. Although only a finite range of densities were tested in this study, the authors conclude no correlation with density, so we do not impose a density limitation in the implementation of this method.
+
+\citet{srivastava2016} found rounded grains to be 0.191 $\pm$ 0.008,  precipitation particles and decomposing and fragmented particles to be 0.132 $\pm$ 0.053, and faceted crystals and depth hoar to be 0.17 $\pm$ 0.02. These values are valid for densities greater than 200 kg m$^{-3}$. Rounded grains also have an upper limit of 580 kg m$^{-3}$
+
+Although \citet{wautier2015} calculated orthotropic Poisson's ratio values, they did not provide a parameterization for Poisson's ratio explicitly, nor did they propose reasonable values to assume for different grain forms. Thus, we do not include a method for estimating effective, isotropic Poisson's ratio from their study.
+
+\subsection{Framework for calculation pathways}
+\textcolor{RubineRed}{Add intro about how parameters are inputs for more parameters, so we need a framework to compare. Density example.}
+
+
+Figure \ref{fig:algorithm_graph} is a graphical representation of an algorithm to determine the possible combinations of paths/trees to compute a target parameter based on the parameterizations detailed in this section. \textcolor{RubineRed}{Lots of text and description should be added here. It can be adapted from Mary Kate's final report from her class last semester.}
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/params_graph.png}
+    \caption{\textcolor{Orange}{A work in progress to develop an algorithm for different paths/graphs to determine target parameters. This needs to be updated to be current, also, modified so that it is appropriate for publication (font size, etc.).}}
+    \label{fig:algorithm_graph}
+\end{figure*}
+
+\FloatBarrier
+
+
+% \subsubsection{Energy-based failure parameters}
+% \label{subsec:energy_params}
+
+
+
+% In a propagation saw test (PST), a notch is cut into the weak layer until a critical cut length $a_c$ is reached, at which point the crack becomes self-sustaining. Under quasi-static conditions, this marginal state satisfies Griffith's condition $G(a_c) = G_c$, where $G$ is the (mixed-mode) energy release rate and $G_c$ is the weak-layer fracture toughness. Using a closed-form analytical model for layered snow slabs, $G(a_c)$ is computed from the slab stratigraphy (layer thicknesses $h_i$ and densities $\rho_i$), slope angle, PST geometry, and the measured $a_c$; equating $G(a_c)$ to $G_c$ yields a toughness estimate for that weak layer \citep{weissgraeber2023,rosendahlModelingSnowSlab2020,rosendahlModelingSnowSlab2020a,benedetti2019}.
+
+% When desired, the analytical model also provides the mode partition $G=G_\mathrm{I}+G_\mathrm{II}$ at $a_c$. These components can be mapped to mode-specific toughnesses through a mixed-mode interaction law, or reported as an equivalent $G_c$ with the prevailing mode mix noted \citep{hutchinson1991}. Field studies have further linked PST measurements to effective slab modulus and specific fracture energy, providing additional constraints on inputs and interpretation \citep{vanherwijnen2016}. Foundational work established the relation between critical cut lengths and propagation propensity, motivating energy-based interpretations \citep{gauthier2008a}.
+
+
+
+\subsection{Exemplary analysis: ECT Slabs}
+
+\textcolor{RubineRed}{Add more details}
+
+As an exemplary analysis, we implement the algorithm to the Extended Column Tests in SnowPilot. The slab is defined as the layers over which failure occured. Using the algorithm, we calculate shear stress and normal stress applied to the weak layer, as well as composite elastic properties as defined by \citet{weissgraeber2023}.
+
+The static load due to overlying snow applies shear and normal stresses to the underlying snow. If density, $\rho_i$ and layer thickness, $h_i$ are known for each layer, $i$, along with slope angle, $\theta$, then the shear and normal components of stress can be calculated. The normal stress, $\sigma_{zz}$, is calculated according to
+
+\begin{equation}
+    \sigma_{zz} = \sum_{i=1}^N \rho_i g h_i \cos\theta,
+\end{equation}
+and the shear stress, $\sigma_{xz}$, is calculated with
+
+\begin{equation}
+    \sigma_{xz} = \sum_{i=1}^N \rho_i g h_i \sin\theta,
+\end{equation}
+
+\noindent where $N$ is the total number of overlying layers.
+
+\textcolor{RubineRed}{Put in the equations for A11, B11, D11, etc.}
+
+We then compare the ascertained stress and composite elastic value with different ECT results (ECTP, ECTN, ECTV, ECTX). We also demonstrate loss and uncertainty in these values as the go through the algorithm
+
+
+\section{Results}
+
+\subsection{Calculation pathways results}
+\textcolor{RubineRed}{Maybe some really algorithm focused results. Also, maybe an analysis where snowpit properties are assumed to not have any uncertainty, and compare it with the suggested uncertainties.}
+
+\subsection{Loss and uncertainty comparison in density, Young's modulus, and Poisson's ratio parameterizations}
+We compared three different methods of estimating density from snowpit observations: \citet{geldsetzer2000}, \citet{kim2014} with grain size, and \citet{kim2014} without grain size. Of the 371,429 layers in the SnowPilot database, we calculate the percent of layers that have sufficient information for the method to be applied, loss percentage, and the average relative uncertainty. Since the \citet{kim2014} with grain size requires the most amount of information, it has the highest loss percentage. This means that in 71.9\% of the layers in SnowPilot, there is not enough information provided by the user to apply the \citet{kim2014} with grain size method. It should be noted that only 2.8\% of layers have a manual density observation  (Table \ref{tab:snowpilot}).
+
+
+
+\begin{table}\label{tab:dens_comp}
+    \caption{Loss and uncertainty in different density parameterizations.\textcolor{Orange}{This uncertainty is assuming nominal values for snow pit observations, with no uncertainty. \textcolor{RubineRed}{Table is old, but I'm leaving it here for now because we will iterate on it.}}}
+    \centering
+    \begin{tabular}{cccc}
+         &  \% of layers successfully calcuted&  Loss percentage& Average relative uncertainty\\
+         Geldsetzer and Jamieson (2000)&  54.0\%&  46.0\%& 22.3\%\\
+         Kim and Jamieson (2014) with grain size&  63.4\%&  36.6\%& 18.1\%\\
+         Kim and Jamieson (2014) without grain size&  28.1\%&  71.9\%& 23.22\%\\
+    \end{tabular}
+
+\end{table}
+
+
+
+\subsection{Exemplary ECT results}
+\textcolor{RubineRed}{Interesting results from the ECT analysis. Bending stiffness vs. static stress. Distribution of total slab heights and different grain forms. Illustration of how uncertainties and losses manifest in A11, B11, D11, etc. }
+
+
+\subsection{Other ideas}
+\begin{itemize}
+    \item Distributions showing popularity of different snow pit measurements
+    \item Histograms of parameters
+    \item Comparison with literature values and controlled campaigns
+    \item Sensitivity analysis to empirical relationships
+\end{itemize}
+
+\section{Discussion}
+\subsection{Should a "best" calculation pathway be determined? If so, how?}
+
+Some discussion of standard error.
+
+\subsection{ Insights into the ECT from the exemplary analysis}
+
+\subsection{Should mechanical properties be measured directly in the snowpits?}
+Historically, measuring the shear strength of weak layers with shear frames was common practice for avalanche forecasters. \citet{perla1982}. These measurements are seldomly done now, in part due to the advent of stability tests such as the ECT which give you a result from multiple mechanical processes, rather than a single mechanical property which would need to be fed into a model. \textcolor{RubineRed}{Discuss the pros and cons of introducing tools/methods to measure mechanical properties directly, in addition to, or in conjuction with stability tests.}
+\subsection{Potential for ML/AI?}
+\subsection{Potential connections to Conceptual Model of Avalanche Hazard/Snow cover models}
+\subsection{limitations of working with SnowPilot}
+varying quality, large quantity.
+\subsection{Gaps in knowledge and research opportunities}
+Any pit with a melt-freeze crust was excluded from bulk analyses because reliable parameterizations of elastic properties do not exist, to our knowledge. Thus \textcolor{YellowOrange}{XX\%} of pits were lost in our analysis. Future work specifically looking at elastic behavior of melt-freeze crusts is recommended. It could build off or put in relation to work of atmospheric ice \citep{kermani_bending_2008, palanque2023}.
+
+Mechanical model for the CT/ECT.
+
+Models than include anisotropic layer properties in the slab.
+
+\subsection{More parameters, more problems?}
+Recent advances in the mechanical modeling of snow stability have more parameters than earlier models. While these models are a better representation of the underlying mechanics, do they produce more uncertainties and limit their implementation because they have more input parameters?
+
+\section{Conclusions}  %% \conclusions[modified heading if necessary]
+\begin{itemize}
+    \item     Mechanical parameters can be estimated at scale from standard field data for some grain forms and some density ranges, but there is tremendous uncertainty.
+    \item Current parameterizations have such high uncertainties that modern avalanche release models such as WEAC can not be accurately run from standard snow pit observations and should not yet be used in operational avalanche forecasting to solely determine slope stability. However, they could provide insight when paired with other observations such as stability test results, recent avalanches, and signs of instability (shooting cracks, whumpfs)
+    \item The algorithm works and could be extended to more parameters (e.g. strength, fracture toughness)
+    \item This work bridges theory and practice, and supports the future of physics-informed avalanche forecasting
+\end{itemize}
+
+%% The following commands are for the statements about the availability of data sets and/or software code corresponding to the manuscript.
+%% It is strongly recommended to make use of these sections in case data sets and/or software code have been part of your research the article is based on.
+
+\codeavailability{TEXT} %% use this section when having only software code available
+
+
+\dataavailability{TEXT} %% use this section when having only data sets available
+
+
+\codedataavailability{TEXT} %% use this section when having data sets and software code available
+
+
+\sampleavailability{TEXT} %% use this section when having geoscientific samples available
+
+
+\videosupplement{TEXT} %% use this section when having video supplements available
+
+
+\appendix
+\section{}    %% Appendix A
+
+\subsection{}     %% Appendix A1, A2, etc.
+
+\textcolor{YellowOrange}{The P-wave modulus, $M$, and/or shear modulus, $G$, can be used as alternatives for specifying one and/or both of the two necessary parameters for specifying a elastic, isotropic solid. They are defined as 
+
+\begin{equation}
+    M = \frac{E(1-\nu)}{(1+\nu)(1-2\nu)}
+\end{equation}
+
+\noindent and
+
+\begin{equation}
+\label{eq:shear_mod}
+    G=\frac{E}{2(1+\nu)}.
+\end{equation}}
+
+
+\noappendix       %% use this to mark the end of the appendix section. Otherwise the figures might be numbered incorrectly (e.g. 10 instead of 1).
+
+%% Regarding figures and tables in appendices, the following two options are possible depending on your general handling of figures and tables in the manuscript environment:
+
+%% Option 1: If you sorted all figures and tables into the sections of the text, please also sort the appendix figures and appendix tables into the respective appendix sections.
+%% They will be correctly named automatically.
+
+%% Option 2: If you put all figures after the reference list, please insert appendix tables and figures after the normal tables and figures.
+%% To rename them correctly to A1, A2, etc., please add the following commands in front of them:
+
+\appendixfigures  %% needs to be added in front of appendix figures
+
+\appendixtables   %% needs to be added in front of appendix tables
+
+%% Please add \clearpage between each table and/or figure. Further guidelines on figures and tables can be found below.
+
+
+
+\authorcontribution{TEXT} %% this section is mandatory
+
+\competinginterests{TEXT} %% this section is mandatory even if you declare that no competing interests are present
+
+\disclaimer{TEXT} %% optional section
+
+\begin{acknowledgements}
+TEXT
+\end{acknowledgements}
+
+
+
+
+%% REFERENCES
+
+%% The reference list is compiled as follows:
+
+% \begin{thebibliography}{}
+
+% \bibitem[AUTHOR(YEAR)]{LABEL1}
+% REFERENCE 1
+
+% \bibitem[AUTHOR(YEAR)]{LABEL2}
+% REFERENCE 2
+
+% \end{thebibliography}
+
+%% Since the Copernicus LaTeX package includes the BibTeX style file copernicus.bst,
+%% authors experienced with BibTeX only have to include the following two lines:
+%%
+\bibliographystyle{copernicus}
+\bibliography{references}
+%%
+%% URLs and DOIs can be entered in your BibTeX file as:
+%%
+%% URL = {http://www.xyz.org/~jones/idx_g.htm}
+%% DOI = {10.5194/xyz}
+
+
+%% LITERATURE CITATIONS
+%%
+%% command                        & example result
+%% \citet{jones90}|               & Jones et al. (1990)
+%% \citep{jones90}|               & (Jones et al., 1990)
+%% \citep{jones90,jones93}|       & (Jones et al., 1990, 1993)
+%% \citep[p.~32]{jones90}|        & (Jones et al., 1990, p.~32)
+%% \citep[e.g.,][]{jones90}|      & (e.g., Jones et al., 1990)
+%% \citep[e.g.,][p.~32]{jones90}| & (e.g., Jones et al., 1990, p.~32)
+%% \citeauthor{jones90}|          & Jones et al.
+%% \citeyear{jones90}|            & 1990
+
+
+
+%% FIGURES
+
+%% When figures and tables are placed at the end of the MS (article in one-column style), please add \clearpage
+%% between bibliography and first table and/or figure as well as between each table and/or figure.
+
+% The figure files should be labelled correctly with Arabic numerals (e.g. fig01.jpg, fig02.png).
+
+
+%% ONE-COLUMN FIGURES
+
+%%f
+%\begin{figure}[t]
+%\includegraphics[width=8.3cm]{FILE NAME}
+%\caption{TEXT}
+%\end{figure}
+%
+%%% TWO-COLUMN FIGURES
+%
+%%f
+%\begin{figure*}[t]
+%\includegraphics[width=12cm]{FILE NAME}
+%\caption{TEXT}
+%\end{figure*}
+%
+%
+%%% TABLES
+%%%
+%%% The different columns must be seperated with a & command and should
+%%% end with \\ to identify the column brake.
+%
+%%% ONE-COLUMN TABLE
+%
+%%t
+%\begin{table}[t]
+%\caption{TEXT}
+%\begin{tabular}{column = lcr}
+%\tophline
+%
+%\middlehline
+%
+%\bottomhline
+%\end{tabular}
+%\belowtable{} % Table Footnotes
+%\end{table}
+%
+%%% TWO-COLUMN TABLE
+%
+%%t
+%\begin{table*}[t]
+%\caption{TEXT}
+%\begin{tabular}{column = lcr}
+%\tophline
+%
+%\middlehline
+%
+%\bottomhline
+%\end{tabular}
+%\belowtable{} % Table Footnotes
+%\end{table*}
+%
+%%% LANDSCAPE TABLE
+%
+%%t
+%\begin{sidewaystable*}[t]
+%\caption{TEXT}
+%\begin{tabular}{column = lcr}
+%\tophline
+%
+%\middlehline
+%
+%\bottomhline
+%\end{tabular}
+%\belowtable{} % Table Footnotes
+%\end{sidewaystable*}
+%
+%
+%%% MATHEMATICAL EXPRESSIONS
+%
+%%% All papers typeset by Copernicus Publications follow the math typesetting regulations
+%%% given by the IUPAC Green Book (IUPAC: Quantities, Units and Symbols in Physical Chemistry,
+%%% 2nd Edn., Blackwell Science, available at: http://old.iupac.org/publications/books/gbook/green_book_2ed.pdf, 1993).
+%%%
+%%% Physical quantities/variables are typeset in italic font (t for time, T for Temperature)
+%%% Indices which are not defined are typeset in italic font (x, y, z, a, b, c)
+%%% Items/objects which are defined are typeset in roman font (Car A, Car B)
+%%% Descriptions/specifications which are defined by itself are typeset in roman font (abs, rel, ref, tot, net, ice)
+%%% Abbreviations from 2 letters are typeset in roman font (RH, LAI)
+%%% Vectors are identified in bold italic font using \vec{x}
+%%% Matrices are identified in bold roman font
+%%% Multiplication signs are typeset using the LaTeX commands \times (for vector products, grids, and exponential notations) or \cdot
+%%% The character * should not be applied as mutliplication sign
+%
+%
+%%% EQUATIONS
+%
+%%% Single-row equation
+%
+%\begin{equation}
+%
+%\end{equation}
+%
+%%% Multiline equation
+%
+%\begin{align}
+%& 3 + 5 = 8\\
+%& 3 + 5 = 8\\
+%& 3 + 5 = 8
+%\end{align}
+%
+%
+%%% MATRICES
+%
+%\begin{matrix}
+%x & y & z\\
+%x & y & z\\
+%x & y & z\\
+%\end{matrix}
+%
+%
+%%% ALGORITHM
+%
+%\begin{algorithm}
+%\caption{...}
+%\label{a1}
+%\begin{algorithmic}
+%...
+%\end{algorithmic}
+%\end{algorithm}
+%
+%
+%%% CHEMICAL FORMULAS AND REACTIONS
+%
+%%% For formulas embedded in the text, please use \chem{}
+%
+%%% The reaction environment creates labels including the letter R, i.e. (R1), (R2), etc.
+%
+%\begin{reaction}
+%%% \rightarrow should be used for normal (one-way) chemical reactions
+%%% \rightleftharpoons should be used for equilibria
+%%% \leftrightarrow should be used for resonance structures
+%\end{reaction}
+%
+%
+%%% PHYSICAL UNITS
+%%%
+%%% Please use \unit{} and apply the exponential notation
+
+
+\end{document}

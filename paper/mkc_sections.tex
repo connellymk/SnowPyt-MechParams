@@ -1,0 +1,232 @@
+%% Copernicus Publications Manuscript Preparation Template for LaTeX Submissions
+%% ---------------------------------
+%% This template should be used for copernicus.cls
+%% The class file and some style files are bundled in the Copernicus Latex Package, which can be downloaded from the different journal webpages.
+%% For further assistance please contact Copernicus Publications at: production@copernicus.org
+%% https://publications.copernicus.org/for_authors/manuscript_preparation.html
+
+
+%% Please use the following documentclass and journal abbreviations for preprints and final revised papers.
+
+%% 2-column papers and preprints
+\documentclass[journal abbreviation, manuscript]{copernicus}
+
+
+
+%% Journal abbreviations (please use the same for preprints and final revised papers)
+
+
+% Advances in Geosciences (adgeo)
+% Advances in Radio Science (ars)
+% Advances in Science and Research (asr)
+% Advances in Statistical Climatology, Meteorology and Oceanography (ascmo)
+% Annales Geophysicae (angeo)
+% Archives Animal Breeding (aab)
+% Atmospheric Chemistry and Physics (acp)
+% Atmospheric Measurement Techniques (amt)
+% Biogeosciences (bg)
+% Climate of the Past (cp)
+% DEUQUA Special Publications (deuquasp)
+% Drinking Water Engineering and Science (dwes)
+% Earth Surface Dynamics (esurf)
+% Earth System Dynamics (esd)
+% Earth System Science Data (essd)
+% E&G Quaternary Science Journal (egqsj)
+% EGUsphere (egusphere) | This is only for EGUsphere preprints submitted without relation to an EGU journal.
+% European Journal of Mineralogy (ejm)
+% Fossil Record (fr)
+% Geochronology (gchron)
+% Geographica Helvetica (gh)
+% Geoscience Communication (gc)
+% Geoscientific Instrumentation, Methods and Data Systems (gi)
+% Geoscientific Model Development (gmd)
+% History of Geo- and Space Sciences (hgss)
+% Hydrology and Earth System Sciences (hess)
+% Journal of Bone and Joint Infection (jbji)
+% Journal of Micropalaeontology (jm)
+% Journal of Sensors and Sensor Systems (jsss)
+% Magnetic Resonance (mr)
+% Mechanical Sciences (ms)
+% Natural Hazards and Earth System Sciences (nhess)
+% Nonlinear Processes in Geophysics (npg)
+% Ocean Science (os)
+% Polarforschung - Journal of the German Society for Polar Research (polf)
+% Primate Biology (pb)
+% Proceedings of the International Association of Hydrological Sciences (piahs)
+% Safety of Nuclear Waste Disposal (sand)
+% Scientific Drilling (sd)
+% SOIL (soil)
+% Solid Earth (se)
+% The Cryosphere (tc)
+% Weather and Climate Dynamics (wcd)
+% Web Ecology (we)
+% Wind Energy Science (wes)
+
+
+%% \usepackage commands included in the copernicus.cls:
+%\usepackage[german, english]{babel}
+\usepackage{tabularx}
+%\usepackage{cancel}
+%\usepackage{multirow}
+%\usepackage{supertabular}
+%\usepackage{algorithmic}
+%\usepackage{algorithm}
+%\usepackage{amsthm}
+%\usepackage{float}
+%\usepackage{subfig}
+%\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[section]{placeins}
+\usepackage{booktabs}
+\usepackage{threeparttable}
+\usepackage{xcolor}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{makecell}
+
+\begin{document}
+
+\title{An algorithmic framework to ascertain and compare mechanical properties from common snowpit observations}
+
+% \Author[affil]{given_name}{surname}
+
+\Author[1]{Mary Kate}{Connelly} 
+\Author[2]{Philipp}{Rosendahl}
+\Author[3]{Valentin}{Adam}
+\Author[1]{Samuel}{Verplanck}
+
+\affil[1]{205 Cobleigh Hall, Montana State Universtity, Bozeman, MT, USA 59717}
+\affil[2]{TU Darmstadt}
+\affil[3]{SLF Davos}
+
+
+%% The [] brackets identify the author with the corresponding affiliation. 1, 2, 3, etc. should be inserted.
+
+%% If an author is deceased, please mark the respective author name(s) with a dagger, e.g. "\Author[2,$\dag$]{Anton}{Smith}", and add a further "\affil[$\dag$]{deceased, 1 July 2019}".
+
+%% If authors contributed equally, please mark the respective author names with an asterisk, e.g. "\Author[2,*]{Anton}{Smith}" and "\Author[3,*]{Bradley}{Miller}" and add a further affiliation: "\affil[*]{These authors contributed equally to this work.}".
+
+
+\correspondence{Mary Kate Connelly (connellymarykate@gmail.com), Samuel Verplanck (samuelverplanck@montana.edu)} %TBD correspoinding author
+
+\runningtitle{TEXT}
+
+\runningauthor{TEXT}
+
+\section{Introduction and Background}
+
+\subsection{Motivation}
+
+% Describe the problem of connecting field observations to mechanical properties
+
+% Describe the need to connect avalanche field observations to mechanical understanding of snow stability   
+
+% Describe the need for a framework to systematically ascertain and compare mechanical properties, and methods for estimating mechanical properties from field observations
+
+\subsection{Mechanical Models of Snow Stability and Their Input Parameters}
+
+% Mechanical parameters are the building blocks of mechanical models
+
+% Estimating mechanical properties from field observations allows for the application of mechanical models to field observations
+
+\subsection{Snowpits and SnowPilot}
+
+% Define snow pits
+
+% Introduce SnowPilot
+
+% Introduce SnowPilot dataset (10 years of field observations)
+
+\section{METHODS}
+
+\subsection{Snowpylot (Parse field observations into python objects)}
+
+% Introduce SnowPylot
+
+% Describe SnowPilot dataset 
+
+\subsection{Estimating Mechanical Properties of Snow From Field Observations}
+
+% Introduce previous work on estimating mechanical properties from field observations
+
+% Introduce SnowPyt-MechParams
+
+% Introduce parameters and methods (will be discussed in more detail in the next section)
+
+% Introduce measurement uncertainties
+
+\subsection{Uncertainty Propagation}
+
+% Introduce the concept of uncertainty propagation (uncertainty in the input parameters propagates to the output parameters)
+
+% Introduce the uncertainties package
+
+% Introduce measurement uncertainties
+
+% Explain why method uncertainty is not included in the analysis
+
+
+\subsection{Parameterizations}
+
+\subsubsection{Density}
+
+\subsubsection{Elastic Modulus}
+
+\subsubsection{Poisson's Ratio}
+
+\subsubsection{Shear Modulus}
+
+\subsubsection{Plate Theory Parameters}
+
+\subsection{Representing Mechanical Properties as a Connected Graph}
+
+% Describe the problem presented by method chaining (some methods are inputs for other methods)
+
+% Introduce the concept of a connected graph of parameters and methods
+
+% Display and describe the graph of parameters and methods
+
+\subsection{Calculation Pathways}
+
+% Introduce the concept of calculation pathways
+
+% Introduce the algorithm for finding calculation pathways and implementing methods
+
+
+
+\subsection{Layers and Slabs}
+
+% Describe the layers in the dataset
+
+% Describe the construction of slabs from ECTP results
+
+\section{RESULTS}
+
+
+\subsection{Example Analysis: Calculation Pathways for Density Estimation}
+
+% Describe the calculation pathways for density estimation
+
+% Show subgraph with highlighted pathways
+
+% Calculate density for all layers across all calculation pathways
+
+% Calculate density for all slabs across all calculation pathways
+
+% Display and compare results
+
+\subsection{Example Analysis: Extended Column Tests in SnowPilot}
+
+% Calculate D11 for each slab accross all calculation pathways
+
+% Display and compare results
+
+\section{DISCUSSION}
+
+\subsection{Should a "best" calculation pathway be determined? If so, how?}
+
+\subsection{More parameters, more problems?}
+
+
+\section{CONCLUSIONS}
+
+\end{document}

@@ -9,58 +9,7 @@
 %% Please use the following documentclass and journal abbreviations for preprints and final revised papers.
 
 %% 2-column papers and preprints
-\documentclass[journal abbreviation, manuscript]{copernicus}
-
-
-
-%% Journal abbreviations (please use the same for preprints and final revised papers)
-
-
-% Advances in Geosciences (adgeo)
-% Advances in Radio Science (ars)
-% Advances in Science and Research (asr)
-% Advances in Statistical Climatology, Meteorology and Oceanography (ascmo)
-% Annales Geophysicae (angeo)
-% Archives Animal Breeding (aab)
-% Atmospheric Chemistry and Physics (acp)
-% Atmospheric Measurement Techniques (amt)
-% Biogeosciences (bg)
-% Climate of the Past (cp)
-% DEUQUA Special Publications (deuquasp)
-% Drinking Water Engineering and Science (dwes)
-% Earth Surface Dynamics (esurf)
-% Earth System Dynamics (esd)
-% Earth System Science Data (essd)
-% E&G Quaternary Science Journal (egqsj)
-% EGUsphere (egusphere) | This is only for EGUsphere preprints submitted without relation to an EGU journal.
-% European Journal of Mineralogy (ejm)
-% Fossil Record (fr)
-% Geochronology (gchron)
-% Geographica Helvetica (gh)
-% Geoscience Communication (gc)
-% Geoscientific Instrumentation, Methods and Data Systems (gi)
-% Geoscientific Model Development (gmd)
-% History of Geo- and Space Sciences (hgss)
-% Hydrology and Earth System Sciences (hess)
-% Journal of Bone and Joint Infection (jbji)
-% Journal of Micropalaeontology (jm)
-% Journal of Sensors and Sensor Systems (jsss)
-% Magnetic Resonance (mr)
-% Mechanical Sciences (ms)
-% Natural Hazards and Earth System Sciences (nhess)
-% Nonlinear Processes in Geophysics (npg)
-% Ocean Science (os)
-% Polarforschung - Journal of the German Society for Polar Research (polf)
-% Primate Biology (pb)
-% Proceedings of the International Association of Hydrological Sciences (piahs)
-% Safety of Nuclear Waste Disposal (sand)
-% Scientific Drilling (sd)
-% SOIL (soil)
-% Solid Earth (se)
-% The Cryosphere (tc)
-% Weather and Climate Dynamics (wcd)
-% Web Ecology (we)
-% Wind Energy Science (wes)
+\documentclass[hess, manuscript]{copernicus}
 
 
 %% \usepackage commands included in the copernicus.cls:
@@ -89,152 +38,523 @@
 
 % \Author[affil]{given_name}{surname}
 
-\Author[1]{Mary Kate}{Connelly} 
+\Author[1]{Mary Kate}{Connelly}
 \Author[2]{Philipp}{Rosendahl}
 \Author[3]{Valentin}{Adam}
 \Author[1]{Samuel}{Verplanck}
 
-\affil[1]{205 Cobleigh Hall, Montana State Universtity, Bozeman, MT, USA 59717}
+\affil[1]{205 Cobleigh Hall, Montana State University, Bozeman, MT, USA 59717}
 \affil[2]{TU Darmstadt}
 \affil[3]{SLF Davos}
 
+\correspondence{Mary Kate Connelly (connellymarykate@gmail.com)}
 
-%% The [] brackets identify the author with the corresponding affiliation. 1, 2, 3, etc. should be inserted.
+\runningtitle{Algorithmic framework for snow mechanical properties}
 
-%% If an author is deceased, please mark the respective author name(s) with a dagger, e.g. "\Author[2,$\dag$]{Anton}{Smith}", and add a further "\affil[$\dag$]{deceased, 1 July 2019}".
-
-%% If authors contributed equally, please mark the respective author names with an asterisk, e.g. "\Author[2,*]{Anton}{Smith}" and "\Author[3,*]{Bradley}{Miller}" and add a further affiliation: "\affil[*]{These authors contributed equally to this work.}".
+\runningauthor{Connelly et al.}
 
 
-\correspondence{Mary Kate Connelly (connellymarykate@gmail.com), Samuel Verplanck (samuelverplanck@montana.edu)} %TBD correspoinding author
+% ============================================================
+% ABSTRACT
+% ============================================================
+% Key points to cover:
+%   - Problem: mechanical models of snow stability require properties not routinely measured in field
+%   - Approach: parameterization graph + algorithm to find/execute all calculation pathways
+%   - Dataset: 10 years of SnowPilot data (50,278 pits, 371,429 layers, 14,776 ECT slabs)
+%   - Key results: coverage/loss rates by method, uncertainty ranges, D11 distributions across 32 pathways
+%   - Conclusion: framework is extensible; current parameterizations have high uncertainty but provide useful bounds
 
-\runningtitle{TEXT}
 
-\runningauthor{TEXT}
+\section{Introduction}
 
-\section{Introduction and Background}
-
-\subsection{Motivation}
-
-% Describe the problem of connecting field observations to mechanical properties
-
-% Describe the need to connect avalanche field observations to mechanical understanding of snow stability   
-
-% Describe the need for a framework to systematically ascertain and compare mechanical properties, and methods for estimating mechanical properties from field observations
+% ============================================================
+% 1.1 MOTIVATION
+% Context: avalanche forecasting is an applied mechanics problem
+% ============================================================
+% - Snow stability is fundamentally a mechanical question; 70 years of mechanical models
+% - Mechanical models require input parameters (mechanical properties) rarely measured directly
+% - Instead, properties estimated via chains of parameterizations from field observations
+% - Gap: no systematic framework to enumerate, compare, and propagate uncertainty through all possible estimation pathways
+% - Motivate the SnowPilot database as a large, underutilized source of field observations
+%   that could enable population-scale analysis of mechanical properties
 
 \subsection{Mechanical Models of Snow Stability and Their Input Parameters}
 
-% Mechanical parameters are the building blocks of mechanical models
+% ============================================================
+% 1.2 MECHANICAL MODELS AND THEIR INPUTS
+% Establish what models exist and what they need
+% ============================================================
+% - Range of model complexity: stress-based, energy-based, combined (cite roch1965, reiweger2015,
+%   heierli2008, rosendahl2020, weissgraeber2023, siron2023)
+% - Focus on slab avalanche initiation: crack initiation in weak layer, propagation, slab release
+% - Three categories of inputs: loading conditions (slope angle, gravity, overburden),
+%   physical properties (density, layer heights), mechanical properties (E, nu, strength, toughness)
+% - This paper focuses on effective isotropic elasticity (E and nu) as inputs common to
+%   a wide range of current models (WEAC, etc.)
+% - Introduce Hooke's law for isotropic elastic material; define E and nu
+%   (equations for generalized Hooke's law and isotropic reduction already in working_draft.tex)
 
-% Estimating mechanical properties from field observations allows for the application of mechanical models to field observations
+\subsection{Snowpits and the SnowPilot Database}
 
-\subsection{Snowpits and SnowPilot}
+% ============================================================
+% 1.3 FIELD OBSERVATIONS AND DATA SOURCE
+% ============================================================
+% - Define snowpit: standard field observation recording layering, grain forms,
+%   densities, stability tests, terrain, weather (cite fierz2009, greene2022,
+%   caatechnicalcommittee2024, norwegianwaterresourcesandenergydirectorate2022)
+% - Introduce SnowPilot (cite chabot2004, chabot2016): free web application,
+%   10 years of data (Sept 2014 – Sept 2025)
+% - Present Table: summary statistics of the SnowPilot database
+%   (total pits ~50,278, unique users ~5,381, countries ~35, layers ~371,429,
+%    layers with hand hardness ~336,888, layers with grain form ~303,726,
+%    layers with grain size ~176,044, layers with density ~10,468,
+%    CT ~51,599, ECT ~47,684, PST ~6,213, pits near avalanche ~1,568,
+%    pits on crown ~795, pits on flank ~399, pits with slope angle ~45,515)
+%   NOTE: numbers from dataset_stats.ipynb; update from final dataset run
 
-% Define snow pits
+\subsection{Objectives and Scope}
 
-% Introduce SnowPilot
-
-% Introduce SnowPilot dataset (10 years of field observations)
-
-\section{METHODS}
-
-\subsection{Snowpylot (Parse field observations into python objects)}
-
-% Introduce SnowPylot
-
-% Describe SnowPilot dataset 
-
-\subsection{Estimating Mechanical Properties of Snow From Field Observations}
-
-% Introduce previous work on estimating mechanical properties from field observations
-
-% Introduce SnowPyt-MechParams
-
-% Introduce parameters and methods (will be discussed in more detail in the next section)
-
-% Introduce measurement uncertainties
-
-\subsection{Uncertainty Propagation}
-
-% Introduce the concept of uncertainty propagation (uncertainty in the input parameters propagates to the output parameters)
-
-% Introduce the uncertainties package
-
-% Introduce measurement uncertainties
-
-% Explain why method uncertainty is not included in the analysis
+% ============================================================
+% 1.4 PAPER OBJECTIVES
+% ============================================================
+% - Present SnowPyt-MechParams: software framework implementing a parameterization
+%   graph and algorithm to systematically identify and execute all valid calculation
+%   pathways from snowpit observations to target mechanical parameters
+% - Apply the framework to 10 years of SnowPilot data to:
+%     (a) quantify data coverage (which layers/slabs have sufficient observations for each method)
+%     (b) compare parameter estimates across methods
+%     (c) propagate measurement uncertainty through each pathway
+% - Exemplary analysis: bending stiffness D11 for ECT slabs across all 32 pathways
+% - Scope: effective isotropic E and nu for slab layers; plate theory parameters
+%   (A11, B11, D11, A55) for composite ECT slabs. Strength and fracture toughness
+%   are out of scope but the framework is extensible to include them.
+% - Briefly introduce figure showing the full chain from field observation to
+%   mechanical model (intro_flowchart.pdf, bold boxes indicate scope of this paper)
 
 
-\subsection{Parameterizations}
+\section{Data and Methods}
+
+\subsection{Data: SnowPilot and SnowPylot}
+
+% ============================================================
+% 2.1 SNOWPILOT DATA AND PARSING
+% ============================================================
+% - 10 years of SnowPilot data downloaded as CAAML XML files
+% - Introduce SnowPylot (cite connelly2025): open-source Python library that
+%   parses CAAML XML files into Python objects (SnowPit, core_info, snow_profile,
+%   stability_tests, layer, density_obs, etc.)
+% - Describe the object hierarchy briefly: SnowPit → core_info (pit ID, date, user,
+%   location including slope angle, country), snow_profile (layers with hardness,
+%   grain form, grain size, thickness; density_obs), stability_tests (CT, ECT, PST, RB)
+% - Note that only density observations aligned with stratigraphic layers are used;
+%   density profile entries not matching a layer are excluded
+% - Reference full SnowPylot documentation for parsing details
+
+\subsection{Measurement Uncertainties}
+
+% ============================================================
+% 2.2 REPRESENTING FIELD OBSERVATION UNCERTAINTY
+% ============================================================
+% - SnowPilot stores nominal (point) values; real measurements have uncertainty
+%   from both instrument/technique precision and spatial variability within the pit
+% - Uncertainties are represented using the Python "uncertainties" package
+%   (ufloat objects; cite lebigot2010uncertainties) to enable automatic
+%   first-order uncertainty propagation through all calculations
+% - Adopted uncertainties (with justification):
+%     * Density (if directly observed): ±10% relative (cite conger2009, proksch2016)
+%     * Slope angle: ±2° (adapted from mccammonSLOPEMEASUREMENTHUMANS2023,
+%       who found ±4° for screen projections; direct slope measurement expected to be more precise)
+%     * Hand hardness: ±2 sub-classes (i.e., ±0.67 HHI), e.g. a nominal 1F- spans 4F to 1F+
+%       (cite holler2010; no formal recommendation given, so this is author judgement)
+%     * Layer thickness: ±5% relative (no published study found; author estimate)
+%     * Grain size: ±0.5 mm (author estimate)
+% - Uncertainties reviewed and deemed reasonable by an experienced field observer (cite birkeland2025)
+% - NOTE: "method uncertainty" (regression standard error) is tracked separately
+%   from "measurement uncertainty" (input propagation); the two can be combined in
+%   quadrature or reported independently. This paper reports both.
+
+\subsection{Parameterizations for Mechanical Properties}
+
+% ============================================================
+% 2.3 PARAMETERIZATIONS
+% Overview paragraph: define scope, note we select well-cited recent work,
+% do not develop new parameterizations, do not include every published attempt.
+% ============================================================
 
 \subsubsection{Density}
 
-\subsubsection{Elastic Modulus}
+% ============================================================
+% 2.3.1 DENSITY
+% Estimated from hand hardness and grain form when not directly measured
+% ============================================================
+% - Geldsetzer and Jamieson (2000): empirical regression from hand hardness + grain form;
+%   limited to grain forms in Table (PP, PPgp, DF, RG, RGmx, FC, FCmx, DH)
+%   with hand hardness ranges shown in Table tab:geldesetzer
+% - Kim and Jamieson (2014) Table 2: updated regressions, larger sample size,
+%   wider grain form coverage, no grain size required
+% - Kim and Jamieson (2014) Table 5: alternate regression including grain size
+%   as additional regressor (higher accuracy, higher data requirement)
+% - Present Table: applicability matrix (grain forms × methods)
+%   with hand hardness ranges (already drafted in working_draft.tex as tab:geldesetzer)
+% - Note excluded grain forms: MM, SH, IF, and wet/melt forms other than MFcr
+%   (no reliable parameterization exists for these forms)
+% - Direct measurement (data_flow): ±10% uncertainty assumed when available
 
-\subsubsection{Poisson's Ratio}
+\subsubsection{Effective, Isotropic Young's Modulus}
+
+% ============================================================
+% 2.3.2 ELASTIC MODULUS
+% ============================================================
+% - Context: snow is anisotropic, but models such as WEAC assume effective isotropic E
+% - Four parameterizations implemented (all density-based):
+%     * Köchle and Schneebeli (2014): FEA of µ-CT for RG, FC, DH;
+%       two exponential relationships by density range (150-250 and 250-450 kg/m³);
+%       eqns already in working_draft.tex
+%     * Wautier et al. (2015): FEA of X-ray CT for wide range of grain forms;
+%       power law normalized by ice properties; R²=0.97; 103-544 kg/m³;
+%       eqn already in working_draft.tex; note E_ice assumed 10 GPa (cf. Schottner 2026)
+%     * Bergfeld et al. (2023): power law with published uncertainty in exponent (C1=4.4±0.18);
+%       only parameterization with formal published uncertainty; PP, DF, RG; 110-363 kg/m³;
+%       eqn already in working_draft.tex
+%     * Schöttner et al. (2026): [add details from implementation]
+% - Present Table: applicability matrix (grain forms × methods) with density ranges
+%   (draft tab:E_applicability already in working_draft.tex; add Schöttner column)
+% - Note: rewrite Köchle equations in non-dimensional form consistent with other methods
+
+\subsubsection{Effective, Isotropic Poisson's Ratio}
+
+% ============================================================
+% 2.3.3 POISSON'S RATIO
+% ============================================================
+% - Two parameterizations implemented:
+%     * Köchle and Schneebeli (2014): grain-form-based (no density dependence found);
+%       RG: 0.171±0.026, FC: 0.130±0.040, DH: 0.087±0.063
+%       (MFcr excluded; authors did not provide mean + uncertainty for that form)
+%     * Srivastava et al. (2016): grain-form-based with density validity ranges;
+%       RG: 0.191±0.008 (valid ρ>200 and ρ<580 kg/m³);
+%       PP+DF: 0.132±0.053 (valid ρ>200 kg/m³);
+%       FC+DH: 0.17±0.02 (valid ρ>200 kg/m³)
+% - Note: Wautier et al. (2015) computed orthotropic Poisson's ratios but did not
+%   provide an effective isotropic parameterization, so it is not implemented
+% - Note: Poisson's ratio input to Poisson's ratio calculation is grain form (categorical),
+%   so propagated uncertainty from input observations is zero; the stated ± values
+%   reflect method (inter-sample) uncertainty only
 
 \subsubsection{Shear Modulus}
 
-\subsubsection{Plate Theory Parameters}
+% ============================================================
+% 2.3.4 SHEAR MODULUS
+% ============================================================
+% - For an isotropic elastic material: G = E / (2(1+nu))
+%   This is the only method implemented (derived from E and nu)
+% - Wautier et al. (2015) also provides a direct shear modulus parameterization;
+%   note this as an alternative / future extension
+% - G is used in computing A55 (transverse shear stiffness) of the laminate
 
-\subsection{Representing Mechanical Properties as a Connected Graph}
+\subsubsection{Plate Theory Parameters for Composite Slabs}
 
-% Describe the problem presented by method chaining (some methods are inputs for other methods)
+% ============================================================
+% 2.3.5 PLATE THEORY PARAMETERS
+% Classical laminate theory following Weißgraeber and Rosendahl (2023)
+% ============================================================
+% - Snow slab modeled as a multi-layer plate; each layer treated as
+%   homogeneous, isotropic, linearly elastic, perfectly bonded
+% - Define reduced stiffness of each layer: Q_i = E_i / (1 - nu_i²)
+% - A11 (extensional stiffness, N/mm): A11 = Σ Q_i * h_i
+% - B11 (bending-extension coupling, N): B11 = (1/2) * Σ Q_i * (z_{i+1}² - z_i²)
+% - D11 (bending stiffness, N·mm): D11 = (1/3) * Σ Q_i * (z_{i+1}³ - z_i³)
+%   where z_i is the position of the bottom face of layer i measured from
+%   the bottom of the slab
+% - A55 (transverse shear stiffness, N/mm): A55 = κ * Σ G_i * h_i, with κ = 5/6
+% - Static stress applied to weak layer by overlying slab:
+%     sigma_zz = Σ rho_i * g * h_i * cos(theta)  (normal)
+%     sigma_xz = Σ rho_i * g * h_i * sin(theta)  (shear)
+%   (equations already in working_draft.tex)
+% - Note that D11 is particularly important: stiffer, thicker slabs store
+%   more elastic energy and thus drive crack propagation more effectively
 
-% Introduce the concept of a connected graph of parameters and methods
+\subsection{Parameterization Graph and Calculation Pathways}
 
-% Display and describe the graph of parameters and methods
+% ============================================================
+% 2.4 THE ALGORITHMIC FRAMEWORK
+% Core methodological contribution of the paper
+% ============================================================
 
-\subsection{Calculation Pathways}
+\subsubsection{Representing Parameterizations as a Directed Graph}
 
-% Introduce the concept of calculation pathways
-
-% Introduce the algorithm for finding calculation pathways and implementing methods
-
-\subsection{The Algorithm}
+% ============================================================
+% 2.4.1 THE PARAMETERIZATION GRAPH
+% ============================================================
+% - Some parameters are inputs to other parameterizations (method chaining),
+%   creating complex dependency relationships (density → E → D11)
+% - Represent parameterizations as a directed acyclic graph (DAG):
+%     * Parameter nodes: observed quantities (hand hardness, grain form, etc.)
+%       and derived quantities (density, E, D11, etc.)
+%     * Method nodes (merge nodes): combine required inputs to compute output;
+%       implement AND logic (all inputs required)
+%     * Edges: data flow from parameter to method to output parameter
+%     * OR logic at parameter nodes: multiple incoming methods = multiple pathways
+% - Present Figure: full parameterization graph (params_graph figure)
+%   with node types, levels (layer vs. slab), and edge labels
+% - Node levels: layer-level (density, E, nu, G) and slab-level (A11, B11, D11, A55)
+% - The shared density node is a key structural feature: density feeds both
+%   E-mod and Poisson's ratio (Srivastava), so the same density method must be
+%   used consistently within a pathway
 
 \subsubsection{Finding Calculation Pathways}
 
-\subsubsection{Implementing Methods}
+% ============================================================
+% 2.4.2 PATHWAY ENUMERATION ALGORITHM
+% ============================================================
+% - Algorithm performs backward traversal from target parameter node to
+%   snow_pit root node using dynamic programming (memoization)
+% - At each parameter node: enumerate all incoming methods (OR logic)
+% - At each merge/method node: collect all required inputs (AND logic)
+% - Result: a tree of PathSegments and Branches representing one unique
+%   combination of methods (a "Parameterization" / "calculation pathway")
+% - Deduplication: pathways sharing identical method combinations but differing
+%   in traversal structure are collapsed using a method fingerprint
+% - Example: D11 has 32 unique pathways from 4 density × 4 E-mod × 2 nu methods,
+%   constrained by the shared density node (density method is chosen once and
+%   propagates to both E-mod and nu calculations)
+% - Present figure or table listing all 32 D11 pathways with their method combinations
+%   (or a representative subset to illustrate structure)
+
+\subsubsection{Executing Parameterizations}
+
+% ============================================================
+% 2.4.3 EXECUTION ENGINE
+% ============================================================
+% - ExecutionEngine.execute_all(slab, target_parameter, config) runs all valid
+%   pathways and returns results with success/failure for each
+% - Shared intermediate results (e.g., density from the same method appearing in
+%   multiple pathways) are cached; cache is cleared per slab, persists across pathways
+% - This allows efficient execution: 32 D11 pathways on 14,776 slabs without
+%   redundant recalculation of shared sub-paths
+% - A pathway "fails" for a given layer or slab if any required input is missing
+%   or falls outside a method's validity range (e.g., density out of range, grain form
+%   not supported by method); failures are logged with the reason
+% - Config options: include_method_uncertainty (bool) allows reporting input
+%   measurement uncertainty only, or combined input + method regression uncertainty
+
+\subsection{Constructing Slabs from ECT Observations}
+
+% ============================================================
+% 2.5 SLAB DEFINITION
+% How we go from a snowpit record to a slab object for plate theory analysis
+% ============================================================
+% - An Extended Column Test (ECT) records failure depth and score (ECTP, ECTN, ECTV, ECTX)
+% - For each ECT result, the "slab" is defined as all layers above the reported failure depth
+% - If slope angle is not recorded, the pit is excluded from stress calculations
+%   (but plate theory parameters A11, B11, D11 can still be computed)
+% - Dataset: 14,776 ECTP slabs identified from 10 years of SnowPilot data
+%   (ECTP = propagating result; ECTN, ECTV, ECTX are non-propagating)
+%   NOTE: confirm whether analysis uses ECTP only or all ECT results
+% - Slab-level analysis requires ALL layers in the slab to have valid inputs;
+%   if any layer fails a method, the entire slab result for that pathway is NA
 
 
-\subsection{Layers and Slabs}
+\section{Results}
 
-% Describe the layers in the dataset
+\subsection{Coverage and Data Loss by Parameterization}
 
-\subsubsection{Constructing Slabs from ECTP Results}
+% ============================================================
+% 3.1 COVERAGE AND LOSS
+% How many layers/slabs can each pathway actually compute?
+% ============================================================
+% - Report for each method (and each pathway for multi-method parameters):
+%     * Percent of layers with sufficient data to apply method ("coverage")
+%     * Percent of layers where method fails ("loss"), broken down by reason
+%       (missing grain form, hardness out of range, density out of range, etc.)
+%     * For slab-level parameters: percent of slabs where ALL layers pass
+%       (slab success rate is necessarily lower than layer success rate)
+% - Present as a table and/or Sankey diagrams showing data flow from total layers
+%   to successfully computed layers (Sankey figures already generated in notebooks)
+% - Key numbers to report (from notebook outputs):
+%     Layer coverage (density): geldsetzer 54.0%, kim_table2 63.4%, kim_table5 28.1%, measured 2.8%
+%     Layer coverage (E-mod, best pathways): kim_table2→wautier 55.3%
+%     Slab success (D11, best pathways): ~5.0% (e.g., geldsetzer→wautier→kochle)
+%     Note the dramatic drop from layer to slab coverage (slab requires all layers to pass)
 
-% Describe the construction of slabs from ECTP results 
+\subsection{Density Estimates Across Methods}
+
+% ============================================================
+% 3.2 DENSITY RESULTS
+% ============================================================
+% - Distribution of estimated density for each method applied to all SnowPilot layers
+%   (violin plots or histograms, stratified by grain form)
+% - Compare mean density estimates across methods: approximate range 208-283 kg/m³
+% - Relative uncertainty from input measurement propagation: 10-18% depending on method
+% - Note: kim_jamieson_table2 produces lower, more consistent values than geldsetzer
+% - Compare estimated densities with direct measurements where available (2.8% of layers)
+%   to validate parameterizations against the SnowPilot data itself
+% - Figures from all_density_pathways.ipynb
+
+\subsection{Young's Modulus Estimates Across Methods}
+
+% ============================================================
+% 3.3 ELASTIC MODULUS RESULTS
+% ============================================================
+% - 16 pathways (4 density × 4 E-mod methods) applied to all applicable layers
+% - Distribution of E-mod estimates by pathway (violin plots, stratified by grain form)
+% - Large range across methods: wautier produces lower values (~29-69 MPa),
+%   kochle produces higher values (~71-252 MPa)
+% - Relative uncertainty: 28-92% depending on pathway
+% - Bergfeld et al. (2023) is the only method with a formally published regression
+%   uncertainty; discuss the challenge of comparing uncertainties across methods
+% - Figures from all_e_mod_pathways.ipynb
+
+\subsection{Poisson's Ratio Estimates Across Methods}
+
+% ============================================================
+% 3.4 POISSON'S RATIO RESULTS
+% ============================================================
+% - 2 methods (kochle, srivastava), 5 pathways (because srivastava depends on density)
+% - Layer coverage: kochle 42.2%, srivastava (combined) ~69.2%
+% - Values: kochle ~0.144, srivastava ~0.170-0.178 depending on grain form
+% - Relative input uncertainty: ~0% (grain form is categorical input; uncertainty
+%   reflects method scatter, not measurement propagation)
+% - Discuss interpretation: method uncertainty dominates over input uncertainty for nu
+% - Figures from all_poissons_ratio_pathways.ipynb (or combine with E-mod section)
+
+\subsection{Bending Stiffness (D11) of ECT Slabs Across All Pathways}
+
+% ============================================================
+% 3.5 D11 RESULTS - EXEMPLARY ANALYSIS
+% This is the headline result: 32 pathways applied to 14,776 ECT slabs
+% ============================================================
+% - 32 unique pathways applied to 14,776 ECTP slabs
+%   (14,776 slabs × 32 pathways = 473,032 attempted calculations)
+% - Slab-level success rates: ~5% for best-covered pathways
+%   (e.g., geldsetzer→wautier→kochle: 2.42×10⁸ N·m, 41.7% relative uncertainty)
+% - Present Sankey diagrams showing data loss at each step of the best-covered pathway
+% - Present violin plots of D11 across all successful pathways to illustrate
+%   the sensitivity of D11 to method choice (3-fold range in central values)
+% - Highlight the two structural sources of variability:
+%     (a) density method choice strongly influences E-mod magnitude
+%     (b) E-mod method choice also contributes substantially (wautier vs. kochle ~3-4x)
+% - Compare D11 values stratified by ECT result (ECTP vs. ECTN/ECTV)
+%   if the sample size permits statistical comparison
+% - Report A11, B11, and A55 results as supplementary or in a table
+% - Figures from all_D11_pathways.ipynb
 
 
-\section{RESULTS}
+\section{Discussion}
+
+\subsection{Selecting a Preferred Calculation Pathway}
+
+% ============================================================
+% 4.1 PATHWAY SELECTION
+% ============================================================
+% - Framework intentionally avoids selecting a "best" pathway; instead exposes
+%   the full range of outcomes so the user can make an informed choice
+% - Discussion of criteria one might use to select a pathway:
+%     * Coverage (which pathway computes results for the most layers/slabs?)
+%     * Physical basis (which methods are validated for the grain forms present?)
+%     * Uncertainty (which pathway produces the most constrained estimates?)
+% - A practitioner may prefer a lower-coverage pathway with smaller uncertainty
+%   over a higher-coverage pathway with large uncertainty, depending on application
+% - Present recommendation: report results from multiple pathways and treat spread
+%   as additional uncertainty not captured by any single method
+
+\subsection{Uncertainty Budget: Input Measurement vs. Method Uncertainty}
+
+% ============================================================
+% 4.2 UNCERTAINTY ANALYSIS
+% ============================================================
+% - Two contributions to uncertainty in computed mechanical properties:
+%     (a) Input measurement uncertainty (propagated via first-order Taylor expansion)
+%     (b) Method (regression) uncertainty from empirical fits
+% - For E-mod, relative input uncertainty alone is 28-92%; adding method uncertainty
+%   makes this substantially larger
+% - For nu, input uncertainty is ~0% (categorical input); method uncertainty dominates
+% - For D11, combined relative uncertainty of 40-88% means order-of-magnitude differences
+%   in D11 are within the plausible range even for a single pathway
+% - Implication: mechanical models driven by these parameters will produce correspondingly
+%   uncertain outputs; this does not invalidate the approach but it does argue against
+%   using point estimates without uncertainty quantification
+% - Discuss the assumption of independent layer uncertainties in slab summation
+%   (spatial correlation in measurement errors could reduce or amplify total slab uncertainty)
+
+\subsection{Limitations and Assumptions}
+
+% ============================================================
+% 4.3 LIMITATIONS
+% ============================================================
+% - SnowPilot data quality is heterogeneous: ~5,000 unique users with varying
+%   experience levels; no formal quality-control step beyond parsing
+% - Parameterizations used here cover only a subset of grain forms; layers with
+%   melt forms, surface hoar, ice formations, or machine-made snow are excluded
+%   from most calculations (substantial fraction of dataset in some climates)
+% - Effective isotropic assumption: snow is anisotropic; mapping to isotropic
+%   parameters loses information and introduces systematic bias
+% - Layer thicknesses from SnowPilot are nominal; thickness variability within a pit
+%   is not captured
+% - Parameterizations from literature are derived from laboratory specimens;
+%   representativeness for natural snowpack variability is uncertain
+% - No independent validation dataset: comparing estimated vs. measured E/nu at the
+%   same sites would require collocated µ-CT or acoustic measurements (not available)
+
+\subsection{Extensions and Future Work}
+
+% ============================================================
+% 4.4 FUTURE WORK
+% ============================================================
+% - Framework is explicitly extensible: adding a new parameter or method requires
+%   implementing the calculation function, adding a node/edge to the graph,
+%   and registering the method in the dispatcher
+% - Priority extensions:
+%     * Weak layer failure parameters: shear strength, critical energy release rate
+%       (enable full WEAC calculation from field data)
+%     * Melt-freeze crust parameterizations (large fraction of dataset excluded)
+%     * Anisotropic layer properties in the slab model
+%     * Comparison with snow cover model outputs (SNOWPACK, CROCUS) for cross-validation
+% - Potential for ML/AI: the large SnowPilot dataset with computed mechanical properties
+%   could serve as training data for data-driven stability classifiers
+% - Connections to Conceptual Model of Avalanche Hazard: computed D11 and static
+%   stress distributions could inform problem type characterization
 
 
-\subsection{Example Analysis: Calculation Pathways for Density Estimation}
+\section{Conclusions}
 
-% Describe the calculation pathways for density estimation
-
-% Show subgraph with highlighted pathways
-
-% Calculate density for all layers across all calculation pathways
-
-% Calculate density for all slabs across all calculation pathways
-
-% Display and compare results
-
-\subsection{Example Analysis: Estimating D11 for ECTP Slabs}
-
-% Calculate D11 for each slab accross all calculation pathways
-
-% Display and compare results
-
-\section{DISCUSSION}
-
-\subsection{Should a "best" calculation pathway be determined? If so, how?}
-
-\subsection{More parameters, more problems?}
+% ============================================================
+% 5. CONCLUSIONS
+% Numbered or bulleted; align with HESS style (prose preferred)
+% ============================================================
+% - The parameterization graph framework systematically enumerates all valid calculation
+%   pathways from snowpit observations to target mechanical parameters, enabling
+%   exhaustive method comparison at scale
+% - Applied to 10 years of SnowPilot data: the framework successfully computes
+%   layer-level density for 28-63% of layers and slab-level D11 for ~5% of ECT slabs,
+%   depending on pathway; slab success rates are lower because all layers must pass
+% - Mechanical properties can be estimated from standard field observations for
+%   some grain forms and density ranges, but uncertainty is large (40-90%+ for D11);
+%   this uncertainty must be communicated when these parameters feed into mechanical models
+% - Current parameterizations are not sufficient to run WEAC or similar models with
+%   confidence for operational avalanche forecasting; however, they can provide
+%   physically-grounded bounds on slope stability when paired with stability test results
+% - The framework bridges theory and practice, and is designed to grow as new
+%   parameterizations become available in the literature
 
 
-\section{CONCLUSIONS}
+%% The following commands are for the statements about the availability of data sets and/or software code corresponding to the manuscript.
+
+\codeavailability{SnowPyt-MechParams is openly available at [URL TBD]. SnowPylot is openly available at [URL TBD].}
+
+\dataavailability{The SnowPilot database is publicly accessible at snowpilot.org. The CAAML export files used in this analysis cover the period September 1, 2014 to September 1, 2025.}
+
+\authorcontribution{TEXT} %% this section is mandatory
+
+\competinginterests{TEXT} %% this section is mandatory even if you declare that no competing interests are present
+
+\begin{acknowledgements}
+TEXT
+\end{acknowledgements}
+
+
+%% REFERENCES
+\bibliographystyle{copernicus}
+\bibliography{references}
+
 
 \end{document}

@@ -54,6 +54,13 @@ class TestKochleNumerical:
         result = calculate_poissons_ratio("kochle", grain_form="FCxr")
         assert result.nominal_value == pytest.approx(0.130, abs=1e-6)
 
+    def test_lowercase_grain_form_normalized(self):
+        """'rg' and 'fc' should be normalized to RG, FC via .upper()."""
+        result_rg = calculate_poissons_ratio("kochle", grain_form="rg")
+        assert result_rg.nominal_value == pytest.approx(0.171, abs=1e-6)
+        result_fc = calculate_poissons_ratio("kochle", grain_form="fc")
+        assert result_fc.nominal_value == pytest.approx(0.130, abs=1e-6)
+
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_poissons_ratio("kochle", grain_form="PP")
         assert math.isnan(result.nominal_value)
@@ -119,6 +126,17 @@ class TestSrivastavaNumerical:
             "srivastava", density=ufloat(300.0, 0.0), grain_form="MF",
         )
         assert math.isnan(result.nominal_value)
+
+    def test_lowercase_grain_form_normalized(self):
+        """'pp' and 'rg' should be normalized to PP, RG via .upper()."""
+        result_pp = calculate_poissons_ratio(
+            "srivastava", density=ufloat(250.0, 0.0), grain_form="pp",
+        )
+        assert result_pp.nominal_value == pytest.approx(0.132, abs=1e-6)
+        result_rg = calculate_poissons_ratio(
+            "srivastava", density=ufloat(300.0, 0.0), grain_form="rg",
+        )
+        assert result_rg.nominal_value == pytest.approx(0.191, abs=1e-6)
 
 
 # ---------------------------------------------------------------------------

@@ -114,7 +114,7 @@ def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty
     weak layers. Journal of Glaciology, 60(220), 304-315.
     """
     
-    main_grain_shape = grain_form[:2]
+    main_grain_shape = grain_form[:2].upper()
     if main_grain_shape not in ['RG', 'FC', 'DH']:
         logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
@@ -194,7 +194,7 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, inclu
         logger.debug("srivastava: density %.1f kg/m³ outside valid range (must be > 200 kg/m³)", density_nominal)
         return ufloat(np.nan, np.nan)
     
-    main_grain_shape = grain_form[:2]
+    main_grain_shape = grain_form[:2].upper()
     
     # Check if grain form is valid
     if main_grain_shape not in ['RG', 'PP', 'DF', 'FC', 'DH']:

@@ -319,10 +319,10 @@ for slab in slabs:
 
 All physical constants and standard measurement uncertainties are centralised here:
 
-- **Ice properties**: `RHO_ICE` (917.0 kg/m³), `E_ICE_POLYCRYSTALLINE` (10,000 ± 0 MPa), `E_ICE_KERMANI` (1,060 ± 170 MPa), `G_ICE` (407.7 ± 65.4 MPa)
+- **Ice properties**: `RHO_ICE` (917.0 kg/m³), `E_ICE_POLYCRYSTALLINE` (10,000 ± 0 MPa), `G_ICE` (3846.15 ± 0 MPa, derived from E_ICE_POLYCRYSTALLINE)
 - **Standard measurement uncertainties**: `U_HAND_HARDNESS_INDEX` (±0.67 HHI), `U_SLOPE_ANGLE` (±2°), `U_GRAIN_SIZE` (±0.5 mm), `U_THICKNESS_FRACTION` (±5%), `U_DENSITY_FRACTION` (±10%)
 
-Ice constants `E_ICE_KERMANI` and `G_ICE` are stored as `ufloat` values so their literature uncertainties automatically propagate through Wautier et al. calculations. `E_ICE_POLYCRYSTALLINE` has zero uncertainty because it cancels algebraically in Köchle/Schöttner formulations.
+Ice constants `E_ICE_POLYCRYSTALLINE` and `G_ICE` are stored as `ufloat` values. Both have zero uncertainty and are used for normalisation in Wautier, Köchle, and Schöttner formulations.
 
 Previously these constants were defined inline inside each method function; centralising them here ensures consistency and makes the uncertainty budget explicit.
 

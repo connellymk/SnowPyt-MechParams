@@ -30,21 +30,10 @@ RHO_ICE = 917.0  # kg/m³
 # self-consistent.
 E_ICE_POLYCRYSTALLINE = ufloat(10000.0, 0.0)  # MPa (10 GPa)
 
-# Effective Young's modulus of atmospheric ice at -10°C (MPa)
-# Kermani, M., Farzaneh, M., and Gagnon, R. (2008). Bending strength and effective
-# modulus of atmospheric ice. Cold Regions Science and Technology, 53(2), 162–169.
-# Reported as 1.06 ± 0.17 GPa; used as the ice reference modulus by Wautier et al.
-# (2015). Unlike E_ICE_POLYCRYSTALLINE, this value is a genuine scaling factor in
-# the Wautier power-law (E_snow = E_ice * A * (ρ/ρ_ice)^n) — it does not cancel
-# out, and the fitted A/n coefficients are tied to this specific reference.
-E_ICE_KERMANI = ufloat(1060.0, 170.0)  # MPa
-
 # Shear modulus of ice (MPa)
-# Derived from E_ICE_KERMANI via G = E / (2 * (1 + ν)) with ν_ice = 0.3:
-# G = 1060 / (2 * 1.3) ≈ 407.7 MPa. Uncertainty propagated from E_ICE_KERMANI.
-# Kermani, M., Farzaneh, M., and Gagnon, R. (2008). Bending strength and effective
-# modulus of atmospheric ice. Cold Regions Science and Technology, 53(2), 162–169.
-G_ICE = ufloat(407.7, 65.4)  # MPa
+# Derived from E_ICE_POLYCRYSTALLINE via G = E / (2 * (1 + ν)) with ν_ice = 0.3:
+# G = 10000 / (2 * 1.3) ≈ 3846.15 MPa.
+G_ICE = ufloat(3846.15, 0.0)  # MPa
 
 
 # ==========================================

@@ -11,7 +11,7 @@ from typing import Any
 from uncertainties import ufloat
 from uncertainties import umath
 
-from snowpyt_mechparams.constants import RHO_ICE, E_ICE_KERMANI, E_ICE_POLYCRYSTALLINE
+from snowpyt_mechparams.constants import RHO_ICE, E_ICE_POLYCRYSTALLINE
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +276,7 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
 
     return E_snow
 
-def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_KERMANI, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).
@@ -293,7 +293,7 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
         - 'DF', 'RG', 'FC', 'DH', 'MF'
     E_ice : ufloat, optional
         Young's modulus of ice in MPa with associated uncertainty.
-        Default is 1060 ± 170 MPa (1.06 ± 0.17 GPa)
+        Default is 10 GPa (10,000 MPa), the bulk polycrystalline ice modulus.
         
     Returns
     -------
@@ -311,16 +311,16 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     A = 0.78 
     n = 2.34
     
-    The default E_ice value (1.06 ± 0.17 GPa) is the effective modulus of
-    atmospheric ice accumulated and tested at -10°C, reported by Kermani et al.
-    (2008).
+    The default E_ice value is 10 GPa (10,000 MPa), the bulk polycrystalline ice
+    modulus used for normalisation in snow mechanical parameterizations (e.g.
+    Köchle & Schneebeli 2014, Schöttner et al. 2026).
 
     Suggested values for E_ice based on source context:
     - Wautier et al. (2015) notes that E_ice is generally known to range from
       0.2 GPa to 9.5 GPa.
-    - Kermani et al. (2008) references other studies on freshwater ice effective
-      modulus that obtained values such as 1.6 ± 0.4 GPa and ranges between
-      0.7 GPa and 10.5 GPa.
+    - Kermani et al. (2008) reports effective modulus of atmospheric ice at
+      -10°C as 1.06 ± 0.17 GPa; other studies on freshwater ice obtained
+      values such as 1.6 ± 0.4 GPa and ranges between 0.7 GPa and 10.5 GPa.
     
     Constants Used for Calculation:
     ρ_ice = 917.0 kg m⁻³
@@ -349,9 +349,6 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     to its macroscopic elastic stiffness tensor: A numerical homogenization
     method and its application to 3-D images from X-ray tomography.
     Geophysical Research Letters, 42, 8031–8041.
-    Kermani, M., Farzaneh, M., and Gagnon, R. (2008). Bending strength and
-    effective modulus of atmospheric ice. Cold Regions Science and Technology,
-    53(2), 162–169.
     """
 
     main_grain_shape = grain_form[:2]

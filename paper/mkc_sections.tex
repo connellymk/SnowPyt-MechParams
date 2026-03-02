@@ -28,7 +28,6 @@
 \usepackage[section]{placeins}
 \usepackage{booktabs}
 \usepackage{threeparttable}
-\usepackage{xcolor}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{makecell}
 
@@ -54,15 +53,23 @@
 \runningauthor{Connelly et al.}
 
 
-% ============================================================
-% ABSTRACT
-% ============================================================
-% Key points to cover:
-%   - Problem: mechanical models of snow stability require properties not routinely measured in field
-%   - Approach: parameterization graph + algorithm to find/execute all calculation pathways
-%   - Dataset: 10 years of SnowPilot data (50,278 pits, 371,429 layers, 14,776 ECT slabs)
-%   - Key results: coverage/loss rates by method, uncertainty ranges, D11 distributions across 32 pathways
-%   - Conclusion: framework is extensible; current parameterizations have high uncertainty but provide useful bounds
+\begin{abstract}
+% TO BE WRITTEN. Key points:
+%   - Problem: mechanical models of snow stability require elastic properties not routinely
+%     measured in the field; no systematic framework exists to enumerate, compare, and
+%     propagate uncertainty through all possible estimation pathways
+%   - Approach: parameterization graph and algorithm to enumerate and execute all valid
+%     calculation pathways from standard snowpit observations to target mechanical parameters
+%   - Dataset: 10 years of SnowPilot data (51,138 pits, 377,729 layers; ~14,776 ECT slabs)
+%   - Results: method-dependent layer coverage 28--63\%; slab-level D11 success ~5\%;
+%     D11 relative uncertainty 40--90\%; 3--4$\times$ spread in D11 from method choice alone
+%   - Conclusion: framework is extensible; all pathways should be reported together to
+%     capture inter-method uncertainty; current parameterizations provide useful bounds
+%     but high uncertainty limits direct use in operational mechanical models
+% NOTE (HESS): must be self-contained -- no unexplained abbreviations, minimal citations;
+%              500-character plain-language summary also required for the submission form.
+TEXT
+\end{abstract}
 
 
 \section{Introduction}
@@ -78,7 +85,7 @@
 % - Motivate the SnowPilot database as a large, underutilized source of field observations
 %   that could enable population-scale analysis of mechanical properties
 
-\subsection{Mechanical Models of Snow Stability and Their Input Parameters}
+\subsection{Mechanical models of snow stability and their input parameters}
 
 % ============================================================
 % 1.2 MECHANICAL MODELS AND THEIR INPUTS
@@ -94,25 +101,76 @@
 % - Introduce Hooke's law for isotropic elastic material; define E and nu
 %   (equations for generalized Hooke's law and isotropic reduction already in working_draft.tex)
 
-\subsection{Snowpits and the SnowPilot Database}
+\subsection{Snowpits and the SnowPilot database}
 
-% ============================================================
-% 1.3 FIELD OBSERVATIONS AND DATA SOURCE
-% ============================================================
-% - Define snowpit: standard field observation recording layering, grain forms,
-%   densities, stability tests, terrain, weather (cite fierz2009, greene2022,
-%   caatechnicalcommittee2024, norwegianwaterresourcesandenergydirectorate2022)
-% - Introduce SnowPilot (cite chabot2004, chabot2016): free web application,
-%   10 years of data (Sept 2014 – Sept 2025)
-% - Present Table: summary statistics of the SnowPilot database
-%   (total pits ~50,278, unique users ~5,381, countries ~35, layers ~371,429,
-%    layers with hand hardness ~336,888, layers with grain form ~303,726,
-%    layers with grain size ~176,044, layers with density ~10,468,
-%    CT ~51,599, ECT ~47,684, PST ~6,213, pits near avalanche ~1,568,
-%    pits on crown ~795, pits on flank ~399, pits with slope angle ~45,515)
-%   NOTE: numbers from dataset_stats.ipynb; update from final dataset run
+A snowpit is a trench excavated into the snowpack -- typically to the ground or to a depth
+of interest -- that allows an observer to characterize the snow stratigraphy and assess
+slope stability. Standard observations include snow layering (layer boundaries, depth, and
+thickness), grain characteristics (grain form and grain size), mechanical resistance (hand
+hardness index, HHI), density, and temperature profile. Stability tests are often performed
+in conjunction with a snowpit; the most common are the Extended Column Test (ECT), the
+Compression Test (CT), and the Propagation Saw Test (PST). Terrain characteristics such
+as slope angle, aspect, and elevation are also recorded alongside prevailing weather
+conditions at the time of observation. Several guiding documents specify standard
+observation protocols and recording conventions \citep{fierz2009, greene2022,
+caatechnicalcommittee2024, norwegianwaterresourcesandenergydirectorate2022}.
 
-\subsection{Objectives and Scope}
+SnowPilot \citep{chabot2004, chabot2016} is a free, open-source web application that
+enables practitioners to record, visualize, and store snowpit data in the field. It is
+widely used by avalanche professionals and snow scientists, particularly in North America.
+Despite its widespread adoption for recording and plotting purposes, the SnowPilot
+database has been underutilized as a research resource, due in part to the complexity of
+its data format and the absence of purpose-built tools for programmatic analysis
+\citep{connelly2025}. This study draws on ten years of SnowPilot data spanning
+\mbox{1 September 2014} to \mbox{1 September 2025}; a summary of the dataset is given in
+Table~\ref{tab:snowpilot}, and the data processing workflow is described in
+Sect.~\ref{sec:data_methods}.
+
+\begin{table}[]
+\begin{threeparttable}
+\caption{Summary of the SnowPilot database used in this study
+(1 September 2014 -- 1 September 2025).}
+\label{tab:snowpilot}
+\begin{tabular}{lr}
+\toprule
+\textbf{Snowpits}                                    &            \\
+\midrule
+Total pits                                           & 51{,}138   \\
+Unique users                                         & 5{,}440    \\
+Countries represented                                & 35         \\
+Pits with slope angle recorded                       & 46{,}226 (90.4\%) \\
+Pits within 50\,m of an avalanche                   & 1{,}586 (3.1\%)   \\
+\quad of which: at avalanche crown                  & 802 (1.6\%)       \\
+\quad of which: at avalanche flank                  & 406 (0.8\%)       \\
+\midrule
+\textbf{Layers}                                      &            \\
+\midrule
+Total layers                                         & 377{,}729  \\
+Layers with hand hardness recorded                   & 342{,}690 (90.7\%) \\
+Layers with primary grain form recorded              & 309{,}232 (81.9\%) \\
+Layers with grain size recorded                      & 179{,}342 (47.5\%) \\
+Layers with a density observation\tnote{a}           & 10{,}468  (2.8\%)  \\% NOTE: confirm from final dataset run
+\midrule
+\textbf{Stability Tests}                             &            \\
+\midrule
+Compression Test (CT) results                        & 52{,}305   \\
+Extended Column Test (ECT) results                   & 48{,}391   \\
+Propagation Saw Test (PST) results                   & 6{,}326    \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\footnotesize
+\item[a] SnowPilot permits density to be entered either as a measurement within a
+stratigraphic layer or as a separate density profile. Because density profile entries
+may not align spatially with stratigraphic layer boundaries, only density observations
+that are explicitly associated with a stratigraphic layer are retained in this analysis.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+\FloatBarrier
+
+\subsection{Objectives and scope}
 
 % ============================================================
 % 1.4 PAPER OBJECTIVES
@@ -132,25 +190,47 @@
 %   mechanical model (intro_flowchart.pdf, bold boxes indicate scope of this paper)
 
 
-\section{Data and Methods}
+\section{Data and methods}
+\label{sec:data_methods}
 
 \subsection{Data: SnowPilot and SnowPylot}
+\label{sec:snowpylot}
 
-% ============================================================
-% 2.1 SNOWPILOT DATA AND PARSING
-% ============================================================
-% - 10 years of SnowPilot data downloaded as CAAML XML files
-% - Introduce SnowPylot (cite connelly2025): open-source Python library that
-%   parses CAAML XML files into Python objects (SnowPit, core_info, snow_profile,
-%   stability_tests, layer, density_obs, etc.)
-% - Describe the object hierarchy briefly: SnowPit → core_info (pit ID, date, user,
-%   location including slope angle, country), snow_profile (layers with hardness,
-%   grain form, grain size, thickness; density_obs), stability_tests (CT, ECT, PST, RB)
-% - Note that only density observations aligned with stratigraphic layers are used;
-%   density profile entries not matching a layer are excluded
-% - Reference full SnowPylot documentation for parsing details
+Snowpit data from SnowPilot are stored in the Canadian Avalanche Association Markup
+Language (CAAML), a standardized XML schema for snow and avalanche observations
+\citep{caatechnicalcommittee2024}. The ten-year dataset used in this study was downloaded
+as a collection of individual CAAML XML files, one per snowpit. Each file was parsed into
+a structured Python object using SnowPylot \citep{connelly2025}, an open-source Python
+library developed for this purpose. Of the files downloaded, one was malformed and could
+not be parsed and was therefore excluded, leaving the 51{,}138 snowpits described in
+Table~\ref{tab:snowpilot}. Complete documentation of SnowPylot, including the full
+parsing specification, is provided in \citet{connelly2025}.
 
-\subsection{Measurement Uncertainties}
+Each parsed snowpit is represented as a \texttt{SnowPit} object comprising three
+components. The \texttt{core\_info} component stores pit-level metadata: a unique pit
+identifier, recording date, contributing user, and location attributes including slope
+angle, aspect, elevation, and country. The \texttt{snow\_profile} component stores the
+stratigraphic record as an ordered list of \texttt{layer} objects -- with hand hardness,
+primary and secondary grain form, average grain size, and layer thickness -- along with
+any temperature measurements at discrete depths and density observations. The
+\texttt{stability\_tests} component stores results from stability tests as typed lists:
+Extended Column Tests (ECT), Compression Tests (CT), Propagation Saw Tests (PST), and
+Rutschblock Tests (RB), each carrying test-specific attributes such as failure score,
+failure depth, and fracture character.
+
+Two aspects of the SnowPilot data structure require specific handling in this study.
+First, SnowPilot permits density to be entered either as an attribute of a stratigraphic
+layer or as a separate density profile composed of discrete depth intervals. Entries in a
+stand-alone density profile may not correspond to stratigraphic layer boundaries; only
+density measurements explicitly associated with a stratigraphic layer are therefore
+retained (Table~\ref{tab:snowpilot}, note~a). Second, SnowPilot records grain form using
+the International Classification for Seasonal Snow on the Ground \citep{fierz2009}, which
+includes both primary codes (e.g., \texttt{RG} for rounded grains) and compound subform
+codes (e.g., \texttt{RGmx} for mixed rounded grains). For parameterization lookup, all
+grain form codes are resolved to their primary base code before matching against the
+applicability matrices described in Sect.~\ref{sec:parameterizations}.
+
+\subsection{Measurement uncertainties}
 
 % ============================================================
 % 2.2 REPRESENTING FIELD OBSERVATION UNCERTAINTY
@@ -173,7 +253,8 @@
 %   from "measurement uncertainty" (input propagation); the two can be combined in
 %   quadrature or reported independently. This paper reports both.
 
-\subsection{Parameterizations for Mechanical Properties}
+\subsection{Parameterizations for mechanical properties}
+\label{sec:parameterizations}
 
 % ============================================================
 % 2.3 PARAMETERIZATIONS
@@ -200,7 +281,7 @@
 %   (no reliable parameterization exists for these forms)
 % - Direct measurement (data_flow): ±10% uncertainty assumed when available
 
-\subsubsection{Effective, Isotropic Young's Modulus}
+\subsubsection{Effective, isotropic Young's modulus}
 
 % ============================================================
 % 2.3.2 ELASTIC MODULUS
@@ -221,7 +302,7 @@
 %   (draft tab:E_applicability already in working_draft.tex; add Schöttner column)
 % - Note: rewrite Köchle equations in non-dimensional form consistent with other methods
 
-\subsubsection{Effective, Isotropic Poisson's Ratio}
+\subsubsection{Effective, isotropic Poisson's ratio}
 
 % ============================================================
 % 2.3.3 POISSON'S RATIO
@@ -240,7 +321,7 @@
 %   so propagated uncertainty from input observations is zero; the stated ± values
 %   reflect method (inter-sample) uncertainty only
 
-\subsubsection{Shear Modulus}
+\subsubsection{Shear modulus}
 
 % ============================================================
 % 2.3.4 SHEAR MODULUS
@@ -251,7 +332,7 @@
 %   note this as an alternative / future extension
 % - G is used in computing A55 (transverse shear stiffness) of the laminate
 
-\subsubsection{Plate Theory Parameters for Composite Slabs}
+\subsubsection{Plate theory parameters for composite slabs}
 
 % ============================================================
 % 2.3.5 PLATE THEORY PARAMETERS
@@ -273,14 +354,14 @@
 % - Note that D11 is particularly important: stiffer, thicker slabs store
 %   more elastic energy and thus drive crack propagation more effectively
 
-\subsection{Parameterization Graph and Calculation Pathways}
+\subsection{Parameterization graph and calculation pathways}
 
 % ============================================================
 % 2.4 THE ALGORITHMIC FRAMEWORK
 % Core methodological contribution of the paper
 % ============================================================
 
-\subsubsection{Representing Parameterizations as a Directed Graph}
+\subsubsection{Representing parameterizations as a directed graph}
 
 % ============================================================
 % 2.4.1 THE PARAMETERIZATION GRAPH
@@ -301,7 +382,7 @@
 %   E-mod and Poisson's ratio (Srivastava), so the same density method must be
 %   used consistently within a pathway
 
-\subsubsection{Finding Calculation Pathways}
+\subsubsection{Finding calculation pathways}
 
 % ============================================================
 % 2.4.2 PATHWAY ENUMERATION ALGORITHM
@@ -320,7 +401,7 @@
 % - Present figure or table listing all 32 D11 pathways with their method combinations
 %   (or a representative subset to illustrate structure)
 
-\subsubsection{Executing Parameterizations}
+\subsubsection{Executing parameterizations}
 
 % ============================================================
 % 2.4.3 EXECUTION ENGINE
@@ -337,7 +418,7 @@
 % - Config options: include_method_uncertainty (bool) allows reporting input
 %   measurement uncertainty only, or combined input + method regression uncertainty
 
-\subsection{Constructing Slabs from ECT Observations}
+\subsection{Constructing slabs from ECT observations}
 
 % ============================================================
 % 2.5 SLAB DEFINITION
@@ -356,7 +437,7 @@
 
 \section{Results}
 
-\subsection{Coverage and Data Loss by Parameterization}
+\subsection{Coverage and data loss by parameterization}
 
 % ============================================================
 % 3.1 COVERAGE AND LOSS
@@ -376,7 +457,7 @@
 %     Slab success (D11, best pathways): ~5.0% (e.g., geldsetzer→wautier→kochle)
 %     Note the dramatic drop from layer to slab coverage (slab requires all layers to pass)
 
-\subsection{Density Estimates Across Methods}
+\subsection{Density estimates across methods}
 
 % ============================================================
 % 3.2 DENSITY RESULTS
@@ -390,7 +471,7 @@
 %   to validate parameterizations against the SnowPilot data itself
 % - Figures from all_density_pathways.ipynb
 
-\subsection{Young's Modulus Estimates Across Methods}
+\subsection{Young's modulus estimates across methods}
 
 % ============================================================
 % 3.3 ELASTIC MODULUS RESULTS
@@ -404,7 +485,7 @@
 %   uncertainty; discuss the challenge of comparing uncertainties across methods
 % - Figures from all_e_mod_pathways.ipynb
 
-\subsection{Poisson's Ratio Estimates Across Methods}
+\subsection{Poisson's ratio estimates across methods}
 
 % ============================================================
 % 3.4 POISSON'S RATIO RESULTS
@@ -417,7 +498,7 @@
 % - Discuss interpretation: method uncertainty dominates over input uncertainty for nu
 % - Figures from all_poissons_ratio_pathways.ipynb (or combine with E-mod section)
 
-\subsection{Bending Stiffness (D11) of ECT Slabs Across All Pathways}
+\subsection{Bending stiffness (D11) of ECT slabs across all pathways}
 
 % ============================================================
 % 3.5 D11 RESULTS - EXEMPLARY ANALYSIS
@@ -441,7 +522,7 @@
 
 \section{Discussion}
 
-\subsection{Selecting a Preferred Calculation Pathway}
+\subsection{Selecting a preferred calculation pathway}
 
 % ============================================================
 % 4.1 PATHWAY SELECTION
@@ -457,7 +538,7 @@
 % - Present recommendation: report results from multiple pathways and treat spread
 %   as additional uncertainty not captured by any single method
 
-\subsection{Uncertainty Budget: Input Measurement vs. Method Uncertainty}
+\subsection{Uncertainty budget: input measurement vs. method uncertainty}
 
 % ============================================================
 % 4.2 UNCERTAINTY ANALYSIS
@@ -476,7 +557,7 @@
 % - Discuss the assumption of independent layer uncertainties in slab summation
 %   (spatial correlation in measurement errors could reduce or amplify total slab uncertainty)
 
-\subsection{Limitations and Assumptions}
+\subsection{Limitations and assumptions}
 
 % ============================================================
 % 4.3 LIMITATIONS
@@ -495,7 +576,7 @@
 % - No independent validation dataset: comparing estimated vs. measured E/nu at the
 %   same sites would require collocated µ-CT or acoustic measurements (not available)
 
-\subsection{Extensions and Future Work}
+\subsection{Extensions and future work}
 
 % ============================================================
 % 4.4 FUTURE WORK
@@ -550,6 +631,8 @@
 \begin{acknowledgements}
 TEXT
 \end{acknowledgements}
+
+\financialsupport{TEXT} %% list all funding sources here
 
 
 %% REFERENCES

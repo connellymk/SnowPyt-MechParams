@@ -1,5 +1,5 @@
 # Paper & Project Reference Document
-**Last updated:** 2026-03-02
+**Last updated:** 2026-03-03
 **Purpose:** Comprehensive reference for future Claude sessions working on this paper and project.
 **HESS submission page:** https://www.hydrology-and-earth-system-sciences.net/submission.html
 
@@ -14,6 +14,8 @@
 | **Template** | `copernicus.cls`, `\documentclass[hess, manuscript]{copernicus}` |
 | **Correspondence** | Mary Kate Connelly (connellymarykate@gmail.com) |
 | **Running title** | Algorithmic framework for snow mechanical properties |
+| **Target submission** | ~2 months from 2026-03-03 |
+| **Scope** | Framework only — no claim about relationship between estimated D11 and ECT outcome; ECTP slabs used purely as a source of field-observed slab stratigraphies |
 
 ### Authors & Affiliations
 | # | Name | Affiliation |
@@ -30,8 +32,9 @@
 ### Paper files
 | File | Purpose |
 |---|---|
-| `paper/mkc_sections.tex` | **Primary working draft** — the paper in progress |
-| `paper/working_draft.tex` | Older draft — mine for equations, table drafts, and prose |
+| `paper/outline.tex` | **Primary working draft** — the paper in progress (formerly `mkc_sections.tex`) |
+| `paper/working_draft.tex` | Older draft — mine for equations, table drafts, and prose; do not write to this file; migrate content to `outline.tex` |
+| `paper/figure_plan.md` | Figure plan — what each figure communicates, format, design notes, data source |
 | `paper/references.bib` | Bibliography |
 | `paper/paper_info.md` | **This file** |
 
@@ -61,7 +64,11 @@
 | `examples/all_density_pathways.ipynb` | Coverage, distributions for 4 density pathways |
 | `examples/all_e_mod_pathways.ipynb` | Coverage, distributions for 16 E-mod pathways |
 | `examples/all_poissons_ratio_pathways.ipynb` | Coverage, distributions for 5 ν pathways |
-| `examples/all_D11_pathways.ipynb` | **Headline result**: 32 D11 pathways × 14,776 ECT slabs |
+| `examples/all_D11_pathways.ipynb` | **Headline result**: 32 D11 pathways × 14,951 ECT slabs |
+| `examples/paper_figures.ipynb` | **Consolidation notebook**: Fig. 3 (coverage overview) + HESS style reference |
+
+### Figure output directory
+`examples/figures/` — all publication figures saved here at 300 dpi.
 
 ---
 
@@ -223,7 +230,7 @@ SnowPit
 | Layers with hand hardness | 342,690 (90.7%) |
 | Layers with primary grain form | 309,232 (81.9%) |
 | Layers with grain size | 179,342 (47.5%) |
-| Layers with density observation | 10,468 (2.8%) ⚠️ **CONFIRM — not in current notebook output** |
+| Layers with density observation | 10,692 (2.8%) — confirmed from `all_density_pathways.ipynb` (data_flow pathway count) |
 
 ### Stability Tests
 | Test | Count |
@@ -231,7 +238,7 @@ SnowPit
 | Compression Test (CT) | 52,305 |
 | Extended Column Test (ECT) | 48,391 |
 | Propagation Saw Test (PST) | 6,326 |
-| ECT slabs used in D11 analysis | 14,776 (ECTP propagating only — ⚠️ **CONFIRM**) |
+| ECT slabs used in D11 analysis | 14,951 (ECTP propagating only) — ⚠️ previously stated as 14,776; confirmed from notebook output; update §2.5, §3.5, and key results table |
 
 ---
 
@@ -239,49 +246,89 @@ SnowPit
 
 ### Status key: ✅ Written | 🔲 Comment/outline only
 
+Structure reflects the revised `outline.tex` as of 2026-03-03.
+
 ```
 \section{Introduction}
-  \subsection{Mechanical Models of Snow Stability...}              🔲
-  \subsection{Snowpits and the SnowPilot Database}                 ✅  (Table 1 here)
-  \subsection{Objectives and Scope}                                🔲
+  \subsection{Mechanical models of snow stability and their input parameters}   🔲
+      % D11 introduced as headline target parameter; gap statement required
+  \subsection{Snowpits and the SnowPilot database}                              🔲  (Table 1 here)
+      % Bridging sentence: SnowPilot as underutilized resource motivating this work
+  \subsection{Objectives and scope}                                             🔲
+      % Two contributions; scope; paper structure
 
-\section{Data and Methods}              \label{sec:data_methods}
-  \subsection{Data: SnowPilot and SnowPylot}  \label{sec:snowpylot}      ✅
-  \subsection{Measurement Uncertainties}                           🔲
-  \subsection{Parameterizations...}       \label{sec:parameterizations}  🔲
-    \subsubsection{Density}                                        🔲
-    \subsubsection{Effective, Isotropic Young's Modulus}           🔲
-    \subsubsection{Effective, Isotropic Poisson's Ratio}           🔲
-    \subsubsection{Shear Modulus}                                  🔲
-    \subsubsection{Plate Theory Parameters for Composite Slabs}    🔲
-  \subsection{Parameterization Graph and Calculation Pathways}     🔲
-    \subsubsection{Representing Parameterizations as a DAG}        🔲
-    \subsubsection{Finding Calculation Pathways}                   🔲
-    \subsubsection{Executing Parameterizations}                    🔲
-  \subsection{Constructing Slabs from ECT Observations}            🔲
+\section{Data and methods}                           \label{sec:data_methods}
+  \subsection{Data: SnowPilot and SnowPylot}         \label{sec:snowpylot}      🔲
+      % SnowPylot: prior published tool (connelly2025); three data handling decisions
+      % NOTE: whether SnowPylot is listed as a paper contribution (§1.3) or only
+      %   cited as prior work (§2.1) is an open decision -- resolve before writing §1.3
+  \subsection{Measurement uncertainties}             \label{sec:uncertainties}  🔲
+      % Two components (input vs. method); input-only reported; ufloat representation
+  \subsection{Parameterizations for mechanical properties}
+                                                     \label{sec:parameterizations}  🔲
+    \subsubsection{Density}                                                     🔲
+    \subsubsection{Effective, isotropic Young's modulus}                        🔲
+    \subsubsection{Effective, isotropic Poisson's ratio}                        🔲
+    \subsubsection{Shear modulus}                                               🔲  (one sentence: G derived)
+    \subsubsection{Plate theory parameters for composite slabs}                 🔲
+  \subsection{Parameterization graph and calculation pathways}  \label{sec:graph}  🔲
+    \subsubsection{Representing parameterizations as a directed graph}          🔲
+        % Shared density node constraint explained; 32 pathways for D11
+    \subsubsection{Finding calculation pathways}                                🔲
+    \subsubsection{Executing parameterizations}                                 🔲
+        % Two-phase execution; density caching; failure handling; provenance tracking
+  \subsection{Constructing slabs from ECT observations}  \label{sec:ectp_slabs}  🔲
+      % ECTP only; framework-only scope stated explicitly; no ECT outcome claim
 
 \section{Results}
-  \subsection{Coverage and Data Loss by Parameterization}          🔲
-  \subsection{Density Estimates Across Methods}                    🔲
-  \subsection{Young's Modulus Estimates Across Methods}            🔲
-  \subsection{Poisson's Ratio Estimates Across Methods}            🔲
-  \subsection{Bending Stiffness (D11) of ECT Slabs...}            🔲
+  \subsection{Coverage and data loss by parameterization}  \label{sec:coverage}         🔲
+      % Overview only; per-parameter detail in §3.2--3.5
+  \subsection{Density estimates across methods}       \label{sec:density_results}       🔲
+      % Closes with: implications for downstream E-mod estimation
+  \subsection{Young's modulus estimates across methods}  \label{sec:emod_results}       🔲
+      % Closes with: dominant driver of D11 spread
+  \subsection{Poisson's ratio estimates across methods}  \label{sec:nu_results}         🔲
+      % Layer-level AND as part of D11 pathway (5 sub-pathways for srivastava)
+      % Closes with: structural coupling via shared density node
+  \subsection{Bending stiffness (D11) of ECT slabs across all pathways}
+                                                     \label{sec:D11_results}            🔲
+      % Three paragraphs: (1) coverage, (2) spread/violin, (3) pathway detail
 
 \section{Discussion}
-  \subsection{Selecting a Preferred Calculation Pathway}           🔲
-  \subsection{Uncertainty Budget: Input vs. Method Uncertainty}    🔲
-  \subsection{Limitations and Assumptions}                         🔲
-  \subsection{Extensions and Future Work}                          🔲
+  \subsection{Implications of method-dependent uncertainty for mechanical models}
+                                       \label{sec:discussion_implications}             🔲  [NEW]
+      % Closes the loop to §1.1; 3--4x D11 spread means fundamentally different
+      %   model predictions from same field data
+  \subsection{Toward a preferred calculation pathway}
+                                       \label{sec:discussion_best_pathway}             🔲
+  \subsection{Should mechanical properties be measured directly in the snowpit?}
+                                       \label{sec:discussion_direct_measurement}       🔲
+  \subsection{Limitations and assumptions}           \label{sec:limitations}           🔲
+  \subsection{Extensions and future work}            \label{sec:extensions}            🔲
+      % Merges "gaps in knowledge" and "more parameters, more problems" from prior draft
 
-\section{Conclusions}                                              🔲
+\section{Conclusions}                                                                   🔲
 ```
 
 ### Tables
 | Label | Location | Status |
 |---|---|---|
-| `tab:snowpilot` | §1.3 | ✅ Written |
+| `tab:snowpilot` | §1.2 (SnowPilot database) | Drafted in `working_draft.tex` — confirm numbers from rerun of `dataset_stats.ipynb` before migrating |
 | `tab:geldesetzer` | §2.3.1 (density) | Drafted in `working_draft.tex` — migrate and update |
-| `tab:E_applicability` | §2.3.2 (E-mod) | Drafted in `working_draft.tex` — add Schöttner column |
+| `tab:E_applicability` | §2.3.2 (E-mod) | Drafted in `working_draft.tex` — add Schöttner column; confirm Schöttner grain forms from `elastic_modulus.py` |
+
+### Figures
+See `paper/figure_plan.md` for full figure descriptions, format requirements, and data sources.
+
+| Label | Section | Status |
+|---|---|---|
+| Fig. 1 `fig:intro_flowchart` | §1.1 | Not started (schematic) |
+| Fig. 2 `fig:dag` | §2.4.1 | Not started |
+| Fig. 3 `fig:coverage` | §3.1 | Draft code in `paper_figures.ipynb`; run to generate `figures/fig03_coverage.png` |
+| Fig. 4 `fig:density_results` | §3.2 | Draft matplotlib cell added to `all_density_pathways.ipynb`; run to generate `figures/fig04_density_distributions.png` |
+| Fig. 5 `fig:emod_results` | §3.3 | Draft matplotlib cell added to `all_e_mod_pathways.ipynb`; run to generate `figures/fig05_emod_distributions.png` |
+| Fig. 6 `fig:nu_results` | §3.4 | Draft matplotlib cell added to `all_poissons_ratio_pathways.ipynb`; run to generate `figures/fig06_nu_distributions.png` |
+| Fig. 7 `fig:D11_violin` | §3.5 | Draft matplotlib violin cell added to `all_D11_pathways.ipynb`; run to generate `figures/fig07_D11_distributions.png` |
 
 ---
 
@@ -362,20 +409,21 @@ D11 is the primary result: stiffer/thicker slabs store more elastic energy and d
 ## Key Numerical Results (from notebooks)
 
 ### D11 — Headline analysis
-32 unique pathways × 14,776 ECTP slabs = 473,032 attempted calculations.
+32 unique pathways × 14,951 ECTP slabs = 478,432 attempted calculations. (⚠️ updated from 14,776 — confirmed from notebook output)
 
-| Pathway | Slab success | Median D11 | Rel. uncertainty |
+| Pathway | Slab success | Avg D11 | Avg rel. uncertainty |
 |---|---|---|---|
-| geldsetzer → wautier → kochle | ~5.0% | 2.42×10⁸ N·m | 41.7% |
-| kim_table2 → wautier → kochle | ~5.0% | 2.35×10⁸ N·m | 40.8% |
-| geldsetzer → schottner → kochle | ~3.4% | 9.03×10⁷ N·m | 74.8% |
-| geldsetzer → kochle → kochle | ~3.0% | 2.52×10⁸ N·m | 87.8% |
-| data_flow pathways | ~0% (109/14,776 slabs) | — | — |
+| geldsetzer → wautier → kochle | 756 / 14,951 (5.1%) | 2.26×10⁹ N·m | 38.1% |
+| kim_table2 → wautier → kochle | 756 / 14,951 (5.1%) | 2.19×10⁹ N·m | 37.3% |
+| geldsetzer → schottner → kochle | 756 / 14,951 (5.1%) | 8.93×10⁷ N·m | 74.8% |
+| kim_table2 → schottner → kochle | 756 / 14,951 (5.1%) | 8.72×10⁷ N·m | 73.3% |
+| geldsetzer → kochle → kochle | 507 / 14,951 (3.4%) | 2.49×10⁸ N·m | 88.0% |
+| data_flow pathways | ~17 slabs max (0.1%) | — | — |
 
-D11 spread across pathways: ~3.7×10⁷ to ~2.4×10⁸ N·m (~3–4× from method choice alone).
+D11 spread across pathways: ~3.6×10⁷ to ~2.3×10⁹ N·m (~64× from method choice alone at the extremes; ~3–4× for the main estimation pathways).
 
 ### Density results
-- Estimated means across methods: 208–283 kg/m³ (method-dependent)
+- Estimated means across methods: 193–283 kg/m³ (method-dependent; geldsetzer=193, kim_t2=208, kim_t5=199, data_flow=283)
 - kim_jamieson_table2 produces lower, more consistent estimates than geldsetzer
 
 ### E-mod results
@@ -383,7 +431,7 @@ D11 spread across pathways: ~3.7×10⁷ to ~2.4×10⁸ N·m (~3–4× from metho
 - Relative input uncertainty: 28–92% (pathway-dependent)
 
 ### Poisson's ratio results
-- kochle: ν ≈ 0.144 | srivastava: ν ≈ 0.170–0.178
+- kochle: ν ≈ 0.087–0.171 (grain-form-dependent) | srivastava: ν ≈ 0.132–0.191
 
 ---
 
@@ -498,6 +546,20 @@ The manuscript must contain these sections in this exact order:
 | Legend | Must be self-contained within the figure (all symbols explained inside the figure) |
 | Font | Single sans-serif font family preferred; fonts must be embedded in vector graphics |
 
+### Figure style (implemented in notebooks)
+All HESS-compliant figures use:
+- **Colors**: Wong (2011) colorblind-safe palette — consistent across notebooks
+- **Font**: DejaVu Sans / Helvetica / Arial via `mpl.rcParams`
+- **Resolution**: 300 dpi PNG saved to `examples/figures/`
+- **No embedded titles** — captions in `.tex`
+- **Single column** = 3.35 in (8.5 cm); **double column** = 7.0 in (17.8 cm)
+- `cmcrameri` package installed in venv for future colormap use
+
+Consistent method color assignments (Wong palette):
+- Density — kim_t2: `#009E73`, geldsetzer: `#0072B2`, kim_t5: `#E69F00`, data_flow: `#CC79A7`
+- E-mod — wautier: `#009E73`, kochle: `#0072B2`, bergfeld: `#E69F00`, schottner: `#D55E00`
+- ν — kochle: `#0072B2`, srivastava: `#E69F00`
+
 ### Tables
 - Numbered sequentially with Arabic numerals
 - Must be **self-explanatory** with a descriptive caption
@@ -517,7 +579,7 @@ The manuscript must contain these sections in this exact order:
 | Rule | Example |
 |---|---|
 | Words for integers < 10 | "three methods", "nine layers" |
-| Numerals for ≥ 10 | "32 pathways", "14,776 slabs" |
+| Numerals for ≥ 10 | "32 pathways", "14,951 slabs" |
 | Numerals always with units | "1 m", "5 kg" |
 | Spell out numbers that start sentences | "Thirty-two unique pathways…" |
 | SI units required; negative exponents in denominators | `W m⁻²` not `W/m²` |
@@ -633,15 +695,39 @@ Author, A. B.: Title, arXiv [preprint], https://arxiv.org/abs/xxxx.xxxxx, DD Mon
 
 ## Outstanding TODOs
 
-- [ ] **Density layer count** (10,468 / 2.8%): add a cell to `dataset_stats.ipynb` to confirm from current dataset run
-- [ ] **ECTP slab count** (14,776): confirm whether ECTP-only or all ECT; update §2.5 comment accordingly
-- [ ] **Schöttner et al. (2026) details**: read `elastic_modulus.py` to fill in grain forms, density range, and equation for §2.3.2
+### Dataset — confirm before writing
+- [ ] **ECTP slab count discrepancy**: notebooks produce 14,951 slabs; paper previously stated 14,776. Update §2.5, §3.5, headline result table, and abstract once confirmed.
+- [ ] **Density layer count** confirmed as 10,692 (2.8%) from `all_density_pathways.ipynb` data_flow pathway count. Verify via `dataset_stats.ipynb` density cell (checks `layer.density` attribute).
+
+### Content — before writing begins
+- [ ] **Schöttner et al. citation year**: `graph/definitions.py` cites "(2024)" but `paper_info.md` and `outline.tex` use "(2026)"; check `elastic_modulus.py` for the correct year and citation key, then make consistent throughout
+- [ ] **Schöttner et al. details**: read `elastic_modulus.py` to fill in grain forms, density range, and equation for §2.3.2 and `tab:E_applicability`
+- [ ] **SnowPylot contribution status**: decide whether SnowPylot is listed as a paper contribution in §1.3 (as currently drafted by MKC) or cited only as prior published work in §2.1 (as recommended in structural review); this affects the framing of the paper's contributions
+
+### Writing — administrative
 - [ ] **Author affiliations**: full addresses for Rosendahl (TU Darmstadt) and Adam (SLF Davos)
-- [ ] **Code/data availability URLs**: replace `[URL TBD]` in `\codeavailability`
-- [ ] **Author contributions**: fill in `\authorcontribution{}`
+- [ ] **Abstract**: not yet drafted
+- [ ] **Author contributions**: fill in `\authorcontribution{}` (CRediT format recommended)
 - [ ] **Competing interests**: fill in `\competinginterests{}`
 - [ ] **Acknowledgements**: fill in `\begin{acknowledgements}`
-- [ ] **Abstract**: not yet drafted
+- [ ] **Financial support**: fill in `\financialsupport{}`
+- [ ] **500-character plain-language summary**: required for HESS submission form (prepare alongside abstract)
+
+### Tables
+- [ ] **Table `tab:snowpilot`**: migrate from `working_draft.tex`; confirm all numbers from rerun of `dataset_stats.ipynb`; convert to `booktabs` format (`\toprule`, `\midrule`, `\bottomrule`)
 - [ ] **Table `tab:geldesetzer`**: migrate from `working_draft.tex` and verify numbers
 - [ ] **Table `tab:E_applicability`**: migrate from `working_draft.tex` and add Schöttner column
+
+### Figures
+- [ ] **Figs. 3–7**: rerun all pathway notebooks (`all_density_pathways.ipynb`, `all_e_mod_pathways.ipynb`, `all_poissons_ratio_pathways.ipynb`, `all_D11_pathways.ipynb`) and then `paper_figures.ipynb` to generate PNG files in `examples/figures/`
+- [ ] **Evaluate Figs. 4–6 consolidation**: after notebook rerun, decide whether density/E-mod/nu distributions fit in a single three-panel figure (see §5 of `paper_figures.ipynb`)
+- [ ] **Fig. 1** (conceptual flowchart): create schematic; no notebook required
+- [ ] **Fig. 2** (DAG): style output from `graph/visualize.py` for publication; color-blind-friendly; see `figure_plan.md`
+- [ ] **Color-blind check**: test all figures with Coblis before submission
+
+### Pre-submission
+- [ ] **Code/data availability URLs**: replace `[URL TBD]` in `\codeavailability{}` (deposit on Zenodo before submission)
+- [ ] **Jupyter notebooks DOI**: if deposited, add `Interactive computing environment` section
+- [ ] **AI usage declaration**: declare Claude Code assistance in Methods or Acknowledgements per HESS policy
 - [ ] **Delete duplicate** `paper_info.md` at project root (was created before user specified `paper/` directory)
+- [ ] **Color-blind check**: test all figures with Coblis before submission

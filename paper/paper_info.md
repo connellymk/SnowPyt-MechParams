@@ -9,13 +9,14 @@
 
 | Field | Value |
 |---|---|
-| **Title** | An algorithmic framework to ascertain and compare mechanical properties from common snowpit observations |
-| **Journal** | Hydrology and Earth System Sciences (HESS) |
+| **Title** | Estimating snow slab bending stiffness from field observations: coverage, parameterization uncertainty, and implications for mechanical stability models |
+| **Journal** | Hydrology and Earth System Sciences (HESS) — see also NHESS as alternative if risk framing is foregrounded |
 | **Template** | `copernicus.cls`, `\documentclass[hess, manuscript]{copernicus}` |
 | **Correspondence** | Mary Kate Connelly (connellymarykate@gmail.com) |
-| **Running title** | Algorithmic framework for snow mechanical properties |
+| **Running title** | Snow slab bending stiffness: coverage and uncertainty |
 | **Target submission** | ~2 months from 2026-03-03 |
-| **Scope** | Framework only — no claim about relationship between estimated D11 and ECT outcome; ECTP slabs used purely as a source of field-observed slab stratigraphies |
+| **Scope** | The findings are the primary contribution; the framework (SnowPyt-MechParams) is the enabling method. No claim about relationship between estimated D11 and ECT outcome; ECTP slabs used purely as a source of field-observed slab stratigraphies. |
+| **Central argument** | Standard snowpit observations are insufficient to compute D11 for ~95% of field datasets; where computation is possible, D11 varies 3–4× from method choice and carries 40–90% within-pathway uncertainty. Field-data-driven mechanical models should account for both sources. |
 
 ### Authors & Affiliations
 | # | Name | Affiliation |
@@ -230,7 +231,8 @@ SnowPit
 | Layers with hand hardness | 342,690 (90.7%) |
 | Layers with primary grain form | 309,232 (81.9%) |
 | Layers with grain size | 179,342 (47.5%) |
-| Layers with density observation | 10,692 (2.8%) — confirmed from `all_density_pathways.ipynb` (data_flow pathway count) |
+| Total density obs in `density_profile` | 19,877 (5.3% of layers) — confirmed from `dataset_stats.ipynb` density cell |
+| Layers with density obs (layer-aligned) | 10,692 (2.8%) — confirmed from `all_density_pathways.ipynb` (data_flow pathway). ~9,185 obs cannot be aligned to a layer boundary and are excluded. |
 
 ### Stability Tests
 | Test | Count |
@@ -251,11 +253,17 @@ Structure reflects the revised `outline.tex` as of 2026-03-03.
 ```
 \section{Introduction}
   \subsection{Mechanical models of snow stability and their input parameters}   🔲
-      % D11 introduced as headline target parameter; gap statement required
+      % FINDING-FIRST: open with what is at stake (models use D11; D11 is poorly
+      %   constrained from field data); trace the estimation chain; state the
+      %   gap as a risk: without population-scale quantification, practitioners
+      %   cannot assess the reliability of model inputs
   \subsection{Snowpits and the SnowPilot database}                              🔲  (Table 1 here)
-      % Bridging sentence: SnowPilot as underutilized resource motivating this work
+      % Bridging: SnowPilot scale makes it uniquely suited for population-level
+      %   quantification of coverage and parameterization sensitivity
   \subsection{Objectives and scope}                                             🔲
-      % Two contributions; scope; paper structure
+      % OBJECTIVE 1 (primary): quantify D11 coverage and uncertainty at scale
+      % OBJECTIVE 2 (enabling): present SnowPyt-MechParams
+      % SnowPylot = prior work (cite in §2.1 only, not a contribution here)
 
 \section{Data and methods}                           \label{sec:data_methods}
   \subsection{Data: SnowPilot and SnowPylot}         \label{sec:snowpylot}      🔲
@@ -282,32 +290,44 @@ Structure reflects the revised `outline.tex` as of 2026-03-03.
 
 \section{Results}
   \subsection{Coverage and data loss by parameterization}  \label{sec:coverage}         🔲
-      % Overview only; per-parameter detail in §3.2--3.5
+      % FINDING FIRST: open with the headline -- ~5% max coverage -- then explain
+      %   the compounding mechanism. Fig. 3 here. Sets up §3.2--3.5.
   \subsection{Density estimates across methods}       \label{sec:density_results}       🔲
-      % Closes with: implications for downstream E-mod estimation
+      % Closes with: spread in density propagates directly into E-mod
   \subsection{Young's modulus estimates across methods}  \label{sec:emod_results}       🔲
-      % Closes with: dominant driver of D11 spread
+      % Closes with: E-mod is the dominant driver of D11 spread
   \subsection{Poisson's ratio estimates across methods}  \label{sec:nu_results}         🔲
-      % Layer-level AND as part of D11 pathway (5 sub-pathways for srivastava)
       % Closes with: structural coupling via shared density node
   \subsection{Bending stiffness (D11) of ECT slabs across all pathways}
                                                      \label{sec:D11_results}            🔲
-      % Three paragraphs: (1) coverage, (2) spread/violin, (3) pathway detail
+      % THREE FINDINGS stated as findings:
+      %   (1) 95% of slabs have no valid D11 -- gap in observations, not framework
+      %   (2) 3--4x spread from method choice; E-mod dominant
+      %   (3) 40--90% within-pathway uncertainty; compounds (1)+(2)
 
 \section{Discussion}
-  \subsection{Implications of method-dependent uncertainty for mechanical models}
-                                       \label{sec:discussion_implications}             🔲  [NEW]
-      % Closes the loop to §1.1; 3--4x D11 spread means fundamentally different
-      %   model predictions from same field data
+  \subsection{Implications for field-data-driven mechanical stability models}
+                                       \label{sec:discussion_implications}             🔲
+      % CENTRAL SECTION. Each finding → one implication for practice.
+      %   Coverage → models are not operationally viable from standard pits
+      %   Spread → outputs are implicitly method-dependent; rarely acknowledged
+      %   Combined → stability conclusions need explicit uncertainty quantification
+      %   Synthesis: findings do not invalidate models; they set the bar for
+      %     what is needed before models can be used with confidence
   \subsection{Toward a preferred calculation pathway}
                                        \label{sec:discussion_best_pathway}             🔲
   \subsection{Should mechanical properties be measured directly in the snowpit?}
                                        \label{sec:discussion_direct_measurement}       🔲
   \subsection{Limitations and assumptions}           \label{sec:limitations}           🔲
   \subsection{Extensions and future work}            \label{sec:extensions}            🔲
-      % Merges "gaps in knowledge" and "more parameters, more problems" from prior draft
 
 \section{Conclusions}                                                                   🔲
+      % ORDER: findings (1--4) first; framework (5) last
+      %   1. ~5% coverage — gap in observations
+      %   2. 3--4x spread — method choice as important as measurement precision
+      %   3. 40--90% within-pathway uncertainty
+      %   4. Combined implication for stability model reliability
+      %   5. SnowPyt-MechParams: openly available, extensible
 ```
 
 ### Tables

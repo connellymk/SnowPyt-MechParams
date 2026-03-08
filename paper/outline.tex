@@ -33,7 +33,7 @@
 
 \begin{document}
 
-\title{An algorithmic framework to ascertain and compare mechanical properties from common snowpit observations}
+\title{An algorithmic framework for estimating snow slab mechanical properties from field observations}
 
 % \Author[affil]{given_name}{surname}
 
@@ -55,26 +55,42 @@
 
 \begin{abstract}
 
-% Problem: Mechanical models of snow stability require elastic slab properties (e.g.,
-% bending stiffness D11) that are not measured directly in the field. Multiple published
-% parameterizations exist to estimate these properties from standard snowpit observations,
-% but no systematic framework has been developed to enumerate, compare, and propagate
-% uncertainty through all valid estimation pathways.
+% STRUCTURE: finding first, then method.
+%
+% Opening (the problem and why it matters, ~2 sentences):
+%   Mechanical stability models for snow slab avalanche release require elastic slab
+%   properties -- in particular the bending stiffness D11 -- that cannot be measured
+%   directly in the field and must instead be estimated by chaining published
+%   parameterizations through standard snowpit observations. How reliably these
+%   properties can be estimated, and from what fraction of real field datasets, has
+%   not been systematically quantified.
+%
+% Headline results (lead with the three numbers, ~3 sentences):
+%   We apply a systematic framework to 14,951 ECTP slab stratigraphies from
+%   10 years of SnowPilot data (51,138 pits, 1 September 2014 -- 31 August 2025)
+%   and find: (1) the highest-coverage calculation pathway produces a valid D11
+%   estimate for only ~5% of slabs, because the field observations required by any
+%   single pathway are rarely all present; (2) for slabs where multiple pathways
+%   succeed, D11 varies by a factor of 3--4 depending entirely on method choice,
+%   with E-modulus parameterization as the dominant contributor; and
+%   (3) within-pathway relative uncertainty from input measurement propagation
+%   alone is 40--90%, and compounds when parameterizations are chained.
+%
+% Implication (the risk argument, ~2 sentences):
+%   Together, these results quantify a fundamental constraint on field-data-driven
+%   mechanical models: the inputs required by these models are both rarely achievable
+%   from standard observations and, when achievable, highly sensitive to
+%   parameterization choice. Conclusions about slope stability drawn from mechanical
+%   model outputs should account for this dual source of uncertainty.
+%
+% Method/tool (supporting, ~1--2 sentences):
+%   To enable this analysis, we present SnowPyt-MechParams, an open-source Python
+%   library that encodes parameterizations as a directed acyclic graph (DAG) and
+%   automatically enumerates all 32 valid D11 calculation pathways, propagating
+%   input measurement uncertainty through each via first-order Taylor expansion.
+%   The library is openly available and designed to incorporate new parameterizations
+%   as they are published.
 
-% Approach: We present SnowPyt-MechParams, a Python library that encodes parameterizations
-% as a directed acyclic graph (DAG) and implements an algorithm to automatically enumerate
-% and execute all valid calculation pathways from snowpit observations to target mechanical
-% parameters. Uncertainty from input measurements is propagated through all calculations
-% using first-order Taylor expansion.
-
-% Dataset: Applied to 10 years of SnowPilot data (51,138 snowpits, 1 September 2014 to
-% 31 August 2025)
-
-% Results: Coverage (fraction of slabs for which each pathway succeeds), inter-pathway
-% spread in estimated values, and measurement uncertainty are reported for density,
-% Young's modulus, Poisson's ratio, and D11.
-
-% Conclusion: 
 \end{abstract}
 
 
@@ -82,65 +98,131 @@
 
 \subsection{Mechanical models of snow stability and their input parameters}
 
-% Introduce the mechanics of slab avalanche release and the role of mechanical models.
-% Cover: crack initiation in the weak layer, crack propagation, and the elastic slab
-% properties that govern the energy available to drive propagation.
-
-% Identify D11 (bending stiffness) as a key target parameter:
-%   - D11 governs the elastic energy stored in the slab and available to drive crack
-%     propagation through the weak layer
-%   - D11 is a required input to energy-based and combined energy--stress stability
-%     models (e.g., Heierli et al. 2008, Rosendahl & Weissgraeber 2020, Siron et al. 2023)
-%   - D11 is computed from layer-level elastic properties (Young's modulus E and
-%     Poisson's ratio nu) via classical laminate theory
-
-% Introduce E, density, and nu as the layer-level parameters from which D11 is built:
-%   - E and nu are seldom measured directly in field conditions
-%   - They are estimated via chains of parameterizations from observable quantities
-%     (hand hardness, grain form, grain size, directly measured density)
-%   - Density is a shared parameter between the E and nu parameterizations
-
-% State the gap explicitly:
-%   - Multiple published parameterizations exist for density, E, and nu, each with
-%     different input requirements, applicable grain forms, and density ranges
-%   - No systematic framework has been developed to enumerate all valid estimation
-%     pathways, compare their results at scale, or propagate measurement uncertainty
-%     through the estimation chain
-%   - Without this, the sensitivity of mechanical model inputs to parameterization
-%     choice is unknown at the scale of large observational datasets
+% STRUCTURE: open with the operational/risk problem, then trace the chain back to
+% the fundamental gap. The framework is introduced later as the method; this section
+% establishes what is at stake.
+%
+% Paragraph 1 -- What mechanical models do and why D11 matters:
+%   Introduce the mechanics of slab avalanche release and the role of mechanical models.
+%   Cover: crack initiation in the weak layer, crack propagation, and the elastic slab
+%   properties that govern the energy available to drive propagation.
+%   Identify D11 (bending stiffness) as a key target parameter:
+%     - D11 governs the elastic energy stored in the slab and available to drive crack
+%       propagation through the weak layer
+%     - D11 is a required input to energy-based and combined energy--stress stability
+%       models (e.g., Heierli et al. 2008, Rosendahl & Weissgraeber 2020, Siron et al. 2023)
+%     - D11 is computed from layer-level elastic properties (Young's modulus E and
+%       Poisson's ratio nu) via classical laminate theory
+%
+% Paragraph 2 -- The estimation problem:
+%   E and nu are seldom measured directly in field conditions; they must be estimated
+%   by chaining parameterizations from directly observable quantities (hand hardness,
+%   grain form, grain size, directly measured density). Density is a shared parameter
+%   feeding both E and nu estimation. Chaining introduces two compounding problems:
+%   (a) each link has its own measurement uncertainty, which propagates and amplifies;
+%   (b) multiple published parameterizations exist for each step, each with different
+%   input requirements, applicable grain forms, and density ranges -- so the result
+%   depends on which methods are chosen.
+%
+% Paragraph 3 -- The gap and its risk implications (state explicitly):
+%   No systematic analysis has quantified (a) what fraction of real field observations
+%   contain sufficient data to complete any calculation pathway to D11, or (b) how much
+%   D11 varies across valid pathways applied to the same field data. Without this,
+%   practitioners using field-data-driven mechanical models have no basis for assessing
+%   whether their inputs are representative or how sensitive their stability conclusions
+%   are to parameterization choice. This paper provides that quantification at population
+%   scale for the first time.
 
 
 \subsection{Snowpits and the SnowPilot database}
+\label{sec:snowpilot_database}
 
 % Describe what a snowpit is and what is recorded: layering, grain forms, stability
 % tests, terrain and weather conditions. Reference standard observation protocols
+
+A snowpit is a trench excavated into the snowpack, typically to the ground or to a depth of interest. For each stratigraphic layer encountered, the observer records hand hardness, grain form, grain size, and layer thickness; density may also be measured directly on individual layers using a density cutter and scale. Terrain characteristics (slope angle, aspect, elevation) and weather conditions at the time of the observation supplement the stratigraphy. Stability tests are commonly conducted alongside the snow profile -- most frequently the Compression Test (CT), Extended Column Test (ECT), and Propagation Saw Test (PST) -- and record the stress required to initiate a fracture, whether that fracture propagates, and the depth and character of the failure plane. Standard observation protocols are described in \citet{fierz2009}, \citet{greene2022}, \citet{caatechnicalcommittee2024}, and \citet{norwegianwaterresourcesandenergydirectorate2022}.
 
 % Introduce the SnowPilot database (chabot2004, chabot2016):
 %   - Free, web-based application for recording and storing snowpit data
 %   - Data stored in CAAML XML format (caatechnicalcommittee2024)
 %   - Community-sourced: wide range of observer expertise and completeness
 
+SnowPilot \citep{chabot2004,chabot2016} is a free, web-based application for recording, visualising, and storing snowpit observations. Data are archived in the Canadian Avalanche Association Markup Language (CAAML) XML format \citep{caatechnicalcommittee2024}, an open community standard for snow and avalanche data exchange. The database is community-sourced, with contributors spanning avalanche centre forecasters, ski patrol, field researchers, and backcountry educators, and is particularly widely used in North America.
+
 % Present Table (dataset summary) covering 1 September 2014 to 31 August 2025.
 
-% Close with a bridging sentence: SnowPilot represents a large, underutilized resource
-% for population-scale analysis of estimated mechanical properties, provided a systematic
-% framework exists to apply and compare parameterizations -- motivating the present work.
+A summary of the SnowPilot data used in this analysis -- the decade from 1~September~2014 to 31~August~2025 -- is provided in Table~\ref{tab:snowpilot}.
+
+\begin{table}
+\begin{threeparttable}
+\caption{Summary of the SnowPilot database for the analysis period 1~September~2014 to 31~August~2025.}
+\label{tab:snowpilot}
+\begin{tabular}{lr}
+\toprule
+ & Count \\
+\midrule
+\multicolumn{2}{l}{\textit{Snowpits}} \\
+\quad Total & 51{,}138\tnote{a} \\
+\quad Unique observers & 5{,}440 \\
+\quad Countries represented & 35 \\
+\quad With slope angle observation & 46{,}226 (90.4\,\%) \\
+\quad Recorded near an avalanche & 1{,}586 (3.1\,\%) \\
+\addlinespace
+\multicolumn{2}{l}{\textit{Snow layers}} \\
+\quad Total & 377{,}729 \\
+\quad With hand hardness & 342{,}690 (90.7\,\%) \\
+\quad With primary grain form & 309{,}232 (81.9\,\%) \\
+\quad With grain size & 179{,}342 (47.5\,\%) \\
+\quad With direct density measurement\tnote{b} & 10{,}692 (2.8\,\%) \\
+\addlinespace
+\multicolumn{2}{l}{\textit{Stability tests}} \\
+\quad Compression tests (CT) & 52{,}305 \\
+\quad Extended column tests (ECT) & 48{,}391 \\
+\quad Propagation saw tests (PST) & 6{,}326 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\footnotesize
+\item[a] One file (\texttt{snowpits-55240-caaml.xml}) failed to parse and was excluded, leaving 51{,}138 snowpits.
+\item[b] SnowPilot allows density to be entered either as an attribute of a stratigraphic layer or as a separate density profile. Our analysis uses only density observations whose depth and thickness match a stratigraphic layer boundary; the count reported here reflects this aligned subset.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+% Close with a bridging sentence: SnowPilot's scale (51,138 pits, 10 years) makes it
+% uniquely suited for population-level quantification of coverage and parameterization
+% sensitivity -- the questions this paper addresses. Its community-sourced nature also
+% means it reflects the realistic distribution of field observation completeness, rather
+% than data collected under controlled research conditions.
+
+The scale of the SnowPilot dataset -- 51{,}138 snowpits over ten years, spanning 35 countries and 5{,}440 unique observers -- makes it uniquely suited for population-level quantification of observational coverage and parameterization sensitivity. Critically, because the data are community-sourced rather than collected under controlled research conditions, coverage fractions derived from this dataset reflect the realistic distribution of field observation completeness encountered by practitioners, rather than the more complete data typical of targeted research campaigns.
 
 \FloatBarrier
 
 \subsection{Objectives and scope}
 
-% State the main contributions of this paper:
-%   1. SnowPylot: a Python library that parses SnowPilot CAAML XML files into structured Python objects
-
-%   2. SnowPyt-MechParams: a Python library implementing a parameterization graph and
-%      execution engine to systematically enumerate, execute, and compare all valid
-%      calculation pathways from standard snowpit observations to target mechanical
-%      parameters
-%   3. Application of the framework to 10 years of SnowPilot data, reporting coverage,
-%      inter-pathway spread, and measurement uncertainty for density, E, nu, and D11
-
-% State the scope explicitly:
+% STRUCTURE: state the finding-oriented objectives first; the framework is presented
+% as the method that enables them, not as an end in itself. SnowPylot is prior work
+% (cited in §2.1), not a contribution of this paper.
+%
+% This paper has two objectives:
+%
+%   1. FINDING (primary objective): Quantify, at population scale, (a) the fraction of
+%      real snowpit observations that contain sufficient data to estimate D11 via any
+%      published parameterization pathway, and (b) the sensitivity of the resulting
+%      D11 estimates to parameterization choice and to input measurement uncertainty.
+%      Applied to 14,951 ECTP slab stratigraphies from 10 years of SnowPilot data,
+%      we show that both coverage and consistency are far lower than has been
+%      previously recognized.
+%
+%   2. TOOL (enabling objective): Present SnowPyt-MechParams, an open-source Python
+%      library implementing a parameterization graph and execution engine that
+%      systematically enumerates and executes all valid calculation pathways from
+%      snowpit observations to target mechanical parameters, propagating input
+%      measurement uncertainty through each pathway. The library is openly available
+%      and designed to support future extensions as new parameterizations are published.
+%
+% Scope:
 %   - Included: slab layer parameters (density, E, nu, shear modulus) and slab-level
 %     plate theory parameters (A11, B11, D11, A55)
 %   - Excluded: weak layer parameters (shear strength, fracture toughness) -- out of scope
@@ -148,12 +230,14 @@
 %     and compared
 %   - No claim is made about the relationship between estimated D11 and ECT outcome;
 %     ECTP slabs serve as a source of field-observed slab stratigraphies
-
-% State the paper structure:
+%
+% Paper structure:
 %   Sect. 2 describes the data, uncertainty representation, parameterizations,
 %   the computational framework, and the ECT slab construction procedure.
-%   Sect. 3 presents results for each parameter family and for D11 across all pathways.
-%   Sect. 4 discusses implications and directions for future work.
+%   Sect. 3 presents results for density, E, nu, and D11, with coverage and
+%   uncertainty quantified at each level.
+%   Sect. 4 discusses what these results mean for field-data-driven mechanical models
+%   and for the practice of stability assessment.
 %   Sect. 5 presents conclusions.
 
 
@@ -167,15 +251,27 @@
 % that parses SnowPilot CAAML XML files into
 % structured Python objects (SnowPit, snow_profile, stability_tests, etc.).
 
+SnowPylot \citep{connelly2025} is an open-source Python library for parsing SnowPilot CAAML XML files into structured Python objects. It provides the data ingestion layer for this analysis, translating the raw CAAML archive into an accessible object hierarchy from which measured field observations are extracted for parameterization.
+
 % Briefly describe the object hierarchy relevant to this analysis:
 %   SnowPit -> snow_profile -> layers (hand_hardness, grain_form, thickness, grain_size)
 %   SnowPit -> stability_tests -> ECT results (score, failure_depth)
+
+Each CAAML file is parsed into a \texttt{SnowPit} object with two main sub-objects. The \texttt{snow\_profile} object contains the ordered list of stratigraphic \texttt{Layer} objects --- each carrying hand hardness, primary grain form, grain size, and layer thickness --- alongside a separate \texttt{density\_profile} list of density observations, each recording a depth, thickness, and density value. The \texttt{stability\_tests} object contains result lists for each test type; the \texttt{ECT} list is the relevant one for this analysis, with each entry recording the failure depth, number of taps, and propagation result.
 
 % State the three key data handling decisions made in this analysis:
 %   1. Density alignment: only density measurements attributed to a stratigraphic layer
 %      are used; stand-alone density profile entries that cannot be unambiguously aligned
 %      to a layer boundary are excluded
 %   2. Grain form resolution
+
+Three data handling decisions govern which observations are included in the analysis.
+
+\textit{Density alignment.} SnowPilot allows density to be entered either as an attribute of an individual stratigraphic layer or as a separate density profile. When entered as a separate profile, a density observation cannot always be unambiguously matched to a stratigraphic layer boundary because the recorded depth and thickness intervals do not always coincide with layer boundaries. This analysis uses only density observations whose recorded depth and thickness match a layer boundary exactly; density profile entries that cannot be matched are excluded. Of the 19{,}877 density observations in the database, 10{,}692 (2.8\,\% of all layers) could be unambiguously aligned and are carried forward as measured density on the corresponding layer (see also Table~\ref{tab:snowpilot}, footnote~b).
+
+\textit{Grain form resolution.} SnowPilot records grain forms using CAAML grain form codes, which may be either two-character basic grain class codes (e.g., \texttt{RG} for rounded grains, \texttt{FC} for faceted crystals) or longer sub-grain class codes (e.g., \texttt{RGmx} for mixed rounded grains, \texttt{FCxr} for depth-hoar-like facets). Each parameterization method defines a set of valid grain form codes. When a layer's recorded grain form code is not directly valid for a given method, the code is truncated to its two-character basic grain class prefix and re-evaluated; if the basic class is valid for the method, it is used. If neither the full code nor the truncated prefix is valid for the method, the method is inapplicable to that layer and the pathway fails silently for it.
+
+\textit{Primary grain form.} Each layer in SnowPilot may carry both a primary and a secondary grain form. This analysis uses only the primary grain form for all parameterization calculations; secondary grain form information is not used.
 
 
 \subsection{Measurement uncertainties}
@@ -297,6 +393,8 @@
 % executes all valid calculation pathways from snowpit observations to target mechanical
 % parameters. This section describes the structure and operation of that framework.
 
+The parameterizations described in Sect.~\ref{sec:parameterizations} are implemented within a directed acyclic graph (DAG) that encodes all valid calculation pathways from snowpit observations to target mechanical parameters. This section describes the structure of the graph, the algorithm for enumerating pathways, and the execution engine that applies each pathway to a slab.
+
 \subsubsection{Representing parameterizations as a directed graph}
 
 % Represent the full set of parameterizations as a directed acyclic graph (DAG):
@@ -310,6 +408,12 @@
 %     Each merge node has exactly one outgoing edge to its output parameter node.
 %   - Edges: directed data flow (parameter to merge node) or method output
 %     (merge node to output parameter node)
+
+The parameterization graph contains two types of nodes. \textit{Parameter nodes} represent quantities --- either directly observed field measurements (hand hardness, grain form, grain size, directly measured density, and layer thickness) or derived parameters (density, Young's modulus, Poisson's ratio, shear modulus, and the plate-theory stiffness parameters A11, B11, D11, and A55). A parameter node implements OR logic: any single incoming method edge is sufficient to determine the parameter, so the graph represents all alternative estimation methods for a given quantity without requiring any one of them. \textit{Merge nodes} implement AND logic: each merge node represents a specific combination of inputs required by one or more calculation methods, and all inputs feeding a merge node must be available before the corresponding method can be applied. Each merge node has exactly one outgoing edge to its output parameter node.
+
+Edges are directed and of two kinds. Data-flow edges carry observed or previously computed values forward from a parameter node to a merge node. Method edges carry the result of a calculation from a merge node to the output parameter node, and are labelled with the method name (for example, \textit{geldsetzer}, \textit{wautier}, or \textit{kochle}). The root node, representing the snowpit observation, connects by data-flow edges to all directly measured quantities.
+
+A key structural feature of the graph is the shared \textit{density} node. The density node feeds both the Young's modulus methods and the Srivastava Poisson's ratio method through the same merge node. Because it is a single shared node, any pathway that uses the Srivastava method for Poisson's ratio must use the same density method as is used for Young's modulus --- there is no independent density choice for Poisson's ratio. This coupling, together with the four available density methods, four Young's modulus methods, and two Poisson's ratio methods, constrains D11 to $4 \times 4 \times 2 = 32$ unique calculation pathways. The complete graph structure is illustrated in Fig.~\ref{fig:dag}.
 
 \subsubsection{Finding calculation pathways}
 
@@ -327,6 +431,10 @@
 
 % Result: find_parameterizations(graph, D11) returns 32 unique pathways.
 
+All valid calculation pathways from the snowpit root to a target parameter are enumerated by a backward traversal algorithm. Beginning at the target parameter node, the algorithm recurses toward the root, applying the logic appropriate to each node type. At parameter nodes (OR logic), each incoming method edge is explored independently; each edge represents an alternative pathway for computing the parameter. At merge nodes (AND logic), sub-pathways from all required input branches are combined using a Cartesian product, so every combination of upstream method choices is represented in the output. Results for each node are memoized after their first computation, preventing redundant traversal of shared subgraphs when the same node appears in multiple branches of the DAG.
+
+Following traversal, the resulting path trees are converted to a structured list of pathway objects and deduplicated. The deduplication step identifies structurally distinct traversals that resolve to identical sets of (parameter, method) assignments --- an artefact of the shared density node, which the Cartesian-product expansion may enumerate more than once --- and retains only the first occurrence of each unique method fingerprint. Applied to D11, the enumeration returns 32 unique pathways.
+
 \subsubsection{Executing parameterizations}
 
 % Describe the execution engine (ExecutionEngine):
@@ -343,6 +451,14 @@
 %   - Provenance tracking: the method used to compute each parameter is recorded
 %     for every successful pathway--slab combination
 
+For each enumerated pathway, the execution engine applies a two-phase procedure to a \texttt{Slab} object --- an ordered list of \texttt{Layer} objects carrying the measured field observations.
+
+In the first phase (layer-level), the engine iterates over all layers in the slab and computes, in dependency order, the density, Young's modulus, Poisson's ratio, and shear modulus of each layer using the methods specified by the current pathway. Density values are cached per layer, keyed by layer index and method name, and reused across pathways that share the same density method, avoiding redundant computation. Parameters that depend on density (Young's modulus, Poisson's ratio via the Srivastava method, and shear modulus) are always computed afresh for each pathway, because their values --- including the propagated uncertainty budget --- differ between pathways that use different upstream density methods; caching them would silently collapse distinct uncertainty budgets into a single incorrect result.
+
+In the second phase (slab-level), the engine assembles the per-layer elastic properties computed in the first phase and applies the classical laminate theory formulae (Sect.~\ref{sec:parameterizations}) to compute A11, B11, D11, and A55 for the slab as a whole.
+
+A pathway fails silently for a given slab if any required field observation is absent, or if any method's validity conditions are not satisfied (for example, a grain form outside the method's applicable range, or a density value outside its regression validity interval). Failures are recorded with the reason, enabling post-hoc diagnosis of coverage losses. For successful pathway--slab combinations, the method used to compute each parameter on each layer is recorded for provenance tracing.
+
 
 \subsection{Constructing slabs from ECT observations}
 \label{sec:ectp_slabs}
@@ -355,6 +471,8 @@
 % and ECT outcome; ECTP slabs serve purely as a source of field-observed slab
 % stratigraphies for framework application.
 
+To demonstrate the framework at population scale, a slab definition is required for each observation. Extended Column Tests with propagating fracture (ECTP) provide a natural slab definition: the recorded failure depth identifies the weak layer, and all snow above it constitutes a candidate slab. The ECTP subset is also the largest category of SnowPilot stability tests that includes a well-defined failure depth (Table~\ref{tab:snowpilot}). We emphasise that no claim is made about the relationship between estimated D11 and ECT outcome; ECTP results serve here solely as a large, community-sourced source of field-observed slab stratigraphies with identifiable weak layers.
+
 % Describe the procedure:
 %   1. Parse SnowPilot CAAML files into SnowPylot SnowPit objects using SnowPylot
 %   2. For each ECTP result in a pit:
@@ -364,8 +482,12 @@
 %         measured hand hardness, grain form, grain size, thickness, and slope angle
 %   3. A single pit can yield multiple slabs if it has multiple ECTP results
 
+SnowPilot CAAML XML files were parsed into \texttt{SnowPit} objects using the SnowPylot library (Sect.~\ref{sec:snowpylot}). For each ECTP result in a pit, the weak layer was identified by matching the recorded failure depth to the depth boundaries of each stratigraphic layer: the weak layer is the layer whose upper boundary is at or shallower than the failure depth and whose lower boundary lies strictly below it. The slab was then defined as all layers above the weak layer (excluding the weak layer itself), and a \texttt{Slab} object was constructed from those layers, carrying the measured hand hardness, grain form, grain size, and thickness of each layer, and the pit slope angle. A single pit contributes more than one slab if it contains multiple ECTP results at different depths.
+
 % Report resulting dataset size: [N] ECTP slabs from [N] unique pits.
 % Note any exclusion criteria (e.g., slabs with zero qualifying layers).
+
+This procedure yielded 14{,}951 ECTP slab stratigraphies. ECTP results for which no stratigraphic layers were identified above the failure depth were excluded. These 14{,}951 slabs form the population-scale dataset for the coverage and parameterization analyses presented in Sect.~\ref{sec:coverage}.
 
 
 \section{Results}
@@ -373,22 +495,36 @@
 \subsection{Coverage and data loss by parameterization}
 \label{sec:coverage}
 
-% Overview section: present the big-picture coverage landscape before the per-parameter
-% analysis in Sects. 3.2--3.5.
+% STRUCTURE: lead with the punchline -- coverage is low -- then explain why.
+% This section sets up the reader to interpret the per-parameter results
+% in Sects. 3.2--3.5 with the coverage constraint in mind.
+%
+% Opening statement (the headline):
+%   Even the highest-coverage pathways to D11 succeed for only ~5% of ECTP slabs.
+%   State this number in the first sentence of the section.
+%
+% Explain the compounding mechanism:
+%   Layer-level coverage for individual methods is substantially higher (~28--63%
+%   for hand-hardness-based density methods), but slab-level coverage requires
+%   ALL layers in a slab to succeed for a given pathway. Each additional required
+%   field (grain size, density measurement) and each grain-form restriction compounds
+%   the data loss. Illustrate with the data_flow pathways: ~2.8% of layers have a
+%   direct density measurement, but slab-level coverage for data_flow pathways
+%   is effectively zero because whole-slab coverage requires every layer to have
+%   a density measurement.
+%
+% Present a summary figure or table: layer-level and slab-level coverage for each
+% density, E-mod, and nu method, and for D11 across all 32 pathways.
+% [Fig. 3 (coverage overview) belongs here]
+%
+% Framing for the reader: this coverage landscape is the first key finding --
+% it establishes that the practical reach of field-data-driven mechanical models
+% is narrow, regardless of which parameterization is chosen. Per-parameter detail
+% follows in Sects. 3.2--3.5.
 
-% Report layer-level coverage for each density, E-mod, and nu method
-% (% of layers for which the method applies).
+Even under the most favourable combination of parameterization methods, valid D11 estimates can be obtained for only 5.1\,\% of the 14{,}951 ECTP slab stratigraphies in the dataset. This coverage ceiling is the primary finding of the analysis and sets an upper bound on the practical reach of field-data-driven mechanical stability models applied to standard snowpit observations.
 
-% Report slab-level coverage for D11 across all 32 pathways
-% (% of ECTP slabs for which a valid D11 estimate is produced).
-
-% Note the compounding effect of chaining: slab-level coverage is substantially
-% lower than layer-level coverage because all layers in a slab must succeed.
-% The data_flow (direct density measurement) pathways illustrate this starkly:
-% even though ~2.8% of layers have a measured density, slab-level coverage
-% for data_flow pathways is near zero.
-
-% Detailed per-parameter coverage is discussed within each parameter's section
+The low ceiling arises from a compounding of validity failures across each step of the calculation chain. At the layer level, individual methods cover substantial fractions of the 377{,}729 layers: hand-hardness-based density methods apply to 28--63\,\% of layers (Sect.~\ref{sec:density_results}), E-mod methods to 5--55\,\% depending on grain form acceptance and density range (Sect.~\ref{sec:emod_results}), and Poisson's ratio methods to 28--42\,\% (Sect.~\ref{sec:nu_results}). Slab-level coverage is systematically lower because a slab succeeds only if every one of its constituent layers passes all validity checks simultaneously for a given pathway. This multiplicative requirement transforms modest layer-level failure rates into severe slab-level failure rates. The measured-density (\texttt{data\_flow}) pathway illustrates the compounding starkly: 2.8\,\% of layers carry a density observation coinciding with a layer boundary, yet slab-level density coverage reaches only 0.7\,\% (109 slabs) because density must be present for every layer in the slab simultaneously. By the time the D11 calculation chain is complete, \texttt{data\_flow} pathways succeed for at most 17 slabs (0.1\,\%), as the requirement for a complete per-layer density measurement stack is nearly never met in practice. The complete coverage landscape across all density, E-mod, $\nu$, and D11 pathway combinations is shown in Fig.~\ref{fig:coverage}. Per-parameter detail—coverage fractions, method-to-method differences in applicable grain forms and density ranges, and the within-method spread in estimated values—is presented in Sects.~\ref{sec:density_results}--\ref{sec:d11_results}.
 
 \FloatBarrier
 
@@ -401,14 +537,20 @@
 %   - Within-method uncertainty from input measurement propagation
 %   - Method-to-method differences in estimated values (means differ by ~208--283 kg/m3)
 
+At the layer level, the three empirical density methods differ in both coverage and the distribution of estimates (Fig.~\ref{fig:density_distributions}). \citet{kimjamieson2009} Table~2 achieved the broadest reach, yielding density estimates for 239{,}080 of 377{,}729 layers (63.3\,\%), with a mean of 208\,\si{kg.m^{-3}} and a mean relative uncertainty of 16.4\,\%. The \citet{geldsetzer2009} parameterization covered 203{,}677 layers (53.9\,\%), with a lower mean of 193\,\si{kg.m^{-3}} and a relative uncertainty of 17.1\,\%. \citet{kimjamieson2009} Table~5 was the most restrictive, applying to 106{,}370 layers (28.2\,\%), with a mean of 199\,\si{kg.m^{-3}} and the highest relative uncertainty at 18.4\,\%. The measured-density pathway (\texttt{data\_flow}) was applicable to only 10{,}692 layers (2.8\,\%)—those with a measured density observation coinciding with a layer boundary—but yielded a substantially higher mean of 283\,\si{kg.m^{-3}} and the lowest relative uncertainty of 10.0\,\%, reflecting that the remaining uncertainty arises from the $\pm$10\,\% density measurement protocol rather than from regression scatter. The higher mean density of the \texttt{data\_flow} subset likely reflects a sampling bias toward denser, harder layers where snow scientists chose to record density observations.
+
 % Slab-level analysis:
 %   - Coverage at slab level: fraction of ECTP slabs where all layers have a
 %     calculable density for each method
 %   - Any systematic differences in which slabs succeed across density methods
 
+At the slab level, complete density coverage—meaning that every layer above the ECTP failure depth can be assigned a density estimate—is achievable for a smaller fraction of slabs than layer-level coverage alone would suggest, because a slab succeeds only if all of its constituent layers pass the grain form and hardness validity checks simultaneously. Of 14{,}951 ECTP slabs, \citeauthor{kimjamieson2009} Table~2 yields complete slab density estimates for 6{,}030 slabs (40.3\,\%), followed by \citet{geldsetzer2009} at 4{,}598 slabs (30.8\,\%), \citeauthor{kimjamieson2009} Table~5 at 1{,}170 slabs (7.8\,\%), and the measured-density pathway at 109 slabs (0.7\,\%). The ordering of methods by slab-level coverage mirrors their layer-level ordering, suggesting that coverage loss at the slab level is driven primarily by the same grain form restrictions that limit layer-level applicability, compounded by the requirement that no layer in a multi-layer slab may be excluded.
+
 % Close with implications for downstream: the spread in density estimates across
 % methods propagates directly into Young's modulus estimation, since all implemented
 % E-mod methods take density as input.
+
+The $\sim$90\,\si{kg.m^{-3}} spread in mean density across methods (193--283\,\si{kg.m^{-3}}) is consequential for downstream calculations, because all implemented Young's modulus parameterizations take density as their primary input. Even before any E-mod method uncertainty is considered, this method-to-method density disagreement introduces a systematic source of inter-pathway variance. Section~\ref{sec:emod_results} quantifies how this density spread propagates into Young's modulus estimates.
 
 
 \FloatBarrier
@@ -419,13 +561,22 @@
 % Layer-level analysis across the 16 pathways (4 density x 4 E-mod methods):
 %   - Distributions of estimated E for each E-mod method (aggregated across
 %     applicable density sub-pathways, or for representative combinations)
-%   - Large inter-method spread: wautier ~29--69 MPa vs. kochle ~71--252 MPa
-%   - Within-pathway relative uncertainty from input measurement propagation (28--92%)
+%   - Large inter-method spread: wautier ~281--311 MPa vs. bergfeld/schottner ~7--19 MPa
+%     (hand-hardness density sub-pathways); kochle intermediate at ~71--134 MPa
+%   - Within-pathway relative uncertainty from input measurement propagation (23--92%)
+
+The 16 calculation pathways to Young's modulus arise from combining 4 density sub-pathways with 4 E-mod methods (Fig.~\ref{fig:emod_distributions}). Each E-mod method imposes its own grain form validity requirements on top of the grain form restrictions already applied at the density step, so layer-level E-mod coverage is bounded above by the density coverage of the corresponding sub-pathway and generally falls below it. \citet{wautier2015} accepts the broadest set of grain form classes (DF, RG, FC, DH, MF) and a density range of 103--544\,\si{kg.m^{-3}}, resulting in the highest layer-level coverage among all E-mod methods: the \citeauthor{kimjamieson2009} Table~2 sub-pathway yields 208{,}331 of 377{,}729 layers (55.2\,\%). Its power-law exponent of $n = 2.34$ is the lowest among the four methods, so density uncertainty is amplified by a relatively modest factor; within-pathway relative uncertainties for \citeauthor{wautier2015} pathways are 33.8--38.5\,\% for hand-hardness density sub-pathways and 23.4\,\% for the measured-density sub-pathway. \citet{schottner2026} also achieves broad layer-level coverage (48.8\,\%) by accepting DF, RG, FC, DH, and SH grain forms, but its grain-form-specific coefficient pairs ($A$, $n$) carry large standard errors ($\sigma_A/A \approx 40$--$75\,\%$; $\sigma_n/n \approx 12$--$24\,\%$), and together with a high exponent ($n = 4.6$--$5.1$), produce within-pathway uncertainties of 77--91\,\%. \citet{kochle2014} accepts RG, DH, and MF grain forms over 150--450\,\si{kg.m^{-3}} and covers 19.0--27.5\,\% of layers for hand-hardness sub-pathways; its purely exponential form produces high sensitivity to density errors and within-pathway uncertainties of 67--92\,\%. \citet{bergfeld2023} is the most restrictive, accepting only PP, RG, and DF grain forms within 110--363\,\si{kg.m^{-3}}, covering 23.7--23.9\,\% of layers for the two highest-coverage hand-hardness sub-pathways, with within-pathway uncertainties of 72--77\,\%.
+
+The inter-method spread in layer-level mean $E$ is large (Fig.~\ref{fig:emod_distributions}). For hand-hardness density sub-pathways, \citeauthor{wautier2015} produces the highest mean values (281--311\,\si{MPa}), followed by \citeauthor{kochle2014} (71--134\,\si{MPa}), with \citeauthor{schottner2026} and \citeauthor{bergfeld2023} yielding substantially lower means of 12--19\,\si{MPa} and 7--13\,\si{MPa}, respectively. The measured-density sub-pathway yields higher means across all E-mod methods (wautier 656\,\si{MPa}, kochle 250\,\si{MPa}, schottner 83\,\si{MPa}, bergfeld 27\,\si{MPa}), consistent with the elevated mean density of measured-density layers (Sect.~\ref{sec:density_results}).
 
 % Slab-level analysis: coverage at slab level for each pathway combination.
 
+At the slab level, complete E-mod coverage requires every layer in a slab to obtain a valid E-mod estimate in addition to a valid density estimate. The highest slab-level coverage is achieved by \citeauthor{schottner2026} pathways: both the \citeauthor{geldsetzer2009} $\to$ schottner and \citeauthor{kimjamieson2009} Table~2 $\to$ schottner pathways succeed for 2{,}814 of 14{,}951 ECTP slabs (18.8\,\%). The \citeauthor{kimjamieson2009} Table~2 $\to$ \citeauthor{wautier2015} pathway follows at 2{,}134 slabs (14.3\,\%), while \citeauthor{kochle2014} pathways cover only 41--530 slabs (0.3--3.5\,\%) and measured-density sub-pathways fewer than 60 slabs (0.1--0.4\,\%). The full 16-pathway coverage matrix is presented in Fig.~\ref{fig:coverage}.
+
 % Close with implications for downstream: the large inter-method spread in E estimates
 % is the dominant driver of D11 spread.
+
+The roughly 15--40-fold spread in mean layer-level $E$ between \citeauthor{wautier2015} ($\sim$300\,\si{MPa}) and \citeauthor{bergfeld2023}/\citeauthor{schottner2026} ($\sim$8--15\,\si{MPa}) for hand-hardness density sub-pathways is the dominant source of variance in D11 across the 32 pathways. Because D11 is linear in the layer-by-layer $E$ values through the CLT integration, this inter-method E factor propagates directly as the same multiplicative factor in D11. Poisson's ratio, examined in Sect.~\ref{sec:nu_results}, varies less across methods and contributes secondarily to D11 spread (Sect.~\ref{sec:d11_results}).
 
 
 \FloatBarrier
@@ -439,68 +590,108 @@
 %     4 sub-pathways (one per density method) -- report coverage and values for each
 %   - Inter-method spread is smaller than for density or E-mod
 
+Five calculation pathways to Poisson's ratio arise from combining two methods with their respective density sub-pathway requirements. The \citet{kochle2014} method requires no density input: it assigns a grain-form-specific mean $\nu$ value (RG: $0.171\pm0.026$; FC: $0.130\pm0.040$; DH: $0.087\pm0.063$) derived from the same FE simulations of m-CT snow microstructure used for the kochle E-mod method. Because density is not involved, the kochle $\nu$ pathway generates a single branch and achieves the broadest layer-level coverage: 159{,}120 of 377{,}729 layers (42.1\,\%), with an overall mean $\nu$ of 0.144 (reflecting the grain-form composition of the RG-/FC-/DH-applicable subset). The \citet{srivastava2016} method also uses a grain-form-specific lookup (RG: $0.191\pm0.008$; PP and DF: $0.132\pm0.053$; FC and DH: $0.170\pm0.020$), but accepts five grain form classes and imposes a density validity threshold ($\rho > 200$\,\si{kg.m^{-3}}). Because the density threshold is enforced by the graph, the srivastava pathway requires a density sub-pathway, producing four branches—one per density estimation method. Layer-level coverage for the srivastava hand-hardness sub-pathways is 28.0--29.4\,\% (105{,}757--110{,}937 layers), reflecting both grain form and density-threshold restrictions; the \citeauthor{kimjamieson2009} Table~5 and measured-density sub-pathways cover 10.8\,\% and 1.5\,\%, respectively. Mean $\nu$ across srivastava sub-pathways is 0.170--0.178. A notable property of both methods is that propagated uncertainty (with method uncertainty excluded) is exactly zero: because $\nu$ is assigned as a fixed value per grain form category rather than computed as a function of continuous density, the density measurement uncertainty does not propagate into $\nu$.
+
 % Note that nu contributes less to D11 uncertainty than E-mod method choice, but the
 % srivastava--kochle difference still contributes to the overall D11 spread (Sect. 3.5).
+
+At the slab level, kochle $\nu$ succeeds for 944 of 14{,}951 ECTP slabs (6.3\,%), the highest slab-level coverage among all $\nu$ pathways and higher than most E-mod pathway–slab combinations. Srivastava slab-level coverage reaches 3.1\,\% for the \citeauthor{geldsetzer2009} and \citeauthor{kimjamieson2009} Table~2 sub-pathways (461 slabs each), 0.3\,\% for Table~5, and 0.1\,\% for measured density. The inter-method spread in $\nu$ ($\sim$0.144 versus $\sim$0.170--0.178, a difference of $\sim$24\,\%) is smaller than the inter-method spread in $E$ (up to 40-fold) and contributes correspondingly less to D11 variance. However, the kochle–srivastava $\nu$ contrast does introduce a systematic offset in D11 that adds to the E-mod-driven spread examined in Sect.~\ref{sec:d11_results}.
 
 % Close with implications for downstream: Poisson's ratio method choice is not
 % independent of density method choice when srivastava is used, because both
 % draw from the same shared density node in the graph (Sect. 2.4.1). This structural
 % coupling is reflected in the 32-pathway count for D11.
 
+The structural coupling introduced by the shared density node (Sect.~\ref{sec:dag}) has a direct consequence for D11 pathway enumeration. When srivastava $\nu$ is selected, the density sub-pathway is already determined by the E-mod step (both share the same \texttt{merge\_density\_grain\_form} node in the DAG), so no additional density branching occurs. When kochle $\nu$ is selected, $\nu$ is independent of the density sub-pathway entirely. In either case, the $\nu$ method choice adds exactly one branch to each of the 16 E-mod pathways, yielding $16 \times 2 = 32$ unique D11 pathways in total. This means that srivastava does not multiply the pathway count by 4 (one per density sub-pathway) at the D11 level—the coupling collapses what would otherwise be additional branching into a single constrained choice per E-mod pathway.
+
 \FloatBarrier
 
 \subsection{Bending stiffness (D11) of ECT slabs across all pathways}
 \label{sec:D11_results}
 
-% Paragraph 1 -- Coverage across 32 pathways:
-%   - What fraction of the [N] ECTP slabs produce a valid D11 estimate for each pathway?
+% STRUCTURE: three findings presented in order of impact.
+% Frame each paragraph as a finding, not just a report.
+%
+% Paragraph 1 -- FINDING 1: Standard field data are insufficient to compute D11
+%   for the vast majority of slabs.
 %   - The highest-coverage pathways succeed for approximately 5% of slabs
-%     (e.g., kim_jamieson_table2 -> wautier -> kochle)
-%   - The data_flow pathways succeed for only ~109 slabs (~0.7%) because direct
-%     density measurement is rare and slab-level coverage requires all layers to succeed
-%   - Discuss which combinations of density + E-mod + nu methods achieve the best coverage
-%     and why (grain form support, density range, grain size requirement)
+%     (4 pathways at 756/14,951 = 5.1%: geldsetzer/kim_table2 × wautier/schottner × kochle)
+%   - Direct-measurement (data_flow) pathways succeed for only ≤17 slabs (0.1%)
+%   - 95% of ECTP slabs have no valid D11 estimate; this is an observation gap
+%   [Fig. 7 D11 distributions belongs here]
+%
+% Paragraph 2 -- FINDING 2: For slabs where D11 can be computed, the result
+%   depends strongly on method choice.
+%   - Across the 4 highest-coverage pathways, D11 spans ~26× (8.7e7 to 2.3e9 N·m)
+%     driven entirely by E-mod method choice (wautier vs schottner)
+%   - Full 32-pathway range: ~3.6e7 to ~5.0e9 N·m
+%   - E-mod method choice is the dominant contributor; ν method adds ~1.4×;
+%     density method adds ~1.0–1.1×
+%
+% Paragraph 3 -- FINDING 3: Within-pathway uncertainty is also large and compounds
+%   the inter-pathway spread.
+%   - Within-pathway uncertainty: 23–97%; for highest-coverage pathways: 37–75%
+%   - The 26× inter-pathway spread substantially exceeds within-pathway ±1σ (factor 1.4–2.7×)
+%   - Together: D11 estimates carry substantial uncertainty from both method choice
+%     and measurement imprecision
 
-% Paragraph 2 -- Spread in D11 from method choice alone:
-%   - Across the 32 pathways, D11 varies by approximately 3--4x for the same slab
-%     (~3.7x10^7 to ~2.4x10^8 N*mm) depending entirely on method choice
-%   - Present the Sankey diagram (Figure 7): density -> E-mod -> nu method choices
-%     flow to D11 ranges; band width proportional to number of successful slabs
-%   - E-mod method choice (wautier vs. kochle) is the largest single contributor
-%     to inter-pathway spread
+For the 14{,}951 ECTP slab stratigraphies assembled from the SnowPilot database, valid D11 estimates can be obtained for at most 5.1\,\% of slabs under any implemented pathway (Fig.~\ref{fig:d11_distributions}). The maximum of 756 slabs is achieved by four pathways sharing a common structural feature: the kochle Poisson's ratio method (which requires only grain form, not a density estimate), combined with either the \citeauthor{wautier2015} or \citeauthor{schottner2026} E-mod method (both accepting five grain form classes) and either the \citeauthor{geldsetzer2009} or \citeauthor{kimjamieson2009} Table~2 density sub-pathway (the two broadest hand-hardness methods). These combinations maximise coverage by avoiding the grain size requirement of \citeauthor{kimjamieson2009} Table~5, the density measurement requirement of the \texttt{data\_flow} sub-pathway, and the grain form restrictions of the \citeauthor{kochle2014} and \citeauthor{bergfeld2023} E-mod methods. Pathways that require a direct density observation (\texttt{data\_flow}) succeed for at most 17 slabs (0.1\,\%), because a layer-by-layer density measurement must be present for every layer in a slab simultaneously, and such complete density coverage within a single slab is rare in the SnowPilot database. The remaining 94.9\,\% of ECTP slabs—spanning more than a decade of observations from avalanche professionals and snow scientists—yield no valid D11 estimate under any of the 32 implemented pathways. This is not a limitation of the framework: the framework successfully identifies valid pathways wherever one exists. It is a gap in the observations: standard snowpit recording protocols do not routinely capture the combination of grain form, hand hardness, layer thickness, and Poisson's-ratio-compatible grain types that D11 estimation requires for every layer.
 
-% Paragraph 3 -- Pathway-level detail and within-pathway uncertainty:
-%   - Report median D11 and relative uncertainty for the highest-coverage pathways
-%     (e.g., geldsetzer -> wautier -> kochle: median ~2.4x10^8 N*mm, ~41.7% rel. uncertainty)
-%   - Within a single pathway, relative uncertainty from input measurement propagation
-%     alone ranges from ~40--90%
-%   - Discuss that inter-pathway spread (3--4x) is comparable to or exceeds
-%     within-pathway measurement uncertainty, meaning method choice is as important
-%     as measurement precision
+For the slabs where D11 can be computed, the result depends strongly on which parameterization pathway is used (Fig.~\ref{fig:d11_distributions}). Considering the four highest-coverage pathways (756 slabs each, all using kochle $\nu$), mean slab D11 ranges from $8.7 \times 10^7$\,\si{N.m} (\citeauthor{kimjamieson2009} Table~2 $\to$ \citeauthor{schottner2026} $\to$ kochle) to $2.3 \times 10^{9}$\,\si{N.m} (\citeauthor{geldsetzer2009} $\to$ \citeauthor{wautier2015} $\to$ kochle)—a factor of $\sim$26 arising solely from the choice of E-mod method applied to the same set of field observations. Across all 32 pathways, mean D11 spans from $\sim$3.6 $\times 10^7$\,\si{N.m} (data\_flow $\to$ \citeauthor{bergfeld2023} $\to$ kochle, 6 slabs) to $\sim$5.0 $\times 10^{9}$\,\si{N.m} (data\_flow $\to$ \citeauthor{wautier2015} $\to$ srivastava, 12 slabs). Isolating the contribution of each method choice: fixing density and $\nu$ method, the E-mod method contributes a 26-fold spread (wautier vs.~schottner or bergfeld); fixing density and E-mod method, the $\nu$ method (kochle vs.~srivastava) contributes a factor of $\sim$1.4; and fixing E-mod and $\nu$ method, density method choice contributes a factor of $\sim$1.0--1.1. E-mod parameterization choice is thus the dominant source of inter-pathway D11 variance, with $\nu$ and density method choices playing secondary roles.
+
+Within any single pathway, D11 estimates also carry substantial uncertainty attributable to propagated field measurement imprecision. Within-pathway relative uncertainties (input measurement propagation only, excluding method regression uncertainty) range from 23\,\% (data\_flow $\to$ \citeauthor{wautier2015} $\to$ kochle, 17 slabs) to 97\,\% (geldsetzer $\to$ kochle $\to$ srivastava, 344 slabs); for the four highest-coverage pathways, within-pathway uncertainties are 37--75\,\%. At $\pm$1\,$\sigma$, this within-pathway uncertainty represents a multiplicative factor of 1.4--2.7 on a single D11 estimate, substantially smaller than the 26-fold inter-pathway spread but not negligible. The inter-pathway spread (26-fold) and the within-pathway spread ($\pm$1\,$\sigma$ factor 1.4--2.7) are therefore distinct and complementary components of the total D11 uncertainty budget: the former reflects disagreement among published parameterizations about the physical relationship between field observables and mechanical properties, while the latter reflects the limited precision of those field observables themselves. Any D11 estimate derived from field observations carries both sources simultaneously, and neither can be reported without the other if the estimate is to be used as input to a quantitative mechanical stability model.
 
 \FloatBarrier
 
 
 \section{Discussion}
 
-\subsection{Implications of method-dependent uncertainty for mechanical models}
+\subsection{Implications for field-data-driven mechanical stability models}
 \label{sec:discussion_implications}
 
-% Close the loop to Sect. 1.1: return to the mechanical models introduced at the
-% outset and discuss what the 3--4x spread in D11 means for those models.
-
-% Discuss qualitatively: different pathways applied to the same field observation
-% produce D11 estimates that differ by as much as 3--4x. For models that use D11
-% as an input (e.g., WEAC), this spread would produce fundamentally different
-% stability predictions from identical field data.
-
-% Note that this finding does not invalidate the mechanical models themselves --
-% it reveals and quantifies a gap in the estimation of their inputs for the first
-% time at population scale.
-
-% Note also that within-pathway measurement uncertainty (40--90% relative) adds
-% further uncertainty beyond the inter-pathway spread. Both sources must be
-% acknowledged before field-data-driven mechanical models can be used with confidence.
+% STRUCTURE: this is the central discussion section -- the place where the findings
+% connect to the operational question. Write it as an argument, not a report.
+% The three findings from §3.5 each have an implication; state them explicitly.
+%
+% Implication of FINDING 1 (coverage):
+%   A mechanical stability model that requires D11 as input can be applied to field
+%   data from roughly 1 in 20 standard snowpit observations, at best. This is not
+%   a limitation of any particular model -- it is a limitation of what is routinely
+%   recorded. Practitioners who wish to use these models in the field will find that
+%   standard observation protocols are generally insufficient without additional
+%   measurements (e.g., direct density on every layer, grain size throughout).
+%   This raises the question of whether mechanical models, as currently parameterized,
+%   are operationally viable for widespread field use.
+%
+% Implication of FINDING 2 (inter-pathway spread):
+%   When D11 is computable, the result varies by a factor of 3--4 depending solely
+%   on which published parameterization is used. For a model such as WEAC that uses
+%   D11 directly as an input, this spread would propagate into stability estimates:
+%   identical field observations, processed by two practitioners using different
+%   (but individually defensible) method choices, would produce fundamentally different
+%   outputs. This is not a failure of the methods -- it reflects genuine scientific
+%   uncertainty about how to convert field observations to mechanical properties.
+%   But it means that model outputs are implicitly method-dependent in a way that is
+%   rarely acknowledged.
+%   Note that this finding does not invalidate the mechanical models themselves --
+%   it reveals and quantifies a gap in the estimation of their inputs at population
+%   scale for the first time.
+%
+% Implication of FINDING 3 (within-pathway uncertainty):
+%   Even when method choice is fixed, relative uncertainty from input measurement
+%   propagation is 40--90%. Combined with the inter-pathway spread, both sources
+%   of uncertainty must be quantified and reported before field-data-driven mechanical
+%   model outputs can be used with appropriate confidence. Stability conclusions
+%   derived without acknowledging these uncertainties should be interpreted with caution.
+%
+% Synthesis (close the loop to §1.1):
+%   Together, the three findings establish that the inputs to field-data-driven
+%   mechanical stability models are simultaneously (a) rarely achievable from standard
+%   observations and (b) poorly constrained when achievable. This does not mean
+%   mechanical models should be abandoned -- it means the field needs validated
+%   parameterizations, better measurement protocols, and transparent uncertainty
+%   reporting before these models can be used reliably for operational stability
+%   assessment.
 
 \subsection{Toward a preferred calculation pathway}
 \label{sec:discussion_best_pathway}
@@ -569,28 +760,42 @@
 
 \section{Conclusions}
 
-% 1. SnowPyt-MechParams implements a parameterization graph and execution engine that
-%    systematically enumerates all valid calculation pathways from standard snowpit
-%    observations to target mechanical parameters. For D11, the framework identifies
-%    32 unique pathways (4 density x 4 E-mod x 2 nu), constrained by the shared
-%    density node in the graph.
-
-% 2. Applied to [N] ECTP slabs from 10 years of SnowPilot data, the framework shows
-%    that D11 varies by approximately 3--4x across pathways for the same slab,
-%    with E-mod method choice being the largest single contributor to inter-pathway spread.
-
-% 3. Slab-level coverage is limited: the highest-coverage pathways succeed for
-%    approximately 5% of ECTP slabs. Direct-measurement (data_flow) pathways succeed
-%    for fewer than 1% because direct density observations are rare in SnowPilot.
-
-% 4. Within-pathway uncertainty from input measurement propagation (40--90% relative)
-%    adds further uncertainty beyond the inter-pathway spread. Both sources must be
-%    addressed before field-data-driven mechanical models can be used with confidence
-%    for operational stability assessment.
-
-% 5. The framework is openly available and explicitly extensible: adding new
-%    parameterizations as they are developed requires only implementing the calculation
-%    function, adding an edge to the graph, and registering the method in the dispatcher.
+% STRUCTURE: findings first, framework last. Each conclusion is a complete, standalone
+% statement that a reader should be able to cite independently.
+%
+% 1. FINDING -- Coverage: Standard snowpit observations are insufficient to compute
+%    D11 for the vast majority of field datasets. The highest-coverage calculation
+%    pathway produces a valid D11 estimate for approximately 5% of 14,951 ECTP slabs
+%    drawn from 10 years of SnowPilot data; pathways requiring direct density
+%    measurement succeed for fewer than 0.1%. This low coverage reflects limitations
+%    in what is routinely recorded during standard pit observations, not a failure
+%    of any specific parameterization.
+%
+% 2. FINDING -- Inter-pathway spread: Where D11 can be computed, it varies by a factor
+%    of 3--4 across the 32 valid pathways for the same slab, depending entirely on
+%    method choice. Young's modulus parameterization is the dominant contributor to
+%    this spread. Identical field observations processed with different (individually
+%    defensible) methods yield fundamentally different D11 estimates.
+%
+% 3. FINDING -- Within-pathway uncertainty: Within-pathway relative uncertainty from
+%    input measurement propagation alone is 40--90%. This compounds the inter-pathway
+%    spread: method choice and measurement imprecision each contribute uncertainties
+%    of comparable magnitude to the total D11 uncertainty budget.
+%
+% 4. IMPLICATION -- Risk of over-reliance: Together, low coverage and high uncertainty
+%    from both sources establish that field-data-driven mechanical stability models
+%    rest on inputs that are both rarely achievable from standard observations and
+%    poorly constrained when achievable. Stability conclusions derived from these
+%    model outputs should be accompanied by explicit uncertainty quantification that
+%    accounts for both parameterization sensitivity and measurement imprecision.
+%
+% 5. TOOL -- SnowPyt-MechParams: The framework that produced these results is
+%    openly available and explicitly extensible. For D11, it enumerates 32 unique
+%    pathways (4 density × 4 E-mod × 2 nu), constrained by the shared density node
+%    in the parameterization graph. Adding a new parameterization requires only
+%    implementing the calculation function, adding an edge to the graph, and
+%    registering the method in the dispatcher -- enabling future comparison as
+%    new methods are published.
 
 
 %% The following commands are for the statements about the availability of data sets and/or software code corresponding to the manuscript.

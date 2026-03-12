@@ -39,11 +39,34 @@ def calculate_sigma_c_plus(method: str, **kwargs: Any) -> ufloat:
     """
     if method.lower() == 'sigrist':
         return _calculate_sigma_c_plus_sigrist(**kwargs)
+    elif method.lower() == 'weissgraeber_rosendahl':
+        return _calculate_sigma_c_plus_weissgraeber_rosendahl()
     else:
-        available_methods = ['sigrist']
+        available_methods = ['sigrist', 'weissgraeber_rosendahl']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
+
+
+def _calculate_sigma_c_plus_weissgraeber_rosendahl() -> ufloat:
+    """
+    Return the tensile normal strength reference value from
+    Weißgraeber & Rosendahl (2023).
+
+    This is also the built-in default used by WEAC (``WeakLayer.sigma_c = 6.16``).
+
+    Returns
+    -------
+    ufloat
+        ``ufloat(6.16, 0.0)`` kPa  (no uncertainty — constant reference value).
+
+    References
+    ----------
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
+    layered snow slabs. *The Cryosphere*, 17(4), 1475–1496.
+    https://doi.org/10.5194/tc-17-1475-2023
+    """
+    return ufloat(6.16, 0.0)
 
 
 def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
@@ -137,6 +160,6 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
     exponent = 2.44  # dimensionless, power-law exponent
 
     # Calculate tensile strength: σ_c+ = 240 * (ρ/ρ_0)^2.44
-    sigma_c_plus = sigma_ref * (density / rho_ice) ** exponent
+    sigma_c_plus = sigma_ref * (density / RHO_ICE) ** exponent
 
     return sigma_c_plus

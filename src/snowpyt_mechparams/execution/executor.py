@@ -57,12 +57,15 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from snowpyt_mechparams.algorithm import Parameterization
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
+from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
 from snowpyt_mechparams.execution.results import (
     ComputationTrace, PathwayResult
 )
-from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+from snowpyt_mechparams.graph.definitions import (
+    LAYER_PARAMS, SLAB_PARAMS, WEAK_LAYER_PARAMS, STABILITY_PARAMS
+)
 
 if TYPE_CHECKING:
     from snowpyt_mechparams.execution.config import ExecutionConfig
@@ -246,11 +249,32 @@ class PathwayExecutor:
             slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
             computation_trace.extend(slab_traces)
 
+        # Execute weak-layer calculations when targeting a weak-layer parameter OR
+        # when targeting a stability parameter (which needs weac_layer populated first).
+        if target_parameter in WEAK_LAYER_PARAMS or target_parameter in STABILITY_PARAMS:
+            weak_layer_params_in_pathway = {
+                p: m for p, m in methods_used.items() if p in WEAK_LAYER_PARAMS
+            }
+            if weak_layer_params_in_pathway:
+                wl_traces = self._execute_weak_layer_calculations(
+                    result_slab, weak_layer_params_in_pathway
+                )
+                computation_trace.extend(wl_traces)
+
+        # Execute stability calculations when targeting a stability parameter (e.g. g_delta).
+        if target_parameter in STABILITY_PARAMS:
+            stability_traces = self._execute_stability_calculations(
+                result_slab, target_parameter, methods_used
+            )
+            computation_trace.extend(stability_traces)
+
         # Determine overall success.
         #
         # For slab-level targets, _execute_slab_calculations
         # emits exactly one trace for the requested parameter.  The filter
         # t.parameter == target_parameter isolates that trace.
+        #
+        # For weak-layer and stability targets, the same single-trace logic applies.
         #
         # For layer-level targets (density, elastic_modulus, poissons_ratio,
         # shear_modulus) a pathway specifies exactly ONE method per parameter.
@@ -261,7 +285,7 @@ class PathwayExecutor:
         # others) is therefore treated as pathway failure: if the method cannot
         # produce a value for every layer, the pathway as a whole has failed.
 
-        if target_parameter in SLAB_PARAMS:
+        if target_parameter in SLAB_PARAMS or target_parameter in WEAK_LAYER_PARAMS or target_parameter in STABILITY_PARAMS:
             success = any(
                 t.success and t.parameter == target_parameter
                 for t in computation_trace
@@ -713,3 +737,106 @@ class PathwayExecutor:
                 )]
 
         return []
+
+    def _execute_weak_layer_calculations(
+        self,
+        slab: Slab,
+        params_to_compute: Dict[str, str],
+    ) -> List[ComputationTrace]:
+        """
+        Compute weak-layer fracture/strength parameters and store them on
+        ``slab.weac_layer``.
+
+        Parameters
+        ----------
+        slab : Slab
+            Working slab copy (mutated in place: ``slab.weac_layer`` is set).
+        params_to_compute : Dict[str, str]
+            Mapping of ``{parameter_name: method_name}`` for each weak-layer
+            parameter to compute (e.g. ``{"G_Ic": "weissgraeber_rosendahl"}``).
+
+        Returns
+        -------
+        List[ComputationTrace]
+            One trace entry per parameter attempted.
+        """
+        traces = []
+
+        for param, method in params_to_compute.items():
+            value, error = self.dispatcher.execute(
+                parameter=param,
+                method_name=method,
+                slab=slab,
+            )
+
+            if value is not None:
+                # Lazily initialise weac_layer if not already present.
+                if slab.weac_layer is None:
+                    slab.weac_layer = WeakLayer()
+                setattr(slab.weac_layer, param, value)
+
+            traces.append(ComputationTrace(
+                parameter=param,
+                method_name=method,
+                layer_index=None,
+                output=value,
+                success=value is not None,
+                cached=False,
+                error=error,
+            ))
+
+        return traces
+
+    def _execute_stability_calculations(
+        self,
+        slab: Slab,
+        target_parameter: str,
+        methods_used: Dict[str, str],
+    ) -> List[ComputationTrace]:
+        """
+        Run the stability criterion and store the full result on
+        ``slab.weac_result``.
+
+        The ``ComputationTrace`` records the key scalar metric (``g_delta``
+        for the WEAC skier criterion) rather than the full result object, so
+        the trace remains human-readable.  The full ``WeacSkierResult`` is
+        accessible via ``result_slab.weac_result``.
+
+        Parameters
+        ----------
+        slab : Slab
+            Working slab copy with layer params and ``weac_layer`` already
+            populated.  Mutated in place: ``slab.weac_result`` is set.
+        target_parameter : str
+            Graph node name for the stability output (e.g. ``"g_delta"``).
+        methods_used : Dict[str, str]
+            Full methods-used dict; used to look up the stability method name.
+
+        Returns
+        -------
+        List[ComputationTrace]
+            Single-item list with the trace for *target_parameter*.
+        """
+        method = methods_used.get(target_parameter, "weac_skier")
+
+        result, error = self.dispatcher.execute(
+            parameter=target_parameter,
+            method_name=method,
+            slab=slab,
+        )
+
+        trace_output: Any = None
+        if result is not None:
+            slab.weac_result = result  # type: ignore[assignment]
+            # Expose the primary scalar metric in the trace for readability.
+            trace_output = getattr(result, "g_delta", result)
+
+        return [ComputationTrace(
+            parameter=target_parameter,
+            method_name=method,
+            layer_index=None,
+            output=trace_output,
+            success=result is not None,
+            cached=False,
+            error=error,
+        )]

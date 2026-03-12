@@ -43,8 +43,10 @@ def calculate_sigma_c_minus(method: str, **kwargs: Any) -> ufloat:
         return _calculate_sigma_c_minus_reiweger(**kwargs)
     elif method.lower() == 'mellor':
         return _calculate_sigma_c_minus_mellor(**kwargs)
+    elif method.lower() == 'weissgraeber_rosendahl':
+        return _calculate_sigma_c_minus_weissgraeber_rosendahl()
     else:
-        available_methods = ['reiweger', 'mellor']
+        available_methods = ['reiweger', 'mellor', 'weissgraeber_rosendahl']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -212,6 +214,28 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     n = 2.5  # dimensionless, power-law exponent
 
     # Calculate compressive strength: σ_c- = C * (ρ/ρ_0)^n
-    sigma_c_minus = C * (density / rho_ice) ** n
+    sigma_c_minus = C * (density / RHO_ICE) ** n
 
     return sigma_c_minus
+
+
+def _calculate_sigma_c_minus_weissgraeber_rosendahl() -> ufloat:
+    """
+    Return the compressive strength reference value from
+    Weißgraeber & Rosendahl (2023).
+
+    This is also the built-in default used by WEAC
+    (``WeakLayer.sigma_comp = 2.6``).
+
+    Returns
+    -------
+    ufloat
+        ``ufloat(2.6, 0.0)`` kPa  (no uncertainty — constant reference value).
+
+    References
+    ----------
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
+    layered snow slabs. *The Cryosphere*, 17(4), 1475–1496.
+    https://doi.org/10.5194/tc-17-1475-2023
+    """
+    return ufloat(2.6, 0.0)

@@ -6,9 +6,11 @@ from typing import List, Optional, TYPE_CHECKING
 import uncertainties
 
 from snowpyt_mechparams.data_structures.layer import Layer, UncertainValue
+from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
 
 if TYPE_CHECKING:
     from snowpyt_mechparams.data_structures.pit import Pit
+    from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
 
 
 @dataclass
@@ -32,7 +34,10 @@ class Slab:
 
     # Weak Layer
     weak_layer: Optional[Layer]
-        Weak layer of the slab.
+        Weak layer of the slab (measured Layer object from the snow pit).
+    weac_layer: Optional[WeakLayer]
+        Computed fracture/strength parameters for the WEAC skier criterion.
+        Populated by the execution engine when targeting stability parameters.
 
     # Parent Reference
     pit: Optional["Pit"]
@@ -78,11 +83,17 @@ class Slab:
     test_result_properties: Optional[dict] = None  # Properties of the specific test result
     n_test_results_in_pit: Optional[int] = None  # Total test results available in pit
 
+    # Weak Layer Fracture Parameters (populated by execution engine)
+    weac_layer: Optional[WeakLayer] = None  # Fracture/strength params for WEAC skier criterion
+
     # Calculated Parameters - From Method Implementations
     A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness
     A55: Optional[UncertainValue] = None  # N/mm - Shear stiffness (with shear correction factor kappa)
     B11: Optional[UncertainValue] = None  # N - Bending-extension coupling stiffness
     D11: Optional[UncertainValue] = None  # N*mm - Bending stiffness
+
+    # Stability Criterion Results (populated by execution engine)
+    weac_result: Optional["WeacSkierResult"] = None  # Full result from WEAC skier criterion
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""

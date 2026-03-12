@@ -3,6 +3,7 @@ Data structures for snow mechanical parameter calculations.
 
 This module provides the core data structures used throughout the package:
 - Layer: Represents a single snow layer with physical properties
+- WeakLayer: Holds fracture/strength parameters for the WEAC skier criterion
 - Slab: Represents a collection of layers forming a snow slab
 - Pit: Represents a snow pit profile with layers and stability test data
 - UncertainValue: Type alias for values that can be floats or uncertain numbers
@@ -12,12 +13,14 @@ here for backwards compatibility.
 """
 
 from snowpyt_mechparams.data_structures.layer import Layer, UncertainValue
+from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
 from snowpyt_mechparams.data_structures.slab import Slab
 from snowpyt_mechparams.data_structures.pit import Pit
 from snowpyt_mechparams.constants import HARDNESS_MAPPING
 
 __all__ = [
     "Layer",
+    "WeakLayer",
     "Pit",
     "Slab",
     "UncertainValue",

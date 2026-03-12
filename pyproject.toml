@@ -63,6 +63,9 @@ plotting = [
     "matplotlib>=3.3.0",
     "seaborn>=0.11.0",
 ]
+weac = [
+    "weac>=3.1.4",
+]
 
 [project.urls]
 Homepage = "https://github.com/your-username/snowpyt-mechparams"
@@ -128,6 +131,7 @@ module = [
     "seaborn.*",
     "uncertainties.*",
     "snowpylot.*",
+    "weac.*",
 ]
 ignore_missing_imports = true
 

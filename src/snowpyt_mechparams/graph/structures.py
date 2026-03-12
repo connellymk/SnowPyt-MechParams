@@ -55,10 +55,12 @@ from typing import Dict, FrozenSet, List, Literal, Optional
 NodeType = Literal["parameter", "merge"]
 
 # Type alias for parameter level classification
-# "layer"  — per-layer calculated parameter (density, elastic_modulus, …)
-# "slab"   — whole-slab calculated parameter (A11, B11, D11, A55, …)
-# None     
-NodeLevel = Optional[Literal["layer", "slab"]]
+# "layer"           — per-layer calculated parameter (density, elastic_modulus, …)
+# "slab"            — whole-slab calculated parameter (A11, B11, D11, A55, …)
+# "weak_layer"      — weak-layer fracture/strength parameter (G_c, G_Ic, …)
+# "stability_model" — stability criterion result (g_delta, …)
+# None              — special nodes (snow_pit, measured_*, merge_*)
+NodeLevel = Optional[Literal["layer", "slab", "weak_layer", "stability_model"]]
 
 
 @dataclass
@@ -116,9 +118,10 @@ class Node:
             raise ValueError(
                 f"Node type must be 'parameter' or 'merge', got '{self.type}'"
             )
-        if self.level not in (None, "layer", "slab"):
+        if self.level not in (None, "layer", "slab", "weak_layer", "stability_model"):
             raise ValueError(
-                f"Node level must be 'layer', 'slab', or None, got '{self.level}'"
+                f"Node level must be 'layer', 'slab', 'weak_layer', "
+                f"'stability_model', or None, got '{self.level}'"
             )
     
     def __hash__(self) -> int:
@@ -248,6 +251,30 @@ class Graph:
             Parameter names whose ``level == "slab"``
         """
         return frozenset(n.parameter for n in self.nodes if n.level == "slab")
+
+    @property
+    def weak_layer_params(self) -> FrozenSet[str]:
+        """
+        Names of all weak-layer fracture/strength parameter nodes.
+
+        Returns
+        -------
+        FrozenSet[str]
+            Parameter names whose ``level == "weak_layer"``
+        """
+        return frozenset(n.parameter for n in self.nodes if n.level == "weak_layer")
+
+    @property
+    def stability_params(self) -> FrozenSet[str]:
+        """
+        Names of all stability-model result parameter nodes.
+
+        Returns
+        -------
+        FrozenSet[str]
+            Parameter names whose ``level == "stability_model"``
+        """
+        return frozenset(n.parameter for n in self.nodes if n.level == "stability_model")
 
     def get_node(self, parameter: str) -> Optional[Node]:
         """

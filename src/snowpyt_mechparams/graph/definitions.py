@@ -306,6 +306,51 @@ build_graph.method_edge(merge_d_gf, poissons_ratio, "srivastava")
 build_graph.method_edge(merge_d_gf, shear_modulus, "wautier")
 
 # ==============================================================================
+# STEP 3b: Weak-layer parameter nodes and method edges
+# ==============================================================================
+
+# Weak layer fracture/strength nodes (level="weak_layer")
+G_c       = build_graph.param("G_c",       level="weak_layer")  # J/m²  total fracture energy
+G_Ic      = build_graph.param("G_Ic",      level="weak_layer")  # J/m²  mode-I fracture toughness
+G_IIc     = build_graph.param("G_IIc",     level="weak_layer")  # J/m²  mode-II fracture toughness
+sigma_c   = build_graph.param("sigma_c",   level="weak_layer")  # kPa   tensile normal strength
+tau_c     = build_graph.param("tau_c",     level="weak_layer")  # kPa   shear strength
+sigma_comp = build_graph.param("sigma_comp", level="weak_layer") # kPa  compressive strength
+
+# Each weak-layer param has exactly one method: weissgraeber_rosendahl (reference constants)
+# These are also WEAC's built-in defaults, so they add no branching to pathway count.
+build_graph.method_edge(snow_pit, G_c,       "weissgraeber_rosendahl")
+build_graph.method_edge(snow_pit, G_Ic,      "weissgraeber_rosendahl")
+build_graph.method_edge(snow_pit, G_IIc,     "weissgraeber_rosendahl")
+build_graph.method_edge(snow_pit, sigma_c,   "weissgraeber_rosendahl")
+build_graph.method_edge(snow_pit, tau_c,     "weissgraeber_rosendahl")
+build_graph.method_edge(snow_pit, sigma_comp, "weissgraeber_rosendahl")
+
+# Stability model output node (level="stability_model")
+g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled criterion (≥1 = unstable)
+
+# Merge node aggregating all WEAC prerequisites:
+#   slab layer mechanical params: density, elastic_modulus, poissons_ratio, shear_modulus
+#   weak-layer fracture/strength: G_c, G_Ic, G_IIc, sigma_c, tau_c, sigma_comp
+merge_weac_inputs = build_graph.merge("merge_weac_inputs")
+
+# Slab layer mechanical params → merge_weac_inputs
+build_graph.flow(density,        merge_weac_inputs)
+build_graph.flow(elastic_modulus, merge_weac_inputs)
+build_graph.flow(poissons_ratio,  merge_weac_inputs)
+build_graph.flow(shear_modulus,   merge_weac_inputs)
+# Weak-layer fracture params → merge_weac_inputs
+build_graph.flow(G_c,       merge_weac_inputs)
+build_graph.flow(G_Ic,      merge_weac_inputs)
+build_graph.flow(G_IIc,     merge_weac_inputs)
+build_graph.flow(sigma_c,   merge_weac_inputs)
+build_graph.flow(tau_c,     merge_weac_inputs)
+build_graph.flow(sigma_comp, merge_weac_inputs)
+
+# merge_weac_inputs → g_delta via weac_skier
+build_graph.method_edge(merge_weac_inputs, g_delta, "weac_skier")
+
+# ==============================================================================
 # STEP 4: Build the graph structure - Slab level
 # ==============================================================================
 
@@ -351,11 +396,14 @@ graph = build_graph.build()
 # ==============================================================================
 # Parameter classification sets — derived from node-level tags
 # ==============================================================================
-# Adding a new parameter to the graph with level="layer" or level="slab"
-# automatically makes it appear in the corresponding set here.
+# Adding a new parameter to the graph with level="layer", level="slab",
+# level="weak_layer", or level="stability_model" automatically makes it
+# appear in the corresponding set here.
 
 LAYER_PARAMS: frozenset = graph.layer_params
 SLAB_PARAMS: frozenset = graph.slab_params
+WEAK_LAYER_PARAMS: frozenset = graph.weak_layer_params
+STABILITY_PARAMS: frozenset = graph.stability_params
 
 # ==============================================================================
 # Export all nodes for convenient access
@@ -382,7 +430,20 @@ __all__ = [
     'B11',
     'D11',
     'A55',
+    # Weak-layer fracture/strength parameters (calculated)
+    'G_c',
+    'G_Ic',
+    'G_IIc',
+    'sigma_c',
+    'tau_c',
+    'sigma_comp',
+    # Stability model parameters (calculated)
+    'g_delta',
+    # Merge nodes
+    'merge_weac_inputs',
     # Parameter classification sets
     'LAYER_PARAMS',
     'SLAB_PARAMS',
+    'WEAK_LAYER_PARAMS',
+    'STABILITY_PARAMS',
 ]

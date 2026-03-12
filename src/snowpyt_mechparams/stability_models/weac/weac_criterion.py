@@ -34,6 +34,8 @@ compatible with UFloat arithmetic.
 
 from __future__ import annotations
 
+import signal
+import sys
 from typing import Any, Optional
 
 # ---------------------------------------------------------------------------
@@ -84,10 +86,19 @@ def _nominal(v: Any) -> Optional[float]:
     return float(v)
 
 
+class _WeacTimeout(Exception):
+    """Raised by the SIGALRM handler when a per-slab timeout fires."""
+
+
+def _sigalrm_handler(signum: int, frame: object) -> None:  # noqa: ARG001
+    raise _WeacTimeout("weac evaluation timed out")
+
+
 def calculate_weac_skier(
     slab: Slab,
     skier_mass: float = 80.0,
     segment_length: Optional[float] = None,
+    timeout_seconds: Optional[float] = None,
     **weak_layer_overrides: Any,
 ) -> Optional[WeacSkierResult]:
     """
@@ -113,6 +124,13 @@ def calculate_weac_skier(
     segment_length : float, optional
         Half-segment length for the WEAC model in mm.  If ``None``, derived
         from ``slab.total_thickness × 10`` (cm → mm).
+    timeout_seconds : float, optional
+        Wall-clock time limit for the WEAC solver per slab (seconds).  If the
+        coupled criterion does not finish within this budget the slab is treated
+        as a pathway failure and ``None`` is returned.  Only supported on
+        POSIX systems (macOS / Linux) where ``signal.SIGALRM`` is available;
+        ignored silently on Windows.  A value of ``5.0`` is a reasonable
+        default for large batch runs.
     **weak_layer_overrides
         Override individual weak-layer fracture/strength parameters passed to
         WEAC (e.g. ``G_Ic=1.0``).  These take precedence over ``slab.weac_layer``.
@@ -120,7 +138,9 @@ def calculate_weac_skier(
     Returns
     -------
     Optional[WeacSkierResult]
-        Result object, or ``None`` if any required input is missing.
+        Result object, or ``None`` if any required input is missing, the WEAC
+        solver exceeds ``timeout_seconds``, or a ``RecursionError`` is raised
+        by the iterative solver.
 
     Raises
     ------
@@ -246,10 +266,44 @@ def calculate_weac_skier(
 
     # ------------------------------------------------------------------
     # 5. Run coupled criterion
+    #
+    # Guard against two failure modes that occur on numerically pathological
+    # slabs:
+    #
+    #   RecursionError — evaluate_coupled_criterion recurses with
+    #       damping_ERR+1 on each non-convergence pass; for some inputs it
+    #       descends hundreds of levels before Python's stack limit is hit.
+    #
+    #   _WeacTimeout — on POSIX systems (macOS / Linux) an optional
+    #       SIGALRM fires after timeout_seconds so that a slow-converging
+    #       slab does not stall an entire batch loop.  On Windows (no
+    #       SIGALRM) the timeout is silently skipped.
+    #
+    # Both cases return None, which the dispatcher treats as pathway failure.
     # ------------------------------------------------------------------
 
-    evaluator = CriteriaEvaluator(CriteriaConfig())
-    result = evaluator.evaluate_coupled_criterion(system)
+    _use_timeout = (
+        timeout_seconds is not None
+        and sys.platform != "win32"
+        and hasattr(signal, "SIGALRM")
+    )
+
+    _old_handler: Any = None
+    try:
+        if _use_timeout:
+            _old_handler = signal.signal(signal.SIGALRM, _sigalrm_handler)
+            signal.setitimer(signal.ITIMER_REAL, float(timeout_seconds))  # type: ignore[arg-type]
+
+        evaluator = CriteriaEvaluator(CriteriaConfig())
+        result = evaluator.evaluate_coupled_criterion(system)
+
+    except (RecursionError, _WeacTimeout):
+        return None
+    finally:
+        if _use_timeout:
+            signal.setitimer(signal.ITIMER_REAL, 0.0)
+            if _old_handler is not None:
+                signal.signal(signal.SIGALRM, _old_handler)
 
     # ------------------------------------------------------------------
     # 6. Extract G_I / G_II from the final system at the critical point

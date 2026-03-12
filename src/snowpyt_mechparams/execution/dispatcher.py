@@ -486,7 +486,7 @@ class MethodDispatcher:
             parameter="g_delta",
             method_name="weac_skier",
             level=ParameterLevel.STABILITY,
-            function=lambda slab: calculate_weac_skier(slab),
+            function=lambda slab, **kwargs: calculate_weac_skier(slab, **kwargs),
             required_inputs=["slab"],
             optional_inputs={}
         ))

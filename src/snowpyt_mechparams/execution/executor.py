@@ -264,7 +264,7 @@ class PathwayExecutor:
         # Execute stability calculations when targeting a stability parameter (e.g. g_delta).
         if target_parameter in STABILITY_PARAMS:
             stability_traces = self._execute_stability_calculations(
-                result_slab, target_parameter, methods_used
+                result_slab, target_parameter, methods_used, config
             )
             computation_trace.extend(stability_traces)
 
@@ -792,6 +792,7 @@ class PathwayExecutor:
         slab: Slab,
         target_parameter: str,
         methods_used: Dict[str, str],
+        config: 'ExecutionConfig',
     ) -> List[ComputationTrace]:
         """
         Run the stability criterion and store the full result on
@@ -811,6 +812,9 @@ class PathwayExecutor:
             Graph node name for the stability output (e.g. ``"g_delta"``).
         methods_used : Dict[str, str]
             Full methods-used dict; used to look up the stability method name.
+        config : ExecutionConfig
+            Execution configuration; ``config.weac_timeout_seconds`` is
+            forwarded to the WEAC adapter as a per-slab solver budget.
 
         Returns
         -------
@@ -819,10 +823,15 @@ class PathwayExecutor:
         """
         method = methods_used.get(target_parameter, "weac_skier")
 
+        extra: Dict[str, Any] = {}
+        if config.weac_timeout_seconds is not None:
+            extra["timeout_seconds"] = config.weac_timeout_seconds
+
         result, error = self.dispatcher.execute(
             parameter=target_parameter,
             method_name=method,
             slab=slab,
+            **extra,
         )
 
         trace_output: Any = None

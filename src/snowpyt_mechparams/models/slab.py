@@ -8,7 +8,7 @@ from snowpyt_mechparams.models.layer import Layer
 from snowpyt_mechparams.models.weak_layer import WeakLayer
 
 if TYPE_CHECKING:
-    from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
+    from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
 
 
 @dataclass

@@ -263,7 +263,7 @@ class TestFullPipelineStability:
     def test_find_parameterizations_for_g_delta(self):
         """find_parameterizations should find at least one pathway to g_delta."""
         from snowpyt_mechparams.algorithm import find_parameterizations
-        from snowpyt_mechparams.graph.definitions import graph
+        from snowpyt_mechparams.graph.parameter_graph import graph
 
         g_delta_node = graph.get_node("g_delta")
         assert g_delta_node is not None
@@ -276,8 +276,8 @@ class TestFullPipelineStability:
         from snowpyt_mechparams.algorithm import find_parameterizations
         from snowpyt_mechparams.execution.config import ExecutionConfig
         from snowpyt_mechparams.execution.executor import PathwayExecutor
-        from snowpyt_mechparams.graph.definitions import graph
-        from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
+        from snowpyt_mechparams.graph.parameter_graph import graph
+        from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
 
         slab = _make_slab_for_stability()
         g_delta_node = graph.get_node("g_delta")
@@ -301,7 +301,7 @@ class TestFullPipelineStability:
         from snowpyt_mechparams.algorithm import find_parameterizations
         from snowpyt_mechparams.execution.config import ExecutionConfig
         from snowpyt_mechparams.execution.executor import PathwayExecutor
-        from snowpyt_mechparams.graph.definitions import graph
+        from snowpyt_mechparams.graph.parameter_graph import graph
 
         slab = _make_slab_for_stability()
         g_delta_node = graph.get_node("g_delta")
@@ -324,7 +324,7 @@ class TestFullPipelineStability:
         from snowpyt_mechparams.algorithm import find_parameterizations
         from snowpyt_mechparams.execution.config import ExecutionConfig
         from snowpyt_mechparams.execution.executor import PathwayExecutor
-        from snowpyt_mechparams.graph.definitions import graph
+        from snowpyt_mechparams.graph.parameter_graph import graph
 
         slab = _make_slab_for_stability()
         g_delta_node = graph.get_node("g_delta")

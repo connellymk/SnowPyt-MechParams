@@ -113,7 +113,7 @@ To add a new calculation method:
 Example:
 
 ```python
-# In graph/definitions.py
+# In graph/parameter_graph.py
 build_graph.method_edge(merge_d_gf, elastic_modulus, "new_method")
 
 # In execution/dispatcher.py

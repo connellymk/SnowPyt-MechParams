@@ -8,7 +8,7 @@ This module provides the core data models used throughout the package:
 - Pit: Represents a snow pit profile with layers and stability test data
 - UncertainValue: Type alias for values that can be floats or uncertain numbers
 
-For parsing snowpylot SnowPit objects into Pit instances, see utils.pit_parser.parse_pit()
+For parsing snowpylot SnowPit objects into Pit instances, see pit_parser.parse_pit()
 (also accessible via the Pit.from_snow_pit() convenience classmethod).
 
 Notes

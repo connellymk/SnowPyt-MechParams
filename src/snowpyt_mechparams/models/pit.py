@@ -37,7 +37,7 @@ class Pit:
     -----
     Workflow for creating a Pit object:
     1. Parse CAAML file using parse_caaml_file() from snowpilot
-    2. Pass the snowpylot SnowPit to parse_pit() from models.utils.pit_parser, or use the
+    2. Pass the snowpylot SnowPit to parse_pit() from models.pit_parser, or use the
        convenience classmethod Pit.from_snow_pit()
 
     """
@@ -71,7 +71,7 @@ class Pit:
 
         """
         # Deferred import avoids circular dependency with pit_parser
-        from snowpyt_mechparams.models.utils.pit_parser import parse_pit
+        from snowpyt_mechparams.models.pit_parser import parse_pit
 
         return parse_pit(snow_pit)
 
@@ -272,7 +272,7 @@ class Pit:
         Optional[Slab]
             Slab object with metadata, or None if slab cannot be created
         """
-        from snowpyt_mechparams.models.utils.pit_parser import (
+        from snowpyt_mechparams.models.pit_parser import (
             _get_value_safe,
             extract_test_properties,
         )

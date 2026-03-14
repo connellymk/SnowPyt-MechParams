@@ -41,7 +41,7 @@ layer-level calculations before attempting slab-level calculations.
 
 See Also
 --------
-graph.definitions : The complete graph definition
+graph.parameter_graph : The complete graph definition
 graph.structures : Graph data structures (Node, Edge, Graph)
 algorithm : Functions to find calculation pathways
 """
@@ -54,7 +54,7 @@ from snowpyt_mechparams.graph.structures import (
     NodeType,
 )
 
-from snowpyt_mechparams.graph.definitions import (
+from snowpyt_mechparams.graph.parameter_graph import (
     graph,
     # Root
     snow_pit,

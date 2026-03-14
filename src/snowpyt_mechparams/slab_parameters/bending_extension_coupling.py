@@ -6,7 +6,7 @@ from uncertainties import ufloat
 from uncertainties.core import AffineScalarFunc
 
 from snowpyt_mechparams.models import Slab
-from snowpyt_mechparams.slab_parameters._common import integrate_plane_strain_over_layers
+from snowpyt_mechparams.slab_parameters._laminate_integration import integrate_plane_strain_over_layers
 
 
 def calculate_B11(method: str, **kwargs: Any) -> ufloat:

@@ -16,9 +16,9 @@ the reference constants from Weißgraeber & Rosendahl (2023), which are also
 WEAC's built-in defaults.
 """
 
-from snowpyt_mechparams.weak_layer_parameters.Gc import calculate_Gc
-from snowpyt_mechparams.weak_layer_parameters.G_Ic import calculate_G_Ic
-from snowpyt_mechparams.weak_layer_parameters.G_IIc import calculate_G_IIc
+from snowpyt_mechparams.weak_layer_parameters.fracture_energy import calculate_Gc
+from snowpyt_mechparams.weak_layer_parameters.mode_i_fracture_toughness import calculate_G_Ic
+from snowpyt_mechparams.weak_layer_parameters.mode_ii_fracture_toughness import calculate_G_IIc
 from snowpyt_mechparams.weak_layer_parameters.tau_c import calculate_tau_c
 from snowpyt_mechparams.weak_layer_parameters.sigma_c_minus import calculate_sigma_c_minus
 from snowpyt_mechparams.weak_layer_parameters.sigma_c_plus import calculate_sigma_c_plus

@@ -42,7 +42,7 @@ density
 
 See Also
 --------
-snowpyt_mechparams.graph.definitions : Complete parameter graph definition
+snowpyt_mechparams.graph.parameter_graph : Complete parameter graph definition
 snowpyt_mechparams.algorithm : Pathfinding algorithms for the graph
 """
 

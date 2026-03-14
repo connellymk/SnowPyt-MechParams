@@ -51,10 +51,19 @@ from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE, WEAK_LAYER_D
 from snowpyt_mechparams import snowpilot
 
 # Layer parameter calculations
-from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
+from snowpyt_mechparams.layer_parameters import (
+    calculate_density,
+    calculate_elastic_modulus,
+    calculate_poissons_ratio,
+    calculate_shear_modulus,
+)
 
 # Weak layer parameters
 from snowpyt_mechparams.weak_layer_parameters import (
+    calculate_Gc,
+    calculate_G_Ic,
+    calculate_G_IIc,
+    calculate_tau_c,
     calculate_sigma_c_minus,
     calculate_sigma_c_plus,
 )
@@ -92,8 +101,16 @@ __all__ = [
     "WEAK_LAYER_DEFINITIONS",
     # SnowPilot parsing
     "snowpilot",
-    # Calculation functions
+    # Layer parameter calculations
+    "calculate_density",
+    "calculate_elastic_modulus",
+    "calculate_poissons_ratio",
     "calculate_shear_modulus",
+    # Weak layer parameter calculations
+    "calculate_Gc",
+    "calculate_G_Ic",
+    "calculate_G_IIc",
+    "calculate_tau_c",
     "calculate_sigma_c_minus",
     "calculate_sigma_c_plus",
     # Execution engine

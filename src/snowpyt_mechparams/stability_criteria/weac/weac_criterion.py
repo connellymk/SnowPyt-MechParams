@@ -62,7 +62,7 @@ except ImportError:
     _WEAC_AVAILABLE = False
 
 from snowpyt_mechparams.models import Slab
-from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
+from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
 
 
 def _nominal(v: Any) -> Optional[float]:

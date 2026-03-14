@@ -22,7 +22,7 @@ from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.models.weak_layer import WeakLayer
-from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
+from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
 from conftest import requires_weac
 
 # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class TestNominalHelper:
     """Unit tests for the _nominal() UFloat-stripping helper."""
 
     def setup_method(self):
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import _nominal
+        from snowpyt_mechparams.stability_criteria.weac.weac_criterion import _nominal
         self._nominal = _nominal
 
     def test_none_returns_none(self):
@@ -144,7 +144,7 @@ class TestCalculateWeacSkierValidation:
     """Tests that verify early-return-None paths before WEAC is called."""
 
     def setup_method(self):
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
+        from snowpyt_mechparams.stability_criteria.weac.weac_criterion import (
             calculate_weac_skier,
         )
         self.fn = calculate_weac_skier
@@ -300,7 +300,7 @@ class TestCalculateWeacSkierIntegration:
     """Full round-trip integration tests using the real WEAC solver."""
 
     def setup_method(self):
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
+        from snowpyt_mechparams.stability_criteria.weac.weac_criterion import (
             calculate_weac_skier,
         )
         self.fn = calculate_weac_skier

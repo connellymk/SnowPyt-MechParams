@@ -343,7 +343,7 @@ Previously these constants were defined inline inside each method function; cent
 ### Parameterization Graph (`snowpyt_mechparams.graph`)
 
 - **`structures.py`**: Graph data structures (Node, Edge, Graph, GraphBuilder)
-- **`definitions.py`**: Complete parameter dependency graph with all methods
+- **`parameter_graph.py`**: Complete parameter dependency graph with all methods
 - **`visualize.py`**: Mermaid diagram generation for graph visualization
 - **`README.md`**: Documentation on graph structure and extending the graph
 
@@ -355,7 +355,7 @@ The graph represents:
 **Parameter classification** is derived automatically from the graph:
 
 ```python
-from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
 
 # LAYER_PARAMS = graph.layer_params  → frozenset of layer-level parameter names
 # SLAB_PARAMS  = graph.slab_params   → frozenset of slab-level parameter names
@@ -478,7 +478,7 @@ SnowPyt-MechParams/
 │   │   └── A55.py                # Shear stiffness
 │   ├── graph/                    # Parameterization graph
 │   │   ├── structures.py         # Graph data structures
-│   │   ├── definitions.py        # Complete parameter dependency graph
+│   │   ├── parameter_graph.py        # Complete parameter dependency graph
 │   │   ├── visualize.py          # Mermaid diagram generation
 │   │   └── README.md             # Graph documentation
 │   ├── algorithm.py              # Pathway discovery algorithm
@@ -527,7 +527,7 @@ make html
 - **`docs/execution_engine.md`**: Complete architecture and implementation with Mermaid diagrams
 - **`docs/parameter_graph.md`**: Full graph visualization
 - **`src/snowpyt_mechparams/graph/README.md`**: Graph structure and extension guide
-- **`src/snowpyt_mechparams/graph/definitions.py`**: Comprehensive inline documentation of all methods
+- **`src/snowpyt_mechparams/graph/parameter_graph.py`**: Comprehensive inline documentation of all methods
 
 ### 📊 Dataset Status
 
@@ -568,7 +568,7 @@ pre-commit install
 To add a new calculation method to an existing parameter:
 
 1. **Implement the method** in the appropriate module (`layer_parameters/` or `slab_parameters/`)
-2. **Add a method edge** in `src/snowpyt_mechparams/graph/definitions.py`:
+2. **Add a method edge** in `src/snowpyt_mechparams/graph/parameter_graph.py`:
    ```python
    build_graph.method_edge(merge_node, parameter_node, "your_method_name")
    ```
@@ -581,7 +581,7 @@ To add a new calculation method to an existing parameter:
 To add an entirely new calculated parameter:
 
 1. **Implement the calculation** in `layer_parameters/` (per-layer) or `slab_parameters/` (whole-slab)
-2. **Create the parameter node** in `src/snowpyt_mechparams/graph/definitions.py` with the appropriate `level`:
+2. **Create the parameter node** in `src/snowpyt_mechparams/graph/parameter_graph.py` with the appropriate `level`:
    ```python
    # For a per-layer parameter
    new_param = build_graph.param("new_param", level="layer")
@@ -637,7 +637,7 @@ When using specific methods, please also cite the relevant publications:
 **Slab Parameters:**
 - Weißgraeber & Rosendahl (2023) - Classical laminate theory for layered snow slabs
 
-Full citations available in `src/snowpyt_mechparams/graph/definitions.py`.
+Full citations available in `src/snowpyt_mechparams/graph/parameter_graph.py`.
 
 ## License
 

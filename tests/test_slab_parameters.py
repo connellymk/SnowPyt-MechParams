@@ -13,9 +13,9 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Slab
-from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
-from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
-from snowpyt_mechparams.slab_parameters.D11 import calculate_D11
+from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A11
+from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
+from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
 
 
 def _make_layer(thickness_cm, E_MPa, nu):

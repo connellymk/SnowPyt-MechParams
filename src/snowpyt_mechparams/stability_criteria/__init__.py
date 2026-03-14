@@ -1,13 +1,13 @@
 """
-Models for calculating mechanical loads and forces on snow slabs.
+Stability criteria implementations for snow avalanche assessment.
 """
 
-from snowpyt_mechparams.stability_models.roch import (
+from snowpyt_mechparams.stability_criteria.roch import (
     RochResult,
     calculate_roch,
     calculate_shear_stress,
 )
-from snowpyt_mechparams.stability_models.weac import (
+from snowpyt_mechparams.stability_criteria.weac import (
     WeacSkierResult,
     calculate_weac_skier,
 )

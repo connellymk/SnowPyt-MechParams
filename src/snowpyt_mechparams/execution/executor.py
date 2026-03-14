@@ -64,7 +64,7 @@ from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.results import (
     ComputationTrace, PathwayResult
 )
-from snowpyt_mechparams.graph.definitions import (
+from snowpyt_mechparams.graph.parameter_graph import (
     SLAB_PARAMS, WEAK_LAYER_PARAMS, STABILITY_PARAMS
 )
 

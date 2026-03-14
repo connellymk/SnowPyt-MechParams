@@ -290,18 +290,154 @@ execute_parameterization()
 
 ---
 
-## Pending Phases
+## Phase 8 — Tests  ✅ COMPLETE
 
-### Phase 8 — Tests  🔲 TODO
+**Goal:** Write unit and integration tests covering the new WEAC criterion adapter and
+engine extensions.
 
-Files to create:
-- `tests/test_weac_criterion.py` — 17 unit + 7 integration tests
-- `tests/test_weak_layer_engine.py` — 6 engine integration tests
+### Files Created
 
-### Phase 9 — Example Notebook  🔲 TODO
+| File | Contents |
+|------|----------|
+| `tests/test_weac_criterion.py` | 28 test items: `_nominal` helper, input validation, dataclass structure, integration tests |
+| `tests/test_weak_layer_engine.py` | 28 test items: `ParameterLevel` enum, dispatcher registration, executor weak-layer/stability flow, full pipeline |
 
-File to create:
-- `examples/weac_skier_all_pathways.ipynb` — 9 sections demonstrating full pipeline
+### Test Results
+
+```
+39 passed, 17 skipped (weac not installed), 0 new failures
+```
+
+All skipped tests are guarded by `requires_weac = pytest.mark.skipif(not _WEAC_AVAILABLE, ...)`.
+
+### Test Coverage
+
+| Test Class | Tests | Notes |
+|------------|-------|-------|
+| `TestNominalHelper` | 6 | None, UFloat, float, int, zero, negative |
+| `TestCalculateWeacSkierValidation` | 7 | angle=None, no weak_layer, missing density/thickness/E/G |
+| `TestWeacSkierResultStructure` | 2 | construction, g_delta threshold property |
+| `TestCalculateWeacSkierIntegration` | 13 (skip) | Full WEAC calls: return type, g_delta finite, G_I+G_II≈G_total, overrides |
+| `TestParameterLevel` | 3 | WEAK_LAYER + STABILITY enum values exist |
+| `TestDispatcherWeakLayerMethods` | 7 | All 6 WEAK_LAYER + 1 STABILITY MethodSpec registered |
+| `TestDispatcherExecuteWeakLayer` | 8 | Return values match reference constants |
+| `TestExecutorWeakLayerCalculations` | 6 | Lazy weac_layer creation, all 6 params populated |
+| `TestFullPipelineStability` | 4 (skip) | find_parameterizations → execute → g_delta in trace |
+
+### Pre-existing Failures (not caused by this work)
+
+`tests/test_elastic_modulus_methods.py::TestWautierNumerical` — 2 failures, values ~10× off.
+Confirmed via `git stash` test run: failures existed before any changes.
+
+---
+
+## Phase 8a — Bug Fix: Validation Order in weac_criterion.py  ✅ COMPLETE
+
+**Discovered during:** Phase 8 first test run (7 failures in `TestCalculateWeacSkierValidation`)
+
+### Problem
+
+`calculate_weac_skier()` raised `ImportError` before checking for missing inputs:
+
+```python
+# BEFORE (broken order):
+if not _WEAC_AVAILABLE:
+    raise ImportError("The 'weac' package is required...")
+
+# 1. Validate required inputs
+phi = _nominal(slab.angle)
+if phi is None:
+    return None
+```
+
+With weac not installed, all validation-path tests received `ImportError` instead of `None`.
+
+### Fix
+
+Moved the availability guard to section `1b` — after all input validation:
+
+```python
+# AFTER (correct order):
+# 1. Validate required inputs
+phi = _nominal(slab.angle)
+if phi is None:
+    return None
+# ... all other validation ...
+weac_layers.append(WeacLayer(rho=rho, h=h_mm, E=E, G=G, nu=nu))
+
+# 1b. WEAC availability check (deferred until after input validation)
+if not _WEAC_AVAILABLE:
+    raise ImportError("The 'weac' package is required...")
+```
+
+### Behaviour After Fix
+
+| Inputs | weac installed? | Result |
+|--------|----------------|--------|
+| Missing / invalid | Either | `return None` |
+| Valid | Yes | `WeacSkierResult` |
+| Valid | No | `ImportError` with install instructions |
+
+### File Modified
+
+| File | Change |
+|------|--------|
+| `stability_models/weac/weac_criterion.py` | Moved `if not _WEAC_AVAILABLE` block from function top to section 1b |
+
+---
+
+## Phase 9 — Example Notebook  ✅ COMPLETE
+
+**Goal:** Create a runnable Jupyter notebook demonstrating the full WEAC pipeline.
+
+### File Created
+
+| File | Description |
+|------|-------------|
+| `examples/weac_skier_all_pathways.ipynb` | 9-section notebook with synthetic and real-data examples |
+
+### Notebook Sections
+
+1. **Setup & Imports** — install instructions, `_WEAC_AVAILABLE` guard
+2. **Graph Inspection** — `WEAK_LAYER_PARAMS`, `STABILITY_PARAMS`, node counts
+3. **Build a Synthetic Slab** — 3-layer slab with weak layer
+4. **Run `calculate_weac_skier` Directly** — single direct API call
+5. **Inspect `WeacSkierResult`** — all 12 fields, g_delta interpretation
+6. **Find All Pathways to g_delta** — `find_parameterizations(pit, "g_delta")`
+7. **Run the Execution Engine** — `PathwayExecutor`, trace table output
+8. **Real Dataset: ECTP Slabs** — load from CSV, batch processing
+9. **g_delta Distribution by Pathway** — histogram / violin plot
+
+All cells have `execution_count: null`; intended to be run by user with `weac` installed.
+
+---
+
+## Final Summary
+
+All planned implementation phases completed successfully.
+
+| Phase | Description | Status | Files Changed/Created |
+|-------|-------------|--------|-----------------------|
+| 1 | Bug fixes | ✅ | 3 modified |
+| 2 | WeakLayer data structure | ✅ | 3 modified/created |
+| 3 | Weak-layer parameter modules | ✅ | 7 modified/created |
+| 4 | Graph extension | ✅ | 2 modified |
+| 5 | WEAC adapter | ✅ | 3 created, 1 modified |
+| 6 | pyproject.toml | ✅ | 1 modified |
+| 7 | Dispatcher & executor | ✅ | 3 modified |
+| 8 | Tests | ✅ | 2 created |
+| 8a | Validation-order bug fix | ✅ | 1 modified |
+| 9 | Example notebook | ✅ | 1 created |
+
+**Test results:** 39 passed, 17 skipped (weac not installed), 0 new failures
+
+**New public API surface:**
+- `snowpyt_mechparams.stability_models.WeacSkierResult`
+- `snowpyt_mechparams.stability_models.calculate_weac_skier`
+- `snowpyt_mechparams.data_structures.WeakLayer`
+- `Slab.weac_layer`, `Slab.weac_result` fields
+- `WEAK_LAYER_PARAMS`, `STABILITY_PARAMS` frozensets
+- `ParameterLevel.WEAK_LAYER`, `ParameterLevel.STABILITY` enum values
 
 ---
 

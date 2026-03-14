@@ -23,21 +23,7 @@ from uncertainties import ufloat
 from snowpyt_mechparams.data_structures import Layer, Slab
 from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
 from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
-
-# ---------------------------------------------------------------------------
-# WEAC availability guard
-# ---------------------------------------------------------------------------
-
-try:
-    import weac as _weac_pkg  # noqa: F401
-    _WEAC_AVAILABLE = True
-except ImportError:
-    _WEAC_AVAILABLE = False
-
-requires_weac = pytest.mark.skipif(
-    not _WEAC_AVAILABLE,
-    reason="weac package not installed — skip integration tests"
-)
+from conftest import requires_weac
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -165,19 +151,9 @@ class TestCalculateWeacSkierValidation:
 
     def test_returns_none_when_angle_is_none(self):
         """Slab with angle=None should return None."""
-        layer = Layer(
-            thickness=ufloat(20.0, 0.0),
-            density_calculated=ufloat(250.0, 0.0),
-            elastic_modulus=ufloat(5.0, 0.0),
-            poissons_ratio=ufloat(0.2, 0.0),
-            shear_modulus=ufloat(2.0, 0.0),
-        )
-        slab = Slab(layers=[layer], angle=None)  # type: ignore[arg-type]
+        slab = _make_minimal_slab()
         slab.angle = None  # type: ignore[assignment]
-        # Re-construct without angle check via direct attribute mutation
-        slab_no_angle = _make_minimal_slab()
-        slab_no_angle.angle = None  # type: ignore[assignment]
-        assert self.fn(slab_no_angle) is None
+        assert self.fn(slab) is None
 
     def test_returns_none_when_weak_layer_is_none(self):
         """Slab with no weak_layer should return None."""
@@ -323,68 +299,56 @@ class TestWeacSkierResultStructure:
 class TestCalculateWeacSkierIntegration:
     """Full round-trip integration tests using the real WEAC solver."""
 
-    @requires_weac
-    def test_returns_weac_skier_result(self):
-        """Should return a WeacSkierResult for a valid slab."""
+    def setup_method(self):
         from snowpyt_mechparams.stability_models.weac.weac_criterion import (
             calculate_weac_skier,
         )
+        self.fn = calculate_weac_skier
+
+    @requires_weac
+    def test_returns_weac_skier_result(self):
+        """Should return a WeacSkierResult for a valid slab."""
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert isinstance(result, WeacSkierResult)
 
     @requires_weac
     def test_g_delta_is_finite_float(self):
         """g_delta must be a finite float after a successful run."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert math.isfinite(result.g_delta)
 
     @requires_weac
     def test_converged_is_bool(self):
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert isinstance(result.converged, bool)
 
     @requires_weac
     def test_G_total_approx_sum_of_G_I_G_II(self):
         """G_total ≈ G_I + G_II (WEAC uses mixed-mode ERR decomposition)."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert result.G_total == pytest.approx(result.G_I + result.G_II, rel=1e-4)
 
     @requires_weac
     def test_skier_mass_preserved_in_result(self):
         """The result should echo back the skier_mass that was passed in."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab, skier_mass=90.0)
+        result = self.fn(slab, skier_mass=90.0)
         assert result is not None
         assert result.skier_mass == pytest.approx(90.0)
 
     @requires_weac
     def test_segment_length_default_derived_from_slab_thickness(self):
         """Default segment_length = total_thickness (cm) × 10 (mm)."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab(n_layers=1, thickness_cm=20.0)
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         # total_thickness = 20 cm  → L = 200 mm
         assert result.segment_length == pytest.approx(200.0)
@@ -392,34 +356,25 @@ class TestCalculateWeacSkierIntegration:
     @requires_weac
     def test_explicit_segment_length_overrides_default(self):
         """Explicit segment_length should be used instead of derived default."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab, segment_length=500.0)
+        result = self.fn(slab, segment_length=500.0)
         assert result is not None
         assert result.segment_length == pytest.approx(500.0)
 
     @requires_weac
     def test_weak_layer_density_fallback_to_calculated(self):
         """If density_measured is None, density_calculated should be used."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
         # Replace density_measured with density_calculated
         slab.weak_layer.density_measured = None  # type: ignore[union-attr]
         slab.weak_layer.density_calculated = ufloat(150.0, 0.0)  # type: ignore[union-attr]
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert isinstance(result, WeacSkierResult)
 
     @requires_weac
     def test_ufloat_inputs_stripped_to_nominal(self):
         """UFloat inputs should be silently stripped; result should still be returned."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         # All inputs have non-zero uncertainty
         layers = [
             Layer(
@@ -439,20 +394,17 @@ class TestCalculateWeacSkierIntegration:
             angle=ufloat(35.0, 2.0),
             weak_layer=weak_layer,
         )
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert math.isfinite(result.g_delta)
 
     @requires_weac
     def test_weak_layer_overrides_take_precedence(self):
         """Caller-supplied weak_layer_overrides should override slab.weac_layer values."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
         # Call twice: once with default values, once with a very high G_IIc override
-        result_default = calculate_weac_skier(slab)
-        result_override = calculate_weac_skier(slab, G_IIc=10.0)
+        result_default = self.fn(slab)
+        result_override = self.fn(slab, G_IIc=10.0)
         assert result_default is not None
         assert result_override is not None
         # g_delta values should differ because fracture toughness changed
@@ -461,32 +413,23 @@ class TestCalculateWeacSkierIntegration:
     @requires_weac
     def test_multi_layer_slab(self):
         """Should work with a multi-layer slab."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab(n_layers=3, thickness_cm=8.0)
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert math.isfinite(result.g_delta)
 
     @requires_weac
     def test_crack_length_positive(self):
         """crack_length should be positive."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert result.crack_length > 0
 
     @requires_weac
     def test_critical_skier_weight_positive(self):
-        """critical_skier_weight should be positive (units: N)."""
-        from snowpyt_mechparams.stability_models.weac.weac_criterion import (
-            calculate_weac_skier,
-        )
+        """critical_skier_weight should be positive (units: kg)."""
         slab = _make_minimal_slab()
-        result = calculate_weac_skier(slab)
+        result = self.fn(slab)
         assert result is not None
         assert result.critical_skier_weight > 0

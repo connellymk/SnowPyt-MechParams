@@ -16,21 +16,7 @@ from uncertainties import ufloat
 from snowpyt_mechparams.data_structures import Layer, Slab
 from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
-
-# ---------------------------------------------------------------------------
-# WEAC availability guard
-# ---------------------------------------------------------------------------
-
-try:
-    import weac as _weac_pkg  # noqa: F401
-    _WEAC_AVAILABLE = True
-except ImportError:
-    _WEAC_AVAILABLE = False
-
-requires_weac = pytest.mark.skipif(
-    not _WEAC_AVAILABLE,
-    reason="weac package not installed — skip integration tests"
-)
+from conftest import requires_weac
 
 # ---------------------------------------------------------------------------
 # Helpers

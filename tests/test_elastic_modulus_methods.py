@@ -16,7 +16,7 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
-from snowpyt_mechparams.constants import RHO_ICE
+from snowpyt_mechparams.constants import RHO_ICE, E_ICE_POLYCRYSTALLINE
 
 
 # ---------------------------------------------------------------------------
@@ -130,12 +130,12 @@ class TestKochleNumerical:
 # ---------------------------------------------------------------------------
 
 class TestWautierNumerical:
-    """E = E_ice * A * (rho/rho_ice)^n where A=0.78, n=2.34, E_ice=1060 MPa."""
+    """E = E_ice * A * (rho/rho_ice)^n where A=0.78, n=2.34, E_ice=E_ICE_POLYCRYSTALLINE."""
 
     def test_rho_300(self):
-        """rho=300: E = 1060 * 0.78 * (300/917)^2.34."""
+        """rho=300: E = E_ICE_POLYCRYSTALLINE * 0.78 * (300/917)^2.34."""
         rho = ufloat(300.0, 0.0)
-        E_ice = 1060.0
+        E_ice = E_ICE_POLYCRYSTALLINE.nominal_value
         expected = E_ice * 0.78 * (300.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
             "wautier", density=rho, grain_form="RG",
@@ -145,7 +145,7 @@ class TestWautierNumerical:
 
     def test_rho_200(self):
         rho = ufloat(200.0, 0.0)
-        E_ice = 1060.0
+        E_ice = E_ICE_POLYCRYSTALLINE.nominal_value
         expected = E_ice * 0.78 * (200.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
             "wautier", density=rho, grain_form="FC",

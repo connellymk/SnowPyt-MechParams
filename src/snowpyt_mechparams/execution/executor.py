@@ -426,7 +426,7 @@ class PathwayExecutor:
         layer_index: int,
         parameter: str,
         method: str,
-        config: 'ExecutionConfig' = None
+        config: Optional['ExecutionConfig'] = None
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get parameter from cache or compute it.

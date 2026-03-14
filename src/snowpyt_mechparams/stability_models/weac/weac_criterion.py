@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import signal
 import sys
+import threading
 from typing import Any, Optional
 
 # ---------------------------------------------------------------------------
@@ -127,10 +128,11 @@ def calculate_weac_skier(
     timeout_seconds : float, optional
         Wall-clock time limit for the WEAC solver per slab (seconds).  If the
         coupled criterion does not finish within this budget the slab is treated
-        as a pathway failure and ``None`` is returned.  Only supported on
-        POSIX systems (macOS / Linux) where ``signal.SIGALRM`` is available;
-        ignored silently on Windows.  A value of ``5.0`` is a reasonable
-        default for large batch runs.
+        as a pathway failure and ``None`` is returned.  Only effective on
+        POSIX systems (macOS / Linux) **in the main thread** where
+        ``signal.SIGALRM`` is available; silently skipped on Windows or when
+        called from a worker thread (e.g. ``ThreadPoolExecutor``).
+        A value of ``5.0`` is a reasonable default for large batch runs.
     **weak_layer_overrides
         Override individual weak-layer fracture/strength parameters passed to
         WEAC (e.g. ``G_Ic=1.0``).  These take precedence over ``slab.weac_layer``.
@@ -286,6 +288,7 @@ def calculate_weac_skier(
         timeout_seconds is not None
         and sys.platform != "win32"
         and hasattr(signal, "SIGALRM")
+        and threading.current_thread() is threading.main_thread()
     )
 
     _old_handler: Any = None

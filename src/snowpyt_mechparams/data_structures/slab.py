@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from typing import List, Optional, TYPE_CHECKING
 
-import uncertainties
 
 from snowpyt_mechparams.data_structures.layer import Layer, UncertainValue
 from snowpyt_mechparams.data_structures.weak_layer import WeakLayer

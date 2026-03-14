@@ -23,7 +23,7 @@ from snowpyt_mechparams.execution.config import ExecutionConfig
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.execution.results import ExecutionResults, PathwayResult
-from snowpyt_mechparams.graph.structures import Graph, Node
+from snowpyt_mechparams.graph.structures import Graph
 
 
 class ExecutionEngine:

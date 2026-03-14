@@ -13,10 +13,8 @@ Tests cover:
 - Edge cases and error handling
 """
 
-import os
 import math
 from pathlib import Path
-from typing import Any, List
 from unittest.mock import Mock
 
 import pytest

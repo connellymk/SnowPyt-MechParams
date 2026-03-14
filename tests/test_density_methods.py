@@ -10,7 +10,6 @@ Sources:
 
 import math
 
-import numpy as np
 import pytest
 from uncertainties import ufloat
 

@@ -1,9 +1,8 @@
 # WeakLayer data structure for WEAC fracture/strength parameters
 
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional
 
-import uncertainties
 
 from snowpyt_mechparams.data_structures.layer import UncertainValue
 

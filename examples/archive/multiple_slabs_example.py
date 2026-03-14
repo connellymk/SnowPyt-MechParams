@@ -64,7 +64,7 @@ def summarize_slabs_per_pit(df):
     print("\nSlabs per Pit Distribution:")
     print(f"Total pits: {len(slabs_per_pit)}")
     print(f"Total slabs: {len(df)}")
-    print(f"\nDistribution:")
+    print("\nDistribution:")
     for n_slabs, count in slabs_per_pit.value_counts().sort_index().items():
         print(f"  {count} pits with {n_slabs} slab(s)")
 

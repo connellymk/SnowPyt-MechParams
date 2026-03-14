@@ -26,7 +26,7 @@ Examples
 >>> save_mermaid_diagram(graph, "docs/parameter_graph.md")
 """
 
-from typing import Dict, List, Set
+from typing import Dict, List
 from snowpyt_mechparams.graph.structures import Graph, Node
 
 
@@ -438,7 +438,6 @@ def print_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Graph
 # CLI interface when run as a script
 if __name__ == "__main__":
     import sys
-    from pathlib import Path
     
     # Import the graph
     try:

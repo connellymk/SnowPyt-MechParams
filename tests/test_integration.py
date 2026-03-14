@@ -37,7 +37,6 @@ class TestPackageImports:
     
     def test_import_graph_module(self):
         """Should be able to import graph as a module."""
-        from snowpyt_mechparams import graph
         
         assert hasattr(graph, 'graph')
         assert hasattr(graph, 'D11')
@@ -50,7 +49,6 @@ class TestPackageImports:
     
     def test_import_algorithm_module(self):
         """Should be able to import algorithm as a module."""
-        from snowpyt_mechparams import algorithm
         
         assert hasattr(algorithm, 'find_parameterizations')
         assert hasattr(algorithm, 'Parameterization')
@@ -58,7 +56,6 @@ class TestPackageImports:
     
     def test_import_execution_engine(self):
         """Should be able to import execution engine."""
-        from snowpyt_mechparams import ExecutionEngine, ExecutionResults
         
         # Can instantiate with graph
         from snowpyt_mechparams.graph import graph
@@ -71,7 +68,6 @@ class TestEndToEndExecution:
     
     def test_execute_layer_parameter(self):
         """Should execute layer parameter calculations end-to-end."""
-        from snowpyt_mechparams import ExecutionEngine
         from snowpyt_mechparams.graph import graph
         
         # Create slab with measured data
@@ -99,7 +95,6 @@ class TestEndToEndExecution:
     
     def test_execute_slab_parameter(self):
         """Should execute slab parameter calculations end-to-end."""
-        from snowpyt_mechparams import ExecutionEngine
         from snowpyt_mechparams.graph import graph
         
         # Create slab with full layer properties
@@ -137,7 +132,6 @@ class TestDynamicProgramming:
     
     def test_cache_improves_performance(self):
         """Cache should reduce redundant calculations for multi-layer slabs."""
-        from snowpyt_mechparams import ExecutionEngine
         from snowpyt_mechparams.graph import graph
         
         # Create slab with multiple layers (cache benefits more apparent)

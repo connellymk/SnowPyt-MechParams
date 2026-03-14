@@ -81,7 +81,6 @@ class TestKochleNumerical:
 
     def test_low_density_rho_200(self):
         """rho=200, E_ice=10000: C2=0.0061/10000, C3=0.0396*917."""
-        import uncertainties.umath as umath
         rho = ufloat(200.0, 0.0)
         E_ice = ufloat(10000.0, 0.0)
         C2 = 0.0061 / 10000.0

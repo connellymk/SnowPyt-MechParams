@@ -13,7 +13,6 @@ from uncertainties import ufloat
 
 from snowpyt_mechparams.data_structures import Layer, Slab
 from snowpyt_mechparams.execution.executor import PathwayExecutor
-from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.algorithm import find_parameterizations
 
@@ -398,7 +397,6 @@ class TestMetadataPreservation:
     
     def test_metadata_preserved_in_result_slab(self):
         """Result slab should preserve all metadata from original slab."""
-        from snowpyt_mechparams.data_structures import Pit
         from snowpyt_mechparams.execution.config import ExecutionConfig
         
         executor = PathwayExecutor()

@@ -8,7 +8,7 @@ the parameterization graph to actual calculation function implementations.
 import inspect
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from uncertainties import ufloat

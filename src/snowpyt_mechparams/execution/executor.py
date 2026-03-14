@@ -59,12 +59,12 @@ from snowpyt_mechparams.algorithm import Parameterization
 from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
 from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.cache import ComputationCache
-from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
+from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.results import (
     ComputationTrace, PathwayResult
 )
 from snowpyt_mechparams.graph.definitions import (
-    LAYER_PARAMS, SLAB_PARAMS, WEAK_LAYER_PARAMS, STABILITY_PARAMS
+    SLAB_PARAMS, WEAK_LAYER_PARAMS, STABILITY_PARAMS
 )
 
 if TYPE_CHECKING:

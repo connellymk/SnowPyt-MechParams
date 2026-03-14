@@ -10,23 +10,11 @@ import pytest
 from snowpyt_mechparams.graph import (
     graph,
     Graph,
-    Node,
     GraphBuilder,
     # Root
     snow_pit,
     # Measured parameters
-    measured_density,
-    measured_hand_hardness,
-    measured_grain_form,
-    measured_grain_size,
-    # Layer properties
-    measured_layer_thickness,
-    # Layer parameters
     density,
-    elastic_modulus,
-    poissons_ratio,
-    shear_modulus,
-    # Slab parameters
     A11,
     B11,
     D11,

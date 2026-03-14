@@ -19,7 +19,7 @@ from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.graph.visualize import save_mermaid_diagram, print_mermaid_diagram
 
 
-def main():
+def main() -> None:
     """Main entry point for diagram generation."""
     if len(sys.argv) > 1:
         output_file = sys.argv[1]

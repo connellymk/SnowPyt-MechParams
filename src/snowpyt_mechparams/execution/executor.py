@@ -483,7 +483,8 @@ class PathwayExecutor:
             parameter=parameter,
             method_name=method,
             layer=layer,
-            **extra
+            slab=None,
+            **extra,
         )
 
         if value is not None:
@@ -836,7 +837,7 @@ class PathwayExecutor:
 
         trace_output: Any = None
         if result is not None:
-            slab.weac_result = result  # type: ignore[assignment]
+            slab.weac_result = result
             # Expose the primary scalar metric in the trace for readability.
             trace_output = getattr(result, "g_delta", result)
 

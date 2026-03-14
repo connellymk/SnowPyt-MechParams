@@ -3,6 +3,7 @@
 from typing import Any
 
 from uncertainties import ufloat
+from uncertainties.core import AffineScalarFunc
 
 from snowpyt_mechparams.data_structures import Slab
 from snowpyt_mechparams.slab_parameters._common import integrate_plane_strain_over_layers
@@ -158,7 +159,11 @@ def _calculate_B11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     Theory and Analysis (2nd ed.). CRC Press.
     https://doi.org/10.1201/b12409
     """
-    def _accumulate_B11(plane_strain_modulus, z_top, z_bottom):
+    def _accumulate_B11(
+        plane_strain_modulus: AffineScalarFunc,
+        z_top: AffineScalarFunc,
+        z_bottom: AffineScalarFunc,
+    ) -> AffineScalarFunc:
         # B11: first-order weighting — (1/2) * Ē * (z_top² - z_bottom²)
         return 0.5 * plane_strain_modulus * (z_top ** 2 - z_bottom ** 2)
 

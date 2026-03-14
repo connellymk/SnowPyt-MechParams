@@ -1,7 +1,7 @@
 # Pit data structure for snow mechanical parameter calculations
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from snowpyt_mechparams.constants import (
     U_SLOPE_ANGLE,
@@ -205,7 +205,7 @@ class Pit:
         ...     print(f"  Test index: {slab.test_result_index}")
         ...     print(f"  Test properties: {slab.test_result_properties}")
         """
-        slabs = []
+        slabs: List[Slab] = []
 
         if not self.layers:
             return slabs
@@ -261,15 +261,15 @@ class Pit:
 
         # Create one slab per matching test result
         for test_idx, test_result in enumerate(test_results):
-            slab = self._create_slab_from_test_result(
+            created_slab = self._create_slab_from_test_result(
                 test_result=test_result,
                 test_idx=test_idx,
                 test_type=test_type,
                 weak_layer_def=weak_layer_def,
                 n_total_tests=len(test_results),
             )
-            if slab:
-                slabs.append(slab)
+            if created_slab is not None:
+                slabs.append(created_slab)
 
         return slabs
 
@@ -398,7 +398,7 @@ class Pit:
         # Handle numpy arrays if present
         if hasattr(obj, "__len__") and hasattr(obj, "shape"):
             return obj[0] if len(obj) > 0 else None
-        return obj
+        return cast(Optional[float], obj)
 
     def _get_matching_ect_results(self) -> List[Any]:
         """
@@ -529,7 +529,7 @@ class Pit:
         dict
             Dictionary of test properties
         """
-        props = {}
+        props: dict[str, Any] = {}
 
         if test_type == "ECT":
             # Extract ECT properties

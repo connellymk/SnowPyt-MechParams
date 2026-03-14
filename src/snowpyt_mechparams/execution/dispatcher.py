@@ -209,7 +209,7 @@ class MethodDispatcher:
         Internal registry mapping (parameter, method_name) to MethodSpec
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._registry: Dict[Tuple[str, str], MethodSpec] = {}
         self._register_all_methods()
 
@@ -539,7 +539,7 @@ class MethodDispatcher:
         method_name: str,
         layer: Optional[Layer] = None,
         slab: Optional[Slab] = None,
-        **extra_inputs
+        **extra_inputs: Any,
     ) -> Tuple[Optional[Any], Optional[str]]:
         """
         Execute a method and return (result, error_message).

@@ -3,7 +3,7 @@
 import logging
 import math
 from math import sqrt
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from uncertainties import ufloat
@@ -11,6 +11,13 @@ from uncertainties import ufloat
 from snowpyt_mechparams.data_structures import UncertainValue
 
 logger = logging.getLogger(__name__)
+
+
+def _to_ufloat(val: UncertainValue) -> ufloat:
+    """Convert UncertainValue to ufloat. Plain floats get zero uncertainty."""
+    if isinstance(val, (int, float)):
+        return ufloat(float(val), 0.0)
+    return cast(ufloat, val)
 
 
 def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
@@ -116,7 +123,7 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     if hand_hardness_index is None:
         logger.debug("_calculate_density_geldsetzer: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
-    h = hand_hardness_index  # already a ufloat from data_structures.py
+    h = _to_ufloat(hand_hardness_index)
 
     # Table 3: Linear regressions of density on hardness index h by groups
     # of grain types. From Geldsetzer and Jamieson (2000)
@@ -137,9 +144,9 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = params['A']
-    b = params['B']
-    se = params['SE']
+    a = cast(float, params['A'])
+    b = cast(float, params['B'])
+    se = cast(float, params['SE'])
 
     # Calculate density using appropriate formula
     if params['formula'] == 'linear':
@@ -212,7 +219,7 @@ def _calculate_density_kim_jamieson_table2(
     if hand_hardness_index is None:
         logger.debug("_calculate_density_kim_jamieson_table2: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
-    h = hand_hardness_index  # already a ufloat from data_structures.py
+    h = _to_ufloat(hand_hardness_index)
 
     # Table 2: Linear regressions of density on hand hardness index by
     # grain types (Equation 1), except for a non-linear regression for RG (Equation 2)
@@ -241,12 +248,12 @@ def _calculate_density_kim_jamieson_table2(
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = params['A']
+    a = cast(float, params['A'])
 
     # Calculate density using appropriate formula
     if params['formula'] == 'linear':
-        b = params['B']
-        se = params['SE']
+        b = cast(float, params['B'])
+        se = cast(float, params['SE'])
         # Linear regression: rho = A + B*h (Equation 1)
         rho = a + b * h
         # Combine propagated input uncertainty with residual density SE in quadrature
@@ -316,7 +323,8 @@ def _calculate_density_kim_jamieson_table5(
     if hand_hardness_index is None:
         logger.debug("_calculate_density_kim_jamieson_table5: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
-    h = hand_hardness_index  # already a ufloat from data_structures.py
+    h = _to_ufloat(hand_hardness_index)
+    gs = _to_ufloat(grain_size)
 
     # Table 6: Significant multivariable linear regression of density on hardness index
     # and grain size by different groups of grain types
@@ -338,7 +346,7 @@ def _calculate_density_kim_jamieson_table5(
     se = params['SE']
 
     # Calculate density using equation 5
-    rho = a * h + b * grain_size + c
+    rho = a * h + b * gs + c
 
     # Combine propagated input uncertainty with method SE in quadrature
     if include_method_uncertainty:

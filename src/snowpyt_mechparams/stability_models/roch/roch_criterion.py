@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from typing import Optional
 
-from snowpyt_mechparams.data_structures import Slab, UncertainValue
+from snowpyt_mechparams.models import Slab, UncertainValue
 from snowpyt_mechparams.stability_models.roch.roch_result import RochResult
 from snowpyt_mechparams.stability_models.roch.shear_stress import calculate_shear_stress
 

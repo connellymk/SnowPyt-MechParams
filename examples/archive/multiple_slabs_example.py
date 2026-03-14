@@ -6,7 +6,7 @@ multiple slabs from a single pit when there are multiple ECT or CT test results.
 """
 
 from snowpyt_mechparams.snowpilot import parse_caaml_directory
-from snowpyt_mechparams.data_structures import Pit
+from snowpyt_mechparams.models import Pit
 import pandas as pd
 
 

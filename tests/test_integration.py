@@ -25,8 +25,8 @@ from snowpyt_mechparams import (
 class TestPackageImports:
     """Test that package-level imports work correctly."""
     
-    def test_import_data_structures(self):
-        """Should be able to import data structures from package root."""
+    def test_import_models(self):
+        """Should be able to import domain models from package root."""
         from snowpyt_mechparams import Layer, Slab
         
         layer = Layer(thickness=30)

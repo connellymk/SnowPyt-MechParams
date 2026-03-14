@@ -61,7 +61,7 @@ try:
 except ImportError:
     _WEAC_AVAILABLE = False
 
-from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.models import Slab
 from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
 
 

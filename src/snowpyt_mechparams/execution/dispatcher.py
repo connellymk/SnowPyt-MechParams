@@ -14,7 +14,7 @@ import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.constants import resolve_grain_form_for_method
-from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
+from snowpyt_mechparams.models import Layer, Slab, UncertainValue
 from snowpyt_mechparams.layer_parameters.density import calculate_density
 from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
 from snowpyt_mechparams.layer_parameters.poissons_ratio import calculate_poissons_ratio

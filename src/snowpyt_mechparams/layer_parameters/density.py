@@ -8,7 +8,7 @@ from typing import Any, cast
 import numpy as np
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import UncertainValue
+from snowpyt_mechparams.models import UncertainValue
 
 logger = logging.getLogger(__name__)
 

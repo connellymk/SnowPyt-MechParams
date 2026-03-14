@@ -12,7 +12,7 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
 from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
 from snowpyt_mechparams.slab_parameters.D11 import calculate_D11

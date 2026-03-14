@@ -19,7 +19,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from snowpyt_mechparams.data_structures import Layer, Pit, Slab
+from snowpyt_mechparams.models import Layer, Pit, Slab
 from snowpyt_mechparams.snowpilot import parse_caaml_file
 
 

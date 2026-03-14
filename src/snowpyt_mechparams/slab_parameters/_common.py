@@ -16,7 +16,7 @@ import numpy as np
 from uncertainties import ufloat
 from uncertainties.core import AffineScalarFunc
 
-from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.models import Slab
 
 logger = logging.getLogger(__name__)
 

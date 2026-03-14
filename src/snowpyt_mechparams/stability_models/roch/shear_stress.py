@@ -4,7 +4,7 @@ import math
 
 from uncertainties import umath
 
-from snowpyt_mechparams.data_structures import Slab, UncertainValue
+from snowpyt_mechparams.models import Slab, UncertainValue
 
 
 def calculate_shear_stress(slab: Slab) -> UncertainValue:

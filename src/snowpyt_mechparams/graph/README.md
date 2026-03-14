@@ -288,7 +288,7 @@ graph/
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.data_structures import Slab, Layer
+from snowpyt_mechparams.models import Slab, Layer
 
 # Create a slab with measured data
 layers = [

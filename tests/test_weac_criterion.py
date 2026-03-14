@@ -20,8 +20,8 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import Layer, Slab
-from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
+from snowpyt_mechparams.models import Layer, Slab
+from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.stability_models.weac.weac_result import WeacSkierResult
 from conftest import requires_weac
 

@@ -11,7 +11,7 @@ This module tests the enhanced PathwayExecutor with:
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.algorithm import find_parameterizations

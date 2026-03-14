@@ -5,7 +5,7 @@ from typing import Any
 from uncertainties import ufloat
 from uncertainties.core import AffineScalarFunc
 
-from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.models import Slab
 from snowpyt_mechparams.slab_parameters._common import integrate_plane_strain_over_layers
 
 

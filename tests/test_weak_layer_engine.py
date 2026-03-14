@@ -13,8 +13,8 @@ from __future__ import annotations
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import Layer, Slab
-from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
+from snowpyt_mechparams.models import Layer, Slab
+from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
 from conftest import requires_weac
 

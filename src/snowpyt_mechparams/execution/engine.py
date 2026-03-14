@@ -17,7 +17,7 @@ using the same density calculation).
 from typing import Optional
 
 from snowpyt_mechparams.algorithm import find_parameterizations
-from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.models import Slab
 from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.config import ExecutionConfig
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher

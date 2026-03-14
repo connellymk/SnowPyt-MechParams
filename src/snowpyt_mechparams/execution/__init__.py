@@ -14,7 +14,7 @@ Example
 -------
 >>> from snowpyt_mechparams.graph import graph
 >>> from snowpyt_mechparams.execution import ExecutionEngine, ExecutionConfig
->>> from snowpyt_mechparams.data_structures import Slab, Layer
+>>> from snowpyt_mechparams.models import Slab, Layer
 >>>
 >>> # Create slab
 >>> slab = Slab(layers=[Layer(thickness=30, hand_hardness="4F", grain_form="RG")])

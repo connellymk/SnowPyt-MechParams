@@ -28,7 +28,7 @@ Quick Start
 -----------
 >>> from snowpyt_mechparams import ExecutionEngine
 >>> from snowpyt_mechparams.graph import graph
->>> from snowpyt_mechparams.data_structures import Slab, Layer
+>>> from snowpyt_mechparams.models import Slab, Layer
 >>>
 >>> # Create slab with measured data
 >>> layers = [Layer(thickness=30, density_measured=250, grain_form='RG')]
@@ -42,7 +42,7 @@ Quick Start
 """
 
 # Data structures
-from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.models import Layer, Slab
 
 # Constants
 from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE, WEAK_LAYER_DEFINITIONS

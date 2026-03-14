@@ -56,8 +56,8 @@ cleared when moving to a new slab via clear_cache().
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from snowpyt_mechparams.algorithm import Parameterization
-from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
-from snowpyt_mechparams.data_structures.weak_layer import WeakLayer
+from snowpyt_mechparams.models import Layer, Slab, UncertainValue
+from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.results import (

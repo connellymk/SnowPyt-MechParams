@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from snowpyt_mechparams.data_structures import UncertainValue
+from snowpyt_mechparams.models import UncertainValue
 
 
 @dataclass

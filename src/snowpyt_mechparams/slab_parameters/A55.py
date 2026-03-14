@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.models import Slab
 
 
 def calculate_A55(method: str, **kwargs: Any) -> ufloat:

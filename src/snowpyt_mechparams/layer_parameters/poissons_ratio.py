@@ -119,7 +119,8 @@ def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty
         logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
     
-    _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
+    def _u(val, std):
+        return ufloat(val, std if include_method_uncertainty else 0.0)
     if main_grain_shape == 'RG':
         nu_snow = _u(0.171, 0.026)
     elif main_grain_shape == 'FC':
@@ -204,7 +205,8 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, inclu
     # Assign Poisson's ratio based on grain form
     # Note: density value is not used in the calculation as the study found 
     # no clear density dependence, but density must be within valid ranges
-    _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
+    def _u(val, std):
+        return ufloat(val, std if include_method_uncertainty else 0.0)
     if main_grain_shape == 'RG':
         # Rounded grains: constant value over density range 200-580 kg/m³
         # Check upper limit for RG

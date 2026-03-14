@@ -72,7 +72,7 @@ class TestLayerPropertyHandling:
         
         # Should return the thickness directly
         assert value == layer.thickness
-        assert was_cached == False  # No caching for direct properties
+        assert not was_cached  # No caching for direct properties
         assert error_msg is None  # No error for direct properties
 
 
@@ -104,7 +104,7 @@ class TestDynamicProgramming:
         config = ExecutionConfig(verbose=False)
 
         # Execute first time - should compute (cache miss)
-        result1 = executor.execute_parameterization(
+        executor.execute_parameterization(
             parameterization=geldsetzer_pathway,
             slab=slab,
             target_parameter="density",
@@ -117,7 +117,7 @@ class TestDynamicProgramming:
         assert stats1['hits'] == 0
 
         # Execute second time (same pathway, same slab) - density should be a cache hit
-        result2 = executor.execute_parameterization(
+        executor.execute_parameterization(
             parameterization=geldsetzer_pathway,
             slab=slab,
             target_parameter="density",
@@ -154,7 +154,7 @@ class TestDynamicProgramming:
         from snowpyt_mechparams.execution.config import ExecutionConfig
         config = ExecutionConfig(verbose=False)
 
-        result1 = executor.execute_parameterization(
+        executor.execute_parameterization(
             parameterization=kochle_pathway,
             slab=slab,
             target_parameter="poissons_ratio",
@@ -166,7 +166,7 @@ class TestDynamicProgramming:
         assert stats1['hits'] == 0, "Downstream params should never be cached"
 
         # Execute second time
-        result2 = executor.execute_parameterization(
+        executor.execute_parameterization(
             parameterization=kochle_pathway,
             slab=slab,
             target_parameter="poissons_ratio",
@@ -283,7 +283,7 @@ class TestSlabCaching:
         )
 
         assert value1 is not None
-        assert cached1 == False  # Always computed fresh
+        assert not cached1  # Always computed fresh
         assert error1 is None
 
         # Second call with identical inputs - must ALSO compute fresh (not cached)
@@ -292,7 +292,7 @@ class TestSlabCaching:
         )
 
         assert value2 is not None
-        assert cached2 == False  # Still not cached - slab params are never cached
+        assert not cached2  # Still not cached - slab params are never cached
         assert error2 is None
         # Values are equal because the inputs (layer E/ν/thickness) are the same,
         # not because of caching
@@ -483,7 +483,7 @@ class TestMetadataPreservation:
         class MockSnowPit:
             pass
         
-        mock_snow_pit = MockSnowPit()
+        MockSnowPit()
         
         # Create a minimal Pit (without using from_snow_pit to avoid complex dependencies)
         layer = Layer(

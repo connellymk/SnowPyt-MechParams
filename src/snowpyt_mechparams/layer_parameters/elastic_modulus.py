@@ -429,7 +429,8 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice
     # Determine the grain category and retrieve parameters
     main_grain_shape = grain_form[:2].upper()
 
-    _u = lambda val, std: ufloat(val, std if include_method_uncertainty else 0.0)
+    def _u(val, std):
+        return ufloat(val, std if include_method_uncertainty else 0.0)
     if main_grain_shape in ['DF', 'RG']:
       A = _u(0.40, 0.3)
       n = _u(4.6, 0.6)

@@ -213,9 +213,10 @@ class Graph:
     """
     nodes: List[Node] = field(default_factory=list)
     edges: List[Edge] = field(default_factory=list)
+    _node_index: Dict[str, Node] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self) -> None:
-        """Validate graph consistency."""
+        """Validate graph consistency and build node index."""
         # Check that all edges reference valid nodes
         node_ids = {id(node) for node in self.nodes}
         for edge in self.edges:
@@ -227,6 +228,9 @@ class Graph:
                 raise ValueError(
                     f"Edge references node not in graph: {edge.end}"
                 )
+        # Build O(1) lookup index
+        for node in self.nodes:
+            self._node_index[node.parameter] = node
     
     @property
     def layer_params(self) -> FrozenSet[str]:
@@ -297,10 +301,7 @@ class Graph:
         ...     print(f"Found {node.type} node")
         Found parameter node
         """
-        for node in self.nodes:
-            if node.parameter == parameter:
-                return node
-        return None
+        return self._node_index.get(parameter)
     
     def add_node(self, node: Node) -> None:
         """
@@ -317,6 +318,7 @@ class Graph:
         """
         if node not in self.nodes:
             self.nodes.append(node)
+            self._node_index[node.parameter] = node
     
     def add_edge(self, edge: Edge) -> None:
         """

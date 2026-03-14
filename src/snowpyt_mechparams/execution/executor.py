@@ -53,6 +53,7 @@ The density cache persists across pathway executions for the same slab but is
 cleared when moving to a new slab via clear_cache().
 """
 
+from dataclasses import replace
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from snowpyt_mechparams.algorithm import Parameterization
@@ -188,15 +189,12 @@ class PathwayExecutor:
         # Build result layers using copy-on-write pattern
         # Only copy layers that need modification
         result_layers: List[Layer] = []
+        needs_computation = any(param in methods_used for param in execution_order)
 
         for layer_idx, original_layer in enumerate(slab.layers):
-            # Check if this layer needs any computation
-            needs_computation = any(param in methods_used for param in execution_order)
-            
             if needs_computation:
                 # This layer needs computation - create a shallow copy
                 # (Using dataclass replace is faster than deepcopy)
-                from dataclasses import replace
                 working_layer = replace(original_layer)
                 
                 # Execute computations on this layer
@@ -239,7 +237,6 @@ class PathwayExecutor:
         # Create result slab with computed layers
         # Use dataclasses.replace to preserve all slab attributes (metadata, weak_layer, etc.)
         # while only updating the layers list
-        from dataclasses import replace
         result_slab = replace(slab, layers=result_layers)
 
         # Execute slab-level calculations only when the target is a slab parameter.
@@ -678,7 +675,36 @@ class PathwayExecutor:
             layer.thickness is not None for layer in slab.layers
         )
 
-        if target_parameter in SLAB_PARAMS:
+        if target_parameter == "A55":
+            can_compute = (
+                all_layers_have_thickness and
+                all(layer.shear_modulus is not None for layer in slab.layers)
+            )
+            if can_compute:
+                value, was_cached, error_msg = self._get_or_compute_slab_param(
+                    slab, "A55", "weissgraeber_rosendahl"
+                )
+                return [ComputationTrace(
+                    parameter="A55",
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=value,
+                    success=value is not None,
+                    cached=was_cached,
+                    error=error_msg
+                )]
+            else:
+                return [ComputationTrace(
+                    parameter="A55",
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=None,
+                    success=False,
+                    cached=False,
+                    error="Missing prerequisites: need G and thickness on all layers"
+                )]
+
+        elif target_parameter in SLAB_PARAMS:
             can_compute = (
                 all_layers_have_thickness and
                 all(layer.elastic_modulus is not None for layer in slab.layers) and
@@ -706,35 +732,6 @@ class PathwayExecutor:
                     success=False,
                     cached=False,
                     error="Missing prerequisites: need E, ν, and thickness on all layers"
-                )]
-
-        elif target_parameter == "A55":
-            can_compute = (
-                all_layers_have_thickness and
-                all(layer.shear_modulus is not None for layer in slab.layers)
-            )
-            if can_compute:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "A55", "weissgraeber_rosendahl"
-                )
-                return [ComputationTrace(
-                    parameter="A55",
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=value,
-                    success=value is not None,
-                    cached=was_cached,
-                    error=error_msg
-                )]
-            else:
-                return [ComputationTrace(
-                    parameter="A55",
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=None,
-                    success=False,
-                    cached=False,
-                    error="Missing prerequisites: need G and thickness on all layers"
                 )]
 
         return []

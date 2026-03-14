@@ -117,11 +117,23 @@ class TestKochleNumerical:
         assert math.isnan(result.nominal_value)
 
     def test_unsupported_grain_form_returns_nan(self):
-        """Kochle only supports RG, RC, DH, MF."""
+        """Kochle only supports RG, FC, DH, MF."""
         result = calculate_elastic_modulus(
             "kochle", density=ufloat(300.0, 0.0), grain_form="PP",
         )
         assert math.isnan(result.nominal_value)
+
+    def test_FC_rho_300(self):
+        """FC grain form (formerly broken with 'RC' typo) returns a valid result."""
+        rho = ufloat(300.0, 0.0)
+        C2 = 6.0457 / 10000.0
+        C3 = 0.011 * RHO_ICE
+        expected = 10000.0 * C2 * math.exp(C3 * 300.0 / RHO_ICE)
+        result = calculate_elastic_modulus(
+            "kochle", density=rho, grain_form="FC",
+            include_method_uncertainty=False,
+        )
+        assert result.nominal_value == pytest.approx(expected, rel=1e-3)
 
 
 # ---------------------------------------------------------------------------

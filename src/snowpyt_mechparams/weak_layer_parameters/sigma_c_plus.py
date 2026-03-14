@@ -1,4 +1,9 @@
-# Methods to calculate tensile normal strength (σ_c+) of snow
+"""Methods to calculate the tensile normal strength (σ_c+) of snow.
+
+σ_c+ is the maximum tensile stress that snow can withstand before fracture.
+It is used to assess the potential for tensile slab fracture in avalanche
+mechanics.
+"""
 
 from typing import Any
 
@@ -8,7 +13,7 @@ from uncertainties import ufloat
 from snowpyt_mechparams.constants import RHO_ICE
 
 
-def calculate_sigma_c_plus(method: str, **kwargs: Any) -> ufloat:
+def calculate_sigma_c_plus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate tensile normal strength of snow based on specified method and
     input parameters.
@@ -21,8 +26,15 @@ def calculate_sigma_c_plus(method: str, **kwargs: Any) -> ufloat:
     ----------
     method : str
         Method to use for σ_c+ calculation. Available methods:
-        - 'sigrist': Uses Sigrist et al. (2005) power-law scaling relationship
+        - 'sigrist': Uses Sigrist (2006) power-law scaling relationship
           based on density
+        - 'weissgraeber_rosendahl': Reference constant from
+          Weißgraeber & Rosendahl (2023)
+    include_method_uncertainty : bool, optional
+        Whether to include the uncertainty inherent to the empirical method.
+        Default is True. Accepted for API consistency; has no effect for
+        current methods, as neither Sigrist (2006) nor Weißgraeber & Rosendahl
+        (2023) report standard errors for their parameters.
 
     **kwargs
         Method-specific parameters
@@ -133,11 +145,11 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
 
     References
     ----------
-    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for 
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
     layered snow slabs. The Cryosphere, 17(4), 1475-1496.
     https://doi.org/10.5194/tc-17-1475-2023
 
-    Sigrist, C. (2006). Measurement of fracture mechanical properties of snow 
+    Sigrist, C. (2006). Measurement of fracture mechanical properties of snow
     and application to dry snow slab avalanche release. PhD thesis, ETH Zürich.
     https://doi.org/10.3929/ethz-a-005282374
     """
@@ -155,7 +167,7 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
     if rho_val <= 0.0 or rho_val > RHO_ICE:
         return ufloat(np.nan, np.nan)
 
-    # Power-law parameters from Sigrist et al. (2005)
+    # Power-law parameters from Sigrist (2006)
     sigma_ref = 240.0  # kPa, reference tensile strength at ice density
     exponent = 2.44  # dimensionless, power-law exponent
 

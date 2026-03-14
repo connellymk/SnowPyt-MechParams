@@ -1,4 +1,8 @@
-# Methods to calculate compressive strength (σ_c-) of snow
+"""Methods to calculate the compressive strength (σ_c-) of snow.
+
+σ_c- is the maximum compressive stress that snow can withstand before collapse.
+It is particularly important for weak layers in avalanche mechanics.
+"""
 
 from typing import Any
 
@@ -8,7 +12,7 @@ from uncertainties import ufloat
 from snowpyt_mechparams.constants import RHO_ICE
 
 
-def calculate_sigma_c_minus(method: str, **kwargs: Any) -> ufloat:
+def calculate_sigma_c_minus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate compressive strength of snow based on specified method and
     input parameters.
@@ -21,10 +25,16 @@ def calculate_sigma_c_minus(method: str, **kwargs: Any) -> ufloat:
     ----------
     method : str
         Method to use for σ_c- calculation. Available methods:
-        - 'reiweger': Uses Reiweger et al. (2015) reference value for weak 
+        - 'reiweger': Uses Reiweger et al. (2015) reference value for weak
           layers under rapid loading
         - 'mellor': Uses Mellor (1975) power-law scaling relationship based
           on density (for general snow)
+        - 'weissgraeber_rosendahl': Reference constant from
+          Weißgraeber & Rosendahl (2023)
+    include_method_uncertainty : bool, optional
+        Whether to include the uncertainty inherent to the empirical method.
+        Default is True. Accepted for API consistency; has no effect for
+        current methods, as none report standard errors for their parameters.
 
     **kwargs
         Method-specific parameters
@@ -61,12 +71,16 @@ def _calculate_sigma_c_minus_reiweger(density: ufloat = None) -> ufloat:
     layers under rapid loading conditions, as cited in Weißgraeber & Rosendahl
     (2023) for visualization of principal stresses in weak layers.
 
+    Note: This method returns the same value (2.6 kPa) as the
+    ``'weissgraeber_rosendahl'`` method. Both trace to Reiweger et al. (2015)
+    as the original source.
+
     Parameters
     ----------
     density : ufloat, optional
-        Snow density (ρ) in kg/m³ with associated uncertainty. This parameter
-        is accepted for API consistency but not used in the calculation, as
-        the Reiweger et al. (2015) reference provides a single value.
+        Snow density (ρ) in kg/m³ with associated uncertainty. Accepted for
+        API consistency but not used in the calculation, as the Reiweger et al.
+        (2015) reference provides a single constant value.
 
     Returns
     -------
@@ -102,12 +116,12 @@ def _calculate_sigma_c_minus_reiweger(density: ufloat = None) -> ufloat:
 
     References
     ----------
-    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for 
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
     layered snow slabs. The Cryosphere, 17(4), 1475-1496.
     https://doi.org/10.5194/tc-17-1475-2023
 
-    Reiweger, I., Gaume, J., & Schweizer, J. (2015). A new mixed-mode failure 
-    criterion for weak snowpack layers. Geophysical Research Letters, 42, 
+    Reiweger, I., Gaume, J., & Schweizer, J. (2015). A new mixed-mode failure
+    criterion for weak snowpack layers. Geophysical Research Letters, 42,
     1427-1432.
     https://doi.org/10.1002/2014GL062780
     """
@@ -124,9 +138,9 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     relationship.
 
     This method uses an empirical power-law relationship between snow density
-    and compressive strength, based on extensive experimental data compiled
-    by Mellor (1975). This relationship is more general than the Reuter et al.
-    (2015) weak layer value and can be applied to a range of snow types.
+    and compressive strength, based on experimental data compiled by Mellor
+    (1975). This relationship is more general than the Reiweger et al. (2015)
+    weak-layer value and can be applied to a range of snow types.
 
     Parameters
     ----------
@@ -152,13 +166,15 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     - C is a reference strength coefficient [kPa]
     - n is the power-law exponent [dimensionless]
 
-    For compressive strength, typical values from literature are:
-    - C ≈ 3000-10000 kPa (varies with loading rate and snow type)
-    - n ≈ 2.0-3.0 (commonly around 2.5)
+    This implementation uses representative values for rapid loading:
+    - C = 5000 kPa
+    - n = 2.5
 
-    This implementation uses:
-    - C = 5000 kPa (intermediate value for rapid loading)
-    - n = 2.5 (typical exponent from literature)
+    These values are approximate and broadly consistent with the range
+    reported by Mellor (1975) (C ≈ 3000–10000 kPa, n ≈ 2.0–3.0 depending
+    on loading rate and snow type). They are not tabulated directly in
+    Mellor (1975); users requiring a more precise source should refer to
+    the compilation in Shapiro et al. (1997).
 
     Physical Interpretation:
     - Compressive strength increases strongly with density
@@ -179,8 +195,8 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     - Does not account for grain type, bonding, or microstructure explicitly
     - Does not account for temperature effects
     - Assumes isotropic strength (no directional dependence)
-    - Parameters (C, n) are approximate and may need adjustment for specific
-      snow types or loading conditions
+    - Parameters (C, n) are representative approximations; actual values vary
+      with loading conditions and snow type
     - Valid range depends on original experimental data (typically 50-500 kg/m³)
 
     References
@@ -207,9 +223,7 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     if rho_val <= 0.0 or rho_val > RHO_ICE:
         return ufloat(np.nan, np.nan)
 
-    # Power-law parameters (approximate values for rapid loading)
-    # Note: These are representative values; actual values vary with
-    # loading rate, temperature, and snow type
+    # Representative power-law parameters for rapid loading (see Notes)
     C = 5000.0  # kPa, reference compressive strength coefficient
     n = 2.5  # dimensionless, power-law exponent
 
@@ -226,6 +240,9 @@ def _calculate_sigma_c_minus_weissgraeber_rosendahl() -> ufloat:
 
     This is also the built-in default used by WEAC
     (``WeakLayer.sigma_comp = 2.6``).
+
+    Note: This method returns the same value (2.6 kPa) as the ``'reiweger'``
+    method. Both trace to Reiweger et al. (2015) as the original source.
 
     Returns
     -------

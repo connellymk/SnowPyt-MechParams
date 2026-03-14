@@ -32,8 +32,6 @@ LayerAccumulator = Callable[
 def integrate_plane_strain_over_layers(
     slab: Slab,
     accumulate: LayerAccumulator,
-    *,
-    needs_z_coords: bool = True,
 ) -> ufloat:
     """Validate *slab*, iterate its layers, and accumulate a weighted sum.
 
@@ -54,12 +52,9 @@ def integrate_plane_strain_over_layers(
         Slab with ordered layers (top to bottom).
     accumulate : callable
         ``(plane_strain_modulus, z_top, z_bottom) -> contribution``.
-        For A11 (zeroth order), *z_top* and *z_bottom* can be ignored.
-    needs_z_coords : bool
-        If ``False``, z-coordinate setup is skipped and ``z_top`` / ``z_bottom``
-        are passed as ``None``. Use for A11 where only ``h_i`` matters (derived
-        from ``z_top - z_bottom`` when coords are present, but more efficient
-        when not needed).
+        For A11 (zeroth order), ``h_i = z_top - z_bottom`` gives the layer
+        thickness. For B11 (first order) and D11 (second order), the full
+        z-coordinates are used directly.
 
     Returns
     -------
@@ -70,15 +65,14 @@ def integrate_plane_strain_over_layers(
         logger.debug("integrate_plane_strain_over_layers: slab has no layers")
         return ufloat(np.nan, np.nan)
 
-    # z-coordinate setup (only for B11, D11)
-    if needs_z_coords:
-        total_thickness = slab.total_thickness
-        if total_thickness is None:
-            logger.debug("integrate_plane_strain_over_layers: slab total_thickness is None")
-            return ufloat(np.nan, np.nan)
-        h_total_mm = total_thickness * 10.0  # cm → mm
-        z_top_surface = h_total_mm / 2.0
-        depth_from_top = 0.0  # mm, running accumulator
+    total_thickness = slab.total_thickness
+    if total_thickness is None:
+        logger.debug("integrate_plane_strain_over_layers: slab total_thickness is None")
+        return ufloat(np.nan, np.nan)
+
+    h_total_mm = total_thickness * 10.0  # cm → mm
+    z_top_surface = h_total_mm / 2.0
+    depth_from_top = 0.0  # mm, running accumulator
 
     result = 0.0
 
@@ -111,14 +105,10 @@ def integrate_plane_strain_over_layers(
         # --- Plane-strain modulus ---
         plane_strain_modulus = E_i / (1.0 - nu_i ** 2)
 
-        # --- z-coordinates ---
-        if needs_z_coords:
-            z_top = z_top_surface - depth_from_top
-            z_bottom = z_top_surface - (depth_from_top + h_i)
-            depth_from_top += h_i
-        else:
-            z_top = None
-            z_bottom = None
+        # --- z-coordinates relative to slab centroid ---
+        z_top = z_top_surface - depth_from_top
+        z_bottom = z_top_surface - (depth_from_top + h_i)
+        depth_from_top += h_i
 
         # --- Accumulate ---
         result += accumulate(plane_strain_modulus, z_top, z_bottom)

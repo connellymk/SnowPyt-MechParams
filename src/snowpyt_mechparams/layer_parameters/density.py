@@ -1,12 +1,17 @@
-# Methods to calculate density of a layered slab if not known
+"""Methods to calculate density of a snow layer when not directly measured.
+
+Empirical parameterizations from:
+- Geldsetzer and Jamieson (2000)
+- Kim and Jamieson (2014)
+"""
 
 import logging
-import math
 from math import sqrt
 from typing import Any, cast
 
 import numpy as np
 from uncertainties import ufloat
+from uncertainties import umath
 
 from snowpyt_mechparams.models import UncertainValue
 
@@ -65,7 +70,6 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
         return _calculate_density_kim_jamieson_table2(include_method_uncertainty=include_method_uncertainty, **kwargs)
     elif method.lower() == 'kim_jamieson_table5':
         return _calculate_density_kim_jamieson_table5(include_method_uncertainty=include_method_uncertainty, **kwargs)
-
     else:
         available_methods = ['geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table5']
         raise ValueError(
@@ -107,13 +111,19 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     Standard errors from Table 3 in Geldsetzer et al. (2000) are used as
     uncertainties for density estimates.
 
+    Limitations
+    -----------
+    - For rounded grains (RG), the non-linear regression uses the standard error
+      reported for the linear regression in Table 3, because the source paper
+      does not report a separate SE for the non-linear model (Equation 5). The
+      RG uncertainty estimate should therefore be treated as approximate.
+
     References
     ----------
     Geldsetzer, T., & Jamieson, J. B. (2000). Estimating dry snow density from
     grain form and hand hardness. Proceedings of the International Snow Science
     Workshop, Big Sky, Montana, USA, 1-6 October 2000, 121-127.
     """
-
     # Validate grain form
     valid_grain_forms = ['PP', 'PPgp', 'DF', 'RG', 'RGmx', 'FC', 'FCmx', 'DH']
     if grain_form not in valid_grain_forms:
@@ -126,16 +136,14 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     h = _to_ufloat(hand_hardness_index)
 
     # Table 3: Linear regressions of density on hardness index h by groups
-    # of grain types. From Geldsetzer and Jamieson (2000)
-    # Parameters for rho = A + B*h (linear) or rho = A + B*h^x (non-linear for RG)
-    # NOTE: Parameters for RG types are from discussion of equation 5
+    # of grain types. From Geldsetzer and Jamieson (2000).
+    # Parameters for rho = A + B*h (linear) or rho = A + B*h^3.15 (non-linear for RG).
+    # SE for RG is taken from the linear regression (see Limitations in docstring).
     regression_parameters = {
         'PP': {'A': 45.0, 'B': 36.0, 'SE': 27.0, 'formula': 'linear'},
         'PPgp': {'A': 83.0, 'B': 37.0, 'SE': 42.0, 'formula': 'linear'},
         'DF': {'A': 65.0, 'B': 36.0, 'SE': 30.0, 'formula': 'linear'},
         'RG': {'A': 154.0, 'B': 1.51, 'SE': 46.0, 'formula': 'nonlinear'},
-        # NOTE: SE for nonlinear regression is not provided, SE above is from
-        # linear regression
         'RGmx': {'A': 91.0, 'B': 42.0, 'SE': 32.0, 'formula': 'linear'},
         'FC': {'A': 112.0, 'B': 46.0, 'SE': 43.0, 'formula': 'linear'},
         'FCmx': {'A': 56.0, 'B': 64.0, 'SE': 43.0, 'formula': 'linear'},
@@ -165,6 +173,7 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     else:
         total_std = rho.std_dev
     return ufloat(rho.nominal_value, total_std)
+
 
 def _calculate_density_kim_jamieson_table2(
     hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True
@@ -209,7 +218,6 @@ def _calculate_density_kim_jamieson_table2(
     From Hardness, and Hardness From Density, International Snow Science Workshop
     2014 Proceedings, Banff, Canada, 2014 pp.540-547.
     """
-
     # Validate grain form
     valid_grain_forms = ['PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG']
     if grain_form not in valid_grain_forms:
@@ -267,12 +275,13 @@ def _calculate_density_kim_jamieson_table2(
         # exponential automatically by encoding B as a ufloat.
         b_se = params['B_SE'] if include_method_uncertainty else 0.0
         b = ufloat(params['B'], b_se)
-        rho = a * math.e ** (b * h)
+        rho = a * umath.exp(b * h)
         total_std = rho.std_dev
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
     return ufloat(rho.nominal_value, total_std)
+
 
 def _calculate_density_kim_jamieson_table5(
     hand_hardness_index: UncertainValue, grain_form: str, grain_size: UncertainValue, include_method_uncertainty: bool = True
@@ -354,5 +363,3 @@ def _calculate_density_kim_jamieson_table5(
     else:
         total_std = rho.std_dev
     return ufloat(rho.nominal_value, total_std)
-
-

@@ -141,6 +141,4 @@ def _calculate_A11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
         h_i = z_top - z_bottom
         return plane_strain_modulus * h_i
 
-    return integrate_plane_strain_over_layers(
-        slab, _accumulate_A11, needs_z_coords=True,
-    )
+    return integrate_plane_strain_over_layers(slab, _accumulate_A11)

@@ -1,4 +1,10 @@
-# Shear stress of a snow slab from its gravitational load
+"""
+Gravitational shear stress on the weak layer from a snow slab.
+
+Reference
+---------
+Roch, A. (1966): Les déclenchements d'avalanches.  IASH Publ. 69, 182–195.
+"""
 
 import math
 
@@ -13,7 +19,9 @@ def calculate_shear_stress(slab: Slab) -> UncertainValue:
     load of the snow slab.
 
     The shear stress is the component of the slab weight acting parallel
-    to the slope: τ = Σᵢ (ρᵢ hᵢ g) × sin θ
+    to the slope (Roch, 1966):
+
+        τ = Σᵢ (ρᵢ hᵢ g) × sin θ
 
     Parameters
     ----------
@@ -25,8 +33,9 @@ def calculate_shear_stress(slab: Slab) -> UncertainValue:
     Returns
     -------
     UncertainValue
-        Shear stress in N/m². Returns ``float('nan')`` if any layer is
-        missing ``thickness`` or ``density_calculated``.
+        Shear stress in N/m².  Returns ``math.nan`` (as a plain ``float``)
+        if any layer is missing ``thickness`` or ``density_calculated``;
+        the caller should check ``math.isnan(float(result))`` before use.
     """
     g = 9.81  # m/s²
     slope_rad = slab.angle * math.pi / 180  # UFloat-compatible radians

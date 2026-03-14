@@ -62,29 +62,8 @@ except ImportError:
     _WEAC_AVAILABLE = False
 
 from snowpyt_mechparams.models import Slab
+from snowpyt_mechparams.stability_criteria._utils import _nominal
 from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
-
-
-def _nominal(v: Any) -> Optional[float]:
-    """
-    Strip ``uncertainties.UFloat`` to its nominal float value.
-
-    Parameters
-    ----------
-    v : Any
-        A ``float``, ``UFloat``, or ``None``.
-
-    Returns
-    -------
-    Optional[float]
-        ``float(v.nominal_value)`` for UFloat, ``float(v)`` for plain
-        numeric types, ``None`` if *v* is ``None``.
-    """
-    if v is None:
-        return None
-    if hasattr(v, "nominal_value"):
-        return float(v.nominal_value)
-    return float(v)
 
 
 class _WeacTimeout(Exception):
@@ -136,6 +115,8 @@ def calculate_weac_skier(
     **weak_layer_overrides
         Override individual weak-layer fracture/strength parameters passed to
         WEAC (e.g. ``G_Ic=1.0``).  These take precedence over ``slab.weac_layer``.
+        ``None`` values are silently ignored (the WEAC default for that field
+        is used instead).
 
     Returns
     -------
@@ -174,7 +155,8 @@ def calculate_weac_skier(
         return None
     wl_h_mm = wl_h * 10.0  # cm → mm
 
-    # Slab layers — all must have the four mechanical params + thickness
+    # Slab layers — all must have the four mechanical params + thickness.
+    # Both SnowPyt and WEAC order layers top (surface) → bottom; no reordering needed.
     weac_layers = []
     for layer in slab.layers:
         rho = _nominal(layer.density_calculated)
@@ -228,9 +210,10 @@ def calculate_weac_skier(
             if val is not None:
                 weac_wl_kwargs[weac_field] = val
 
-    # Caller overrides take precedence
+    # Caller overrides take precedence; None values are skipped (use WEAC default).
     for key, val in weak_layer_overrides.items():
-        weac_wl_kwargs[key] = float(val) if val is not None else val
+        if val is not None:
+            weac_wl_kwargs[key] = float(val)
 
     weac_weak_layer = WeacWeakLayer(**weac_wl_kwargs)
 
@@ -239,9 +222,10 @@ def calculate_weac_skier(
     # ------------------------------------------------------------------
 
     if segment_length is None:
+        # total_thickness cannot be None here — all layer thicknesses were
+        # validated above, so total_thickness is the sum of non-None values.
         total_h = _nominal(slab.total_thickness)
-        if total_h is None:
-            return None
+        assert total_h is not None
         L = total_h * 10.0  # cm → mm
     else:
         L = float(segment_length)
@@ -329,7 +313,7 @@ def calculate_weac_skier(
         crack_length=float(result.crack_length),
         max_dist_stress=float(result.max_dist_stress),
         min_dist_stress=float(result.min_dist_stress),
-        dist_ERR_envelope=float(result.dist_ERR_envelope),
+        max_dist_ERR_envelope=float(result.dist_ERR_envelope),
         segment_length=L,
         skier_mass=float(skier_mass),
     )

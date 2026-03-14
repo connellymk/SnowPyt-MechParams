@@ -260,7 +260,7 @@ class TestWeacSkierResultStructure:
             crack_length=0.15,
             max_dist_stress=3.5,
             min_dist_stress=-1.2,
-            dist_ERR_envelope=0.85,
+            max_dist_ERR_envelope=0.85,
             segment_length=200.0,
             skier_mass=80.0,
         )
@@ -279,13 +279,13 @@ class TestWeacSkierResultStructure:
         stable = WeacSkierResult(
             g_delta=0.5, converged=True, G_I=0.3, G_II=0.2, G_total=0.5,
             critical_skier_weight=2000.0, crack_length=0.05,
-            max_dist_stress=1.0, min_dist_stress=-0.5, dist_ERR_envelope=0.5,
+            max_dist_stress=1.0, min_dist_stress=-0.5, max_dist_ERR_envelope=0.5,
             segment_length=200.0, skier_mass=80.0,
         )
         unstable = WeacSkierResult(
             g_delta=1.2, converged=True, G_I=0.7, G_II=0.5, G_total=1.2,
             critical_skier_weight=500.0, crack_length=0.2,
-            max_dist_stress=5.0, min_dist_stress=-2.0, dist_ERR_envelope=1.2,
+            max_dist_stress=5.0, min_dist_stress=-2.0, max_dist_ERR_envelope=1.2,
             segment_length=200.0, skier_mass=80.0,
         )
         assert stable.g_delta < 1.0

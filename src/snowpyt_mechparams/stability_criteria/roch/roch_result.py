@@ -1,9 +1,11 @@
-# Result dataclass for the Roch stability criterion
+"""
+Result dataclass for the Roch stability criterion.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal, Optional
 
 from snowpyt_mechparams.models import UncertainValue
 
@@ -22,14 +24,14 @@ class RochResult:
         Gravitational shear stress τ on the weak layer [N/m²].
     tau_c : UncertainValue
         Weak layer shear strength supplied by the caller [N/m²].
-    variant : str
-        ``"natural"`` or ``"skier"``.
-    skier_stress : UncertainValue, optional
+    variant : {"natural", "skier"}
+        Which form of the criterion was evaluated.
+skier_stress : UncertainValue, optional
         Additional skier shear stress τ_sk [N/m²]. ``None`` for the
         natural variant.
     """
     stability_index: UncertainValue
     shear_stress: UncertainValue
     tau_c: UncertainValue
-    variant: str
+    variant: Literal["natural", "skier"]
     skier_stress: Optional[UncertainValue] = None

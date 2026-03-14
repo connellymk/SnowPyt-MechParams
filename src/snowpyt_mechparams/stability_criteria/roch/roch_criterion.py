@@ -1,4 +1,17 @@
-# Roch stability criterion
+"""
+Roch (1966) gravitational and skier stability criteria for snow slabs.
+
+Two variants are implemented:
+
+* **Natural** — S_r = τ_c / τ  (Roch, 1966)
+* **Skier** — S_sk = (τ_c − τ) / τ_sk  (Föhn, 1987)
+
+References
+----------
+Roch, A. (1966): Les déclenchements d'avalanches.  IASH Publ. 69, 182–195.
+Föhn, J. M. L. (1987): The stability index and various triggering mechanisms.
+    IAHS Publ. 162, 195–214.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +19,7 @@ import math
 from typing import Optional
 
 from snowpyt_mechparams.models import Slab, UncertainValue
+from snowpyt_mechparams.stability_criteria._utils import _nominal
 from snowpyt_mechparams.stability_criteria.roch.roch_result import RochResult
 from snowpyt_mechparams.stability_criteria.roch.shear_stress import calculate_shear_stress
 
@@ -28,31 +42,40 @@ def calculate_roch(
     skier_stress : UncertainValue, optional
         Additional shear stress from a skier τ_sk [N/m²].
         If ``None``, the natural terrain variant is used:
-            S_r = τ_c / τ
-        If provided, the skier variant (Föhn, 1987) is used:
+
+            S_r = τ_c / τ  (Roch, 1966)
+
+        If provided, the skier variant is used (Föhn, 1987):
+
             S_sk = (τ_c − τ) / τ_sk
 
     Returns
     -------
     Optional[RochResult]
         ``None`` if ``slab.angle`` is ``None``, any layer is missing
-        ``thickness`` or ``density_calculated``, shear stress τ is zero,
-        or (skier variant) ``skier_stress`` is zero.
+        ``thickness`` or ``density_calculated``, shear stress τ is NaN,
+        τ is zero for the natural variant (flat terrain, S_r undefined),
+        or (skier variant) ``skier_stress`` is zero or NaN.
     """
     if slab.angle is None:
         return None
 
     tau = calculate_shear_stress(slab)
-    tau_val = float(getattr(tau, 'nominal_value', tau))
-    if math.isnan(tau_val) or tau_val == 0:
+    tau_val = _nominal(tau)
+    if tau_val is None or math.isnan(tau_val):
         return None
 
     if skier_stress is None:
+        # Natural variant: S_r = τ_c / τ.  Undefined on flat terrain (τ = 0).
+        if tau_val == 0:
+            return None
         index = tau_c / tau
         variant = "natural"
     else:
-        skier_val = float(getattr(skier_stress, 'nominal_value', skier_stress))
-        if math.isnan(skier_val) or skier_val == 0:
+        # Skier variant: S_sk = (τ_c − τ) / τ_sk.
+        # τ = 0 (flat terrain) is valid here; τ_sk = 0 is not.
+        skier_val = _nominal(skier_stress)
+        if skier_val is None or math.isnan(skier_val) or skier_val == 0:
             return None
         index = (tau_c - tau) / skier_stress
         variant = "skier"

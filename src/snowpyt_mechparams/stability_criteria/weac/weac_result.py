@@ -31,15 +31,19 @@ class WeacSkierResult:
         Total energy release rate G_I + G_II [J/m²].
         Extracted from ``Analyzer(result.final_system).incremental_ERR()[0]``.
     critical_skier_weight : float
-        Skier weight at which anticrack nucleation occurs [kg].
+        Skier mass at which anticrack nucleation occurs [kg].
+        Stored as mass despite the "weight" name — this mirrors the field name
+        used by ``weac.analysis.CoupledCriterionResult.critical_skier_weight``.
     crack_length : float
         Anticrack half-length at the critical configuration [mm].
     max_dist_stress : float
         Maximum distance to the stress failure envelope (from WEAC).
     min_dist_stress : float
         Minimum distance to the stress failure envelope (from WEAC).
-    dist_ERR_envelope : float
-        Distance to the ERR envelope (from WEAC).
+    max_dist_ERR_envelope : float
+        Maximum distance to the energy release rate (ERR) failure envelope
+        (from WEAC).  Named consistently with ``max_dist_stress`` /
+        ``min_dist_stress``; WEAC's own field is ``dist_ERR_envelope``.
     segment_length : float
         Segment length used in the WEAC model [mm].
     skier_mass : float
@@ -55,6 +59,6 @@ class WeacSkierResult:
     crack_length: float
     max_dist_stress: float
     min_dist_stress: float
-    dist_ERR_envelope: float
+    max_dist_ERR_envelope: float
     segment_length: float
     skier_mass: float

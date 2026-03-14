@@ -15,8 +15,8 @@ from pathlib import Path
 src_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(src_path))
 
-from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.graph.visualize import save_mermaid_diagram, print_mermaid_diagram
+from snowpyt_mechparams.graph import graph  # noqa: E402
+from snowpyt_mechparams.graph.visualize import save_mermaid_diagram, print_mermaid_diagram  # noqa: E402
 
 
 def main() -> None:

@@ -135,6 +135,11 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.ruff.lint.per-file-ignores]
+# Notebooks and examples often have imports after setup (E402) and compact syntax (E701)
+"examples/**" = ["E402", "E701"]
+"algorithm/**" = ["E402", "E701"]
+
 [tool.coverage.run]
 source = ["src"]
 omit = [

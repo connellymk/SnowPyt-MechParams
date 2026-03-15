@@ -1,4 +1,4 @@
-# SnowPyt-MechParams Parameter Dependency Graph
+# SnowPyt-MechParams Parameter Graph
 
 ```mermaid
 graph TB
@@ -22,6 +22,15 @@ graph TB
     elastic_modulus[elastic_modulus<br/>CALCULATED]
     poissons_ratio[poissons_ratio<br/>CALCULATED]
     shear_modulus[shear_modulus<br/>CALCULATED]
+    G_c[G_c<br/>LAYER_CALC]
+    G_Ic[G_Ic<br/>LAYER_CALC]
+    G_IIc[G_IIc<br/>LAYER_CALC]
+    sigma_c[sigma_c<br/>LAYER_CALC]
+    tau_c[tau_c<br/>LAYER_CALC]
+    sigma_comp[sigma_comp<br/>LAYER_CALC]
+    g_delta[g_delta<br/>LAYER_CALC]
+    s_r[s_r<br/>LAYER_CALC]
+    s_sk[s_sk<br/>LAYER_CALC]
     
     %% Slab-level merge nodes
     zi{zi<br/>spatial info}
@@ -29,6 +38,8 @@ graph TB
     merge_zi_E_nu{merge_zi<br/>_E<br/>_nu}
     merge_hi_G{merge_hi<br/>_G}
     merge_hi_E_nu{merge_hi<br/>_E<br/>_nu}
+    merge_weac_inputs{merge_weac<br/>_inputs}
+    merge_roch_inputs{merge_roch<br/>_inputs}
     
     %% Slab parameters
     A11[A11<br/>Extensional Stiffness<br/>SLAB]
@@ -42,6 +53,12 @@ graph TB
     snow_pit --> measured_grain_form
     snow_pit --> measured_grain_size
     snow_pit --> measured_layer_thickness
+    snow_pit --> G_c
+    snow_pit --> G_Ic
+    snow_pit --> G_IIc
+    snow_pit --> sigma_c
+    snow_pit --> tau_c
+    snow_pit --> sigma_comp
     
     %% Density pathways
     measured_density --> density
@@ -92,7 +109,7 @@ graph TB
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu mergeNode
-    class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
+    class density,elastic_modulus,poissons_ratio,shear_modulus,G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp,g_delta,s_r,s_sk layerCalc
     class A11,B11,D11,A55 slabCalc
 ```

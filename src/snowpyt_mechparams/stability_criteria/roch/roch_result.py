@@ -26,7 +26,7 @@ class RochResult:
         Weak layer shear strength supplied by the caller [N/m²].
     variant : {"natural", "skier"}
         Which form of the criterion was evaluated.
-skier_stress : UncertainValue, optional
+    skier_stress : UncertainValue, optional
         Additional skier shear stress τ_sk [N/m²]. ``None`` for the
         natural variant.
     """

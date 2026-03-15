@@ -54,6 +54,7 @@ def calculate_roch(
     Optional[RochResult]
         ``None`` if ``slab.angle`` is ``None``, any layer is missing
         ``thickness`` or ``density_calculated``, shear stress τ is NaN,
+        τ is negative (counter-slope),
         τ is zero for the natural variant (flat terrain, S_r undefined),
         or (skier variant) ``skier_stress`` is zero or NaN.
     """
@@ -62,7 +63,7 @@ def calculate_roch(
 
     tau = calculate_shear_stress(slab)
     tau_val = _nominal(tau)
-    if tau_val is None or math.isnan(tau_val):
+    if tau_val is None or math.isnan(tau_val) or tau_val < 0:
         return None
 
     if skier_stress is None:

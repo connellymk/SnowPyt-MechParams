@@ -82,7 +82,6 @@ class TestKochleNumerical:
     def test_low_density_rho_200(self):
         """rho=200, E_ice=10000: C2=0.0061/10000, C3=0.0396*917."""
         rho = ufloat(200.0, 0.0)
-        ufloat(10000.0, 0.0)
         C2 = 0.0061 / 10000.0
         C3 = 0.0396 * RHO_ICE
         expected = 10000.0 * C2 * math.exp(C3 * 200.0 / RHO_ICE)

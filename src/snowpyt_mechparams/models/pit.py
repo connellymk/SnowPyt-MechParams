@@ -284,7 +284,9 @@ class Pit:
         weak_layer = None
         for layer in self.layers:
             if layer.depth_top is not None and layer.depth_bottom is not None:
-                if layer.depth_top <= failure_depth < layer.depth_bottom:
+                dt = getattr(layer.depth_top, "nominal_value", layer.depth_top)
+                db = getattr(layer.depth_bottom, "nominal_value", layer.depth_bottom)
+                if dt <= failure_depth < db:
                     weak_layer = layer
                     break
 

@@ -223,10 +223,9 @@ def calculate_weac_skier(
     # ------------------------------------------------------------------
 
     if segment_length is None:
-        # total_thickness cannot be None here — all layer thicknesses were
-        # validated above, so total_thickness is the sum of non-None values.
         total_h = _nominal(slab.total_thickness)
-        assert total_h is not None
+        if total_h is None:
+            return None
         L = total_h * 10.0  # cm → mm
     else:
         L = float(segment_length)

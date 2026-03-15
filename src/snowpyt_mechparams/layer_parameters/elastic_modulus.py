@@ -430,7 +430,7 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice
 
     rho_snow = density  # kg/m³, input
 
-    def _u(val, std):
+    def _u(val: float, std: float) -> ufloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
     if main_grain_shape in ['DF', 'RG']:

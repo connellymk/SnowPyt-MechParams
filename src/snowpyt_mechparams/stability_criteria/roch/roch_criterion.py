@@ -16,7 +16,7 @@ Föhn, J. M. L. (1987): The stability index and various triggering mechanisms.
 from __future__ import annotations
 
 import math
-from typing import Optional
+from typing import Literal, Optional
 
 from snowpyt_mechparams.models import Slab, UncertainValue
 from snowpyt_mechparams.stability_criteria._utils import _nominal
@@ -71,7 +71,7 @@ def calculate_roch(
         if tau_val == 0:
             return None
         index = tau_c / tau
-        variant = "natural"
+        variant: Literal["natural", "skier"] = "natural"
     else:
         # Skier variant: S_sk = (τ_c − τ) / τ_sk.
         # τ = 0 (flat terrain) is valid here; τ_sk = 0 is not.

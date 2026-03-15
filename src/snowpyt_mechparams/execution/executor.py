@@ -822,7 +822,7 @@ class PathwayExecutor:
         method = methods_used.get(target_parameter, "weac_skier")
 
         extra: Dict[str, Any] = {}
-        if config.weac_timeout_seconds is not None:
+        if target_parameter == "g_delta" and config.weac_timeout_seconds is not None:
             extra["timeout_seconds"] = config.weac_timeout_seconds
 
         result, error = self.dispatcher.execute(
@@ -834,9 +834,18 @@ class PathwayExecutor:
 
         trace_output: Any = None
         if result is not None:
-            slab.weac_result = result
-            # Expose the primary scalar metric in the trace for readability.
-            trace_output = getattr(result, "g_delta", result)
+            if target_parameter == "g_delta":
+                slab.weac_result = result
+                # Expose the primary scalar metric in the trace for readability.
+                trace_output = getattr(result, "g_delta", result)
+            elif target_parameter == "s_r":
+                slab.roch_result = result
+                trace_output = getattr(result, "stability_index", result)
+            elif target_parameter == "s_sk":
+                slab.roch_skier_result = result
+                trace_output = getattr(result, "stability_index", result)
+            else:
+                trace_output = result
 
         return [ComputationTrace(
             parameter=target_parameter,

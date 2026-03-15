@@ -30,6 +30,12 @@ from snowpyt_mechparams.weak_layer_parameters.tau_c import calculate_tau_c
 from snowpyt_mechparams.weak_layer_parameters.sigma_c_plus import calculate_sigma_c_plus
 from snowpyt_mechparams.weak_layer_parameters.sigma_c_minus import calculate_sigma_c_minus
 from snowpyt_mechparams.stability_criteria.weac import calculate_weac_skier
+from snowpyt_mechparams.stability_criteria.roch import calculate_roch
+from snowpyt_mechparams.constants import STANDARD_SKIER_MASS_KG, STANDARD_SKI_CONTACT_AREA_M2
+
+# Standard skier shear stress for the Roch skier criterion:
+# τ_sk = m × g / A_contact  ≈ 80 × 9.81 / 0.65 ≈ 1206 N/m²
+_ROCH_SKIER_STRESS_N_M2: float = STANDARD_SKIER_MASS_KG * 9.81 / STANDARD_SKI_CONTACT_AREA_M2
 
 
 class ParameterLevel(Enum):
@@ -487,6 +493,41 @@ class MethodDispatcher:
             method_name="weac_skier",
             level=ParameterLevel.STABILITY,
             function=lambda slab, **kwargs: calculate_weac_skier(slab, **kwargs),
+            required_inputs=["slab"],
+            optional_inputs={}
+        ))
+
+        # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
+        # Requires slab with density_calculated on all layers and slab.weac_layer.tau_c set.
+        # Unit conversion: slab.weac_layer.tau_c is stored in kPa; calculate_roch expects N/m².
+        self._register(MethodSpec(
+            parameter="s_r",
+            method_name="roch_natural",
+            level=ParameterLevel.STABILITY,
+            function=lambda slab: (
+                None
+                if slab.weac_layer is None or slab.weac_layer.tau_c is None
+                else calculate_roch(slab, tau_c=slab.weac_layer.tau_c * 1000)
+            ),
+            required_inputs=["slab"],
+            optional_inputs={}
+        ))
+
+        # s_sk - Roch skier criterion (Föhn, 1987): S_sk = (τ_c − τ) / τ_sk
+        # τ_sk = STANDARD_SKIER_MASS_KG × g / STANDARD_SKI_CONTACT_AREA_M2 ≈ 1206 N/m²
+        self._register(MethodSpec(
+            parameter="s_sk",
+            method_name="roch_skier",
+            level=ParameterLevel.STABILITY,
+            function=lambda slab: (
+                None
+                if slab.weac_layer is None or slab.weac_layer.tau_c is None
+                else calculate_roch(
+                    slab,
+                    tau_c=slab.weac_layer.tau_c * 1000,
+                    skier_stress=_ROCH_SKIER_STRESS_N_M2,
+                )
+            ),
             required_inputs=["slab"],
             optional_inputs={}
         ))

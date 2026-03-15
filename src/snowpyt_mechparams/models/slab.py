@@ -9,6 +9,7 @@ from snowpyt_mechparams.models.weak_layer import WeakLayer
 
 if TYPE_CHECKING:
     from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
+    from snowpyt_mechparams.stability_criteria.roch.roch_result import RochResult
 
 
 @dataclass
@@ -84,7 +85,9 @@ class Slab:
     D11: Optional[UncertainValue] = None  # N*mm - Bending stiffness
 
     # Stability Criterion Results (populated by execution engine)
-    weac_result: Optional["WeacSkierResult"] = None  # Full result from WEAC skier criterion
+    weac_result: Optional["WeacSkierResult"] = None        # Full result from WEAC skier criterion
+    roch_result: Optional["RochResult"] = None             # Roch natural criterion (S_r = τ_c / τ)
+    roch_skier_result: Optional["RochResult"] = None       # Roch skier criterion (S_sk = (τ_c − τ) / τ_sk)
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""

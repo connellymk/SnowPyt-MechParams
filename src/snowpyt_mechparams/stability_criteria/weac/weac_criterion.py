@@ -61,6 +61,7 @@ try:
 except ImportError:
     _WEAC_AVAILABLE = False
 
+from snowpyt_mechparams.constants import STANDARD_SKIER_MASS_KG
 from snowpyt_mechparams.models import Slab
 from snowpyt_mechparams.stability_criteria._utils import _nominal
 from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
@@ -76,7 +77,7 @@ def _sigalrm_handler(signum: int, frame: object) -> None:  # noqa: ARG001
 
 def calculate_weac_skier(
     slab: Slab,
-    skier_mass: float = 80.0,
+    skier_mass: float = STANDARD_SKIER_MASS_KG,
     segment_length: Optional[float] = None,
     timeout_seconds: Optional[float] = None,
     **weak_layer_overrides: Any,

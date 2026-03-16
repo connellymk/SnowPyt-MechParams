@@ -22,15 +22,6 @@ graph TB
     elastic_modulus[elastic_modulus<br/>CALCULATED]
     poissons_ratio[poissons_ratio<br/>CALCULATED]
     shear_modulus[shear_modulus<br/>CALCULATED]
-    G_c[G_c<br/>LAYER_CALC]
-    G_Ic[G_Ic<br/>LAYER_CALC]
-    G_IIc[G_IIc<br/>LAYER_CALC]
-    sigma_c[sigma_c<br/>LAYER_CALC]
-    tau_c[tau_c<br/>LAYER_CALC]
-    sigma_comp[sigma_comp<br/>LAYER_CALC]
-    g_delta[g_delta<br/>LAYER_CALC]
-    s_r[s_r<br/>LAYER_CALC]
-    s_sk[s_sk<br/>LAYER_CALC]
     
     %% Slab-level merge nodes
     zi{zi<br/>spatial info}
@@ -38,8 +29,6 @@ graph TB
     merge_zi_E_nu{merge_zi<br/>_E<br/>_nu}
     merge_hi_G{merge_hi<br/>_G}
     merge_hi_E_nu{merge_hi<br/>_E<br/>_nu}
-    merge_weac_inputs{merge_weac<br/>_inputs}
-    merge_roch_inputs{merge_roch<br/>_inputs}
     
     %% Slab parameters
     A11[A11<br/>Extensional Stiffness<br/>SLAB]
@@ -47,45 +36,67 @@ graph TB
     D11[D11<br/>Bending Stiffness<br/>SLAB]
     A55[A55<br/>Shear Stiffness<br/>SLAB]
     
-    %% Snow pit to measured parameters (data flow)
+    %% Weak-layer parameters
+    G_c[G_c<br/>WEAK_LAYER_CALC]
+    G_Ic[G_Ic<br/>WEAK_LAYER_CALC]
+    G_IIc[G_IIc<br/>WEAK_LAYER_CALC]
+    sigma_c[sigma_c<br/>WEAK_LAYER_CALC]
+    tau_c[tau_c<br/>WEAK_LAYER_CALC]
+    sigma_comp[sigma_comp<br/>WEAK_LAYER_CALC]
+    
+    %% Stability merge nodes
+    merge_weac_inputs{merge_weac<br/>_inputs}
+    merge_roch_inputs{merge_roch<br/>_inputs}
+    
+    %% Stability model outputs
+    g_delta[g_delta<br/>STABILITY_CALC]
+    s_r[s_r<br/>STABILITY_CALC]
+    s_sk[s_sk<br/>STABILITY_CALC]
+    
+    %% All parameter relationships
     snow_pit --> measured_density
     snow_pit --> measured_hand_hardness
     snow_pit --> measured_grain_form
     snow_pit --> measured_grain_size
     snow_pit --> measured_layer_thickness
-    snow_pit --> G_c
-    snow_pit --> G_Ic
-    snow_pit --> G_IIc
-    snow_pit --> sigma_c
-    snow_pit --> tau_c
-    snow_pit --> sigma_comp
-    
-    %% Density pathways
     measured_density --> density
-    merge_hand_hardness_grain_form -->|geldsetzer| density
-    merge_hand_hardness_grain_form -->|kim_jamieson_table2| density
-    merge_hand_hardness_grain_form_grain_size -->|kim_jamieson_table5| density
     measured_hand_hardness --> merge_hand_hardness_grain_form
     measured_grain_form --> merge_hand_hardness_grain_form
+    merge_hand_hardness_grain_form -->|geldsetzer| density
+    merge_hand_hardness_grain_form -->|kim_jamieson_table2| density
     merge_hand_hardness_grain_form --> merge_hand_hardness_grain_form_grain_size
     measured_grain_size --> merge_hand_hardness_grain_form_grain_size
-    
-    %% Elastic modulus pathways
+    merge_hand_hardness_grain_form_grain_size -->|kim_jamieson_table5| density
     density --> merge_density_grain_form
     measured_grain_form --> merge_density_grain_form
     merge_density_grain_form -->|bergfeld| elastic_modulus
     merge_density_grain_form -->|kochle| elastic_modulus
     merge_density_grain_form -->|wautier| elastic_modulus
     merge_density_grain_form -->|schottner| elastic_modulus
-    
-    %% Poisson's ratio pathways
     measured_grain_form -->|kochle| poissons_ratio
     merge_density_grain_form -->|srivastava| poissons_ratio
-    
-    %% Shear modulus pathways
     merge_density_grain_form -->|wautier| shear_modulus
-    
-    %% Slab-level calculations
+    snow_pit -->|weissgraeber_rosendahl| G_c
+    snow_pit -->|weissgraeber_rosendahl| G_Ic
+    snow_pit -->|weissgraeber_rosendahl| G_IIc
+    snow_pit -->|weissgraeber_rosendahl| sigma_c
+    snow_pit -->|weissgraeber_rosendahl| tau_c
+    snow_pit -->|weissgraeber_rosendahl| sigma_comp
+    density --> merge_weac_inputs
+    elastic_modulus --> merge_weac_inputs
+    poissons_ratio --> merge_weac_inputs
+    shear_modulus --> merge_weac_inputs
+    G_c --> merge_weac_inputs
+    G_Ic --> merge_weac_inputs
+    G_IIc --> merge_weac_inputs
+    sigma_c --> merge_weac_inputs
+    tau_c --> merge_weac_inputs
+    sigma_comp --> merge_weac_inputs
+    merge_weac_inputs -->|weac_skier| g_delta
+    density --> merge_roch_inputs
+    tau_c --> merge_roch_inputs
+    merge_roch_inputs -->|roch_natural| s_r
+    merge_roch_inputs -->|roch_skier| s_sk
     measured_layer_thickness --> zi
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
@@ -106,10 +117,14 @@ graph TB
     classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
     classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
+    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
     class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
-    class density,elastic_modulus,poissons_ratio,shear_modulus,G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp,g_delta,s_r,s_sk layerCalc
+    class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
+    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
+    class g_delta,s_r,s_sk stabilityCalc
 ```

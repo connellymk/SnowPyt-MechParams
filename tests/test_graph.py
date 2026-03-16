@@ -286,7 +286,7 @@ class TestGraphDispatcherConsistency:
     """Verify every method edge in the graph has a matching dispatcher registration."""
 
     def test_all_graph_method_edges_have_dispatcher_entries(self):
-        """Every method_edge in definitions.py must map to a MethodDispatcher key.
+        """Every method_edge in parameter_graph.py must map to a MethodDispatcher key.
 
         This catches typos in method names that would silently create broken
         graph edges (the pathway would be discovered but execution would fail
@@ -308,7 +308,7 @@ class TestGraphDispatcherConsistency:
         assert missing == [], (
             f"Graph method edges without dispatcher registration: {missing}. "
             "Either register the method in MethodDispatcher._register_all_methods() "
-            "or fix the method name in graph/definitions.py."
+            "or fix the method name in graph/parameter_graph.py."
         )
 
     def test_all_dispatcher_entries_have_graph_edges(self):
@@ -334,9 +334,87 @@ class TestGraphDispatcherConsistency:
 
         assert stale == set(), (
             f"Dispatcher registrations without corresponding graph edges: {stale}. "
-            "Either add the edge to graph/definitions.py or remove the "
+            "Either add the edge to graph/parameter_graph.py or remove the "
             "stale dispatcher registration."
         )
+
+
+class TestWeakLayerNodes:
+    """Test weak-layer fracture/strength parameter nodes."""
+
+    def test_weak_layer_nodes_exist(self):
+        """All weak-layer parameter nodes should exist with correct level."""
+        for param in ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]:
+            node = graph.get_node(param)
+            assert node is not None, f"Node {param} not found"
+            assert node.level == "weak_layer", f"{param} has wrong level: {node.level}"
+
+    def test_weak_layer_nodes_have_weissgraeber_rosendahl_method(self):
+        """All weak-layer nodes should use the weissgraeber_rosendahl method."""
+        for param in ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]:
+            node = graph.get_node(param)
+            methods = [e.method_name for e in node.incoming_edges if e.method_name]
+            assert "weissgraeber_rosendahl" in methods, \
+                f"{param} missing weissgraeber_rosendahl method"
+
+    def test_WEAK_LAYER_PARAMS_contains_expected(self):
+        """WEAK_LAYER_PARAMS frozenset should contain exactly the 6 weak-layer nodes."""
+        from snowpyt_mechparams.graph.parameter_graph import WEAK_LAYER_PARAMS
+        assert WEAK_LAYER_PARAMS == {"G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"}
+
+    def test_merge_weac_inputs_has_correct_inputs(self):
+        """merge_weac_inputs should aggregate all 10 WEAC prerequisite nodes."""
+        node = graph.get_node("merge_weac_inputs")
+        assert node is not None
+        assert node.type == "merge"
+        inputs = {e.start.parameter for e in node.incoming_edges}
+        for expected in ["density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+                         "G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]:
+            assert expected in inputs, f"merge_weac_inputs missing input: {expected}"
+
+
+class TestStabilityNodes:
+    """Test stability model output nodes."""
+
+    def test_stability_nodes_exist(self):
+        """All stability output nodes should exist with correct level."""
+        for param in ["g_delta", "s_r", "s_sk"]:
+            node = graph.get_node(param)
+            assert node is not None, f"Node {param} not found"
+            assert node.level == "stability_model", \
+                f"{param} has wrong level: {node.level}"
+
+    def test_g_delta_uses_weac_skier(self):
+        """g_delta should use the weac_skier method."""
+        node = graph.get_node("g_delta")
+        methods = [e.method_name for e in node.incoming_edges if e.method_name]
+        assert "weac_skier" in methods
+
+    def test_s_r_uses_roch_natural(self):
+        """s_r should use the roch_natural method."""
+        node = graph.get_node("s_r")
+        methods = [e.method_name for e in node.incoming_edges if e.method_name]
+        assert "roch_natural" in methods
+
+    def test_s_sk_uses_roch_skier(self):
+        """s_sk should use the roch_skier method."""
+        node = graph.get_node("s_sk")
+        methods = [e.method_name for e in node.incoming_edges if e.method_name]
+        assert "roch_skier" in methods
+
+    def test_STABILITY_PARAMS_contains_expected(self):
+        """STABILITY_PARAMS frozenset should contain exactly the 3 stability nodes."""
+        from snowpyt_mechparams.graph.parameter_graph import STABILITY_PARAMS
+        assert STABILITY_PARAMS == {"g_delta", "s_r", "s_sk"}
+
+    def test_merge_roch_inputs_has_correct_inputs(self):
+        """merge_roch_inputs should have density and tau_c as inputs."""
+        node = graph.get_node("merge_roch_inputs")
+        assert node is not None
+        assert node.type == "merge"
+        inputs = {e.start.parameter for e in node.incoming_edges}
+        assert "density" in inputs
+        assert "tau_c" in inputs
 
 
 if __name__ == "__main__":

@@ -75,6 +75,23 @@ from snowpyt_mechparams.graph.parameter_graph import (
     B11,
     D11,
     A55,
+    # Weak-layer fracture/strength parameters
+    G_c,
+    G_Ic,
+    G_IIc,
+    sigma_c,
+    tau_c,
+    sigma_comp,
+    # Stability model parameters
+    g_delta,
+    s_r,
+    s_sk,
+    # Merge nodes
+    merge_weac_inputs,
+    merge_roch_inputs,
+    # Parameter classification sets
+    WEAK_LAYER_PARAMS,
+    STABILITY_PARAMS,
 )
 
 from snowpyt_mechparams.graph.visualize import (
@@ -111,6 +128,23 @@ __all__ = [
     "B11",
     "D11",
     "A55",
+    # Weak-layer fracture/strength parameters
+    "G_c",
+    "G_Ic",
+    "G_IIc",
+    "sigma_c",
+    "tau_c",
+    "sigma_comp",
+    # Stability model parameters
+    "g_delta",
+    "s_r",
+    "s_sk",
+    # Merge nodes
+    "merge_weac_inputs",
+    "merge_roch_inputs",
+    # Parameter classification sets
+    "WEAK_LAYER_PARAMS",
+    "STABILITY_PARAMS",
     # Visualization
     "generate_mermaid_diagram",
     "save_mermaid_diagram",

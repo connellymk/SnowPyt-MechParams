@@ -63,8 +63,12 @@ def _classify_node(node: Node) -> str:
         return "slab_calc"
     if node.level == "layer":
         return "layer_calc"
-    
-    # Default to layer_calc for any untagged parameter nodes
+    if node.level == "weak_layer":
+        return "weak_layer_calc"
+    if node.level == "stability_model":
+        return "stability_calc"
+
+    # Default fallthrough for special untagged nodes
     return "layer_calc"
 
 
@@ -191,6 +195,8 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
         "merge": [],
         "layer_calc": [],
         "slab_calc": [],
+        "weak_layer_calc": [],
+        "stability_calc": [],
     }
     
     for node in graph.nodes:
@@ -235,8 +241,10 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
     
     lines.append("    ")
     lines.append("    %% Slab-level merge nodes")
-    slab_merges = [n for n in node_categories["merge"] 
-                   if n not in layer_merges]
+    stability_merges = [n for n in node_categories["merge"]
+                        if n.parameter in {"merge_weac_inputs", "merge_roch_inputs"}]
+    slab_merges = [n for n in node_categories["merge"]
+                   if n not in layer_merges and n not in stability_merges]
     for node in slab_merges:
         node_id = _sanitize_node_id(node.parameter)
         label = _get_node_label(node)
@@ -250,103 +258,42 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
         label = _get_node_label(node)
         open_shape, close_shape = _get_node_shape(node)
         lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    # Generate edges
+
     lines.append("    ")
-    lines.append("    %% Snow pit to measured parameters (data flow)")
-    snow_pit_edges = [e for e in graph.edges 
-                      if e.start.parameter == "snow_pit"]
-    for edge in snow_pit_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        lines.append(f"    {start_id} --> {end_id}")
-    
+    lines.append("    %% Weak-layer parameters")
+    for node in node_categories["weak_layer_calc"]:
+        node_id = _sanitize_node_id(node.parameter)
+        label = _get_node_label(node)
+        open_shape, close_shape = _get_node_shape(node)
+        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
+
     lines.append("    ")
-    lines.append("    %% Density pathways")
-    density_edges = [e for e in graph.edges 
-                     if (e.end.parameter == "density" and 
-                         e.start.parameter != "snow_pit")]
-    for edge in density_edges:
+    lines.append("    %% Stability merge nodes")
+    for node in stability_merges:
+        node_id = _sanitize_node_id(node.parameter)
+        label = _get_node_label(node)
+        open_shape, close_shape = _get_node_shape(node)
+        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
+
+    lines.append("    ")
+    lines.append("    %% Stability model outputs")
+    for node in node_categories["stability_calc"]:
+        node_id = _sanitize_node_id(node.parameter)
+        label = _get_node_label(node)
+        open_shape, close_shape = _get_node_shape(node)
+        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
+
+    # Generate edges — one generic pass renders every edge exactly once
+    lines.append("    ")
+    lines.append("    %% All parameter relationships")
+    for edge in graph.edges:
         start_id = _sanitize_node_id(edge.start.parameter)
         end_id = _sanitize_node_id(edge.end.parameter)
         if edge.method_name:
             lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
         else:
             lines.append(f"    {start_id} --> {end_id}")
-    
-    # Add edges to density merge nodes
-    density_merge_edges = [e for e in graph.edges
-                          if e.end.parameter in {"merge_hand_hardness_grain_form",
-                                                "merge_hand_hardness_grain_form_grain_size"}]
-    for edge in density_merge_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Elastic modulus pathways")
-    # Edges to merge_density_grain_form
-    merge_d_gf_in = [e for e in graph.edges 
-                     if e.end.parameter == "merge_density_grain_form"]
-    for edge in merge_d_gf_in:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        lines.append(f"    {start_id} --> {end_id}")
-    
-    # Edges from merge_density_grain_form to elastic_modulus
-    elastic_edges = [e for e in graph.edges 
-                     if (e.end.parameter == "elastic_modulus" and 
-                         e.start.parameter == "merge_density_grain_form")]
-    for edge in elastic_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Poisson's ratio pathways")
-    poisson_edges = [e for e in graph.edges 
-                     if e.end.parameter == "poissons_ratio"]
-    for edge in poisson_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Shear modulus pathways")
-    shear_edges = [e for e in graph.edges 
-                   if e.end.parameter == "shear_modulus"]
-    for edge in shear_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Slab-level calculations")
-    slab_edges = [e for e in graph.edges
-                  if (e.start.parameter in {"measured_layer_thickness", "elastic_modulus", 
-                                           "poissons_ratio", "shear_modulus",
-                                           "zi", "merge_E_nu", "merge_zi_E_nu",
-                                           "merge_hi_G", "merge_hi_E_nu"} and
-                      e.end.parameter in {"zi", "merge_E_nu", "merge_zi_E_nu",
-                                         "merge_hi_G", "merge_hi_E_nu",
-                                         "A11", "B11", "D11", "A55"})]
-    for edge in slab_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
+
     # Add styling
     lines.append("    ")
     lines.append("    %% Styling")
@@ -355,28 +302,38 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
     lines.append("    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px")
     lines.append("    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px")
     lines.append("    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px")
+    lines.append("    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px")
+    lines.append("    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px")
     lines.append("    ")
-    
+
     # Apply styles to nodes
     if node_categories["root"]:
         root_ids = [_sanitize_node_id(n.parameter) for n in node_categories["root"]]
         lines.append(f"    class {','.join(root_ids)} rootNode")
-    
+
     if node_categories["measured"]:
         measured_ids = [_sanitize_node_id(n.parameter) for n in node_categories["measured"]]
         lines.append(f"    class {','.join(measured_ids)} measuredNode")
-    
+
     if node_categories["merge"]:
         merge_ids = [_sanitize_node_id(n.parameter) for n in node_categories["merge"]]
         lines.append(f"    class {','.join(merge_ids)} mergeNode")
-    
+
     if node_categories["layer_calc"]:
         layer_ids = [_sanitize_node_id(n.parameter) for n in node_categories["layer_calc"]]
         lines.append(f"    class {','.join(layer_ids)} layerCalc")
-    
+
     if node_categories["slab_calc"]:
         slab_ids = [_sanitize_node_id(n.parameter) for n in node_categories["slab_calc"]]
         lines.append(f"    class {','.join(slab_ids)} slabCalc")
+
+    if node_categories["weak_layer_calc"]:
+        wl_ids = [_sanitize_node_id(n.parameter) for n in node_categories["weak_layer_calc"]]
+        lines.append(f"    class {','.join(wl_ids)} weakLayerCalc")
+
+    if node_categories["stability_calc"]:
+        stab_ids = [_sanitize_node_id(n.parameter) for n in node_categories["stability_calc"]]
+        lines.append(f"    class {','.join(stab_ids)} stabilityCalc")
     
     lines.append("```")
     

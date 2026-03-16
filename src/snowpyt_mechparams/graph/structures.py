@@ -213,7 +213,7 @@ class Graph:
     """
     nodes: List[Node] = field(default_factory=list)
     edges: List[Edge] = field(default_factory=list)
-    _node_index: Dict[str, Node] = field(default_factory=dict, init=False, repr=False)
+    _node_index: Dict[str, Node] = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """Validate graph consistency and build node index."""

@@ -136,6 +136,20 @@ def test_generate_mermaid_has_styling():
     assert "class snow_pit rootNode" in diagram
 
 
+def test_classify_node_weak_layer_calc():
+    """Test classification of weak-layer parameter nodes."""
+    assert _classify_node(Node(type="parameter", parameter="G_c", level="weak_layer")) == "weak_layer_calc"
+    assert _classify_node(Node(type="parameter", parameter="tau_c", level="weak_layer")) == "weak_layer_calc"
+    assert _classify_node(Node(type="parameter", parameter="sigma_comp", level="weak_layer")) == "weak_layer_calc"
+
+
+def test_classify_node_stability_calc():
+    """Test classification of stability model output nodes."""
+    assert _classify_node(Node(type="parameter", parameter="g_delta", level="stability_model")) == "stability_calc"
+    assert _classify_node(Node(type="parameter", parameter="s_r", level="stability_model")) == "stability_calc"
+    assert _classify_node(Node(type="parameter", parameter="s_sk", level="stability_model")) == "stability_calc"
+
+
 def test_generate_mermaid_complete_graph():
     """Test mermaid generation with the actual parameter graph."""
     # Import the real graph

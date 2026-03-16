@@ -344,3 +344,75 @@ Three nested structures carry the results. A **`ComputationTrace`** records a si
 ### Configuration
 
 Execution behaviour is controlled by an **`ExecutionConfig`** object passed to `execute_all()` or `execute_single()`. When `verbose` is `True`, the engine prints a progress line for each pathway as it begins, which is useful when monitoring large batch runs over many pits. The `include_method_uncertainty` flag (default `True`) controls whether each empirical method contributes its own regression standard error to the output uncertainty; setting it to `False` retains only the uncertainty propagated from the input field measurements, which is useful for isolating the contribution of measurement error independently of model error. For the WEAC stability criterion, `weac_timeout_seconds` sets a per-slab wall-clock time limit on the iterative solver; slabs on which the solver does not converge within the budget are treated as pathway failures and excluded from the results, preventing a numerically pathological pit from blocking the processing of an entire dataset.
+
+---
+
+## Stability Criteria Analysis
+
+Two analysis notebooks examine how the Roch skier criterion (*S*_sk) and the WEAC skier criterion (*g*_delta) behave in practice on the full ECTP slab dataset. The first notebook, `stability_criteria_inputs.ipynb`, characterises the **input requirements** of each criterion: how many distinct calculation pathways reach each criterion, what fraction of ECTP slabs have all required inputs available (coverage), and how the per-parameter nominal values and relative uncertainties vary by method. The second notebook, `stability_criteria_outputs.ipynb`, characterises the **outputs**: how often each criterion successfully returns a stability index, how those outputs are distributed, and how the two criteria agree or disagree when both produce a result for the same slab.
+
+The analysis is based on 14,776 ECTP slabs drawn from 50,278 snow pits (371,429 layers total). Slabs were identified using the `ECTP_failure_layer` strategy — one slab per propagating ECTP result. All calculations use `include_method_uncertainty=False` so that the reported relative uncertainties reflect only the propagation of field measurement uncertainties, not regression model error.
+
+---
+
+### Input Parameter Analysis (`stability_criteria_inputs.ipynb`)
+
+#### Pathway counts
+
+The two criteria require fundamentally different sets of layer-level inputs, which leads to very different pathway counts. The Roch skier criterion requires only density (to compute the gravitational shear stress τ) and the weak-layer shear strength τ_c (a single constant from `weissgraeber_rosendahl`, always available). Because τ_c contributes no alternatives, the pathway count equals the number of density methods: **4 pathways** (one each for `data_flow`, `geldsetzer`, `kim_jamieson_table2`, and `kim_jamieson_table5`). The WEAC skier criterion requires all four layer-level mechanical parameters — density, elastic modulus, Poisson's ratio, and shear modulus — for every slab layer, plus the six weak-layer fracture and strength constants (all always available). With four density methods, four elastic modulus methods, two Poisson's ratio methods, and one shear modulus method, the product 4 × 4 × 2 × 1 = **32 pathways** results.
+
+#### Coverage definition
+
+*Coverage* is defined as the fraction of ECTP slabs for which **all layers** in the slab have a successful calculation for a given parameter. A slab is counted as covered by a pathway only when every layer passes — partial success is not sufficient, because the stability calculation requires complete information about the slab. For the Roch criterion, this reduces to full density coverage across all slab layers. For WEAC, all four parameters must succeed on all layers simultaneously.
+
+#### Roch skier input coverage
+
+The four Roch pathways achieve substantially different coverage rates, determined entirely by how widely each density method applies across the grain forms and hand hardness values present in the dataset:
+
+| Density method | Coverage (slabs / 14,776) | Coverage rate | Mean density (kg/m³) | Mean rel. uncertainty |
+|---|---|---|---|---|
+| `kim_jamieson_table2` | 5,951 | 40.3% | 177.2 | 19.1% |
+| `geldsetzer` | 4,539 | 30.7% | 162.1 | 19.4% |
+| `kim_jamieson_table5` | 1,145 | 7.7% | 159.4 | 21.4% |
+| `data_flow` | 109 | 0.7% | 190.9 | 10.0% |
+
+The `data_flow` pathway, which applies only when density was measured directly with a cutter, achieves the lowest coverage because direct density measurements are rarely recorded for every layer in the slab. It also yields the lowest relative uncertainty (10.0%), reflecting the absence of regression model spread. The three estimation methods all carry around 19–21% relative uncertainty from the propagated field measurement errors. The `kim_jamieson_table5` method has the highest uncertainty partly because it requires grain size to be recorded, restricting it to a narrower subset of pits, and the `kim_jamieson_table2` method reaches the most slabs of the three estimators because its supported grain forms span the widest range of the observations in the dataset.
+
+Because τ_c is a constant that does not depend on any pit measurement, all-inputs coverage for each Roch pathway is identical to its density coverage.
+
+#### WEAC skier input coverage
+
+WEAC input coverage is substantially lower than Roch input coverage, because all four layer-level parameters must succeed on every layer simultaneously. The elastic modulus, Poisson's ratio, and shear modulus methods each have their own grain form restrictions and density validity ranges, and these restrictions compound: a slab that passes the density check for a given pathway may still fail the elastic modulus or Poisson's ratio check for one or more of its layers. Across all 32 pathways, the best achievable input coverage is **5.0%** (approximately 739 slabs), compared with 40.3% for the best Roch pathway — a gap of **35.3 percentage points**. The top pathways by all-inputs coverage share a common structure: `kim_jamieson_table2` or `geldsetzer` for density (the widest grain form coverage) combined with an elastic modulus method that applies to the same grain forms. Pathways that require `kim_jamieson_table5` density (which additionally requires grain size) achieve no valid WEAC inputs across the entire dataset.
+
+---
+
+### Output Comparison (`stability_criteria_outputs.ipynb`)
+
+#### Success rates
+
+Having all required inputs is necessary but not sufficient for a criterion to return a valid output. The Roch criterion can fail if the resulting shear stress or stability index is not a finite number (for instance, on a slab with zero slope or missing thickness). The WEAC criterion additionally depends on the iterative eigensystem solver converging within the configured time budget (`weac_timeout_seconds=5.0` in this analysis); slabs on which the solver times out or encounters a numerical pathology return no result.
+
+For the Roch criterion, the output success rate is close to but slightly below the input coverage rate for each pathway, with the `data_flow` pathway showing perfect correspondence:
+
+| Density method | Valid S_sk (slabs / 14,776) | Output success rate |
+|---|---|---|
+| `kim_jamieson_table2` | 5,512 | 37.3% |
+| `geldsetzer` | 4,229 | 28.6% |
+| `kim_jamieson_table5` | 1,080 | 7.3% |
+| `data_flow` | 109 | 0.7% |
+
+For the WEAC criterion, the gap between input coverage and output success is severe. Even the highest-coverage pathways produce valid *g*_delta values for only a handful of slabs: the best-performing pathways (`data_flow → schottner → kochle` and `kim_jamieson_table2 → schottner → kochle`) yield at most 12 valid results across the full dataset (0.1%), despite having far more slabs with all inputs available. Most pathways return zero or single-digit valid results. This reflects the difficulty of the WEAC iterative solver on the snow structure and slab geometry typical of the dataset: even when all four mechanical parameters are computable for all layers, the coupled stress and energy conditions are rarely satisfied simultaneously within the solver's convergence and time constraints.
+
+#### Output value distributions
+
+For the Roch criterion, the *S*_sk distributions are right-skewed across all four pathways, with the bulk of the density concentrated below the instability threshold of *S*_sk = 1.0. The three estimation-based pathways produce similar distribution shapes, consistent with their comparable mean density values. The `data_flow` pathway produces a higher mean *S*_sk, consistent with its higher mean measured density (190.9 kg/m³); denser snow yields a larger gravitational shear stress τ, which — all else being equal — reduces *S*_sk.
+
+Because valid WEAC *g*_delta outputs are so sparse (at most 12 per pathway), the *g*_delta distributions are not statistically informative; the violin plots for WEAC are included for completeness but cannot be interpreted as representative of the full population of ECTP slabs.
+
+#### Classification agreement
+
+A direct comparison of the two criteria is possible only for slabs where both return a valid result, matched on `slab_id` and `density_method` (so that density is computed identically for both criteria in the matched pair). Multiple WEAC pathways per slab are included — one row per slab × density method × E-mod method × ν method combination. This yields 131 matched records.
+
+Because the WEAC output set is so sparse, all 131 matched slabs are classified as stable by the Roch criterion (*S*_sk ≥ 1). WEAC, however, classifies 84 of these 131 as unstable (*g*_delta ≥ 1) and only 47 as stable (*g*_delta < 1). The overall agreement rate is **35.9%** (47 of 131 records). The disagreement is entirely of one type: slabs that Roch classifies as stable but WEAC classifies as unstable. No slab in the matched set is classified as unstable by Roch and stable by WEAC.
+
+This pattern suggests that WEAC is more sensitive to the conditions required for anticrack nucleation than the Roch limit-equilibrium criterion — or, equivalently, that the gravitational shear stress already exceeding the weak-layer shear strength (the Roch failure condition) is a more demanding threshold than the WEAC coupled stress-and-energy nucleation condition. However, the small and self-selected nature of the matched set — the slabs for which WEAC happens to converge — means this comparison cannot be taken as representative of the broader ECTP slab population, and the finding should be interpreted with caution.

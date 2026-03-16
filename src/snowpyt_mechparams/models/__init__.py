@@ -22,13 +22,14 @@ from snowpyt_mechparams.models._types import UncertainValue
 from snowpyt_mechparams.models.layer import Layer
 from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.models.slab import Slab
-from snowpyt_mechparams.models.pit import Pit
+from snowpyt_mechparams.models.pit import Pit, WeakLayerDef
 from snowpyt_mechparams.constants import HARDNESS_MAPPING
 
 __all__ = [
     "Layer",
     "WeakLayer",
     "Pit",
+    "WeakLayerDef",
     "Slab",
     "UncertainValue",
     "HARDNESS_MAPPING",  # Re-exported for backwards compatibility

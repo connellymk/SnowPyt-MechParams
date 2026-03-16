@@ -187,7 +187,7 @@ To use this package in Jupyter notebooks with your virtual environment:
 ### Basic Usage: Calculate Parameters for a Single Layer
 
 ```python
-from snowpyt_mechparams.data_structures import Layer
+from snowpyt_mechparams.models import Layer
 from snowpyt_mechparams.layer_parameters import calculate_density, calculate_elastic_modulus
 from uncertainties import ufloat
 
@@ -233,7 +233,7 @@ density_input_unc_only = calculate_density(
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.data_structures import Slab, Layer
+from snowpyt_mechparams.models import Slab, Layer
 from uncertainties import ufloat
 
 # Create a slab with multiple layers
@@ -277,7 +277,7 @@ for pathway_desc, pathway_result in results.pathways.items():
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.snowpilot import parse_caaml_file
-from snowpyt_mechparams.data_structures import Pit
+from snowpyt_mechparams.models import Pit
 
 # Parse CAAML file from SnowPilot
 snow_pit = parse_caaml_file('path/to/snowpits-12345-caaml.xml')
@@ -306,7 +306,7 @@ for slab in slabs:
 
 ## Core Modules
 
-### Data Structures (`snowpyt_mechparams.data_structures`)
+### Data Structures (`snowpyt_mechparams.models`)
 
 - **`Layer`**: Represents a single snow layer with measured and calculated properties
   - `hand_hardness_index` property now returns a `ufloat` with `±U_HAND_HARDNESS_INDEX` (±0.67 HHI) applied automatically
@@ -465,7 +465,7 @@ Comprehensive examples are available in the `examples/` directory:
 SnowPyt-MechParams/
 ├── src/snowpyt_mechparams/       # Main package source
 │   ├── constants.py              # Physical constants & standard measurement uncertainties
-│   ├── data_structures/          # Layer, Slab, Pit classes
+│   ├── models/                   # Layer, Slab, Pit, WeakLayer classes
 │   ├── layer_parameters/         # Layer-level calculation methods
 │   │   ├── density.py            # 4 density methods (accept hand_hardness_index ufloat)
 │   │   ├── elastic_modulus.py    # 4 elastic modulus methods

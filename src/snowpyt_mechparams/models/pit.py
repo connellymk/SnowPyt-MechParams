@@ -1,8 +1,9 @@
 # Pit data structure for snow mechanical parameter calculations
 
 from dataclasses import dataclass, field
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Literal, Optional, Union
 
+from snowpyt_mechparams.models._types import UncertainValue
 from snowpyt_mechparams.models.layer import Layer
 from snowpyt_mechparams.models.slab import Slab
 
@@ -43,7 +44,7 @@ class Pit:
     """
     # Extracted metadata
     pit_id: Optional[str] = None
-    slope_angle: Any = field(default_factory=lambda: float("nan"))
+    slope_angle: Union[float, UncertainValue] = field(default_factory=lambda: float("nan"))
 
     # Layers and test results
     layers: List[Layer] = field(default_factory=list)
@@ -272,12 +273,18 @@ class Pit:
         Optional[Slab]
             Slab object with metadata, or None if slab cannot be created
         """
-        from snowpyt_mechparams.models.pit_parser import (
-            _get_value_safe,
-            extract_test_properties,
-        )
+        from snowpyt_mechparams.models.pit_parser import extract_test_properties
 
-        failure_depth = _get_value_safe(test_result.depth_top)
+        # Extract scalar failure depth from value that may be None, scalar, or array-like
+        raw = test_result.depth_top
+        if raw is None:
+            return None
+        if isinstance(raw, (list, tuple)):
+            failure_depth = raw[0] if len(raw) > 0 else None
+        elif hasattr(raw, "__len__") and hasattr(raw, "shape"):
+            failure_depth = raw[0] if len(raw) > 0 else None
+        else:
+            failure_depth = raw
         if failure_depth is None:
             return None
 

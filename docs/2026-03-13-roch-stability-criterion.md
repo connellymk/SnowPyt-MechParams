@@ -67,7 +67,7 @@ The existing file was copied from the deleted `static_load.py` and has several b
 
 import math
 
-from snowpyt_mechparams.data_structures import Slab, UncertainValue
+from snowpyt_mechparams.models import Slab, UncertainValue  # data_structures was renamed to models
 
 
 def calculate_shear_stress(slab: Slab) -> UncertainValue:
@@ -114,7 +114,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from snowpyt_mechparams.data_structures import UncertainValue
+from snowpyt_mechparams.models import UncertainValue  # data_structures was renamed to models
 
 
 @dataclass
@@ -154,7 +154,7 @@ from __future__ import annotations
 import math
 from typing import Optional
 
-from snowpyt_mechparams.data_structures import Slab, UncertainValue
+from snowpyt_mechparams.models import Slab, UncertainValue  # data_structures was renamed to models
 from snowpyt_mechparams.stability_models.roch.roch_result import RochResult
 from snowpyt_mechparams.stability_models.roch.shear_stress import calculate_shear_stress
 

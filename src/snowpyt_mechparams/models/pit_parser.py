@@ -97,7 +97,7 @@ def _get_value_safe(obj: Any) -> Optional[float]:
     return cast(Optional[float], obj)
 
 
-def _create_layers(snow_pit: Any, include_density: bool = True) -> List[Layer]:
+def _create_layers(snow_pit: Any) -> List[Layer]:
     """
     Convert a snowpylot SnowPit's snow profile into a list of Layer objects.
 
@@ -105,8 +105,6 @@ def _create_layers(snow_pit: Any, include_density: bool = True) -> List[Layer]:
     ----------
     snow_pit : Any
         SnowPit object from snowpylot
-    include_density : bool
-        If True, attempts to match and include direct density measurements
 
     Returns
     -------
@@ -158,24 +156,23 @@ def _create_layers(snow_pit: Any, include_density: bool = True) -> List[Layer]:
                 grain_size_avg = _ufloat(gs, U_GRAIN_SIZE)
 
         density_measured: Optional[UncertainValue] = None
-        if include_density:
-            try:
-                for density_obs in snow_pit.snow_profile.density_profile:
+        try:
+            for density_obs in snow_pit.snow_profile.density_profile:
+                if (
+                    density_obs.depth_top == layer.depth_top
+                    and density_obs.thickness == layer.thickness
+                ):
                     if (
-                        density_obs.depth_top == layer.depth_top
-                        and density_obs.thickness == layer.thickness
+                        isinstance(density_obs.density, list)
+                        and len(density_obs.density) > 0
                     ):
-                        if (
-                            isinstance(density_obs.density, list)
-                            and len(density_obs.density) > 0
-                        ):
-                            rho = float(density_obs.density[0])
-                        else:
-                            rho = float(density_obs.density)
-                        density_measured = _ufloat(rho, abs(rho) * U_DENSITY_FRACTION)
-                        break
-            except (AttributeError, TypeError):
-                pass
+                        rho = float(density_obs.density[0])
+                    else:
+                        rho = float(density_obs.density)
+                    density_measured = _ufloat(rho, abs(rho) * U_DENSITY_FRACTION)
+                    break
+        except (AttributeError, TypeError):
+            pass
 
         layers.append(
             Layer(

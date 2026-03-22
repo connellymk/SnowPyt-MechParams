@@ -29,8 +29,6 @@ def calculate_sigma_c_minus(method: str, include_method_uncertainty: bool = True
           layers under rapid loading
         - 'mellor': Uses Mellor (1975) power-law scaling relationship based
           on density (for general snow)
-        - 'weissgraeber_rosendahl': Reference constant from
-          Weißgraeber & Rosendahl (2023)
     include_method_uncertainty : bool, optional
         Whether to include the uncertainty inherent to the empirical method.
         Default is True. Accepted for API consistency; has no effect for
@@ -53,10 +51,8 @@ def calculate_sigma_c_minus(method: str, include_method_uncertainty: bool = True
         return _calculate_sigma_c_minus_reiweger(**kwargs)
     elif method.lower() == 'mellor':
         return _calculate_sigma_c_minus_mellor(**kwargs)
-    elif method.lower() == 'weissgraeber_rosendahl':
-        return _calculate_sigma_c_minus_weissgraeber_rosendahl()
     else:
-        available_methods = ['reiweger', 'mellor', 'weissgraeber_rosendahl']
+        available_methods = ['reiweger', 'mellor']
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -70,10 +66,6 @@ def _calculate_sigma_c_minus_reiweger(density: ufloat = None) -> ufloat:
     This method provides a reference compressive strength value for weak snow
     layers under rapid loading conditions, as cited in Weißgraeber & Rosendahl
     (2023) for visualization of principal stresses in weak layers.
-
-    Note: This method returns the same value (2.6 kPa) as the
-    ``'weissgraeber_rosendahl'`` method. Both trace to Reiweger et al. (2015)
-    as the original source.
 
     Parameters
     ----------
@@ -232,27 +224,3 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
 
     return sigma_c_minus
 
-
-def _calculate_sigma_c_minus_weissgraeber_rosendahl() -> ufloat:
-    """
-    Return the compressive strength reference value from
-    Weißgraeber & Rosendahl (2023).
-
-    This is also the built-in default used by WEAC
-    (``WeakLayer.sigma_comp = 2.6``).
-
-    Note: This method returns the same value (2.6 kPa) as the ``'reiweger'``
-    method. Both trace to Reiweger et al. (2015) as the original source.
-
-    Returns
-    -------
-    ufloat
-        ``ufloat(2.6, 0.0)`` kPa  (no uncertainty — constant reference value).
-
-    References
-    ----------
-    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
-    layered snow slabs. *The Cryosphere*, 17(4), 1475–1496.
-    https://doi.org/10.5194/tc-17-1475-2023
-    """
-    return ufloat(2.6, 0.0)

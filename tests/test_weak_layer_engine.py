@@ -107,7 +107,7 @@ class TestDispatcherWeakLayerMethods:
         assert spec.level == ParameterLevel.WEAK_LAYER
 
     def test_sigma_comp_method_registered(self):
-        spec = self.dispatcher.get_method("sigma_comp", "weissgraeber_rosendahl")
+        spec = self.dispatcher.get_method("sigma_comp", "reiweger")
         assert spec is not None
         assert spec.level == ParameterLevel.WEAK_LAYER
 
@@ -164,7 +164,7 @@ class TestDispatcherExecuteWeakLayer:
         assert self._nominal(value) == pytest.approx(5.09)
 
     def test_execute_sigma_comp_returns_2_6(self):
-        value, error = self.dispatcher.execute("sigma_comp", "weissgraeber_rosendahl", slab=self.slab)
+        value, error = self.dispatcher.execute("sigma_comp", "reiweger", slab=self.slab)
         assert error is None
         assert value is not None
         assert self._nominal(value) == pytest.approx(2.6)
@@ -219,7 +219,7 @@ class TestExecutorWeakLayerCalculations:
             "G_IIc": "weissgraeber_rosendahl",
             "sigma_c": "weissgraeber_rosendahl",
             "tau_c": "weissgraeber_rosendahl",
-            "sigma_comp": "weissgraeber_rosendahl",
+            "sigma_comp": "reiweger",
         }
         traces = self.executor._execute_weak_layer_calculations(self.slab, params)
         assert len(traces) == 6

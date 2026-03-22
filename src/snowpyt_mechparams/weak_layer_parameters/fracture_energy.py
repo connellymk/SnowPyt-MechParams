@@ -13,7 +13,7 @@ from typing import Any
 from uncertainties import ufloat
 
 
-def calculate_Gc(method: str, **kwargs: Any) -> ufloat:
+def calculate_G_c(method: str, **kwargs: Any) -> ufloat:
     """
     Calculate the total fracture energy of a weak layer.
 
@@ -38,7 +38,7 @@ def calculate_Gc(method: str, **kwargs: Any) -> ufloat:
         If *method* is not recognised.
     """
     if method.lower() == 'weissgraeber_rosendahl':
-        return _calculate_Gc_weissgraeber_rosendahl()
+        return _calculate_G_c_weissgraeber_rosendahl()
     else:
         available_methods = ['weissgraeber_rosendahl']
         raise ValueError(
@@ -46,7 +46,7 @@ def calculate_Gc(method: str, **kwargs: Any) -> ufloat:
         )
 
 
-def _calculate_Gc_weissgraeber_rosendahl() -> ufloat:
+def _calculate_G_c_weissgraeber_rosendahl() -> ufloat:
     """
     Return the total fracture energy reference value from
     Weißgraeber & Rosendahl (2023).

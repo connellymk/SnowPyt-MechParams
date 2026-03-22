@@ -317,14 +317,15 @@ sigma_c   = build_graph.param("sigma_c",   level="weak_layer")  # kPa   tensile 
 tau_c     = build_graph.param("tau_c",     level="weak_layer")  # kPa   shear strength
 sigma_comp = build_graph.param("sigma_comp", level="weak_layer") # kPa  compressive strength
 
-# Each weak-layer param has exactly one method: weissgraeber_rosendahl (reference constants)
-# These are also WEAC's built-in defaults, so they add no branching to pathway count.
+# Each weak-layer param has exactly one method — none add branching to pathway count.
+# G_c, G_Ic, G_IIc, sigma_c, tau_c: Weißgraeber & Rosendahl (2023) reference constants (WEAC defaults).
+# sigma_comp: Reiweger et al. (2015), as cited by Weißgraeber & Rosendahl (2023).
 build_graph.method_edge(snow_pit, G_c,       "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, G_Ic,      "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, G_IIc,     "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, sigma_c,   "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, tau_c,     "weissgraeber_rosendahl")
-build_graph.method_edge(snow_pit, sigma_comp, "weissgraeber_rosendahl")
+build_graph.method_edge(snow_pit, sigma_comp, "reiweger")
 
 # Stability model output node (level="stability_model")
 g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled criterion (≥1 = unstable)

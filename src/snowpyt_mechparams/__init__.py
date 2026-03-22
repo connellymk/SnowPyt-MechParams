@@ -60,7 +60,7 @@ from snowpyt_mechparams.layer_parameters import (
 
 # Weak layer parameters
 from snowpyt_mechparams.weak_layer_parameters import (
-    calculate_Gc,
+    calculate_G_c,
     calculate_G_Ic,
     calculate_G_IIc,
     calculate_tau_c,
@@ -107,7 +107,7 @@ __all__ = [
     "calculate_poissons_ratio",
     "calculate_shear_modulus",
     # Weak layer parameter calculations
-    "calculate_Gc",
+    "calculate_G_c",
     "calculate_G_Ic",
     "calculate_G_IIc",
     "calculate_tau_c",

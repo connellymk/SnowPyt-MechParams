@@ -350,12 +350,18 @@ class TestWeakLayerNodes:
             assert node.level == "weak_layer", f"{param} has wrong level: {node.level}"
 
     def test_weak_layer_nodes_have_weissgraeber_rosendahl_method(self):
-        """All weak-layer nodes should use the weissgraeber_rosendahl method."""
-        for param in ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]:
+        """G_c, G_Ic, G_IIc, sigma_c, tau_c use the weissgraeber_rosendahl method."""
+        for param in ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c"]:
             node = graph.get_node(param)
             methods = [e.method_name for e in node.incoming_edges if e.method_name]
             assert "weissgraeber_rosendahl" in methods, \
                 f"{param} missing weissgraeber_rosendahl method"
+
+    def test_sigma_comp_has_reiweger_method(self):
+        """sigma_comp uses the reiweger method (Reiweger et al. 2015, cited by W&R 2023)."""
+        node = graph.get_node("sigma_comp")
+        methods = [e.method_name for e in node.incoming_edges if e.method_name]
+        assert "reiweger" in methods
 
     def test_WEAK_LAYER_PARAMS_contains_expected(self):
         """WEAK_LAYER_PARAMS frozenset should contain exactly the 6 weak-layer nodes."""

@@ -23,7 +23,7 @@ from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A
 from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
 from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
 from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
-from snowpyt_mechparams.weak_layer_parameters.fracture_energy import calculate_Gc
+from snowpyt_mechparams.weak_layer_parameters.fracture_energy import calculate_G_c
 from snowpyt_mechparams.weak_layer_parameters.mode_i_fracture_toughness import calculate_G_Ic
 from snowpyt_mechparams.weak_layer_parameters.mode_ii_fracture_toughness import calculate_G_IIc
 from snowpyt_mechparams.weak_layer_parameters.tau_c import calculate_tau_c
@@ -426,7 +426,8 @@ class MethodDispatcher:
         ))
 
         # === Weak-layer fracture/strength methods (weak_layer-level) ===
-        # All use the Weißgraeber & Rosendahl (2023) reference constants.
+        # G_c, G_Ic, G_IIc, sigma_c, tau_c use Weißgraeber & Rosendahl (2023) reference constants.
+        # sigma_comp uses Reiweger et al. (2015), as cited by Weißgraeber & Rosendahl (2023).
         # Functions accept `slab` for API consistency but do not use it
         # (these are pure constant reference values).
 
@@ -435,7 +436,7 @@ class MethodDispatcher:
             parameter="G_c",
             method_name="weissgraeber_rosendahl",
             level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_Gc("weissgraeber_rosendahl"),
+            function=lambda slab: calculate_G_c("weissgraeber_rosendahl"),
             required_inputs=[],
             optional_inputs={}
         ))
@@ -480,12 +481,12 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
-        # sigma_comp - Compressive strength
+        # sigma_comp - Compressive strength (Reiweger et al. 2015, cited by W&R 2023)
         self._register(MethodSpec(
             parameter="sigma_comp",
-            method_name="weissgraeber_rosendahl",
+            method_name="reiweger",
             level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_sigma_c_minus("weissgraeber_rosendahl"),
+            function=lambda slab: calculate_sigma_c_minus("reiweger"),
             required_inputs=[],
             optional_inputs={}
         ))

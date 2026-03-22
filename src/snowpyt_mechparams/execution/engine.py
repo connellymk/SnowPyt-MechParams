@@ -23,7 +23,7 @@ from snowpyt_mechparams.execution.config import ExecutionConfig
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.execution.results import ExecutionResults, PathwayResult
-from snowpyt_mechparams.graph.structures import Graph
+from snowpyt_mechparams.graph.structures import Graph, Node
 
 
 class ExecutionEngine:
@@ -277,7 +277,7 @@ class ExecutionEngine:
     def _get_parameterizations(
         self,
         target_parameter: str,
-        target_node
+        target_node: Node,
     ) -> List[Parameterization]:
         """
         Return parameterizations for target_parameter, using the engine-level cache.

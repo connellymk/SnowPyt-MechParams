@@ -24,8 +24,10 @@ class Slab:
     ----------
 
     # Field Measurements
-    angle: float
-        Angle of the slab in degrees.
+    angle: UncertainValue
+        Slope angle of the slab in degrees (required). May be a plain float or
+        a ``ufloat`` with measurement uncertainty (e.g., ``ufloat(35.0, 2.0)``
+        for a 35° slope with ±2° uncertainty).
 
     # Layer Structure
     layers : List[Layer]

@@ -81,11 +81,20 @@ from snowpyt_mechparams.execution import (
     MethodDispatcher,
 )
 
+# Stability criteria
+from snowpyt_mechparams.stability_criteria import (
+    RochResult,
+    calculate_roch,
+    calculate_shear_stress,
+    WeacSkierResult,
+    calculate_weac_skier,
+)
+
 # Graph and algorithm modules (imported as modules, not individual items)
 from snowpyt_mechparams import graph
 from snowpyt_mechparams import algorithm
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Mary Connelly and SnowPyt-MechParams Contributors"
 __email__ = "connellymarykate@gmail.com"
 __maintainer__ = "SnowPyt-MechParams Contributors"
@@ -123,6 +132,12 @@ __all__ = [
     "CacheStats",
     "PathwayExecutor",
     "MethodDispatcher",
+    # Stability criteria
+    "RochResult",
+    "calculate_roch",
+    "calculate_shear_stress",
+    "WeacSkierResult",
+    "calculate_weac_skier",
     # Graph and algorithm (as modules)
     "graph",
     "algorithm",

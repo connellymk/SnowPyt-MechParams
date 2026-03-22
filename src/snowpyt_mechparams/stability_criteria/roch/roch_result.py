@@ -21,13 +21,14 @@ class RochResult:
         S_r = τ_c / τ  (natural)  or  S_sk = (τ_c − τ) / τ_sk  (skier).
         Values < 1 indicate instability.
     shear_stress : UncertainValue
-        Gravitational shear stress τ on the weak layer [N/m²].
+        Gravitational shear stress τ on the weak layer [Pa = N/m²].
     tau_c : UncertainValue
-        Weak layer shear strength supplied by the caller [N/m²].
+        Weak layer shear strength [Pa = N/m²].
+        Stored in Pa (converted from the kPa input to ``calculate_roch``).
     variant : {"natural", "skier"}
         Which form of the criterion was evaluated.
     skier_stress : UncertainValue, optional
-        Additional skier shear stress τ_sk [N/m²]. ``None`` for the
+        Additional skier shear stress τ_sk [Pa = N/m²]. ``None`` for the
         natural variant.
     """
     stability_index: UncertainValue

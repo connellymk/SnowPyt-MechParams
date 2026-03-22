@@ -184,11 +184,11 @@ class TestVersioning:
     """Test package versioning."""
     
     def test_version_updated(self):
-        """Package version should be updated to 0.3.0."""
+        """Package version should be 0.4.0."""
         import snowpyt_mechparams
-        
+
         version = snowpyt_mechparams.__version__
-        assert version == "0.3.0", f"Expected version 0.3.0, got {version}"
+        assert version == "0.4.0", f"Expected version 0.4.0, got {version}"
 
 
 if __name__ == "__main__":

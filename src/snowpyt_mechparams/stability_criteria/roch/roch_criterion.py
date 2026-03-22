@@ -38,11 +38,12 @@ def calculate_roch(
         Slab with ``angle`` set and all layers having ``thickness`` and
         ``density_calculated`` populated.
     tau_c : UncertainValue
-        Shear strength of the weak layer [Pa = N/m²].
-        Note: ``WeakLayer.tau_c`` is stored in kPa — multiply by 1000 before
-        passing: ``tau_c=slab.weac_layer.tau_c * 1000``.
+        Shear strength of the weak layer [kPa].
+        This matches the unit used by ``WeakLayer.tau_c``, so you can pass
+        ``slab.weac_layer.tau_c`` directly.
+        Internally converted to Pa (× 1000) before computing the index.
     skier_stress : UncertainValue, optional
-        Additional shear stress from a skier τ_sk [N/m²].
+        Additional shear stress from a skier τ_sk [N/m² = Pa].
         If ``None``, the natural terrain variant is used:
 
             S_r = τ_c / τ  (Roch, 1966)
@@ -54,15 +55,15 @@ def calculate_roch(
     Returns
     -------
     Optional[RochResult]
-        ``None`` if ``slab.angle`` is ``None``, any layer is missing
-        ``thickness`` or ``density_calculated``,
+        ``None`` if any layer is missing ``thickness`` or
+        ``density_calculated``,
         τ is negative (counter-slope),
         τ is zero for the natural variant (flat terrain, S_r undefined),
         or (skier variant) ``skier_stress`` is zero or NaN.
-    """
-    if slab.angle is None:
-        return None
 
+        ``RochResult.tau_c`` and ``RochResult.shear_stress`` are both stored
+        in Pa for consistency.
+    """
     tau = calculate_shear_stress(slab)
     if tau is None:
         return None
@@ -70,11 +71,14 @@ def calculate_roch(
     if tau_val is None or tau_val < 0:
         return None
 
+    # Convert caller-supplied kPa to Pa for internal computation.
+    tau_c_pa = tau_c * 1000
+
     if skier_stress is None:
         # Natural variant: S_r = τ_c / τ.  Undefined on flat terrain (τ = 0).
         if tau_val == 0:
             return None
-        index = tau_c / tau
+        index = tau_c_pa / tau
         variant: Literal["natural", "skier"] = "natural"
     else:
         # Skier variant: S_sk = (τ_c − τ) / τ_sk.
@@ -82,13 +86,13 @@ def calculate_roch(
         skier_val = _nominal(skier_stress)
         if skier_val is None or math.isnan(skier_val) or skier_val == 0:
             return None
-        index = (tau_c - tau) / skier_stress
+        index = (tau_c_pa - tau) / skier_stress
         variant = "skier"
 
     return RochResult(
         stability_index=index,
         shear_stress=tau,
-        tau_c=tau_c,
+        tau_c=tau_c_pa,
         variant=variant,
         skier_stress=skier_stress,
     )

@@ -4,6 +4,9 @@ Tests for the Roch stability criterion.
 Unit tests cover:
 - calculate_shear_stress(): formula correctness, edge cases, UFloat propagation
 - calculate_roch(): natural and skier variants, None-return conditions, result fields
+
+tau_c is passed in kPa (matching WeakLayer.tau_c units). calculate_roch converts
+to Pa internally, so RochResult.tau_c is stored in Pa.
 """
 
 from __future__ import annotations
@@ -114,29 +117,24 @@ class TestCalculateShearStress:
 class TestCalculateRochNoneConditions:
     """Cases where calculate_roch must return None."""
 
-    def test_returns_none_when_angle_is_none(self):
-        layer = Layer(thickness=ufloat(50.0, 0.0), density_calculated=ufloat(300.0, 0.0))
-        slab = Slab(layers=[layer], angle=None)
-        assert calculate_roch(slab, tau_c=ufloat(1500.0, 0.0)) is None
-
     def test_returns_none_when_layer_missing_density(self):
         slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)], missing_density_idx=0)
-        assert calculate_roch(slab, tau_c=ufloat(1500.0, 0.0)) is None
+        assert calculate_roch(slab, tau_c=ufloat(1.5, 0.0)) is None
 
     def test_natural_returns_none_flat_terrain(self):
         """τ=0 (θ=0°) is undefined for the natural criterion."""
         slab = _make_slab(angle=0.0, layers=[(50.0, 300.0)])
-        assert calculate_roch(slab, tau_c=ufloat(1500.0, 0.0)) is None
+        assert calculate_roch(slab, tau_c=ufloat(1.5, 0.0)) is None
 
     def test_natural_returns_none_negative_angle(self):
         """τ<0 (counter-slope) is physically meaningless; must return None."""
         slab = _make_slab(angle=-5.0, layers=[(50.0, 300.0)])
-        assert calculate_roch(slab, tau_c=ufloat(1500.0, 0.0)) is None
+        assert calculate_roch(slab, tau_c=ufloat(1.5, 0.0)) is None
 
     def test_skier_returns_none_zero_skier_stress(self):
         """τ_sk=0 makes the skier criterion undefined."""
         slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)])
-        assert calculate_roch(slab, tau_c=ufloat(1500.0, 0.0), skier_stress=0.0) is None
+        assert calculate_roch(slab, tau_c=ufloat(1.5, 0.0), skier_stress=0.0) is None
 
 
 class TestCalculateRochNaturalVariant:
@@ -144,9 +142,9 @@ class TestCalculateRochNaturalVariant:
 
     def setup_method(self):
         self.slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)])
-        self.tau_c = ufloat(1500.0, 0.0)
-        self.expected_tau = 300.0 * 0.5 * _G * math.sin(math.radians(38.0))
-        self.expected_sr = 1500.0 / self.expected_tau
+        self.tau_c = ufloat(1.5, 0.0)          # 1.5 kPa = 1500 Pa
+        self.expected_tau = 300.0 * 0.5 * _G * math.sin(math.radians(38.0))  # Pa
+        self.expected_sr = 1500.0 / self.expected_tau  # tau_c in Pa after conversion
 
     def test_correct_sr_value(self):
         """S_r = τ_c / τ should match hand-computed value."""
@@ -169,10 +167,11 @@ class TestCalculateRochNaturalVariant:
         assert result is not None
         assert result.shear_stress.nominal_value == pytest.approx(self.expected_tau, rel=1e-5)
 
-    def test_tau_c_stored_in_result(self):
+    def test_tau_c_stored_in_result_as_pa(self):
+        """RochResult.tau_c is stored in Pa (converted from 1.5 kPa input)."""
         result = calculate_roch(self.slab, tau_c=self.tau_c)
         assert result is not None
-        assert result.tau_c.nominal_value == pytest.approx(1500.0)
+        assert result.tau_c.nominal_value == pytest.approx(1500.0)  # 1.5 kPa → 1500 Pa
 
     def test_returns_roch_result_instance(self):
         result = calculate_roch(self.slab, tau_c=self.tau_c)
@@ -180,14 +179,14 @@ class TestCalculateRochNaturalVariant:
 
     def test_stability_index_below_one_when_unstable(self):
         """τ_c < τ → S_r < 1 (unstable)."""
-        tau_c_small = ufloat(500.0, 0.0)  # much less than expected_tau ≈ 906 N/m²
+        tau_c_small = ufloat(0.5, 0.0)  # 0.5 kPa = 500 Pa — much less than expected_tau ≈ 906 N/m²
         result = calculate_roch(self.slab, tau_c=tau_c_small)
         assert result is not None
         assert result.stability_index.nominal_value < 1.0
 
     def test_ufloat_tau_c_propagates_uncertainty(self):
         """Uncertainty in τ_c should propagate to stability_index."""
-        tau_c_with_unc = ufloat(1500.0, 50.0)
+        tau_c_with_unc = ufloat(1.5, 0.05)  # 1.5 kPa ± 0.05 kPa
         result = calculate_roch(self.slab, tau_c=tau_c_with_unc)
         assert result is not None
         assert hasattr(result.stability_index, "std_dev")
@@ -199,10 +198,10 @@ class TestCalculateRochSkierVariant:
 
     def setup_method(self):
         self.slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)])
-        self.tau_c = ufloat(1500.0, 0.0)
-        self.tau_sk = ufloat(1206.0, 0.0)
-        self.expected_tau = 300.0 * 0.5 * _G * math.sin(math.radians(38.0))
-        self.expected_ssk = (1500.0 - self.expected_tau) / 1206.0
+        self.tau_c = ufloat(1.5, 0.0)           # 1.5 kPa = 1500 Pa
+        self.tau_sk = ufloat(1206.0, 0.0)        # Pa (derived from mass/area, not stored in kPa)
+        self.expected_tau = 300.0 * 0.5 * _G * math.sin(math.radians(38.0))  # Pa
+        self.expected_ssk = (1500.0 - self.expected_tau) / 1206.0  # tau_c in Pa after conversion
 
     def test_correct_ssk_value(self):
         """S_sk = (τ_c − τ) / τ_sk should match hand-computed value."""
@@ -226,4 +225,5 @@ class TestCalculateRochSkierVariant:
         result = calculate_roch(slab_flat, tau_c=self.tau_c, skier_stress=self.tau_sk)
         assert result is not None
         assert result.variant == "skier"
+        # τ=0, so S_sk = (tau_c_pa - 0) / tau_sk = 1500 / 1206
         assert result.stability_index.nominal_value == pytest.approx(1500.0 / 1206.0, rel=1e-4)

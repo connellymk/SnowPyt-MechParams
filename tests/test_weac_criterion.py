@@ -256,7 +256,7 @@ class TestWeacSkierResultStructure:
             G_I=0.42,
             G_II=0.37,
             G_total=0.79,
-            critical_skier_weight=784.0,
+            critical_skier_mass_kg=784.0,
             crack_length=0.15,
             max_dist_stress=3.5,
             min_dist_stress=-1.2,
@@ -269,7 +269,7 @@ class TestWeacSkierResultStructure:
         assert isinstance(result.G_I, float)
         assert isinstance(result.G_II, float)
         assert isinstance(result.G_total, float)
-        assert isinstance(result.critical_skier_weight, float)
+        assert isinstance(result.critical_skier_mass_kg, float)
         assert isinstance(result.crack_length, float)
         assert isinstance(result.segment_length, float)
         assert isinstance(result.skier_mass, float)
@@ -278,13 +278,13 @@ class TestWeacSkierResultStructure:
         """g_delta < 1 indicates stable, ≥ 1 indicates unstable."""
         stable = WeacSkierResult(
             g_delta=0.5, converged=True, G_I=0.3, G_II=0.2, G_total=0.5,
-            critical_skier_weight=2000.0, crack_length=0.05,
+            critical_skier_mass_kg=2000.0, crack_length=0.05,
             max_dist_stress=1.0, min_dist_stress=-0.5, max_dist_ERR_envelope=0.5,
             segment_length=200.0, skier_mass=80.0,
         )
         unstable = WeacSkierResult(
             g_delta=1.2, converged=True, G_I=0.7, G_II=0.5, G_total=1.2,
-            critical_skier_weight=500.0, crack_length=0.2,
+            critical_skier_mass_kg=500.0, crack_length=0.2,
             max_dist_stress=5.0, min_dist_stress=-2.0, max_dist_ERR_envelope=1.2,
             segment_length=200.0, skier_mass=80.0,
         )
@@ -427,9 +427,9 @@ class TestCalculateWeacSkierIntegration:
         assert result.crack_length > 0
 
     @requires_weac
-    def test_critical_skier_weight_positive(self):
-        """critical_skier_weight should be positive (units: kg)."""
+    def test_critical_skier_mass_positive(self):
+        """critical_skier_mass_kg should be positive (units: kg)."""
         slab = _make_minimal_slab()
         result = self.fn(slab)
         assert result is not None
-        assert result.critical_skier_weight > 0
+        assert result.critical_skier_mass_kg > 0

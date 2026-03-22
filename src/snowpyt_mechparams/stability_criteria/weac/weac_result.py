@@ -6,7 +6,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class WeacSkierResult:
     """
     Results of a WEAC skier coupled criterion evaluation.
@@ -30,10 +30,8 @@ class WeacSkierResult:
     G_total : float
         Total energy release rate G_I + G_II [J/m²].
         Extracted from ``Analyzer(result.final_system).incremental_ERR()[0]``.
-    critical_skier_weight : float
+    critical_skier_mass_kg : float
         Skier mass at which anticrack nucleation occurs [kg].
-        Stored as mass despite the "weight" name — this mirrors the field name
-        used by ``weac.analysis.CoupledCriterionResult.critical_skier_weight``.
     crack_length : float
         Anticrack half-length at the critical configuration [mm].
     max_dist_stress : float
@@ -55,7 +53,7 @@ class WeacSkierResult:
     G_I: float
     G_II: float
     G_total: float
-    critical_skier_weight: float
+    critical_skier_mass_kg: float
     crack_length: float
     max_dist_stress: float
     min_dist_stress: float

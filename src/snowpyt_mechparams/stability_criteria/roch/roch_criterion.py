@@ -38,7 +38,9 @@ def calculate_roch(
         Slab with ``angle`` set and all layers having ``thickness`` and
         ``density_calculated`` populated.
     tau_c : UncertainValue
-        Shear strength of the weak layer [N/m²].
+        Shear strength of the weak layer [Pa = N/m²].
+        Note: ``WeakLayer.tau_c`` is stored in kPa — multiply by 1000 before
+        passing: ``tau_c=slab.weac_layer.tau_c * 1000``.
     skier_stress : UncertainValue, optional
         Additional shear stress from a skier τ_sk [N/m²].
         If ``None``, the natural terrain variant is used:
@@ -53,7 +55,7 @@ def calculate_roch(
     -------
     Optional[RochResult]
         ``None`` if ``slab.angle`` is ``None``, any layer is missing
-        ``thickness`` or ``density_calculated``, shear stress τ is NaN,
+        ``thickness`` or ``density_calculated``,
         τ is negative (counter-slope),
         τ is zero for the natural variant (flat terrain, S_r undefined),
         or (skier variant) ``skier_stress`` is zero or NaN.
@@ -62,8 +64,10 @@ def calculate_roch(
         return None
 
     tau = calculate_shear_stress(slab)
+    if tau is None:
+        return None
     tau_val = _nominal(tau)
-    if tau_val is None or math.isnan(tau_val) or tau_val < 0:
+    if tau_val is None or tau_val < 0:
         return None
 
     if skier_stress is None:

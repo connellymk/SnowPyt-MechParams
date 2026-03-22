@@ -148,7 +148,7 @@ def calculate_weac_skier(
         return None
     wl_rho = _nominal(slab.weak_layer.density_measured)
     if wl_rho is None:
-        wl_rho = _nominal(getattr(slab.weak_layer, "density_calculated", None))
+        wl_rho = _nominal(slab.weak_layer.density_calculated)
     if wl_rho is None:
         return None
     wl_h = _nominal(slab.weak_layer.thickness)
@@ -309,7 +309,7 @@ def calculate_weac_skier(
         G_I=G_I,
         G_II=G_II,
         G_total=G_total,
-        critical_skier_weight=float(result.critical_skier_weight),
+        critical_skier_mass_kg=float(result.critical_skier_weight),
         crack_length=float(result.crack_length),
         max_dist_stress=float(result.max_dist_stress),
         min_dist_stress=float(result.min_dist_stress),

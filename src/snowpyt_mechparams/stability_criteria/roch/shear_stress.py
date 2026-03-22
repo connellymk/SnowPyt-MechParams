@@ -7,6 +7,7 @@ Roch, A. (1966): Les déclenchements d'avalanches.  IASH Publ. 69, 182–195.
 """
 
 import math
+from typing import Optional
 
 from uncertainties import umath
 
@@ -14,7 +15,7 @@ from snowpyt_mechparams.constants import g
 from snowpyt_mechparams.models import Slab, UncertainValue
 
 
-def calculate_shear_stress(slab: Slab) -> UncertainValue:
+def calculate_shear_stress(slab: Slab) -> Optional[UncertainValue]:
     """
     Calculate the shear stress on the weak layer from the gravitational
     load of the snow slab.
@@ -33,15 +34,14 @@ def calculate_shear_stress(slab: Slab) -> UncertainValue:
 
     Returns
     -------
-    UncertainValue
-        Shear stress in N/m².  Returns ``math.nan`` (as a plain ``float``)
-        if any layer is missing ``thickness`` or ``density_calculated``;
-        the caller should check ``math.isnan(float(result))`` before use.
+    Optional[UncertainValue]
+        Shear stress in N/m², or ``None`` if any layer is missing
+        ``thickness`` or ``density_calculated``.
     """
     slope_rad = slab.angle * math.pi / 180  # UFloat-compatible radians
     total = 0.0
     for layer in slab.layers:
         if layer.thickness is None or layer.density_calculated is None:
-            return float('nan')
+            return None
         total += (layer.thickness / 100.0) * layer.density_calculated * g
     return total * umath.sin(slope_rad)

@@ -82,18 +82,17 @@ class TestCalculateShearStress:
         tau = calculate_shear_stress(slab)
         assert tau.nominal_value == pytest.approx(0.0, abs=1e-10)
 
-    def test_missing_thickness_returns_nan(self):
-        """A layer with thickness=None → returns plain float math.nan."""
+    def test_missing_thickness_returns_none(self):
+        """A layer with thickness=None → returns None."""
         slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)], missing_thickness_idx=0)
         tau = calculate_shear_stress(slab)
-        # shear_stress.py returns float('nan') (plain float) for missing data
-        assert isinstance(tau, float) and math.isnan(tau)
+        assert tau is None
 
-    def test_missing_density_calculated_returns_nan(self):
-        """A layer with density_calculated=None → returns plain float math.nan."""
+    def test_missing_density_calculated_returns_none(self):
+        """A layer with density_calculated=None → returns None."""
         slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)], missing_density_idx=0)
         tau = calculate_shear_stress(slab)
-        assert isinstance(tau, float) and math.isnan(tau)
+        assert tau is None
 
     def test_ufloat_inputs_propagate_uncertainty(self):
         """UFloat inputs produce a UFloat result with non-zero uncertainty."""

@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from snowpyt_mechparams.models import UncertainValue
 
 
-@dataclass
+@dataclass(frozen=True)
 class RochResult:
     """
     Result of a Roch stability criterion evaluation.

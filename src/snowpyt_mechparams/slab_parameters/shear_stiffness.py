@@ -1,11 +1,14 @@
 # Methods to calculate shear stiffness (A55) of a layered slab
 
+import logging
 from typing import Any
 
 import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Slab
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_A55(method: str, **kwargs: Any) -> ufloat:
@@ -148,6 +151,7 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> ufloat:
     """
     # Validate slab input
     if not slab.layers:
+        logger.debug("_calculate_A55_weissgraeber_rosendahl: slab has no layers")
         return ufloat(np.nan, np.nan)
 
     # Shear correction factor for rectangular cross-section
@@ -161,8 +165,10 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> ufloat:
         # Check that required properties are present
         # Shear modulus is required (Equation 8d uses G_i directly)
         if layer.shear_modulus is None:
+            logger.debug("_calculate_A55_weissgraeber_rosendahl: layer %d missing shear_modulus", i)
             return ufloat(np.nan, np.nan)
         if layer.thickness is None:
+            logger.debug("_calculate_A55_weissgraeber_rosendahl: layer %d missing thickness", i)
             return ufloat(np.nan, np.nan)
 
         # Extract layer properties

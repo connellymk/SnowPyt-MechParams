@@ -10,7 +10,7 @@ This module extracts that shared logic into a single function.
 """
 
 import logging
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 from uncertainties import ufloat
@@ -23,9 +23,12 @@ logger = logging.getLogger(__name__)
 
 # Type alias: the accumulation function receives
 #   (plane_strain_modulus, z_top, z_bottom) and returns the layer contribution.
+# Arguments may be plain float or AffineScalarFunc depending on whether
+# the layer properties carry uncertainty.
+_Numeric = Union[float, AffineScalarFunc]
 LayerAccumulator = Callable[
-    [AffineScalarFunc, AffineScalarFunc, AffineScalarFunc],
-    AffineScalarFunc,
+    [_Numeric, _Numeric, _Numeric],
+    _Numeric,
 ]
 
 

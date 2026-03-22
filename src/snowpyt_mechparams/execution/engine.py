@@ -89,7 +89,8 @@ class ExecutionEngine:
         self,
         slab: Slab,
         target_parameter: str,
-        config: Optional[ExecutionConfig] = None
+        config: Optional[ExecutionConfig] = None,
+        pathways: Optional[List[Parameterization]] = None,
     ) -> ExecutionResults:
         """
         Execute all possible calculation pathways for a target parameter.
@@ -113,6 +114,12 @@ class ExecutionEngine:
         config : Optional[ExecutionConfig]
             Configuration for execution behavior (verbose output, etc.)
             If None, uses defaults (silent execution)
+        pathways : Optional[List[Parameterization]]
+            Pre-filtered list of parameterizations to run. If provided, the
+            engine runs exactly these pathways instead of finding all valid
+            pathways internally. Useful for running a known subset (e.g. the
+            32 slab-only g_delta pathways) without executing the full
+            combinatorial space.
 
         Returns
         -------
@@ -168,11 +175,13 @@ class ExecutionEngine:
         if target_node is None:
             raise ValueError(f"Unknown target parameter: {target_parameter}")
 
-        # Find all parameterizations (algorithm determines what's needed).
-        # find_parameterizations already deduplicates by method fingerprint,
-        # so every entry here represents a genuinely distinct calculation.
-        # Results are cached by target_parameter for the engine's lifetime.
-        parameterizations = self._get_parameterizations(target_parameter, target_node)
+        # Find (or accept) parameterizations to execute.
+        # If caller supplies a pre-filtered list, use it directly;
+        # otherwise find all pathways (cached by target_parameter).
+        if pathways is not None:
+            parameterizations = pathways
+        else:
+            parameterizations = self._get_parameterizations(target_parameter, target_node)
 
         # Execute each parameterization (cache persists across pathways)
         results = {}

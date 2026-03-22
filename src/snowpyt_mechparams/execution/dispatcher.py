@@ -41,8 +41,6 @@ from snowpyt_mechparams.constants import (
 # τ_sk = m × g / A_contact  ≈ 80 × g / 0.65 ≈ 1206 N/m²
 _ROCH_SKIER_STRESS_N_M2: float = STANDARD_SKIER_MASS_KG * g / STANDARD_SKI_CONTACT_AREA_M2
 
-_KPA_TO_PA: float = 1000.0  # 1 kPa = 1000 N/m²
-
 
 class ParameterLevel(Enum):
     """Whether a parameter is computed per-layer, per-slab, as a weak-layer constant, or as a stability criterion result."""
@@ -491,6 +489,113 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
+        # === Weak-layer density and density-dependent strength methods ===
+        # density_weak_layer — density of the weak layer itself (slab.weak_layer).
+        # Mirrors the slab-layer density methods but applied to slab.weak_layer (a Layer object).
+        # Results are stored in slab.weak_layer.density_calculated by the executor.
+
+        # Direct measurement path: use the density field already on the weak layer.
+        self._register(MethodSpec(
+            parameter="density_weak_layer",
+            method_name="data_flow",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: (
+                None
+                if slab.weak_layer is None or slab.weak_layer.density is None
+                else slab.weak_layer.density
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # Geldsetzer (2000): density from hand hardness + grain form.
+        self._register(MethodSpec(
+            parameter="density_weak_layer",
+            method_name="geldsetzer",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab, include_method_uncertainty=True: (
+                None
+                if slab.weak_layer is None
+                else calculate_density(
+                    "geldsetzer",
+                    hand_hardness_index=slab.weak_layer.hand_hardness_index,
+                    grain_form=slab.weak_layer.grain_form,
+                    include_method_uncertainty=include_method_uncertainty,
+                )
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # Kim & Jamieson Table 2 (2014): density from hand hardness + grain form.
+        self._register(MethodSpec(
+            parameter="density_weak_layer",
+            method_name="kim_jamieson_table2",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab, include_method_uncertainty=True: (
+                None
+                if slab.weak_layer is None
+                else calculate_density(
+                    "kim_jamieson_table2",
+                    hand_hardness_index=slab.weak_layer.hand_hardness_index,
+                    grain_form=slab.weak_layer.grain_form,
+                    include_method_uncertainty=include_method_uncertainty,
+                )
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # Kim & Jamieson Table 5 (2014): density from hand hardness + grain form + grain size.
+        self._register(MethodSpec(
+            parameter="density_weak_layer",
+            method_name="kim_jamieson_table5",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab, include_method_uncertainty=True: (
+                None
+                if slab.weak_layer is None
+                else calculate_density(
+                    "kim_jamieson_table5",
+                    hand_hardness_index=slab.weak_layer.hand_hardness_index,
+                    grain_form=slab.weak_layer.grain_form,
+                    grain_size=slab.weak_layer.grain_size,
+                    include_method_uncertainty=include_method_uncertainty,
+                )
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # sigma_c - Tensile strength via Sigrist (2006) power-law (density-dependent).
+        # Uses slab.weak_layer.density_calculated, which must be set first by density_weak_layer.
+        self._register(MethodSpec(
+            parameter="sigma_c",
+            method_name="sigrist",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: (
+                None
+                if slab.weak_layer is None or slab.weak_layer.density_calculated is None
+                else calculate_sigma_c_plus("sigrist", density=slab.weak_layer.density_calculated)
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # sigma_comp - Compressive strength via Mellor (1975) power-law (density-dependent).
+        # Uses slab.weak_layer.density_calculated, which must be set first by density_weak_layer.
+        self._register(MethodSpec(
+            parameter="sigma_comp",
+            method_name="mellor",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: (
+                None
+                if slab.weak_layer is None or slab.weak_layer.density_calculated is None
+                else calculate_sigma_c_minus("mellor", density=slab.weak_layer.density_calculated)
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
         # === Stability criterion methods (stability-level) ===
 
         # g_delta - WEAC coupled anticrack nucleation criterion (Weißgraeber & Rosendahl 2023)
@@ -506,7 +611,7 @@ class MethodDispatcher:
 
         # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
         # Requires slab with density_calculated on all layers and slab.weac_layer.tau_c set.
-        # Unit conversion: slab.weac_layer.tau_c is stored in kPa; calculate_roch expects N/m².
+        # tau_c is passed in kPa; calculate_roch converts to Pa internally.
         self._register(MethodSpec(
             parameter="s_r",
             method_name="roch_natural",
@@ -514,7 +619,7 @@ class MethodDispatcher:
             function=lambda slab: (
                 None
                 if slab.weac_layer is None or slab.weac_layer.tau_c is None
-                else calculate_roch(slab, tau_c=slab.weac_layer.tau_c * _KPA_TO_PA)
+                else calculate_roch(slab, tau_c=slab.weac_layer.tau_c)
             ),
             required_inputs=["slab"],
             optional_inputs={}
@@ -522,6 +627,7 @@ class MethodDispatcher:
 
         # s_sk - Roch skier criterion (Föhn, 1987): S_sk = (τ_c − τ) / τ_sk
         # τ_sk = STANDARD_SKIER_MASS_KG × g / STANDARD_SKI_CONTACT_AREA_M2 ≈ 1206 N/m²
+        # tau_c is passed in kPa; calculate_roch converts to Pa internally.
         self._register(MethodSpec(
             parameter="s_sk",
             method_name="roch_skier",
@@ -531,7 +637,7 @@ class MethodDispatcher:
                 if slab.weac_layer is None or slab.weac_layer.tau_c is None
                 else calculate_roch(
                     slab,
-                    tau_c=slab.weac_layer.tau_c * _KPA_TO_PA,
+                    tau_c=slab.weac_layer.tau_c,
                     skier_stress=_ROCH_SKIER_STRESS_N_M2,
                 )
             ),

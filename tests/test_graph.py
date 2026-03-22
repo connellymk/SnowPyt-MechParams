@@ -328,9 +328,11 @@ class TestGraphDispatcherConsistency:
             if edge.method_name is not None:
                 graph_keys.add((edge.end.parameter, edge.method_name))
 
-        # data_flow is registered in the dispatcher but not a method_edge in the graph
-        # (it's a flow edge, i.e., method_name is None). Exclude it.
-        stale = registered_keys - graph_keys - {("density", "data_flow")}
+        # data_flow entries are registered in the dispatcher but correspond to flow edges
+        # in the graph (method_name is None), not method edges. Exclude all data_flow
+        # registrations from the staleness check.
+        data_flow_keys = {k for k in registered_keys if k[1] == "data_flow"}
+        stale = registered_keys - graph_keys - data_flow_keys
 
         assert stale == set(), (
             f"Dispatcher registrations without corresponding graph edges: {stale}. "
@@ -364,9 +366,10 @@ class TestWeakLayerNodes:
         assert "reiweger" in methods
 
     def test_WEAK_LAYER_PARAMS_contains_expected(self):
-        """WEAK_LAYER_PARAMS frozenset should contain exactly the 6 weak-layer nodes."""
+        """WEAK_LAYER_PARAMS frozenset should contain the expected weak-layer nodes."""
         from snowpyt_mechparams.graph.parameter_graph import WEAK_LAYER_PARAMS
-        assert WEAK_LAYER_PARAMS == {"G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"}
+        expected = {"G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp", "density_weak_layer"}
+        assert WEAK_LAYER_PARAMS == expected
 
     def test_merge_weac_inputs_has_correct_inputs(self):
         """merge_weac_inputs should aggregate all 10 WEAC prerequisite nodes."""

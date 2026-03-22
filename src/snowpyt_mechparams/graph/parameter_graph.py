@@ -38,7 +38,7 @@ Layer Parameters:
 - bergfeld: From density and grain form [Bergfeld et al. 2023]
 - kochle: From density and grain form [Köchle & Schneebeli 2014]
 - wautier: From density and grain form [Wautier et al. 2015]
-- schottner: From density and grain form [Schöttner et al. 2024]
+- schottner: From density and grain form [Schöttner et al. 2026]
 
 **Poisson's Ratio** (dimensionless):
 - kochle: From grain form only [Köchle & Schneebeli 2014]
@@ -147,7 +147,7 @@ Köchle, B., & Schneebeli, M. (2014). Three-dimensional microstructure and
     weak layers. Journal of Glaciology, 60(222), 705–713.
     https://doi.org/10.3189/2014JoG13J220
 
-Schöttner, L., Hagenmuller, P., & Proksch, M. (2024). A micromechanical finite
+Schöttner, L., Hagenmuller, P., & Proksch, M. (2026). A micromechanical finite
     element model for density and microstructure evolution during dry snow
     metamorphism. The Cryosphere, 18(4), 1579–1600.
     https://doi.org/10.5194/tc-18-1579-2024
@@ -317,15 +317,48 @@ sigma_c   = build_graph.param("sigma_c",   level="weak_layer")  # kPa   tensile 
 tau_c     = build_graph.param("tau_c",     level="weak_layer")  # kPa   shear strength
 sigma_comp = build_graph.param("sigma_comp", level="weak_layer") # kPa  compressive strength
 
-# Each weak-layer param has exactly one method — none add branching to pathway count.
-# G_c, G_Ic, G_IIc, sigma_c, tau_c: Weißgraeber & Rosendahl (2023) reference constants (WEAC defaults).
-# sigma_comp: Reiweger et al. (2015), as cited by Weißgraeber & Rosendahl (2023).
+# Constant reference methods (one per parameter — no branching for these paths).
+# G_c, G_Ic, G_IIc, tau_c: Weißgraeber & Rosendahl (2023) reference constants (WEAC defaults).
+# sigma_c: Weißgraeber & Rosendahl (2023) reference constant (also WEAC default); sigrist adds a density-
+#          dependent alternative below.
+# sigma_comp: Reiweger et al. (2015), as cited by Weißgraeber & Rosendahl (2023); mellor adds a density-
+#             dependent alternative below.
 build_graph.method_edge(snow_pit, G_c,       "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, G_Ic,      "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, G_IIc,     "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, sigma_c,   "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, tau_c,     "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, sigma_comp, "reiweger")
+
+# Weak-layer density node and density-dependent strength methods.
+# density_weak_layer is estimated from the weak layer's own hand hardness + grain form,
+# using the same density methods as for slab layers but applied to slab.weak_layer.
+# It enables density-dependent alternatives for sigma_c (sigrist) and sigma_comp (mellor).
+density_weak_layer = build_graph.param("density_weak_layer", level="weak_layer")  # kg/m³
+
+# Merge nodes for weak-layer density inputs (mirror the slab-layer merge nodes).
+merge_wl_hh_gf = build_graph.merge("merge_wl_hand_hardness_grain_form")
+merge_wl_hh_gf_gs = build_graph.merge("merge_wl_hand_hardness_grain_form_grain_size")
+
+# Wire measured inputs into weak-layer merge nodes.
+build_graph.flow(measured_hand_hardness, merge_wl_hh_gf)
+build_graph.flow(measured_grain_form,    merge_wl_hh_gf)
+
+# Density estimation from hand hardness + grain form.
+build_graph.method_edge(merge_wl_hh_gf, density_weak_layer, "geldsetzer")
+build_graph.method_edge(merge_wl_hh_gf, density_weak_layer, "kim_jamieson_table2")
+
+# Density estimation from hand hardness + grain form + grain size.
+build_graph.flow(merge_wl_hh_gf,      merge_wl_hh_gf_gs)
+build_graph.flow(measured_grain_size,  merge_wl_hh_gf_gs)
+build_graph.method_edge(merge_wl_hh_gf_gs, density_weak_layer, "kim_jamieson_table5")
+
+# Direct measurement path (if the weak layer was sampled with a density cutter).
+build_graph.flow(measured_density, density_weak_layer)
+
+# Density-dependent method edges for sigma_c and sigma_comp.
+build_graph.method_edge(density_weak_layer, sigma_c,    "sigrist")   # Sigrist (2006)
+build_graph.method_edge(density_weak_layer, sigma_comp, "mellor")    # Mellor (1975)
 
 # Stability model output node (level="stability_model")
 g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled criterion (≥1 = unstable)
@@ -457,6 +490,7 @@ __all__ = [
     'sigma_c',
     'tau_c',
     'sigma_comp',
+    'density_weak_layer',
     # Stability model parameters (calculated)
     'g_delta',
     's_r',
@@ -464,6 +498,8 @@ __all__ = [
     # Merge nodes
     'merge_weac_inputs',
     'merge_roch_inputs',
+    'merge_wl_hh_gf',
+    'merge_wl_hh_gf_gs',
     # Parameter classification sets
     'LAYER_PARAMS',
     'SLAB_PARAMS',

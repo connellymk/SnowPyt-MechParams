@@ -206,3 +206,131 @@ class TestCalculateSigmaCMinus:
         """weissgraeber_rosendahl was removed — it was a misattribution of Reiweger et al. (2015)."""
         with pytest.raises(ValueError):
             calculate_sigma_c_minus("weissgraeber_rosendahl")
+
+
+# ---------------------------------------------------------------------------
+# Numerical correctness: sigrist and mellor
+# ---------------------------------------------------------------------------
+
+class TestSigristNumerical:
+    """Verify σ_c+ = 240 * (ρ/ρ_ice)^2.44 against hand-computed values."""
+
+    _RHO_ICE = 917.0
+
+    def test_sigrist_300_kg_m3(self):
+        density = ufloat(300.0, 0.0)
+        result = calculate_sigma_c_plus("sigrist", density=density)
+        expected = 240.0 * (300.0 / self._RHO_ICE) ** 2.44
+        assert _nominal(result) == pytest.approx(expected, rel=1e-5)
+
+    def test_sigrist_100_kg_m3(self):
+        density = ufloat(100.0, 0.0)
+        result = calculate_sigma_c_plus("sigrist", density=density)
+        expected = 240.0 * (100.0 / self._RHO_ICE) ** 2.44
+        assert _nominal(result) == pytest.approx(expected, rel=1e-5)
+
+    def test_sigrist_uncertainty_propagates(self):
+        """Non-zero density uncertainty should produce non-zero output uncertainty."""
+        density = ufloat(300.0, 15.0)
+        result = calculate_sigma_c_plus("sigrist", density=density)
+        assert _std(result) > 0.0
+
+    def test_sigrist_zero_std_for_zero_density_std(self):
+        """Zero density uncertainty → zero output uncertainty."""
+        density = ufloat(300.0, 0.0)
+        result = calculate_sigma_c_plus("sigrist", density=density)
+        assert _std(result) == pytest.approx(0.0, abs=1e-12)
+
+    def test_sigrist_increases_with_density(self):
+        """Higher density → higher tensile strength."""
+        r_low  = calculate_sigma_c_plus("sigrist", density=ufloat(150.0, 0.0))
+        r_high = calculate_sigma_c_plus("sigrist", density=ufloat(400.0, 0.0))
+        assert _nominal(r_low) < _nominal(r_high)
+
+
+class TestMellorNumerical:
+    """Verify σ_c- = 5000 * (ρ/ρ_ice)^2.5 against hand-computed values."""
+
+    _RHO_ICE = 917.0
+
+    def test_mellor_300_kg_m3(self):
+        density = ufloat(300.0, 0.0)
+        result = calculate_sigma_c_minus("mellor", density=density)
+        expected = 5000.0 * (300.0 / self._RHO_ICE) ** 2.5
+        assert _nominal(result) == pytest.approx(expected, rel=1e-5)
+
+    def test_mellor_200_kg_m3(self):
+        density = ufloat(200.0, 0.0)
+        result = calculate_sigma_c_minus("mellor", density=density)
+        expected = 5000.0 * (200.0 / self._RHO_ICE) ** 2.5
+        assert _nominal(result) == pytest.approx(expected, rel=1e-5)
+
+    def test_mellor_uncertainty_propagates(self):
+        """Non-zero density uncertainty should produce non-zero output uncertainty."""
+        density = ufloat(300.0, 15.0)
+        result = calculate_sigma_c_minus("mellor", density=density)
+        assert _std(result) > 0.0
+
+    def test_mellor_increases_with_density(self):
+        """Higher density → higher compressive strength."""
+        r_low  = calculate_sigma_c_minus("mellor", density=ufloat(150.0, 0.0))
+        r_high = calculate_sigma_c_minus("mellor", density=ufloat(400.0, 0.0))
+        assert _nominal(r_low) < _nominal(r_high)
+
+
+# ---------------------------------------------------------------------------
+# Graph integration: sigrist and mellor reachable via find_parameterizations
+# ---------------------------------------------------------------------------
+
+class TestSigristMellorGraphIntegration:
+    """Verify sigrist and mellor appear as selectable methods in g_delta pathways."""
+
+    @staticmethod
+    def _all_edge_names(parameterization):
+        """Return the set of all method edge names in a parameterization.
+
+        merge_points is a list of tuples: (branch_indices, merge_node_name, continuation_segments).
+        """
+        names = set()
+        for branch in parameterization.branches:
+            for seg in branch.segments:
+                if seg.edge_name and seg.edge_name != "data_flow":
+                    names.add(seg.edge_name)
+        for mp in parameterization.merge_points:
+            # mp is (branch_indices, merge_node_name, continuation_segments)
+            for seg in mp[2]:
+                if seg.edge_name and seg.edge_name != "data_flow":
+                    names.add(seg.edge_name)
+        return names
+
+    def test_sigrist_appears_in_g_delta_pathways(self):
+        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph.parameter_graph import graph, g_delta
+
+        pathways = find_parameterizations(graph, g_delta)
+        has_sigrist = any("sigrist" in self._all_edge_names(p) for p in pathways)
+        assert has_sigrist, "No g_delta pathway uses the sigrist method for sigma_c"
+
+    def test_mellor_appears_in_g_delta_pathways(self):
+        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph.parameter_graph import graph, g_delta
+
+        pathways = find_parameterizations(graph, g_delta)
+        has_mellor = any("mellor" in self._all_edge_names(p) for p in pathways)
+        assert has_mellor, "No g_delta pathway uses the mellor method for sigma_comp"
+
+    def test_g_delta_pathway_count(self):
+        """g_delta pathway count after adding sigrist/mellor: 4×4×2×13 = 416."""
+        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph.parameter_graph import graph, g_delta
+
+        pathways = find_parameterizations(graph, g_delta)
+        assert len(pathways) == 416
+
+    def test_s_r_pathway_count_unchanged(self):
+        """Roch natural pathway count is unaffected by sigrist/mellor (tau_c still constant)."""
+        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph.parameter_graph import graph, s_r
+
+        pathways = find_parameterizations(graph, s_r)
+        assert len(pathways) == 4

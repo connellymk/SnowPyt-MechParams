@@ -29,6 +29,8 @@ graph TB
     merge_zi_E_nu{merge_zi<br/>_E<br/>_nu}
     merge_hi_G{merge_hi<br/>_G}
     merge_hi_E_nu{merge_hi<br/>_E<br/>_nu}
+    merge_wl_hand_hardness_grain_form{merge_wl<br/>_hand<br/>_hardness<br/>_grain<br/>_form}
+    merge_wl_hand_hardness_grain_form_grain_size{merge_wl<br/>_hand<br/>_hardness<br/>_grain<br/>_form<br/>_grain<br/>_size}
     
     %% Slab parameters
     A11[A11<br/>Extensional Stiffness<br/>SLAB]
@@ -43,6 +45,7 @@ graph TB
     sigma_c[sigma_c<br/>WEAK_LAYER_CALC]
     tau_c[tau_c<br/>WEAK_LAYER_CALC]
     sigma_comp[sigma_comp<br/>WEAK_LAYER_CALC]
+    density_weak_layer[density_weak_layer<br/>WEAK_LAYER_CALC]
     
     %% Stability merge nodes
     merge_weac_inputs{merge_weac<br/>_inputs}
@@ -81,7 +84,17 @@ graph TB
     snow_pit -->|weissgraeber_rosendahl| G_IIc
     snow_pit -->|weissgraeber_rosendahl| sigma_c
     snow_pit -->|weissgraeber_rosendahl| tau_c
-    snow_pit -->|weissgraeber_rosendahl| sigma_comp
+    snow_pit -->|reiweger| sigma_comp
+    measured_hand_hardness --> merge_wl_hand_hardness_grain_form
+    measured_grain_form --> merge_wl_hand_hardness_grain_form
+    merge_wl_hand_hardness_grain_form -->|geldsetzer| density_weak_layer
+    merge_wl_hand_hardness_grain_form -->|kim_jamieson_table2| density_weak_layer
+    merge_wl_hand_hardness_grain_form --> merge_wl_hand_hardness_grain_form_grain_size
+    measured_grain_size --> merge_wl_hand_hardness_grain_form_grain_size
+    merge_wl_hand_hardness_grain_form_grain_size -->|kim_jamieson_table5| density_weak_layer
+    measured_density --> density_weak_layer
+    density_weak_layer -->|sigrist| sigma_c
+    density_weak_layer -->|mellor| sigma_comp
     density --> merge_weac_inputs
     elastic_modulus --> merge_weac_inputs
     poissons_ratio --> merge_weac_inputs
@@ -122,9 +135,9 @@ graph TB
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_wl_hand_hardness_grain_form,merge_wl_hand_hardness_grain_form_grain_size,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
-    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
+    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp,density_weak_layer weakLayerCalc
     class g_delta,s_r,s_sk stabilityCalc
 ```

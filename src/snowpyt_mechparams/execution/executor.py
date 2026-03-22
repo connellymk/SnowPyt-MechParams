@@ -254,7 +254,7 @@ class PathwayExecutor:
             }
             if weak_layer_params_in_pathway:
                 wl_traces = self._execute_weak_layer_calculations(
-                    result_slab, weak_layer_params_in_pathway
+                    result_slab, weak_layer_params_in_pathway, config=config
                 )
                 computation_trace.extend(wl_traces)
 
@@ -742,10 +742,12 @@ class PathwayExecutor:
         self,
         slab: Slab,
         params_to_compute: Dict[str, str],
+        config: Optional['ExecutionConfig'] = None,
     ) -> List[ComputationTrace]:
         """
         Compute weak-layer fracture/strength parameters and store them on
-        ``slab.weac_layer``.
+        ``slab.weac_layer`` (and, for ``density_weak_layer``, on
+        ``slab.weak_layer.density_calculated``).
 
         Parameters
         ----------
@@ -754,26 +756,60 @@ class PathwayExecutor:
         params_to_compute : Dict[str, str]
             Mapping of ``{parameter_name: method_name}`` for each weak-layer
             parameter to compute (e.g. ``{"G_Ic": "weissgraeber_rosendahl"}``).
+        config : ExecutionConfig, optional
+            Execution configuration. When provided, ``include_method_uncertainty``
+            is forwarded to methods that declare that parameter.
 
         Returns
         -------
         List[ComputationTrace]
             One trace entry per parameter attempted.
+
+        Notes
+        -----
+        ``density_weak_layer`` is always computed *first* so that
+        density-dependent methods (``sigrist``, ``mellor``) can read
+        ``slab.weak_layer.density_calculated`` when they run.
+        ``density_weak_layer`` results are stored on ``slab.weak_layer``
+        directly rather than on ``slab.weac_layer``, and are also NOT stored
+        on ``slab.weac_layer`` (they are an auxiliary input, not a WEAC param).
         """
         traces = []
 
+        # Compute density_weak_layer first — it must precede sigrist and mellor.
+        DENSITY_WL = "density_weak_layer"
+        ordered: List[Tuple[str, str]] = []
+        if DENSITY_WL in params_to_compute:
+            ordered.append((DENSITY_WL, params_to_compute[DENSITY_WL]))
         for param, method in params_to_compute.items():
+            if param != DENSITY_WL:
+                ordered.append((param, method))
+
+        for param, method in ordered:
+            # Forward include_method_uncertainty to methods that accept it.
+            extra: Dict[str, Any] = {}
+            if config is not None and self.dispatcher.supports_method_uncertainty(param, method):
+                extra["include_method_uncertainty"] = config.include_method_uncertainty
+
             value, error = self.dispatcher.execute(
                 parameter=param,
                 method_name=method,
                 slab=slab,
+                **extra,
             )
 
             if value is not None:
-                # Lazily initialise weac_layer if not already present.
-                if slab.weac_layer is None:
-                    slab.weac_layer = WeakLayer()
-                setattr(slab.weac_layer, param, value)
+                if param == DENSITY_WL:
+                    # Store weak-layer density on the Layer object itself so that
+                    # sigrist/mellor can read slab.weak_layer.density_calculated.
+                    if slab.weak_layer is not None:
+                        slab.weak_layer.density_calculated = value
+                    # density_weak_layer is NOT written to slab.weac_layer.
+                else:
+                    # Lazily initialise weac_layer if not already present.
+                    if slab.weac_layer is None:
+                        slab.weac_layer = WeakLayer()
+                    setattr(slab.weac_layer, param, value)
 
             traces.append(ComputationTrace(
                 parameter=param,

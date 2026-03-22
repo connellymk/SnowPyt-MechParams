@@ -32,20 +32,23 @@ class TestCacheManagement:
     def test_clear_cache(self):
         """clear_cache should reset all caches and statistics."""
         executor = PathwayExecutor()
-        
-        # Simulate some cache activity using the cache API
+
+        # Build up known cache state using the public API only.
+        # Store a density value, then trigger 10 hits and 5 misses.
         executor.cache.set_layer_param(0, "density", "geldsetzer", ufloat(250, 10))
-        executor.cache._stats.hits = 10
-        executor.cache._stats.misses = 5
-        
+        for _ in range(10):
+            executor.cache.get_layer_param(0, "density", "geldsetzer")   # hit
+        for _ in range(5):
+            executor.cache.get_layer_param(0, "density", "no_such_method")  # miss
+
         # Verify cache has data
         stats_before = executor.get_cache_stats()
         assert stats_before['hits'] == 10
         assert stats_before['misses'] == 5
-        
+
         # Clear cache
         executor.clear_cache()
-        
+
         # Verify everything is reset
         stats_after = executor.get_cache_stats()
         assert stats_after['hits'] == 0

@@ -13,6 +13,7 @@ import math
 import pytest
 from uncertainties import ufloat
 
+from snowpyt_mechparams.constants import g
 from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.stability_criteria.roch.roch_criterion import calculate_roch
 from snowpyt_mechparams.stability_criteria.roch.roch_result import RochResult
@@ -22,7 +23,7 @@ from snowpyt_mechparams.stability_criteria.roch.shear_stress import calculate_sh
 # Helpers
 # ---------------------------------------------------------------------------
 
-_G = 9.81  # m/s²
+_G = g
 
 
 def _make_slab(

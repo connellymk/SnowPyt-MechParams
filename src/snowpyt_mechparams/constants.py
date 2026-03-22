@@ -35,6 +35,10 @@ E_ICE_POLYCRYSTALLINE = ufloat(10000.0, 0.0)  # MPa (10 GPa)
 # G = 10000 / (2 * 1.3) ≈ 3846.15 MPa.
 G_ICE = ufloat(3846.15, 0.0)  # MPa
 
+# Standard gravitational acceleration (m/s²)
+# Used in gravitational shear stress calculations (Roch criterion, WEAC inputs).
+g: float = 9.81  # m/s²
+
 
 # ==========================================
 # Standard Measurement Uncertainties

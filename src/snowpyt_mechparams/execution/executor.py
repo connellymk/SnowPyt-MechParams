@@ -60,7 +60,7 @@ from snowpyt_mechparams.algorithm import Parameterization
 from snowpyt_mechparams.models import Layer, Slab, UncertainValue
 from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.cache import ComputationCache
-from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
+from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, _get_layer_input
 from snowpyt_mechparams.execution.results import (
     ComputationTrace, PathwayResult
 )
@@ -173,11 +173,11 @@ class PathwayExecutor:
         # Only clear cache when switching to a new slab (via clear_cache())
 
         # Extract the methods used from the parameterization
-        methods_used = self._extract_methods_from_parameterization(parameterization)
+        methods_used = self.extract_methods_from_parameterization(parameterization)
 
         # Build pathway description and ID
-        pathway_description = self._build_pathway_description(methods_used)
-        pathway_id = self._build_pathway_id(methods_used)
+        pathway_description = self.build_pathway_description(methods_used)
+        pathway_id = self.build_pathway_id(methods_used)
 
         # Track all computations in a flat list
         computation_trace: List[ComputationTrace] = []
@@ -189,7 +189,7 @@ class PathwayExecutor:
         # Build result layers using copy-on-write pattern
         # Only copy layers that need modification
         result_layers: List[Layer] = []
-        needs_computation = any(param in methods_used for param in execution_order)
+        needs_computation = bool(execution_order)
 
         for layer_idx, original_layer in enumerate(slab.layers):
             if needs_computation:
@@ -306,7 +306,7 @@ class PathwayExecutor:
             warnings=warnings
         )
 
-    def _extract_methods_from_parameterization(
+    def extract_methods_from_parameterization(
         self,
         parameterization: Parameterization
     ) -> Dict[str, str]:
@@ -373,7 +373,7 @@ class PathwayExecutor:
 
         return methods
 
-    def _build_pathway_description(self, methods_used: Dict[str, str]) -> str:
+    def build_pathway_description(self, methods_used: Dict[str, str]) -> str:
         """
         Build a human-readable description of the pathway.
 
@@ -387,15 +387,18 @@ class PathwayExecutor:
         str
             Human-readable pathway description
         """
-        # Order: density -> elastic_modulus -> poissons_ratio -> shear_modulus
-        order = ["density", "elastic_modulus", "poissons_ratio", "shear_modulus"]
+        # Order: layer params first, then stability criterion
+        order = [
+            "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+            "g_delta", "s_r", "s_sk",
+        ]
         parts = []
         for param in order:
             if param in methods_used:
                 parts.append(f"{param}={methods_used[param]}")
         return " | ".join(parts)
 
-    def _build_pathway_id(self, methods_used: Dict[str, str]) -> str:
+    def build_pathway_id(self, methods_used: Dict[str, str]) -> str:
         """
         Build a unique identifier for the pathway.
 
@@ -590,7 +593,6 @@ class PathwayExecutor:
 
         inputs = {}
         for input_name in spec.required_inputs:
-            from snowpyt_mechparams.execution.dispatcher import _get_layer_input
             value = _get_layer_input(layer, input_name, method_name=method_name)
             if value is not None:
                 # Simplify ufloat for display

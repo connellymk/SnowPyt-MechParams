@@ -10,6 +10,7 @@ import math
 
 from uncertainties import umath
 
+from snowpyt_mechparams.constants import g
 from snowpyt_mechparams.models import Slab, UncertainValue
 
 
@@ -37,7 +38,6 @@ def calculate_shear_stress(slab: Slab) -> UncertainValue:
         if any layer is missing ``thickness`` or ``density_calculated``;
         the caller should check ``math.isnan(float(result))`` before use.
     """
-    g = 9.81  # m/s²
     slope_rad = slab.angle * math.pi / 180  # UFloat-compatible radians
     total = 0.0
     for layer in slab.layers:

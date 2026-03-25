@@ -613,6 +613,14 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     _draw_arrow(ax, wl_params["tauc"].x + BW/2, wl_params["tauc"].y,
                     stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y, color=ac)
 
+    # measured_layer_thickness → m_weac and m_roch
+    _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
+                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
+                    color=ac, connectionstyle="arc3,rad=-0.15")
+    _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
+                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y,
+                    color=ac, connectionstyle="arc3,rad=0.1")
+
     # m_weac → g_delta
     _draw_arrow(ax, stab_merge["m_weac"].x + MW/2, stab_merge["m_weac"].y,
                     outputs["gdelta"].x - BW/2, outputs["gdelta"].y,

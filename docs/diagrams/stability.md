@@ -8,6 +8,7 @@ graph LR
     measured_hand_hardness[hand hardness]
     measured_grain_form[grain form]
     measured_grain_size[grain size]
+    measured_layer_thickness[layer thickness]
     density[ρ (density)]
     elastic_modulus[E (elastic modulus)]
     poissons_ratio[ν (Poisson's ratio)]
@@ -32,6 +33,7 @@ graph LR
     snow_pit --> measured_hand_hardness
     snow_pit --> measured_grain_form
     snow_pit --> measured_grain_size
+    snow_pit --> measured_layer_thickness
     measured_density --> density
     measured_grain_form -->|kochle| poissons_ratio
     snow_pit -->|weissgraeber_rosendahl| G_c
@@ -54,6 +56,7 @@ graph LR
     elastic_modulus --> merge_weac_inputs
     poissons_ratio --> merge_weac_inputs
     shear_modulus --> merge_weac_inputs
+    measured_layer_thickness --> merge_weac_inputs
     G_c --> merge_weac_inputs
     G_Ic --> merge_weac_inputs
     G_IIc --> merge_weac_inputs
@@ -62,6 +65,7 @@ graph LR
     sigma_comp --> merge_weac_inputs
     merge_weac_inputs -->|weac_skier| g_delta
     density --> merge_roch_inputs
+    measured_layer_thickness --> merge_roch_inputs
     tau_c --> merge_roch_inputs
     merge_roch_inputs -->|roch_natural| s_r
     merge_roch_inputs -->|roch_skier| s_sk
@@ -76,7 +80,7 @@ graph LR
     classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
     
     class snow_pit rootNode
-    class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size measuredNode
+    class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
     class merge_wl_hand_hardness_grain_form,merge_wl_hand_hardness_grain_form_grain_size,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp,density_weak_layer weakLayerCalc

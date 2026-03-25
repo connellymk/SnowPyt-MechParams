@@ -106,6 +106,7 @@ graph LR
     elastic_modulus --> merge_weac_inputs
     poissons_ratio --> merge_weac_inputs
     shear_modulus --> merge_weac_inputs
+    measured_layer_thickness --> merge_weac_inputs
     G_c --> merge_weac_inputs
     G_Ic --> merge_weac_inputs
     G_IIc --> merge_weac_inputs
@@ -114,6 +115,7 @@ graph LR
     sigma_comp --> merge_weac_inputs
     merge_weac_inputs -->|WEAC| g_delta
     density --> merge_roch_inputs
+    measured_layer_thickness --> merge_roch_inputs
     tau_c --> merge_roch_inputs
     merge_roch_inputs -->|Roch-n| s_r
     merge_roch_inputs -->|Roch-sk| s_sk

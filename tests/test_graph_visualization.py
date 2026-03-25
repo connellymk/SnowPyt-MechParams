@@ -65,12 +65,12 @@ def test_get_node_shape():
 
 
 def test_get_node_label():
-    """Test node label generation."""
-    # Test specific labels
-    assert "ROOT" in _get_node_label(Node(type="parameter", parameter="snow_pit"))
-    assert "MEASURED" in _get_node_label(Node(type="parameter", parameter="measured_density"))
-    assert "CALCULATED" in _get_node_label(Node(type="parameter", parameter="density"))
-    assert "SLAB" in _get_node_label(Node(type="parameter", parameter="D11"))
+    """Test node label generation returns non-empty strings for known nodes."""
+    # Labels no longer include category tags (color conveys node type instead)
+    assert _get_node_label(Node(type="parameter", parameter="snow_pit")) != ""
+    assert "density" in _get_node_label(Node(type="parameter", parameter="measured_density")).lower()
+    assert _get_node_label(Node(type="parameter", parameter="density")) != ""
+    assert "D11" in _get_node_label(Node(type="parameter", parameter="D11"))
 
 
 def test_generate_mermaid_simple_graph():

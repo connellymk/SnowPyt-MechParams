@@ -365,20 +365,23 @@ g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled 
 
 # Merge node aggregating all WEAC prerequisites:
 #   slab layer mechanical params: density, elastic_modulus, poissons_ratio, shear_modulus
+#   slab layer geometry: measured_layer_thickness (used as h per layer in WEAC model)
 #   weak-layer fracture/strength: G_c, G_Ic, G_IIc, sigma_c, tau_c, sigma_comp
 merge_weac_inputs = build_graph.merge("merge_weac_inputs")
 
 # Slab layer mechanical params → merge_weac_inputs
-build_graph.flow(density,        merge_weac_inputs)
-build_graph.flow(elastic_modulus, merge_weac_inputs)
-build_graph.flow(poissons_ratio,  merge_weac_inputs)
-build_graph.flow(shear_modulus,   merge_weac_inputs)
+build_graph.flow(density,                 merge_weac_inputs)
+build_graph.flow(elastic_modulus,         merge_weac_inputs)
+build_graph.flow(poissons_ratio,          merge_weac_inputs)
+build_graph.flow(shear_modulus,           merge_weac_inputs)
+# Slab layer geometry → merge_weac_inputs
+build_graph.flow(measured_layer_thickness, merge_weac_inputs)
 # Weak-layer fracture params → merge_weac_inputs
-build_graph.flow(G_c,       merge_weac_inputs)
-build_graph.flow(G_Ic,      merge_weac_inputs)
-build_graph.flow(G_IIc,     merge_weac_inputs)
-build_graph.flow(sigma_c,   merge_weac_inputs)
-build_graph.flow(tau_c,     merge_weac_inputs)
+build_graph.flow(G_c,        merge_weac_inputs)
+build_graph.flow(G_Ic,       merge_weac_inputs)
+build_graph.flow(G_IIc,      merge_weac_inputs)
+build_graph.flow(sigma_c,    merge_weac_inputs)
+build_graph.flow(tau_c,      merge_weac_inputs)
 build_graph.flow(sigma_comp, merge_weac_inputs)
 
 # merge_weac_inputs → g_delta via weac_skier
@@ -389,14 +392,16 @@ s_r  = build_graph.param("s_r",  level="stability_model")  # natural: S_r  = τ_
 s_sk = build_graph.param("s_sk", level="stability_model")  # skier:   S_sk = (τ_c − τ) / τ_sk
 
 # Merge node aggregating Roch prerequisites:
-#   density (layer-level, for gravitational shear stress τ)
+#   density (layer-level, for gravitational shear stress τ = Σ ρᵢhᵢg·sinθ)
+#   measured_layer_thickness (layer geometry, used in same shear stress sum)
 #   tau_c (weak-layer constant, for stability index numerator)
 # Both natural and skier variants share the same prerequisite nodes; τ_sk is a
 # constant computed internally in the dispatcher from STANDARD_SKIER_MASS_KG.
 merge_roch_inputs = build_graph.merge("merge_roch_inputs")
 
-build_graph.flow(density, merge_roch_inputs)
-build_graph.flow(tau_c,   merge_roch_inputs)
+build_graph.flow(density,                  merge_roch_inputs)
+build_graph.flow(measured_layer_thickness, merge_roch_inputs)
+build_graph.flow(tau_c,                    merge_roch_inputs)
 
 # merge_roch_inputs → s_r  via roch_natural (no skier load)
 # merge_roch_inputs → s_sk via roch_skier   (standard 80 kg skier load from constants)

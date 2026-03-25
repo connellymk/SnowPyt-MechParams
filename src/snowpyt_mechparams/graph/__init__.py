@@ -98,6 +98,16 @@ from snowpyt_mechparams.graph.visualize import (
     generate_mermaid_diagram,
     save_mermaid_diagram,
     print_mermaid_diagram,
+    generate_mermaid_overview,
+    generate_mermaid_layer_detail,
+    generate_mermaid_slab_detail,
+    generate_mermaid_stability_detail,
+    save_mermaid_overview,
+    save_mermaid_layer_detail,
+    save_mermaid_slab_detail,
+    save_mermaid_stability_detail,
+    generate_mermaid_full_detail,
+    save_mermaid_full_detail,
 )
 
 __all__ = [
@@ -145,8 +155,19 @@ __all__ = [
     # Parameter classification sets
     "WEAK_LAYER_PARAMS",
     "STABILITY_PARAMS",
-    # Visualization
+    # Visualization — full graph (backwards compat)
     "generate_mermaid_diagram",
     "save_mermaid_diagram",
     "print_mermaid_diagram",
+    # Visualization — focused diagrams
+    "generate_mermaid_overview",
+    "generate_mermaid_layer_detail",
+    "generate_mermaid_slab_detail",
+    "generate_mermaid_stability_detail",
+    "save_mermaid_overview",
+    "save_mermaid_layer_detail",
+    "save_mermaid_slab_detail",
+    "save_mermaid_stability_detail",
+    "generate_mermaid_full_detail",
+    "save_mermaid_full_detail",
 ]

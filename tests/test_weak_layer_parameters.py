@@ -320,12 +320,17 @@ class TestSigristMellorGraphIntegration:
         assert has_mellor, "No g_delta pathway uses the mellor method for sigma_comp"
 
     def test_g_delta_pathway_count(self):
-        """g_delta pathway count after adding sigrist/mellor: 4×4×2×13 = 416."""
+        """g_delta pathway count with shared density node: 4×4×2×2×2 = 128.
+
+        density (4) × elastic_modulus (4) × poissons_ratio (2) × sigma_c (2) × sigma_comp (2).
+        density is shared between slab layers and weak layer, so density_weak_layer no longer
+        adds an independent dimension.
+        """
         from snowpyt_mechparams.algorithm import find_parameterizations
         from snowpyt_mechparams.graph.parameter_graph import graph, g_delta
 
         pathways = find_parameterizations(graph, g_delta)
-        assert len(pathways) == 416
+        assert len(pathways) == 128
 
     def test_s_r_pathway_count_unchanged(self):
         """Roch natural pathway count is unaffected by sigrist/mellor (tau_c still constant)."""

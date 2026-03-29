@@ -89,12 +89,14 @@ layer-level calculations before attempting slab-level calculations.
 - merge_hi_G: Combines thickness with shear modulus (for A55)
 - merge_hi_E_nu: Combines thickness with E/ν (for A11, B11)
 
-**Shared Density Node**: The ``density`` node is an input to both
-``elastic_modulus`` (via ``merge_density_grain_form``) and to the
-``srivastava`` Poisson's ratio method (also via ``merge_density_grain_form``).
-Because it is a single shared node, any pathway that uses ``srivastava`` for
-Poisson's ratio must use the *same* density method as is used for elastic
-modulus — there is no independent density choice for Poisson's ratio. This
+**Shared Density Node**: The ``density`` node is shared across slab layers
+and the weak layer. It feeds ``elastic_modulus``, ``poissons_ratio`` (srivastava),
+and ``shear_modulus`` for slab-layer calculations, and also feeds ``sigma_c``
+(sigrist) and ``sigma_comp`` (mellor) for weak-layer calculations. Using the
+same ``density`` node for all layers means the weak layer's density is computed
+with the same method as the slab layers. Because ``density`` is shared, any
+pathway that uses ``srivastava`` for Poisson's ratio must use the *same* density
+method — there is no independent density choice for Poisson's ratio. This
 constrains D11 to 4 density × 4 E × 2 ν = **32 unique pathways**.
 ``find_parameterizations`` enforces this through deduplication; see
 ``snowpyt_mechparams.algorithm._method_fingerprint`` for details.
@@ -330,35 +332,11 @@ build_graph.method_edge(snow_pit, sigma_c,   "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, tau_c,     "weissgraeber_rosendahl")
 build_graph.method_edge(snow_pit, sigma_comp, "reiweger")
 
-# Weak-layer density node and density-dependent strength methods.
-# density_weak_layer is estimated from the weak layer's own hand hardness + grain form,
-# using the same density methods as for slab layers but applied to slab.weak_layer.
-# It enables density-dependent alternatives for sigma_c (sigrist) and sigma_comp (mellor).
-density_weak_layer = build_graph.param("density_weak_layer", level="weak_layer")  # kg/m³
-
-# Merge nodes for weak-layer density inputs (mirror the slab-layer merge nodes).
-merge_wl_hh_gf = build_graph.merge("merge_wl_hand_hardness_grain_form")
-merge_wl_hh_gf_gs = build_graph.merge("merge_wl_hand_hardness_grain_form_grain_size")
-
-# Wire measured inputs into weak-layer merge nodes.
-build_graph.flow(measured_hand_hardness, merge_wl_hh_gf)
-build_graph.flow(measured_grain_form,    merge_wl_hh_gf)
-
-# Density estimation from hand hardness + grain form.
-build_graph.method_edge(merge_wl_hh_gf, density_weak_layer, "geldsetzer")
-build_graph.method_edge(merge_wl_hh_gf, density_weak_layer, "kim_jamieson_table2")
-
-# Density estimation from hand hardness + grain form + grain size.
-build_graph.flow(merge_wl_hh_gf,      merge_wl_hh_gf_gs)
-build_graph.flow(measured_grain_size,  merge_wl_hh_gf_gs)
-build_graph.method_edge(merge_wl_hh_gf_gs, density_weak_layer, "kim_jamieson_table5")
-
-# Direct measurement path (if the weak layer was sampled with a density cutter).
-build_graph.flow(measured_density, density_weak_layer)
-
 # Density-dependent method edges for sigma_c and sigma_comp.
-build_graph.method_edge(density_weak_layer, sigma_c,    "sigrist")   # Sigrist (2006)
-build_graph.method_edge(density_weak_layer, sigma_comp, "mellor")    # Mellor (1975)
+# The shared density node (level="layer") feeds these weak-layer strength parameters
+# directly, using the same density value computed for each layer (including the weak layer).
+build_graph.method_edge(density, sigma_c,    "sigrist")   # Sigrist (2006)
+build_graph.method_edge(density, sigma_comp, "mellor")    # Mellor (1975)
 
 # Stability model output node (level="stability_model")
 g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled criterion (≥1 = unstable)
@@ -495,7 +473,6 @@ __all__ = [
     'sigma_c',
     'tau_c',
     'sigma_comp',
-    'density_weak_layer',
     # Stability model parameters (calculated)
     'g_delta',
     's_r',
@@ -503,8 +480,6 @@ __all__ = [
     # Merge nodes
     'merge_weac_inputs',
     'merge_roch_inputs',
-    'merge_wl_hh_gf',
-    'merge_wl_hh_gf_gs',
     # Parameter classification sets
     'LAYER_PARAMS',
     'SLAB_PARAMS',

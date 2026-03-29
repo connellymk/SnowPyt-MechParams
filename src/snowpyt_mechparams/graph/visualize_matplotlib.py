@@ -480,7 +480,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     """
     Generate the weak-layer parameters and stability criteria detail figure.
 
-    Shows measured inputs → density_weak_layer → σ_c / σ_comp / G_c / …
+    Shows measured inputs + shared density → σ_c / σ_comp / G_c / …
     then → g_Δ / S_r / S_sk.  Width = 7.0 in (double column).
 
     Parameters
@@ -492,37 +492,26 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     -------
     Figure
     """
-    fig, ax = _new_fig(_DOUBLE_COL, 4.8)
+    fig, ax = _new_fig(_DOUBLE_COL, 4.2)
 
     BW, BH = 0.12, 0.09
     MW, MH = 0.16, 0.09
 
     C0, C1, C2, C3, C4 = 0.08, 0.26, 0.50, 0.68, 0.90
 
-    # Measured inputs (C0 column, top → bottom)
+    # Measured inputs (C0 column)
     inp: Dict[str, _Box] = {
         "sp":        _Box("snow pit\n(root)",    C0, 0.88, BW, BH, _COLORS["root"],  _EDGE_COLORS["root"]),
-        "meas_d":    _Box("ρ (measured)",        C0, 0.75, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
-        "meas_hh":   _Box("hand hardness",       C0, 0.62, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
         "meas_thick":_Box("layer\nthickness",    C0, 0.49, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
-        "meas_gf":   _Box("grain form",          C0, 0.36, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
-        "meas_gs":   _Box("grain size",          C0, 0.23, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
     }
 
-    # Layer params that feed stability
+    # Layer params that feed stability (shared density also feeds sigma_c/sigma_comp)
     layer_stab: Dict[str, _Box] = {
-        "rho":  _Box("ρ (layer)",  C1, 0.92, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "E":    _Box("E",          C1, 0.82, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "nu":   _Box("ν",          C1, 0.72, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "G":    _Box("G",          C1, 0.62, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "rho":  _Box("ρ (density)",  C1, 0.92, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "E":    _Box("E",            C1, 0.80, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "nu":   _Box("ν",            C1, 0.68, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "G":    _Box("G",            C1, 0.56, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
     }
-
-    # Weak-layer merge and density
-    wl_merge: Dict[str, _Box] = {
-        "m_wl_hh_gf":    _Box("WL: HH\n+ grain form",        C1, 0.40, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
-        "m_wl_hh_gf_gs": _Box("WL: HH + grain\nform + size", C1, 0.24, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
-    }
-    rho_wl = _Box("ρ (weak layer)", C2, 0.32, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"])
 
     # Weak-layer params
     wl_params: Dict[str, _Box] = {
@@ -531,7 +520,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
         "GIIc":    _Box("G_IIc",   C2, 0.68, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
         "tauc":    _Box("τ_c",     C2, 0.56, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
         "sigmac":  _Box("σ_c",     C2, 0.44, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-        "sigcomp": _Box("σ_comp",  C2, 0.18, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
+        "sigcomp": _Box("σ_comp",  C2, 0.28, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
     }
 
     # Merge nodes for stability
@@ -547,8 +536,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
         "ssk":    _Box("S_sk\n(Roch skier)",   C4, 0.22, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
     }
 
-    all_boxes = {**inp, **layer_stab, **wl_merge,
-                 "rho_wl": rho_wl, **wl_params, **stab_merge, **outputs}
+    all_boxes = {**inp, **layer_stab, **wl_params, **stab_merge, **outputs}
     for box in all_boxes.values():
         _draw_box(ax, box)
 
@@ -568,33 +556,15 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
                     wl_params["sigcomp"].x - BW/2, wl_params["sigcomp"].y,
                     label="reiweger", color=wc, fontsize=4.5)
 
-    # Inputs → WL merge
-    _draw_arrow(ax, inp["meas_hh"].x + BW/2, inp["meas_hh"].y,
-                    wl_merge["m_wl_hh_gf"].x - MW/2, wl_merge["m_wl_hh_gf"].y, color=ac)
-    _draw_arrow(ax, inp["meas_gf"].x + BW/2, inp["meas_gf"].y,
-                    wl_merge["m_wl_hh_gf"].x - MW/2, wl_merge["m_wl_hh_gf"].y, color=ac)
-    _draw_arrow(ax, wl_merge["m_wl_hh_gf"].x + MW/2,    wl_merge["m_wl_hh_gf"].y,
-                    wl_merge["m_wl_hh_gf_gs"].x - MW/2, wl_merge["m_wl_hh_gf_gs"].y, color=ac)
-    _draw_arrow(ax, inp["meas_gs"].x + BW/2, inp["meas_gs"].y,
-                    wl_merge["m_wl_hh_gf_gs"].x - MW/2, wl_merge["m_wl_hh_gf_gs"].y, color=ac)
-
-    # merges → rho_wl
-    _draw_arrow(ax, inp["meas_d"].x + BW/2, inp["meas_d"].y,
-                    rho_wl.x - BW/2, rho_wl.y, color=ac)
-    _draw_arrow(ax, wl_merge["m_wl_hh_gf"].x + MW/2, wl_merge["m_wl_hh_gf"].y,
-                    rho_wl.x - BW/2, rho_wl.y,
-                    label="geldsetzer\nkim_j_t2", color=wc, fontsize=4.5)
-    _draw_arrow(ax, wl_merge["m_wl_hh_gf_gs"].x + MW/2, wl_merge["m_wl_hh_gf_gs"].y,
-                    rho_wl.x - BW/2, rho_wl.y,
-                    label="kim_j_t5", color=wc, fontsize=4.5)
-
-    # rho_wl → density-dependent params
-    _draw_arrow(ax, rho_wl.x + BW/2, rho_wl.y,
+    # density → density-dependent weak-layer params (shared node)
+    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
                     wl_params["sigmac"].x - BW/2, wl_params["sigmac"].y,
-                    label="sigrist", color=wc, fontsize=4.5)
-    _draw_arrow(ax, rho_wl.x + BW/2, rho_wl.y,
+                    label="sigrist", color=wc, fontsize=4.5,
+                    connectionstyle="arc3,rad=0.20")
+    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
                     wl_params["sigcomp"].x - BW/2, wl_params["sigcomp"].y,
-                    label="mellor", color=wc, fontsize=4.5)
+                    label="mellor", color=wc, fontsize=4.5,
+                    connectionstyle="arc3,rad=0.25")
 
     # Layer params → m_weac
     for key in ["rho", "E", "nu", "G"]:
@@ -685,9 +655,6 @@ _FULL_LABELS = {
     "B11":                                         "B₁₁",
     "D11":                                         "D₁₁",
     "A55":                                         "A₅₅",
-    "merge_wl_hand_hardness_grain_form":           "WL\nHH+GF",
-    "merge_wl_hand_hardness_grain_form_grain_size":"WL\nHH+GF+GS",
-    "density_weak_layer":                          "ρ_wl",
     "G_c":                                         "G_c",
     "G_Ic":                                        "G_Ic",
     "G_IIc":                                       "G_IIc",
@@ -725,9 +692,6 @@ _FULL_COLORS = {
     "B11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "D11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "A55":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
-    "merge_wl_hand_hardness_grain_form":               (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "merge_wl_hand_hardness_grain_form_grain_size":    (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "density_weak_layer":                        (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
     "G_c":                                       (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
     "G_Ic":                                      (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
     "G_IIc":                                     (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
@@ -780,13 +744,6 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "A55":                                       (0.16, 0.17),
     "A11":                                       (0.28, 0.17),
     "B11":                                       (0.38, 0.17),
-
-    # ── Weak-layer merge nodes (right pipeline) ───────────────────────────
-    "merge_wl_hand_hardness_grain_form":               (0.63, 0.73),
-    "merge_wl_hand_hardness_grain_form_grain_size":    (0.75, 0.73),
-
-    # ── Weak-layer density ────────────────────────────────────────────────
-    "density_weak_layer":                        (0.69, 0.62),
 
     # ── Weak-layer fracture / strength params ─────────────────────────────
     "G_c":                                       (0.56, 0.53),
@@ -971,9 +928,9 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         # density → merge_roch (crosses pipeline boundary)
         elif sp == "density" and ep == "merge_roch_inputs":
             cs = "arc3,rad=-0.25"
-        # density_wl → sigma_c / sigma_comp
-        elif sp == "density_weak_layer":
-            cs = "arc3,rad=0.05"
+        # density → sigma_c / sigma_comp (shared density feeds weak-layer strength)
+        elif sp == "density" and ep in ("sigma_c", "sigma_comp"):
+            cs = "arc3,rad=0.10"
         # layer params feeding WEAC (cross-pipeline long arrows)
         elif sp in ("density", "elastic_modulus", "poissons_ratio", "shear_modulus") \
                 and ep == "merge_weac_inputs":

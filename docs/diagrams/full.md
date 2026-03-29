@@ -40,13 +40,7 @@ graph LR
     A55[A55]
     end
 
-    subgraph WL_MERGES["Weak-Layer Merge Nodes"]
-    merge_wl_hand_hardness_grain_form{WL: HH + grain form}
-    merge_wl_hand_hardness_grain_form_grain_size{WL: HH + grain form + size}
-    end
-
     subgraph WEAKLAYER["Weak-Layer Parameters"]
-    density_weak_layer[ρ (weak-layer density)]
     G_c[G_c]
     G_Ic[G_Ic]
     G_IIc[G_IIc]
@@ -92,16 +86,8 @@ graph LR
     snow_pit -->|W&R| sigma_c
     snow_pit -->|W&R| tau_c
     snow_pit -->|R15| sigma_comp
-    measured_hand_hardness --> merge_wl_hand_hardness_grain_form
-    measured_grain_form --> merge_wl_hand_hardness_grain_form
-    merge_wl_hand_hardness_grain_form -->|G09| density_weak_layer
-    merge_wl_hand_hardness_grain_form -->|KJ-t2| density_weak_layer
-    merge_wl_hand_hardness_grain_form --> merge_wl_hand_hardness_grain_form_grain_size
-    measured_grain_size --> merge_wl_hand_hardness_grain_form_grain_size
-    merge_wl_hand_hardness_grain_form_grain_size -->|KJ-t5| density_weak_layer
-    measured_density --> density_weak_layer
-    density_weak_layer -->|Sg06| sigma_c
-    density_weak_layer -->|M75| sigma_comp
+    density -->|Sg06| sigma_c
+    density -->|M75| sigma_comp
     density --> merge_weac_inputs
     elastic_modulus --> merge_weac_inputs
     poissons_ratio --> merge_weac_inputs
@@ -144,9 +130,9 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_wl_hand_hardness_grain_form,merge_wl_hand_hardness_grain_form_grain_size,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
-    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp,density_weak_layer weakLayerCalc
+    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
     class g_delta,s_r,s_sk stabilityCalc
 ```

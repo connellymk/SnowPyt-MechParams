@@ -489,85 +489,13 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
-        # === Weak-layer density and density-dependent strength methods ===
-        # density_weak_layer — density of the weak layer itself (slab.weak_layer).
-        # Mirrors the slab-layer density methods but applied to slab.weak_layer (a Layer object).
-        # Results are stored in slab.weak_layer.density_calculated by the executor.
-
-        # Direct measurement path: use the density field already on the weak layer.
-        self._register(MethodSpec(
-            parameter="density_weak_layer",
-            method_name="data_flow",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: (
-                None
-                if slab.weak_layer is None or slab.weak_layer.density is None
-                else slab.weak_layer.density
-            ),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # Geldsetzer (2000): density from hand hardness + grain form.
-        self._register(MethodSpec(
-            parameter="density_weak_layer",
-            method_name="geldsetzer",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab, include_method_uncertainty=True: (
-                None
-                if slab.weak_layer is None
-                else calculate_density(
-                    "geldsetzer",
-                    hand_hardness_index=slab.weak_layer.hand_hardness_index,
-                    grain_form=slab.weak_layer.grain_form,
-                    include_method_uncertainty=include_method_uncertainty,
-                )
-            ),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # Kim & Jamieson Table 2 (2014): density from hand hardness + grain form.
-        self._register(MethodSpec(
-            parameter="density_weak_layer",
-            method_name="kim_jamieson_table2",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab, include_method_uncertainty=True: (
-                None
-                if slab.weak_layer is None
-                else calculate_density(
-                    "kim_jamieson_table2",
-                    hand_hardness_index=slab.weak_layer.hand_hardness_index,
-                    grain_form=slab.weak_layer.grain_form,
-                    include_method_uncertainty=include_method_uncertainty,
-                )
-            ),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # Kim & Jamieson Table 5 (2014): density from hand hardness + grain form + grain size.
-        self._register(MethodSpec(
-            parameter="density_weak_layer",
-            method_name="kim_jamieson_table5",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab, include_method_uncertainty=True: (
-                None
-                if slab.weak_layer is None
-                else calculate_density(
-                    "kim_jamieson_table5",
-                    hand_hardness_index=slab.weak_layer.hand_hardness_index,
-                    grain_form=slab.weak_layer.grain_form,
-                    grain_size=slab.weak_layer.grain_size,
-                    include_method_uncertainty=include_method_uncertainty,
-                )
-            ),
-            required_inputs=[],
-            optional_inputs={}
-        ))
+        # === Weak-layer density-dependent strength methods ===
+        # sigma_c (sigrist) and sigma_comp (mellor) use slab.weak_layer.density_calculated,
+        # which is populated by the executor before these methods run (using the same density
+        # method chosen for the slab layers).
 
         # sigma_c - Tensile strength via Sigrist (2006) power-law (density-dependent).
-        # Uses slab.weak_layer.density_calculated, which must be set first by density_weak_layer.
+        # Uses slab.weak_layer.density_calculated, set by the executor as a preliminary step.
         self._register(MethodSpec(
             parameter="sigma_c",
             method_name="sigrist",
@@ -582,7 +510,7 @@ class MethodDispatcher:
         ))
 
         # sigma_comp - Compressive strength via Mellor (1975) power-law (density-dependent).
-        # Uses slab.weak_layer.density_calculated, which must be set first by density_weak_layer.
+        # Uses slab.weak_layer.density_calculated, set by the executor as a preliminary step.
         self._register(MethodSpec(
             parameter="sigma_comp",
             method_name="mellor",

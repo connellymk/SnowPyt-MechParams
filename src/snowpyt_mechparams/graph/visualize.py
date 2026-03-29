@@ -90,7 +90,6 @@ _NODE_LABELS: Dict[str, str] = {
     "elastic_modulus": "E (elastic modulus)",
     "poissons_ratio": "ν (Poisson's ratio)",
     "shear_modulus": "G (shear modulus)",
-    "density_weak_layer": "ρ (weak-layer density)",
     "A11": "A11",
     "B11": "B11",
     "D11": "D11",
@@ -108,8 +107,6 @@ _NODE_LABELS: Dict[str, str] = {
     "merge_hand_hardness_grain_form": "HH + grain form",
     "merge_hand_hardness_grain_form_grain_size": "HH + grain form + size",
     "merge_density_grain_form": "ρ + grain form",
-    "merge_wl_hand_hardness_grain_form": "WL: HH + grain form",
-    "merge_wl_hand_hardness_grain_form_grain_size": "WL: HH + grain form + size",
     "zi": "layer positions (z_i)",
     "merge_E_nu": "E + ν (all layers)",
     "merge_zi_E_nu": "z_i + E + ν",
@@ -407,7 +404,7 @@ def generate_mermaid_stability_detail(graph: Graph) -> str:
     """
     Generate a detail mermaid diagram for weak-layer parameters and stability criteria.
 
-    Shows measured inputs → density_weak_layer → strength/fracture params,
+    Shows measured inputs → density → strength/fracture params and layer params,
     then all weak-layer and layer params → stability outputs,
     with method names labeled on edges.
 
@@ -426,9 +423,6 @@ def generate_mermaid_stability_detail(graph: Graph) -> str:
         "measured_density", "measured_hand_hardness",
         "measured_grain_form", "measured_grain_size",
         "measured_layer_thickness",
-        "merge_wl_hand_hardness_grain_form",
-        "merge_wl_hand_hardness_grain_form_grain_size",
-        "density_weak_layer",
         "G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
         "merge_weac_inputs", "merge_roch_inputs",
@@ -596,18 +590,9 @@ _FULL_SUBGRAPHS = [
         ["D11", "B11", "A11", "A55"],
     ),
     (
-        "WL_MERGES",
-        "Weak-Layer Merge Nodes",
-        [
-            "merge_wl_hand_hardness_grain_form",
-            "merge_wl_hand_hardness_grain_form_grain_size",
-        ],
-    ),
-    (
         "WEAKLAYER",
         "Weak-Layer Parameters",
         [
-            "density_weak_layer",
             "G_c", "G_Ic", "G_IIc",
             "sigma_c", "tau_c", "sigma_comp",
         ],

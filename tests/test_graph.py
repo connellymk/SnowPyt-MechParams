@@ -368,7 +368,7 @@ class TestWeakLayerNodes:
     def test_WEAK_LAYER_PARAMS_contains_expected(self):
         """WEAK_LAYER_PARAMS frozenset should contain the expected weak-layer nodes."""
         from snowpyt_mechparams.graph.parameter_graph import WEAK_LAYER_PARAMS
-        expected = {"G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp", "density_weak_layer"}
+        expected = {"G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"}
         assert WEAK_LAYER_PARAMS == expected
 
     def test_merge_weac_inputs_has_correct_inputs(self):

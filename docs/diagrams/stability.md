@@ -19,9 +19,6 @@ graph LR
     sigma_c[σ_c]
     tau_c[τ_c]
     sigma_comp[σ_comp]
-    density_weak_layer[ρ (weak-layer density)]
-    merge_wl_hand_hardness_grain_form{WL: HH + grain form}
-    merge_wl_hand_hardness_grain_form_grain_size{WL: HH + grain form + size}
     g_delta[g_Δ (WEAC)]
     merge_weac_inputs{WEAC inputs}
     s_r[S_r (Roch natural)]
@@ -42,16 +39,8 @@ graph LR
     snow_pit -->|weissgraeber_rosendahl| sigma_c
     snow_pit -->|weissgraeber_rosendahl| tau_c
     snow_pit -->|reiweger| sigma_comp
-    measured_hand_hardness --> merge_wl_hand_hardness_grain_form
-    measured_grain_form --> merge_wl_hand_hardness_grain_form
-    merge_wl_hand_hardness_grain_form -->|geldsetzer| density_weak_layer
-    merge_wl_hand_hardness_grain_form -->|kim_jamieson_table2| density_weak_layer
-    merge_wl_hand_hardness_grain_form --> merge_wl_hand_hardness_grain_form_grain_size
-    measured_grain_size --> merge_wl_hand_hardness_grain_form_grain_size
-    merge_wl_hand_hardness_grain_form_grain_size -->|kim_jamieson_table5| density_weak_layer
-    measured_density --> density_weak_layer
-    density_weak_layer -->|sigrist| sigma_c
-    density_weak_layer -->|mellor| sigma_comp
+    density -->|sigrist| sigma_c
+    density -->|mellor| sigma_comp
     density --> merge_weac_inputs
     elastic_modulus --> merge_weac_inputs
     poissons_ratio --> merge_weac_inputs
@@ -81,8 +70,8 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_wl_hand_hardness_grain_form,merge_wl_hand_hardness_grain_form_grain_size,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
-    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp,density_weak_layer weakLayerCalc
+    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
     class g_delta,s_r,s_sk stabilityCalc
 ```

@@ -64,8 +64,8 @@ from snowpyt_mechparams.weak_layer_parameters import (
     calculate_G_Ic,
     calculate_G_IIc,
     calculate_tau_c,
-    calculate_sigma_c_minus,
-    calculate_sigma_c_plus,
+    calculate_sigma_comp,
+    calculate_sigma_c,
 )
 
 # Execution engine
@@ -120,8 +120,8 @@ __all__ = [
     "calculate_G_Ic",
     "calculate_G_IIc",
     "calculate_tau_c",
-    "calculate_sigma_c_minus",
-    "calculate_sigma_c_plus",
+    "calculate_sigma_comp",
+    "calculate_sigma_c",
     # Execution engine
     "ExecutionEngine",
     "ExecutionConfig",

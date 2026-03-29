@@ -1,6 +1,6 @@
-"""Methods to calculate the compressive strength (σ_c-) of snow.
+"""Methods to calculate the compressive strength (σ_comp) of snow.
 
-σ_c- is the maximum compressive stress that snow can withstand before collapse.
+σ_comp is the maximum compressive stress that snow can withstand before collapse.
 It is particularly important for weak layers in avalanche mechanics.
 """
 
@@ -12,19 +12,19 @@ from uncertainties import ufloat
 from snowpyt_mechparams.constants import RHO_ICE
 
 
-def calculate_sigma_c_minus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
+def calculate_sigma_comp(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate compressive strength of snow based on specified method and
     input parameters.
 
-    The compressive strength σ_c- represents the maximum compressive stress
+    The compressive strength σ_comp represents the maximum compressive stress
     that snow can withstand before collapse. It is particularly important for
     weak layers in avalanche mechanics.
 
     Parameters
     ----------
     method : str
-        Method to use for σ_c- calculation. Available methods:
+        Method to use for σ_comp calculation. Available methods:
         - 'reiweger': Uses Reiweger et al. (2015) reference value for weak
           layers under rapid loading
         - 'mellor': Uses Mellor (1975) power-law scaling relationship based
@@ -48,9 +48,9 @@ def calculate_sigma_c_minus(method: str, include_method_uncertainty: bool = True
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'reiweger':
-        return _calculate_sigma_c_minus_reiweger(**kwargs)
+        return _calculate_sigma_comp_reiweger(**kwargs)
     elif method.lower() == 'mellor':
-        return _calculate_sigma_c_minus_mellor(**kwargs)
+        return _calculate_sigma_comp_mellor(**kwargs)
     else:
         available_methods = ['reiweger', 'mellor']
         raise ValueError(
@@ -58,7 +58,7 @@ def calculate_sigma_c_minus(method: str, include_method_uncertainty: bool = True
         )
 
 
-def _calculate_sigma_c_minus_reiweger(density: ufloat = None) -> ufloat:
+def _calculate_sigma_comp_reiweger(density: ufloat = None) -> ufloat:
     """
     Calculate compressive strength using Reiweger et al. (2015) reference value
     for weak layers.
@@ -77,14 +77,14 @@ def _calculate_sigma_c_minus_reiweger(density: ufloat = None) -> ufloat:
     Returns
     -------
     ufloat
-        Compressive strength σ_c- in kPa with associated uncertainty.
+        Compressive strength σ_comp in kPa with associated uncertainty.
 
     Notes
     -----
     The compressive strength is given as a reference value from Reiweger et al.
     (2015), as cited in Weißgraeber & Rosendahl (2023):
 
-    σ_c- = 2.6 kPa
+    σ_comp = 2.6 kPa
 
     This value represents the rapid-loading compressive strength of a weak
     layer and is used for assessing the potential for weak-layer collapse
@@ -118,13 +118,13 @@ def _calculate_sigma_c_minus_reiweger(density: ufloat = None) -> ufloat:
     https://doi.org/10.1002/2014GL062780
     """
     # Reference compressive strength for weak layers (Reiweger et al. 2015)
-    sigma_c_minus = 2.6  # kPa
+    sigma_comp = 2.6  # kPa
 
     # Return as ufloat with no uncertainty specified (could be added if known)
-    return ufloat(sigma_c_minus, 0.0)
+    return ufloat(sigma_comp, 0.0)
 
 
-def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
+def _calculate_sigma_comp_mellor(density: ufloat) -> ufloat:
     """
     Calculate compressive strength using Mellor (1975) power-law scaling
     relationship.
@@ -142,7 +142,7 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     Returns
     -------
     ufloat
-        Compressive strength σ_c- in kPa with associated uncertainty.
+        Compressive strength σ_comp in kPa with associated uncertainty.
         Returns ufloat(NaN, NaN) if density is invalid (≤ 0 or > ρ_ice).
 
     Notes
@@ -150,7 +150,7 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     The compressive strength is calculated using a power-law relationship
     based on Mellor (1975):
 
-    σ_c-(ρ) = C * (ρ/ρ_0)^n
+    σ_comp(ρ) = C * (ρ/ρ_0)^n
 
     where:
     - ρ is the snow density [kg/m³]
@@ -175,10 +175,10 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     - Microstructural factors (grain bonding, type) influence the relationship
 
     Typical Values (using this formula):
-    - Fresh snow (ρ ~ 100 kg/m³): σ_c- ~ 7 kPa
-    - Settled snow (ρ ~ 200 kg/m³): σ_c- ~ 40 kPa
-    - Dense snow (ρ ~ 300 kg/m³): σ_c- ~ 110 kPa
-    - Very dense snow (ρ ~ 400 kg/m³): σ_c- ~ 230 kPa
+    - Fresh snow (ρ ~ 100 kg/m³): σ_comp ~ 7 kPa
+    - Settled snow (ρ ~ 200 kg/m³): σ_comp ~ 40 kPa
+    - Dense snow (ρ ~ 300 kg/m³): σ_comp ~ 110 kPa
+    - Very dense snow (ρ ~ 400 kg/m³): σ_comp ~ 230 kPa
 
     Limitations
     -----------
@@ -219,8 +219,8 @@ def _calculate_sigma_c_minus_mellor(density: ufloat) -> ufloat:
     C = 5000.0  # kPa, reference compressive strength coefficient
     n = 2.5  # dimensionless, power-law exponent
 
-    # Calculate compressive strength: σ_c- = C * (ρ/ρ_0)^n
-    sigma_c_minus = C * (density / RHO_ICE) ** n
+    # Calculate compressive strength: σ_comp = C * (ρ/ρ_0)^n
+    sigma_comp = C * (density / RHO_ICE) ** n
 
-    return sigma_c_minus
+    return sigma_comp
 

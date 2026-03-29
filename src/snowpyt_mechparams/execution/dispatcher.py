@@ -27,8 +27,8 @@ from snowpyt_mechparams.weak_layer_parameters.fracture_energy import calculate_G
 from snowpyt_mechparams.weak_layer_parameters.mode_i_fracture_toughness import calculate_G_Ic
 from snowpyt_mechparams.weak_layer_parameters.mode_ii_fracture_toughness import calculate_G_IIc
 from snowpyt_mechparams.weak_layer_parameters.tau_c import calculate_tau_c
-from snowpyt_mechparams.weak_layer_parameters.sigma_c_plus import calculate_sigma_c_plus
-from snowpyt_mechparams.weak_layer_parameters.sigma_c_minus import calculate_sigma_c_minus
+from snowpyt_mechparams.weak_layer_parameters.sigma_c import calculate_sigma_c
+from snowpyt_mechparams.weak_layer_parameters.sigma_comp import calculate_sigma_comp
 from snowpyt_mechparams.stability_criteria.weac import calculate_weac_skier
 from snowpyt_mechparams.stability_criteria.roch import calculate_roch
 from snowpyt_mechparams.constants import (
@@ -464,7 +464,7 @@ class MethodDispatcher:
             parameter="sigma_c",
             method_name="weissgraeber_rosendahl",
             level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_sigma_c_plus("weissgraeber_rosendahl"),
+            function=lambda slab: calculate_sigma_c("weissgraeber_rosendahl"),
             required_inputs=[],
             optional_inputs={}
         ))
@@ -484,7 +484,7 @@ class MethodDispatcher:
             parameter="sigma_comp",
             method_name="reiweger",
             level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_sigma_c_minus("reiweger"),
+            function=lambda slab: calculate_sigma_comp("reiweger"),
             required_inputs=[],
             optional_inputs={}
         ))
@@ -503,7 +503,7 @@ class MethodDispatcher:
             function=lambda slab: (
                 None
                 if slab.weak_layer is None or slab.weak_layer.density_calculated is None
-                else calculate_sigma_c_plus("sigrist", density=slab.weak_layer.density_calculated)
+                else calculate_sigma_c("sigrist", density=slab.weak_layer.density_calculated)
             ),
             required_inputs=[],
             optional_inputs={}
@@ -518,7 +518,7 @@ class MethodDispatcher:
             function=lambda slab: (
                 None
                 if slab.weak_layer is None or slab.weak_layer.density_calculated is None
-                else calculate_sigma_c_minus("mellor", density=slab.weak_layer.density_calculated)
+                else calculate_sigma_comp("mellor", density=slab.weak_layer.density_calculated)
             ),
             required_inputs=[],
             optional_inputs={}

@@ -20,8 +20,8 @@ from snowpyt_mechparams.weak_layer_parameters import (
     calculate_G_Ic,
     calculate_G_IIc,
     calculate_tau_c,
-    calculate_sigma_c_plus,
-    calculate_sigma_c_minus,
+    calculate_sigma_c,
+    calculate_sigma_comp,
 )
 
 
@@ -125,87 +125,87 @@ class TestCalculateTauC:
 
 
 # ---------------------------------------------------------------------------
-# calculate_sigma_c_plus
+# calculate_sigma_c
 # ---------------------------------------------------------------------------
 
 class TestCalculateSigmaCPlus:
     def test_weissgraeber_rosendahl_nominal(self):
-        result = calculate_sigma_c_plus("weissgraeber_rosendahl")
+        result = calculate_sigma_c("weissgraeber_rosendahl")
         assert _nominal(result) == pytest.approx(6.16)
 
     def test_weissgraeber_rosendahl_zero_uncertainty(self):
-        result = calculate_sigma_c_plus("weissgraeber_rosendahl")
+        result = calculate_sigma_c("weissgraeber_rosendahl")
         assert _std(result) == 0.0
 
     def test_sigrist_returns_ufloat(self):
-        result = calculate_sigma_c_plus("sigrist", density=ufloat(250.0, 0.0))
+        result = calculate_sigma_c("sigrist", density=ufloat(250.0, 0.0))
         assert isinstance(result, UFloat)
 
     def test_sigrist_positive_for_valid_density(self):
-        result = calculate_sigma_c_plus("sigrist", density=ufloat(250.0, 0.0))
+        result = calculate_sigma_c("sigrist", density=ufloat(250.0, 0.0))
         assert _nominal(result) > 0.0
         assert not math.isnan(_nominal(result))
 
     def test_sigrist_nan_for_none_density(self):
-        result = calculate_sigma_c_plus("sigrist", density=None)
+        result = calculate_sigma_c("sigrist", density=None)
         assert math.isnan(_nominal(result))
 
     def test_sigrist_nan_for_negative_density(self):
-        result = calculate_sigma_c_plus("sigrist", density=ufloat(-1.0, 0.0))
+        result = calculate_sigma_c("sigrist", density=ufloat(-1.0, 0.0))
         assert math.isnan(_nominal(result))
 
     def test_unknown_method_raises(self):
         with pytest.raises(ValueError, match="Unknown method"):
-            calculate_sigma_c_plus("no_such_method")
+            calculate_sigma_c("no_such_method")
 
 
 # ---------------------------------------------------------------------------
-# calculate_sigma_c_minus
+# calculate_sigma_comp
 # ---------------------------------------------------------------------------
 
 class TestCalculateSigmaCMinus:
     def test_reiweger_nominal(self):
-        result = calculate_sigma_c_minus("reiweger")
+        result = calculate_sigma_comp("reiweger")
         assert _nominal(result) == pytest.approx(2.6)
 
     def test_reiweger_zero_uncertainty(self):
-        result = calculate_sigma_c_minus("reiweger")
+        result = calculate_sigma_comp("reiweger")
         assert _std(result) == 0.0
 
     def test_reiweger_returns_ufloat(self):
-        assert isinstance(calculate_sigma_c_minus("reiweger"), UFloat)
+        assert isinstance(calculate_sigma_comp("reiweger"), UFloat)
 
     def test_reiweger_ignores_density(self):
         """density kwarg is accepted for API consistency but doesn't affect output."""
-        result_no_density = calculate_sigma_c_minus("reiweger")
-        result_with_density = calculate_sigma_c_minus("reiweger", density=ufloat(300.0, 0.0))
+        result_no_density = calculate_sigma_comp("reiweger")
+        result_with_density = calculate_sigma_comp("reiweger", density=ufloat(300.0, 0.0))
         assert _nominal(result_no_density) == pytest.approx(_nominal(result_with_density))
 
     def test_mellor_returns_ufloat(self):
-        result = calculate_sigma_c_minus("mellor", density=ufloat(250.0, 0.0))
+        result = calculate_sigma_comp("mellor", density=ufloat(250.0, 0.0))
         assert isinstance(result, UFloat)
 
     def test_mellor_positive_for_valid_density(self):
-        result = calculate_sigma_c_minus("mellor", density=ufloat(250.0, 0.0))
+        result = calculate_sigma_comp("mellor", density=ufloat(250.0, 0.0))
         assert _nominal(result) > 0.0
         assert not math.isnan(_nominal(result))
 
     def test_mellor_nan_for_none_density(self):
-        result = calculate_sigma_c_minus("mellor", density=None)
+        result = calculate_sigma_comp("mellor", density=None)
         assert math.isnan(_nominal(result))
 
     def test_mellor_nan_for_negative_density(self):
-        result = calculate_sigma_c_minus("mellor", density=ufloat(-1.0, 0.0))
+        result = calculate_sigma_comp("mellor", density=ufloat(-1.0, 0.0))
         assert math.isnan(_nominal(result))
 
     def test_unknown_method_raises(self):
         with pytest.raises(ValueError, match="Unknown method"):
-            calculate_sigma_c_minus("no_such_method")
+            calculate_sigma_comp("no_such_method")
 
     def test_weissgraeber_rosendahl_no_longer_valid(self):
         """weissgraeber_rosendahl was removed — it was a misattribution of Reiweger et al. (2015)."""
         with pytest.raises(ValueError):
-            calculate_sigma_c_minus("weissgraeber_rosendahl")
+            calculate_sigma_comp("weissgraeber_rosendahl")
 
 
 # ---------------------------------------------------------------------------
@@ -219,32 +219,32 @@ class TestSigristNumerical:
 
     def test_sigrist_300_kg_m3(self):
         density = ufloat(300.0, 0.0)
-        result = calculate_sigma_c_plus("sigrist", density=density)
+        result = calculate_sigma_c("sigrist", density=density)
         expected = 240.0 * (300.0 / self._RHO_ICE) ** 2.44
         assert _nominal(result) == pytest.approx(expected, rel=1e-5)
 
     def test_sigrist_100_kg_m3(self):
         density = ufloat(100.0, 0.0)
-        result = calculate_sigma_c_plus("sigrist", density=density)
+        result = calculate_sigma_c("sigrist", density=density)
         expected = 240.0 * (100.0 / self._RHO_ICE) ** 2.44
         assert _nominal(result) == pytest.approx(expected, rel=1e-5)
 
     def test_sigrist_uncertainty_propagates(self):
         """Non-zero density uncertainty should produce non-zero output uncertainty."""
         density = ufloat(300.0, 15.0)
-        result = calculate_sigma_c_plus("sigrist", density=density)
+        result = calculate_sigma_c("sigrist", density=density)
         assert _std(result) > 0.0
 
     def test_sigrist_zero_std_for_zero_density_std(self):
         """Zero density uncertainty → zero output uncertainty."""
         density = ufloat(300.0, 0.0)
-        result = calculate_sigma_c_plus("sigrist", density=density)
+        result = calculate_sigma_c("sigrist", density=density)
         assert _std(result) == pytest.approx(0.0, abs=1e-12)
 
     def test_sigrist_increases_with_density(self):
         """Higher density → higher tensile strength."""
-        r_low  = calculate_sigma_c_plus("sigrist", density=ufloat(150.0, 0.0))
-        r_high = calculate_sigma_c_plus("sigrist", density=ufloat(400.0, 0.0))
+        r_low  = calculate_sigma_c("sigrist", density=ufloat(150.0, 0.0))
+        r_high = calculate_sigma_c("sigrist", density=ufloat(400.0, 0.0))
         assert _nominal(r_low) < _nominal(r_high)
 
 
@@ -255,26 +255,26 @@ class TestMellorNumerical:
 
     def test_mellor_300_kg_m3(self):
         density = ufloat(300.0, 0.0)
-        result = calculate_sigma_c_minus("mellor", density=density)
+        result = calculate_sigma_comp("mellor", density=density)
         expected = 5000.0 * (300.0 / self._RHO_ICE) ** 2.5
         assert _nominal(result) == pytest.approx(expected, rel=1e-5)
 
     def test_mellor_200_kg_m3(self):
         density = ufloat(200.0, 0.0)
-        result = calculate_sigma_c_minus("mellor", density=density)
+        result = calculate_sigma_comp("mellor", density=density)
         expected = 5000.0 * (200.0 / self._RHO_ICE) ** 2.5
         assert _nominal(result) == pytest.approx(expected, rel=1e-5)
 
     def test_mellor_uncertainty_propagates(self):
         """Non-zero density uncertainty should produce non-zero output uncertainty."""
         density = ufloat(300.0, 15.0)
-        result = calculate_sigma_c_minus("mellor", density=density)
+        result = calculate_sigma_comp("mellor", density=density)
         assert _std(result) > 0.0
 
     def test_mellor_increases_with_density(self):
         """Higher density → higher compressive strength."""
-        r_low  = calculate_sigma_c_minus("mellor", density=ufloat(150.0, 0.0))
-        r_high = calculate_sigma_c_minus("mellor", density=ufloat(400.0, 0.0))
+        r_low  = calculate_sigma_comp("mellor", density=ufloat(150.0, 0.0))
+        r_high = calculate_sigma_comp("mellor", density=ufloat(400.0, 0.0))
         assert _nominal(r_low) < _nominal(r_high)
 
 

@@ -1,6 +1,6 @@
-"""Methods to calculate the tensile normal strength (σ_c+) of snow.
+"""Methods to calculate the tensile normal strength (σ_c) of snow.
 
-σ_c+ is the maximum tensile stress that snow can withstand before fracture.
+σ_c is the maximum tensile stress that snow can withstand before fracture.
 It is used to assess the potential for tensile slab fracture in avalanche
 mechanics.
 """
@@ -13,19 +13,19 @@ from uncertainties import ufloat
 from snowpyt_mechparams.constants import RHO_ICE
 
 
-def calculate_sigma_c_plus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
+def calculate_sigma_c(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
     Calculate tensile normal strength of snow based on specified method and
     input parameters.
 
-    The tensile normal strength σ_c+ represents the maximum tensile stress
+    The tensile normal strength σ_c represents the maximum tensile stress
     that snow can withstand before fracture. It is used to assess the potential
     for tensile slab fracture in avalanche mechanics.
 
     Parameters
     ----------
     method : str
-        Method to use for σ_c+ calculation. Available methods:
+        Method to use for σ_c calculation. Available methods:
         - 'sigrist': Uses Sigrist (2006) power-law scaling relationship
           based on density
         - 'weissgraeber_rosendahl': Reference constant from
@@ -50,9 +50,9 @@ def calculate_sigma_c_plus(method: str, include_method_uncertainty: bool = True,
         If method is not recognized or required parameters are missing
     """
     if method.lower() == 'sigrist':
-        return _calculate_sigma_c_plus_sigrist(**kwargs)
+        return _calculate_sigma_c_sigrist(**kwargs)
     elif method.lower() == 'weissgraeber_rosendahl':
-        return _calculate_sigma_c_plus_weissgraeber_rosendahl()
+        return _calculate_sigma_c_weissgraeber_rosendahl()
     else:
         available_methods = ['sigrist', 'weissgraeber_rosendahl']
         raise ValueError(
@@ -60,7 +60,7 @@ def calculate_sigma_c_plus(method: str, include_method_uncertainty: bool = True,
         )
 
 
-def _calculate_sigma_c_plus_weissgraeber_rosendahl() -> ufloat:
+def _calculate_sigma_c_weissgraeber_rosendahl() -> ufloat:
     """
     Return the tensile normal strength reference value from
     Weißgraeber & Rosendahl (2023).
@@ -81,7 +81,7 @@ def _calculate_sigma_c_plus_weissgraeber_rosendahl() -> ufloat:
     return ufloat(6.16, 0.0)
 
 
-def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
+def _calculate_sigma_c_sigrist(density: ufloat) -> ufloat:
     """
     Calculate tensile normal strength using Sigrist (2006) power-law
     scaling relationship.
@@ -98,7 +98,7 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
     Returns
     -------
     ufloat
-        Tensile normal strength σ_c+ in kPa with associated uncertainty.
+        Tensile normal strength σ_c in kPa with associated uncertainty.
         Returns ufloat(NaN, NaN) if density is invalid (≤ 0 or > ρ_ice).
 
     Notes
@@ -106,7 +106,7 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
     The tensile normal strength is calculated using the power-law relationship
     (Equation 22 in Weißgraeber & Rosendahl 2023, citing Sigrist 2006):
 
-    σ_c+(ρ) = 240 kPa * (ρ/ρ_0)^2.44
+    σ_c(ρ) = 240 kPa * (ρ/ρ_0)^2.44
 
     where:
     - ρ is the snow density [kg/m³]
@@ -126,10 +126,10 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
       (e.g., increased bonding, reduced porosity) play a significant role
 
     Typical Values:
-    - Fresh snow (ρ ~ 100 kg/m³): σ_c+ ~ 0.3 kPa
-    - Settled snow (ρ ~ 200 kg/m³): σ_c+ ~ 1.8 kPa
-    - Dense snow (ρ ~ 300 kg/m³): σ_c+ ~ 5.1 kPa
-    - Very dense snow (ρ ~ 400 kg/m³): σ_c+ ~ 10.5 kPa
+    - Fresh snow (ρ ~ 100 kg/m³): σ_c ~ 0.3 kPa
+    - Settled snow (ρ ~ 200 kg/m³): σ_c ~ 1.8 kPa
+    - Dense snow (ρ ~ 300 kg/m³): σ_c ~ 5.1 kPa
+    - Very dense snow (ρ ~ 400 kg/m³): σ_c ~ 10.5 kPa
 
     Limitations
     -----------
@@ -171,7 +171,7 @@ def _calculate_sigma_c_plus_sigrist(density: ufloat) -> ufloat:
     sigma_ref = 240.0  # kPa, reference tensile strength at ice density
     exponent = 2.44  # dimensionless, power-law exponent
 
-    # Calculate tensile strength: σ_c+ = 240 * (ρ/ρ_0)^2.44
-    sigma_c_plus = sigma_ref * (density / RHO_ICE) ** exponent
+    # Calculate tensile strength: σ_c = 240 * (ρ/ρ_0)^2.44
+    sigma_c = sigma_ref * (density / RHO_ICE) ** exponent
 
-    return sigma_c_plus
+    return sigma_c

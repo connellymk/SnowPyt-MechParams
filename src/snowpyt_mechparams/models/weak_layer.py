@@ -1,5 +1,6 @@
 # WeakLayer data structure — a snow weak layer with fracture/strength parameters
 
+import dataclasses
 from dataclasses import dataclass
 from typing import Optional
 
@@ -50,3 +51,13 @@ class WeakLayer(Layer):
     sigma_c: Optional[UncertainValue] = None    # kPa   — tensile normal strength (WEAC default 6.16)
     tau_c: Optional[UncertainValue] = None      # kPa   — shear strength (WEAC default 5.09)
     sigma_comp: Optional[UncertainValue] = None # kPa   — compressive strength (WEAC default 2.6)
+
+    @classmethod
+    def from_layer(cls, layer: "Layer") -> "WeakLayer":
+        """Create a WeakLayer from a plain Layer, copying all Layer fields.
+
+        The six fracture/strength parameters (G_c, G_Ic, G_IIc, sigma_c,
+        tau_c, sigma_comp) are left as None and populated later by the
+        execution engine.
+        """
+        return cls(**{f.name: getattr(layer, f.name) for f in dataclasses.fields(layer)})

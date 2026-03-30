@@ -6,6 +6,7 @@ from typing import Any, List, Literal, Optional, Union
 from snowpyt_mechparams.models._types import UncertainValue
 from snowpyt_mechparams.models.layer import Layer
 from snowpyt_mechparams.models.slab import Slab
+from snowpyt_mechparams.models.weak_layer import WeakLayer
 
 WeakLayerDef = Literal["layer_of_concern", "CT_failure_layer", "ECTP_failure_layer"]
 
@@ -155,7 +156,7 @@ class Pit:
             slab = Slab(
                 layers=slab_layers,
                 angle=self.slope_angle,
-                weak_layer=self.layer_of_concern,
+                weak_layer=WeakLayer.from_layer(self.layer_of_concern),
                 pit_id=self.pit_id,
                 slab_id=f"{self.pit_id}_slab_0" if self.pit_id else "slab_0",
                 weak_layer_source="layer_of_concern",
@@ -314,7 +315,7 @@ class Pit:
         return Slab(
             layers=slab_layers,
             angle=self.slope_angle,
-            weak_layer=weak_layer,
+            weak_layer=WeakLayer.from_layer(weak_layer),
             pit_id=self.pit_id,
             slab_id=slab_id,
             weak_layer_source=weak_layer_def,

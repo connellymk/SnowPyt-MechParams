@@ -59,7 +59,6 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from snowpyt_mechparams.algorithm import Parameterization
 from snowpyt_mechparams.layer_parameters.density import calculate_density
 from snowpyt_mechparams.models import Layer, Slab, UncertainValue
-from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, _get_layer_input
 from snowpyt_mechparams.execution.results import (
@@ -248,7 +247,7 @@ class PathwayExecutor:
             computation_trace.extend(slab_traces)
 
         # Execute weak-layer calculations when targeting a weak-layer parameter OR
-        # when targeting a stability parameter (which needs weac_layer populated first).
+        # when targeting a stability parameter (which needs weak_layer fracture fields populated first).
         if target_parameter in WEAK_LAYER_PARAMS or target_parameter in STABILITY_PARAMS:
             weak_layer_params_in_pathway = {
                 p: m for p, m in methods_used.items() if p in WEAK_LAYER_PARAMS
@@ -758,7 +757,7 @@ class PathwayExecutor:
         if wl is None:
             return None
         if method == "data_flow":
-            return wl.density if wl.density is not None else None
+            return wl.density_measured if wl.density_measured is not None else None
         if method in ("geldsetzer", "kim_jamieson_table2"):
             if wl.hand_hardness_index is None or wl.grain_form is None:
                 return None
@@ -769,13 +768,13 @@ class PathwayExecutor:
                 include_method_uncertainty=include_method_uncertainty,
             )
         if method == "kim_jamieson_table5":
-            if wl.hand_hardness_index is None or wl.grain_form is None or wl.grain_size is None:
+            if wl.hand_hardness_index is None or wl.grain_form is None or wl.grain_size_avg is None:
                 return None
             return calculate_density(
                 method,
                 hand_hardness_index=wl.hand_hardness_index,
                 grain_form=wl.grain_form,
-                grain_size=wl.grain_size,
+                grain_size=wl.grain_size_avg,
                 include_method_uncertainty=include_method_uncertainty,
             )
         return None
@@ -789,12 +788,13 @@ class PathwayExecutor:
     ) -> List[ComputationTrace]:
         """
         Compute weak-layer fracture/strength parameters and store them on
-        ``slab.weac_layer``.
+        ``slab.weak_layer``.
 
         Parameters
         ----------
         slab : Slab
-            Working slab copy (mutated in place: ``slab.weac_layer`` is set).
+            Working slab copy (mutated in place: fracture/strength fields on
+            ``slab.weak_layer`` are set).
         params_to_compute : Dict[str, str]
             Mapping of ``{parameter_name: method_name}`` for each weak-layer
             parameter to compute (e.g. ``{"G_Ic": "weissgraeber_rosendahl"}``).
@@ -837,11 +837,8 @@ class PathwayExecutor:
                 **extra,
             )
 
-            if value is not None:
-                # Lazily initialise weac_layer if not already present.
-                if slab.weac_layer is None:
-                    slab.weac_layer = WeakLayer()
-                setattr(slab.weac_layer, param, value)
+            if value is not None and slab.weak_layer is not None:
+                setattr(slab.weak_layer, param, value)
 
             traces.append(ComputationTrace(
                 parameter=param,
@@ -874,8 +871,8 @@ class PathwayExecutor:
         Parameters
         ----------
         slab : Slab
-            Working slab copy with layer params and ``weac_layer`` already
-            populated.  Mutated in place: ``slab.weac_result`` is set.
+            Working slab copy with layer params and ``weak_layer`` fracture/strength
+            fields populated.  Mutated in place: ``slab.weac_result`` is set.
         target_parameter : str
             Graph node name for the stability output (e.g. ``"g_delta"``).
         methods_used : Dict[str, str]

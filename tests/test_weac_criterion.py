@@ -10,7 +10,7 @@ Integration tests cover (require ``weac`` installed):
 - Full round-trip: Slab → calculate_weac_skier → WeacSkierResult
 - Unit-conversion correctness (cm → mm)
 - UFloat stripping at adapter boundary
-- weak_layer_overrides take precedence over slab.weac_layer
+- weak_layer_overrides take precedence over slab.weak_layer
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Slab
-from snowpyt_mechparams.models.weak_layer import WeakLayer
+from snowpyt_mechparams.models.weak_layer import WeakLayer  # now a Layer subclass
 from snowpyt_mechparams.stability_criteria.weac.weac_result import WeacSkierResult
 from conftest import requires_weac
 
@@ -61,7 +61,8 @@ def _make_minimal_slab(
     wl_h_cm : float
         Weak-layer thickness (cm).
     with_weac_layer : bool
-        If True, attach a ``WeakLayer`` with Weißgraeber/Rosendahl reference values.
+        If True, populate the ``WeakLayer`` with Weißgraeber/Rosendahl reference
+        fracture/strength values.
     """
     layers = [
         Layer(
@@ -74,27 +75,23 @@ def _make_minimal_slab(
         for _ in range(n_layers)
     ]
 
-    weak_layer = Layer(
+    weak_layer = WeakLayer(
         thickness=ufloat(wl_h_cm, 0.0),
         density_measured=ufloat(wl_rho, 0.0),
-    )
-
-    weac_layer = None
-    if with_weac_layer:
-        weac_layer = WeakLayer(
+        **(dict(
             G_c=ufloat(1.0, 0.0),
             G_Ic=ufloat(0.56, 0.0),
             G_IIc=ufloat(0.79, 0.0),
             sigma_c=ufloat(6.16, 0.0),
             tau_c=ufloat(5.09, 0.0),
             sigma_comp=ufloat(2.6, 0.0),
-        )
+        ) if with_weac_layer else {})
+    )
 
     return Slab(
         layers=layers,
         angle=ufloat(angle, 0.0),
         weak_layer=weak_layer,
-        weac_layer=weac_layer,
     )
 
 
@@ -176,7 +173,7 @@ class TestCalculateWeacSkierValidation:
             poissons_ratio=ufloat(0.2, 0.0),
             shear_modulus=ufloat(2.0, 0.0),
         )
-        weak_layer = Layer(thickness=ufloat(3.0, 0.0))  # no density
+        weak_layer = WeakLayer(thickness=ufloat(3.0, 0.0))  # no density
         slab = Slab(layers=[layer], angle=ufloat(35.0, 0.0), weak_layer=weak_layer)
         assert self.fn(slab) is None
 
@@ -189,7 +186,7 @@ class TestCalculateWeacSkierValidation:
             poissons_ratio=ufloat(0.2, 0.0),
             shear_modulus=ufloat(2.0, 0.0),
         )
-        weak_layer = Layer(density_measured=ufloat(150.0, 0.0))  # no thickness
+        weak_layer = WeakLayer(density_measured=ufloat(150.0, 0.0))  # no thickness
         slab = Slab(layers=[layer], angle=ufloat(35.0, 0.0), weak_layer=weak_layer)
         assert self.fn(slab) is None
 
@@ -202,7 +199,7 @@ class TestCalculateWeacSkierValidation:
             poissons_ratio=ufloat(0.2, 0.0),
             shear_modulus=ufloat(2.0, 0.0),
         )
-        weak_layer = Layer(
+        weak_layer = WeakLayer(
             thickness=ufloat(3.0, 0.0),
             density_measured=ufloat(150.0, 0.0),
         )
@@ -218,7 +215,7 @@ class TestCalculateWeacSkierValidation:
             poissons_ratio=ufloat(0.2, 0.0),
             shear_modulus=ufloat(2.0, 0.0),
         )
-        weak_layer = Layer(
+        weak_layer = WeakLayer(
             thickness=ufloat(3.0, 0.0),
             density_measured=ufloat(150.0, 0.0),
         )
@@ -234,7 +231,7 @@ class TestCalculateWeacSkierValidation:
             poissons_ratio=ufloat(0.2, 0.0),
             # shear_modulus omitted
         )
-        weak_layer = Layer(
+        weak_layer = WeakLayer(
             thickness=ufloat(3.0, 0.0),
             density_measured=ufloat(150.0, 0.0),
         )
@@ -385,7 +382,7 @@ class TestCalculateWeacSkierIntegration:
                 shear_modulus=ufloat(2.0, 0.2),
             )
         ]
-        weak_layer = Layer(
+        weak_layer = WeakLayer(
             thickness=ufloat(3.0, 0.3),
             density_measured=ufloat(150.0, 15.0),
         )
@@ -400,7 +397,7 @@ class TestCalculateWeacSkierIntegration:
 
     @requires_weac
     def test_weak_layer_overrides_take_precedence(self):
-        """Caller-supplied weak_layer_overrides should override slab.weac_layer values."""
+        """Caller-supplied weak_layer_overrides should override slab.weak_layer values."""
         slab = _make_minimal_slab()
         # Call twice: once with default values, once with a very high G_IIc override
         result_default = self.fn(slab)

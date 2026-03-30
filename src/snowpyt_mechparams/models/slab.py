@@ -34,11 +34,11 @@ class Slab:
         Ordered list of snow layers from top (surface) to bottom
 
     # Weak Layer
-    weak_layer: Optional[Layer]
-        Weak layer of the slab (measured Layer object from the snow pit).
-    weac_layer: Optional[WeakLayer]
-        Computed fracture/strength parameters for the WEAC skier criterion.
-        Populated by the execution engine when targeting stability parameters.
+    weak_layer: Optional[WeakLayer]
+        Weak layer of the slab. Holds all measured Layer fields (thickness,
+        density, hand hardness, grain form, grain size) plus the six computed
+        fracture/strength parameters (G_c, G_Ic, G_IIc, sigma_c, tau_c,
+        sigma_comp) populated by the execution engine.
 
     # Metadata
     pit_id : Optional[str]
@@ -67,7 +67,7 @@ class Slab:
     # Slab Structure
     layers: List[Layer]  # Ordered list of snow layers from top (surface) to bottom
     angle: UncertainValue  # Slope angle of the slab in degrees
-    weak_layer: Optional[Layer] = None  # Weak layer of the slab
+    weak_layer: Optional[WeakLayer] = None  # Weak layer of the slab
 
     # Metadata - tracks which test result was used to create this slab
     pit_id: Optional[str] = None  # Source pit identifier
@@ -76,9 +76,6 @@ class Slab:
     test_result_index: Optional[int] = None  # Index of specific test result used (0-indexed)
     test_result_properties: Optional[dict] = None  # Properties of the specific test result
     n_test_results_in_pit: Optional[int] = None  # Total test results available in pit
-
-    # Weak Layer Fracture Parameters (populated by execution engine)
-    weac_layer: Optional[WeakLayer] = None  # Fracture/strength params for WEAC skier criterion
 
     # Calculated Parameters - From Method Implementations
     A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness

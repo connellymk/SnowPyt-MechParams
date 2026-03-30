@@ -538,7 +538,7 @@ class MethodDispatcher:
         ))
 
         # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
-        # Requires slab with density_calculated on all layers and slab.weac_layer.tau_c set.
+        # Requires slab with density_calculated on all layers and slab.weak_layer.tau_c set.
         # tau_c is passed in kPa; calculate_roch converts to Pa internally.
         self._register(MethodSpec(
             parameter="s_r",
@@ -546,8 +546,8 @@ class MethodDispatcher:
             level=ParameterLevel.STABILITY,
             function=lambda slab: (
                 None
-                if slab.weac_layer is None or slab.weac_layer.tau_c is None
-                else calculate_roch(slab, tau_c=slab.weac_layer.tau_c)
+                if slab.weak_layer is None or slab.weak_layer.tau_c is None
+                else calculate_roch(slab, tau_c=slab.weak_layer.tau_c)
             ),
             required_inputs=["slab"],
             optional_inputs={}
@@ -562,10 +562,10 @@ class MethodDispatcher:
             level=ParameterLevel.STABILITY,
             function=lambda slab: (
                 None
-                if slab.weac_layer is None or slab.weac_layer.tau_c is None
+                if slab.weak_layer is None or slab.weak_layer.tau_c is None
                 else calculate_roch(
                     slab,
-                    tau_c=slab.weac_layer.tau_c,
+                    tau_c=slab.weak_layer.tau_c,
                     skier_stress=_ROCH_SKIER_STRESS_N_M2,
                 )
             ),

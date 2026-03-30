@@ -2,7 +2,7 @@
 WEAC skier stability criterion adapter.
 
 Converts a SnowPyt ``Slab`` (with computed layer mechanical parameters and
-populated ``weac_layer`` fracture/strength parameters) into WEAC inputs and
+populated ``weak_layer`` fracture/strength parameters) into WEAC inputs and
 runs the coupled anticrack nucleation criterion.
 
 Units at the SnowPyt / WEAC boundary
@@ -97,7 +97,7 @@ def calculate_weac_skier(
         * All layers having ``density_calculated``, ``elastic_modulus``,
           ``poissons_ratio``, ``shear_modulus``, and ``thickness`` populated.
         * ``weak_layer`` set (provides ``rho`` and ``h`` for WEAC's WeakLayer).
-        * ``weac_layer`` set (provides fracture/strength params).
+        * ``weak_layer`` set with fracture/strength params populated.
         * ``angle`` set (slope angle in degrees).
 
     skier_mass : float, optional
@@ -115,7 +115,7 @@ def calculate_weac_skier(
         A value of ``5.0`` is a reasonable default for large batch runs.
     **weak_layer_overrides
         Override individual weak-layer fracture/strength parameters passed to
-        WEAC (e.g. ``G_Ic=1.0``).  These take precedence over ``slab.weac_layer``.
+        WEAC (e.g. ``G_Ic=1.0``).  These take precedence over ``slab.weak_layer``.
         ``None`` values are silently ignored (the WEAC default for that field
         is used instead).
 
@@ -192,13 +192,12 @@ def calculate_weac_skier(
 
     # ------------------------------------------------------------------
     # 2. Fracture / strength parameters for WEAC WeakLayer
-    #    Priority: kwargs > slab.weac_layer > WEAC built-in defaults
+    #    Priority: kwargs > slab.weak_layer > WEAC built-in defaults
     # ------------------------------------------------------------------
 
     weac_wl_kwargs: dict[str, Any] = {"rho": wl_rho, "h": wl_h_mm}
 
-    if slab.weac_layer is not None:
-        wl = slab.weac_layer
+    if slab.weak_layer is not None:
         for attr, weac_field in [
             ("G_c",        "G_c"),
             ("G_Ic",       "G_Ic"),
@@ -207,7 +206,7 @@ def calculate_weac_skier(
             ("tau_c",      "tau_c"),
             ("sigma_comp", "sigma_comp"),
         ]:
-            val = _nominal(getattr(wl, attr, None))
+            val = _nominal(getattr(slab.weak_layer, attr, None))
             if val is not None:
                 weac_wl_kwargs[weac_field] = val
 

@@ -1,24 +1,32 @@
-# WeakLayer data structure for WEAC fracture/strength parameters
+# WeakLayer data structure — a snow weak layer with fracture/strength parameters
 
 from dataclasses import dataclass
 from typing import Optional
 
-
 from snowpyt_mechparams.models._types import UncertainValue
+from snowpyt_mechparams.models.layer import Layer
 
 
 @dataclass
-class WeakLayer:
+class WeakLayer(Layer):
     """
-    Holds the six fracture and strength parameters required by WEAC's
-    coupled criterion.
+    A snow weak layer: all measured ``Layer`` fields plus the six computed
+    fracture and strength parameters required by WEAC's coupled criterion.
 
-    This is SnowPyt's representation of weak-layer fracture/strength data —
-    distinct from ``weac.components.WeakLayer`` (a Pydantic model with many
-    more mechanical fields that WEAC derives internally from ``rho`` and ``h``).
+    Inherits all ``Layer`` fields (thickness, density_measured, hand_hardness,
+    grain_form, grain_size_avg, depth_top, layer_of_concern, and the computed
+    density_calculated, elastic_modulus, poissons_ratio, shear_modulus).
 
-    All fields default to ``None``.  The WEAC adapter (``calculate_weac_skier``)
-    falls back to WEAC's built-in defaults for any field that is ``None``.
+    The six fracture/strength fields default to ``None``.  The WEAC adapter
+    (``calculate_weac_skier``) falls back to WEAC's built-in defaults for any
+    field that is ``None``.
+
+    Notes
+    -----
+    Values can be plain ``float`` or ``uncertainties.UFloat``.  Because WEAC
+    uses ``scipy.linalg.eig`` internally, ``UFloat`` values are stripped to
+    their nominal values at the adapter boundary — uncertainties are **not**
+    propagated through WEAC results.
 
     Attributes
     ----------
@@ -34,13 +42,6 @@ class WeakLayer:
         Shear strength [kPa].  WEAC default: 5.09 kPa.
     sigma_comp : Optional[UncertainValue]
         Compressive strength [kPa].  WEAC default: 2.6 kPa.
-
-    Notes
-    -----
-    Values can be plain ``float`` or ``uncertainties.UFloat``.  Because WEAC
-    uses ``scipy.linalg.eig`` internally, ``UFloat`` values are stripped to
-    their nominal values at the adapter boundary — uncertainties are **not**
-    propagated through WEAC results.
     """
 
     G_c: Optional[UncertainValue] = None        # J/m²  — total fracture energy (WEAC default 1.0)

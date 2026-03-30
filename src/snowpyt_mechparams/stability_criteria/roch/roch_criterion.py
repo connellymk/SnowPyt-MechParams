@@ -40,7 +40,7 @@ def calculate_roch(
     tau_c : UncertainValue
         Shear strength of the weak layer [kPa].
         This matches the unit used by ``WeakLayer.tau_c``, so you can pass
-        ``slab.weac_layer.tau_c`` directly.
+        ``slab.weak_layer.tau_c`` directly.
         Internally converted to Pa (× 1000) before computing the index.
     skier_stress : UncertainValue, optional
         Additional shear stress from a skier τ_sk [N/m² = Pa].

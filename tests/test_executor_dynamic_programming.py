@@ -12,6 +12,7 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Slab
+from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.algorithm import find_parameterizations
@@ -405,7 +406,7 @@ class TestMetadataPreservation:
         executor = PathwayExecutor()
         
         # Create a slab with rich metadata (simulating creation from Pit.create_slabs)
-        weak_layer = Layer(
+        weak_layer = WeakLayer(
             depth_top=50,
             thickness=ufloat(5, 0.5),
             grain_form="FC",

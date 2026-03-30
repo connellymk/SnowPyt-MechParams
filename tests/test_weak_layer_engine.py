@@ -39,7 +39,7 @@ def _make_slab_for_stability() -> Slab:
         poissons_ratio=ufloat(0.2, 0.0),
         shear_modulus=ufloat(2.0, 0.0),
     )
-    weak_layer = Layer(
+    weak_layer = WeakLayer(
         thickness=ufloat(3.0, 0.0),
         density_measured=ufloat(150.0, 0.0),
     )
@@ -194,22 +194,18 @@ class TestExecutorWeakLayerCalculations:
         self.executor = PathwayExecutor()
         self.slab = _make_slab_for_stability()
 
-    def test_populates_weac_layer_on_slab(self):
-        """After execution, slab.weac_layer should have G_Ic set."""
-        assert self.slab.weac_layer is None
+    def test_populates_weak_layer_on_slab(self):
+        """After execution, slab.weak_layer should have G_Ic set."""
+        assert self.slab.weak_layer.G_Ic is None
         params = {"G_Ic": "weissgraeber_rosendahl"}
         traces = self.executor._execute_weak_layer_calculations(self.slab, params)
         assert len(traces) == 1
         assert traces[0].success
-        assert self.slab.weac_layer is not None
-        assert self.slab.weac_layer.G_Ic is not None
+        assert self.slab.weak_layer.G_Ic is not None
 
-    def test_lazy_creates_weac_layer_when_none(self):
-        """weac_layer should be lazily created if not present."""
-        assert self.slab.weac_layer is None
-        params = {"G_c": "weissgraeber_rosendahl"}
-        self.executor._execute_weak_layer_calculations(self.slab, params)
-        assert isinstance(self.slab.weac_layer, WeakLayer)
+    def test_weak_layer_is_weaklayer_instance(self):
+        """slab.weak_layer should be a WeakLayer instance."""
+        assert isinstance(self.slab.weak_layer, WeakLayer)
 
     def test_all_six_params_populated(self):
         """All six weak-layer params should be set after a full execution."""
@@ -224,7 +220,7 @@ class TestExecutorWeakLayerCalculations:
         traces = self.executor._execute_weak_layer_calculations(self.slab, params)
         assert len(traces) == 6
         assert all(t.success for t in traces)
-        wl = self.slab.weac_layer
+        wl = self.slab.weak_layer
         assert wl is not None
         assert wl.G_c is not None
         assert wl.G_Ic is not None
@@ -319,8 +315,8 @@ class TestFullPipelineStability:
         assert isinstance(g_delta_traces[0].output, float)
 
     @requires_weac
-    def test_weac_layer_populated_after_execution(self):
-        """After execution, result_slab.weac_layer should have all six fracture params."""
+    def test_weak_layer_populated_after_execution(self):
+        """After execution, result_slab.weak_layer should have all six fracture params."""
         from snowpyt_mechparams.algorithm import find_parameterizations
         from snowpyt_mechparams.execution.config import ExecutionConfig
         from snowpyt_mechparams.execution.executor import PathwayExecutor
@@ -336,7 +332,7 @@ class TestFullPipelineStability:
             pathways[0], slab, "g_delta", config
         )
 
-        wl = result.slab.weac_layer
+        wl = result.slab.weak_layer
         assert wl is not None
         assert wl.G_c is not None
         assert wl.G_Ic is not None

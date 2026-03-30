@@ -8,27 +8,38 @@ the parameterization graph to actual calculation function implementations.
 import inspect
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.constants import resolve_grain_form_for_method
-from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
+from snowpyt_mechparams.models import Layer, Slab, UncertainValue
 from snowpyt_mechparams.layer_parameters.density import calculate_density
 from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
 from snowpyt_mechparams.layer_parameters.poissons_ratio import calculate_poissons_ratio
 from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
-from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
-from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
-from snowpyt_mechparams.slab_parameters.D11 import calculate_D11
-from snowpyt_mechparams.slab_parameters.A55 import calculate_A55
+from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A11
+from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
+from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
+from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
+from snowpyt_mechparams.weak_layer_parameters.fracture_energy import calculate_G_c
+from snowpyt_mechparams.weak_layer_parameters.mode_i_fracture_toughness import calculate_G_Ic
+from snowpyt_mechparams.weak_layer_parameters.mode_ii_fracture_toughness import calculate_G_IIc
+from snowpyt_mechparams.weak_layer_parameters.tau_c import calculate_tau_c
+from snowpyt_mechparams.weak_layer_parameters.sigma_c import calculate_sigma_c
+from snowpyt_mechparams.weak_layer_parameters.sigma_comp import calculate_sigma_comp
+from snowpyt_mechparams.stability_criteria.weac import calculate_weac_skier
+from snowpyt_mechparams.stability_criteria.roch import calculate_roch
+from snowpyt_mechparams.constants import g
 
 
 class ParameterLevel(Enum):
-    """Whether a parameter is computed per-layer or per-slab."""
+    """Whether a parameter is computed per-layer, per-slab, as a weak-layer constant, or as a stability criterion result."""
     LAYER = "layer"
     SLAB = "slab"
+    WEAK_LAYER = "weak_layer"
+    STABILITY = "stability_model"
 
 
 @dataclass
@@ -200,7 +211,7 @@ class MethodDispatcher:
         Internal registry mapping (parameter, method_name) to MethodSpec
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._registry: Dict[Tuple[str, str], MethodSpec] = {}
         self._register_all_methods()
 
@@ -404,6 +415,137 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
+        # === Weak-layer fracture/strength methods (weak_layer-level) ===
+        # G_c, G_Ic, G_IIc, sigma_c, tau_c use Weißgraeber & Rosendahl (2023) reference constants.
+        # sigma_comp uses Reiweger et al. (2015), as cited by Weißgraeber & Rosendahl (2023).
+        # Functions accept `slab` for API consistency but do not use it
+        # (these are pure constant reference values).
+
+        # G_c - Total critical energy release rate
+        self._register(MethodSpec(
+            parameter="G_c",
+            method_name="weissgraeber_rosendahl",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: calculate_G_c("weissgraeber_rosendahl"),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # G_Ic - Mode-I (tensile) fracture toughness
+        self._register(MethodSpec(
+            parameter="G_Ic",
+            method_name="weissgraeber_rosendahl",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: calculate_G_Ic("weissgraeber_rosendahl"),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # G_IIc - Mode-II (shear) fracture toughness
+        self._register(MethodSpec(
+            parameter="G_IIc",
+            method_name="weissgraeber_rosendahl",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: calculate_G_IIc("weissgraeber_rosendahl"),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # sigma_c - Tensile strength (mode-I)
+        self._register(MethodSpec(
+            parameter="sigma_c",
+            method_name="weissgraeber_rosendahl",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: calculate_sigma_c("weissgraeber_rosendahl"),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # tau_c - Shear strength (mode-II)
+        self._register(MethodSpec(
+            parameter="tau_c",
+            method_name="weissgraeber_rosendahl",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: calculate_tau_c("weissgraeber_rosendahl"),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # sigma_comp - Compressive strength (Reiweger et al. 2015, cited by W&R 2023)
+        self._register(MethodSpec(
+            parameter="sigma_comp",
+            method_name="reiweger",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: calculate_sigma_comp("reiweger"),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # === Weak-layer density-dependent strength methods ===
+        # sigma_c (sigrist) and sigma_comp (mellor) use slab.weak_layer.density_calculated,
+        # which is populated by the executor before these methods run (using the same density
+        # method chosen for the slab layers).
+
+        # sigma_c - Tensile strength via Sigrist (2006) power-law (density-dependent).
+        # Uses slab.weak_layer.density_calculated, set by the executor as a preliminary step.
+        self._register(MethodSpec(
+            parameter="sigma_c",
+            method_name="sigrist",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: (
+                None
+                if slab.weak_layer is None or slab.weak_layer.density_calculated is None
+                else calculate_sigma_c("sigrist", density=slab.weak_layer.density_calculated)
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # sigma_comp - Compressive strength via Mellor (1975) power-law (density-dependent).
+        # Uses slab.weak_layer.density_calculated, set by the executor as a preliminary step.
+        self._register(MethodSpec(
+            parameter="sigma_comp",
+            method_name="mellor",
+            level=ParameterLevel.WEAK_LAYER,
+            function=lambda slab: (
+                None
+                if slab.weak_layer is None or slab.weak_layer.density_calculated is None
+                else calculate_sigma_comp("mellor", density=slab.weak_layer.density_calculated)
+            ),
+            required_inputs=[],
+            optional_inputs={}
+        ))
+
+        # === Stability criterion methods (stability-level) ===
+
+        # g_delta - WEAC coupled anticrack nucleation criterion (Weißgraeber & Rosendahl 2023)
+        # Requires weac to be installed: pip install snowpyt-mechparams[weac]
+        self._register(MethodSpec(
+            parameter="g_delta",
+            method_name="weac_skier",
+            level=ParameterLevel.STABILITY,
+            function=lambda slab, **kwargs: calculate_weac_skier(slab, **kwargs),
+            required_inputs=["slab"],
+            optional_inputs={}
+        ))
+
+        # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
+        # Requires slab with density_calculated on all layers and slab.weak_layer.tau_c set.
+        # tau_c is passed in kPa; calculate_roch converts to Pa internally.
+        self._register(MethodSpec(
+            parameter="s_r",
+            method_name="roch_natural",
+            level=ParameterLevel.STABILITY,
+            function=lambda slab: (
+                None
+                if slab.weak_layer is None or slab.weak_layer.tau_c is None
+                else calculate_roch(slab, tau_c=slab.weak_layer.tau_c)
+            ),
+            required_inputs=["slab"],
+            optional_inputs={}
+        ))
+
+
     def get_method(self, parameter: str, method_name: str) -> Optional[MethodSpec]:
         """
         Retrieve a method specification by parameter and method name.
@@ -452,8 +594,8 @@ class MethodDispatcher:
         method_name: str,
         layer: Optional[Layer] = None,
         slab: Optional[Slab] = None,
-        **extra_inputs
-    ) -> Tuple[Optional[UncertainValue], Optional[str]]:
+        **extra_inputs: Any,
+    ) -> Tuple[Optional[Any], Optional[str]]:
         """
         Execute a method and return (result, error_message).
 
@@ -484,9 +626,16 @@ class MethodDispatcher:
             if layer is None:
                 return None, "Layer required for layer-level method"
             inputs = self._gather_layer_inputs(layer, spec)
-        else:
+        elif spec.level == ParameterLevel.WEAK_LAYER:
+            # Weak-layer methods are constant reference values; slab is passed
+            # for API consistency but is not used by the function.
             if slab is None:
-                return None, "Slab required for slab-level method"
+                return None, "Slab required for weak-layer method"
+            inputs = {"slab": slab}
+        else:
+            # SLAB and STABILITY levels both receive the full slab.
+            if slab is None:
+                return None, "Slab required for slab-level / stability method"
             inputs = {"slab": slab}
 
         if inputs is None:

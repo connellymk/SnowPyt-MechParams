@@ -58,10 +58,6 @@ def test_copy_on_write_reuses_unchanged_layers():
     )
     slab = Slab(layers=[layer1, layer2], angle=35)
     
-    # Store original layer IDs
-    layer1_id = id(slab.layers[0])
-    layer2_id = id(slab.layers[1])
-    
     # Execute - will compute on both layers
     engine = ExecutionEngine(graph)
     results = engine.execute_all(slab, "poissons_ratio")

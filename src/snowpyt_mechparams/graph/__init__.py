@@ -41,7 +41,7 @@ layer-level calculations before attempting slab-level calculations.
 
 See Also
 --------
-graph.definitions : The complete graph definition
+graph.parameter_graph : The complete graph definition
 graph.structures : Graph data structures (Node, Edge, Graph)
 algorithm : Functions to find calculation pathways
 """
@@ -54,7 +54,7 @@ from snowpyt_mechparams.graph.structures import (
     NodeType,
 )
 
-from snowpyt_mechparams.graph.definitions import (
+from snowpyt_mechparams.graph.parameter_graph import (
     graph,
     # Root
     snow_pit,
@@ -75,12 +75,38 @@ from snowpyt_mechparams.graph.definitions import (
     B11,
     D11,
     A55,
+    # Weak-layer fracture/strength parameters
+    G_c,
+    G_Ic,
+    G_IIc,
+    sigma_c,
+    tau_c,
+    sigma_comp,
+    # Stability model parameters
+    g_delta,
+    s_r,
+    # Merge nodes
+    merge_weac_inputs,
+    merge_roch_inputs,
+    # Parameter classification sets
+    WEAK_LAYER_PARAMS,
+    STABILITY_PARAMS,
 )
 
 from snowpyt_mechparams.graph.visualize import (
     generate_mermaid_diagram,
     save_mermaid_diagram,
     print_mermaid_diagram,
+    generate_mermaid_overview,
+    generate_mermaid_layer_detail,
+    generate_mermaid_slab_detail,
+    generate_mermaid_stability_detail,
+    save_mermaid_overview,
+    save_mermaid_layer_detail,
+    save_mermaid_slab_detail,
+    save_mermaid_stability_detail,
+    generate_mermaid_full_detail,
+    save_mermaid_full_detail,
 )
 
 __all__ = [
@@ -111,8 +137,35 @@ __all__ = [
     "B11",
     "D11",
     "A55",
-    # Visualization
+    # Weak-layer fracture/strength parameters
+    "G_c",
+    "G_Ic",
+    "G_IIc",
+    "sigma_c",
+    "tau_c",
+    "sigma_comp",
+    # Stability model parameters
+    "g_delta",
+    "s_r",
+    # Merge nodes
+    "merge_weac_inputs",
+    "merge_roch_inputs",
+    # Parameter classification sets
+    "WEAK_LAYER_PARAMS",
+    "STABILITY_PARAMS",
+    # Visualization — full graph (backwards compat)
     "generate_mermaid_diagram",
     "save_mermaid_diagram",
     "print_mermaid_diagram",
+    # Visualization — focused diagrams
+    "generate_mermaid_overview",
+    "generate_mermaid_layer_detail",
+    "generate_mermaid_slab_detail",
+    "generate_mermaid_stability_detail",
+    "save_mermaid_overview",
+    "save_mermaid_layer_detail",
+    "save_mermaid_slab_detail",
+    "save_mermaid_stability_detail",
+    "generate_mermaid_full_detail",
+    "save_mermaid_full_detail",
 ]

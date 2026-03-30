@@ -2,455 +2,759 @@
 Generate mermaid diagrams from the parameter graph.
 
 This module provides utilities to visualize the parameter dependency graph
-as mermaid diagrams for documentation and understanding the calculation pathways.
+as mermaid diagrams for documentation and as matplotlib figures for publication.
+
+Overview diagram
+    One high-level diagram showing the five conceptual parameter groups with
+    simple arrows between them — no merge nodes, no method names.
+
+Detail diagrams
+    Three focused diagrams, one per subsystem, with method-labeled edges:
+    - Layer parameters (density, E, ν, G)
+    - Slab stiffnesses (A11, B11, D11, A55)
+    - Weak-layer parameters and stability criteria
 
 Functions
 ---------
+generate_mermaid_overview
+    Big-picture diagram using subgraph blocks, no method names
+generate_mermaid_layer_detail
+    Layer parameter pathways with method names on edges
+generate_mermaid_slab_detail
+    Slab stiffness assembly with method names on edges
+generate_mermaid_stability_detail
+    Weak-layer parameters and stability criteria with method names on edges
 generate_mermaid_diagram
-    Generate mermaid diagram syntax from a Graph object
+    Full single-diagram output (kept for backwards compatibility)
+save_mermaid_overview, save_mermaid_layer_detail, ...
+    Convenience wrappers that write each diagram to a .md file
 save_mermaid_diagram
-    Generate and save mermaid diagram to a file
-print_mermaid_diagram
-    Generate and print mermaid diagram to stdout
+    Backwards-compatible single-file save
 
 Examples
 --------
 >>> from snowpyt_mechparams.graph import graph
->>> from snowpyt_mechparams.graph.visualize import generate_mermaid_diagram
->>> 
->>> # Generate mermaid diagram
->>> diagram = generate_mermaid_diagram(graph)
->>> print(diagram)
-
->>> # Save to file
->>> save_mermaid_diagram(graph, "docs/parameter_graph.md")
+>>> from snowpyt_mechparams.graph.visualize import (
+...     save_mermaid_overview, save_mermaid_layer_detail,
+...     save_mermaid_slab_detail, save_mermaid_stability_detail,
+... )
+>>> save_mermaid_overview(graph, "docs/diagrams/overview.md")
+>>> save_mermaid_layer_detail(graph, "docs/diagrams/layer_params.md")
+>>> save_mermaid_slab_detail(graph, "docs/diagrams/slab_params.md")
+>>> save_mermaid_stability_detail(graph, "docs/diagrams/stability.md")
 """
 
-from typing import Dict, List, Set
+from typing import Dict, List
 from snowpyt_mechparams.graph.structures import Graph, Node
 
 
+# ==============================================================================
+# Shared helpers
+# ==============================================================================
+
 def _classify_node(node: Node) -> str:
-    """
-    Classify a node into visualization categories.
-    
-    Parameters
-    ----------
-    node : Node
-        The node to classify
-    
-    Returns
-    -------
-    str
-        One of: 'root', 'measured', 'merge', 'layer_calc', 'slab_calc'
-    """
+    """Classify a node into one of seven visualization categories."""
     param = node.parameter
-    
-    # Root node
+
     if param == "snow_pit":
         return "root"
-    
-    # Merge nodes
     if node.type == "merge":
         return "merge"
-    
-    # Measured parameters (all measured_* names, including measured_layer_thickness)
     if param.startswith("measured_"):
         return "measured"
-    
-    # Use the node's level tag to classify calculated parameters
     if node.level == "slab":
         return "slab_calc"
     if node.level == "layer":
         return "layer_calc"
-    
-    # Default to layer_calc for any untagged parameter nodes
+    if node.level == "weak_layer":
+        return "weak_layer_calc"
+    if node.level == "stability_model":
+        return "stability_calc"
     return "layer_calc"
 
 
 def _sanitize_node_id(parameter: str) -> str:
-    """
-    Convert parameter name to valid mermaid node ID.
-    
-    Parameters
-    ----------
-    parameter : str
-        The parameter name
-    
-    Returns
-    -------
-    str
-        Sanitized ID safe for use in mermaid
-    """
-    # Replace underscores and spaces with underscores, remove special chars
+    """Convert parameter name to a valid mermaid node ID."""
     return parameter.replace(" ", "_").replace("-", "_")
 
 
+# Human-readable single-line labels (no category tags — color conveys type).
+_NODE_LABELS: Dict[str, str] = {
+    "snow_pit": "snow pit",
+    "measured_density": "density (measured)",
+    "measured_hand_hardness": "hand hardness",
+    "measured_grain_form": "grain form",
+    "measured_grain_size": "grain size",
+    "measured_layer_thickness": "layer thickness",
+    "density": "ρ (density)",
+    "elastic_modulus": "E (elastic modulus)",
+    "poissons_ratio": "ν (Poisson's ratio)",
+    "shear_modulus": "G (shear modulus)",
+    "A11": "A11",
+    "B11": "B11",
+    "D11": "D11",
+    "A55": "A55",
+    "G_c": "G_c",
+    "G_Ic": "G_Ic",
+    "G_IIc": "G_IIc",
+    "sigma_c": "σ_c",
+    "tau_c": "τ_c",
+    "sigma_comp": "σ_comp",
+    "g_delta": "g_Δ (WEAC)",
+    "s_r": "S_r (Roch natural)",
+
+    # Merge node labels (short, single line)
+    "merge_hand_hardness_grain_form": "HH + grain form",
+    "merge_hand_hardness_grain_form_grain_size": "HH + grain form + size",
+    "merge_density_grain_form": "ρ + grain form",
+    "zi": "layer positions (z_i)",
+    "merge_E_nu": "E + ν (all layers)",
+    "merge_zi_E_nu": "z_i + E + ν",
+    "merge_hi_G": "h_i + G (all layers)",
+    "merge_hi_E_nu": "h_i + E + ν",
+    "merge_weac_inputs": "WEAC inputs",
+    "merge_roch_inputs": "Roch inputs",
+}
+
+
+def _label(node: Node) -> str:
+    """Return the display label for a node."""
+    return _NODE_LABELS.get(node.parameter, node.parameter)
+
+
 def _get_node_label(node: Node) -> str:
-    """
-    Generate display label for a node.
-    
-    Parameters
-    ----------
-    node : Node
-        The node to label
-    
-    Returns
-    -------
-    str
-        Multi-line label for the node
-    """
-    param = node.parameter
-    category = _classify_node(node)
-    
-    # Special labels for specific nodes
-    labels = {
-        "snow_pit": "snow_pit<br/>ROOT",
-        "measured_density": "measured_density<br/>MEASURED",
-        "measured_hand_hardness": "measured_hand_hardness<br/>MEASURED",
-        "measured_grain_form": "measured_grain_form<br/>MEASURED",
-        "measured_grain_size": "measured_grain_size<br/>MEASURED",
-        "measured_layer_thickness": "measured_layer_thickness<br/>MEASURED",
-        "density": "density<br/>CALCULATED",
-        "elastic_modulus": "elastic_modulus<br/>CALCULATED",
-        "poissons_ratio": "poissons_ratio<br/>CALCULATED",
-        "shear_modulus": "shear_modulus<br/>CALCULATED",
-        "D11": "D11<br/>Bending Stiffness<br/>SLAB",
-        "A55": "A55<br/>Shear Stiffness<br/>SLAB",
-        "A11": "A11<br/>Extensional Stiffness<br/>SLAB",
-        "B11": "B11<br/>Bending-Extension Coupling<br/>SLAB",
-        "zi": "zi<br/>spatial info",
-    }
-    
-    if param in labels:
-        return labels[param]
-    
-    # For merge nodes, format nicely
-    if node.type == "merge":
-        # Split on underscore and add line breaks for readability
-        if param.startswith("merge_"):
-            base = param[6:]  # Remove "merge_" prefix
-            # Add line break after "merge"
-            return f"merge_{base.replace('_', '<br/>_')}"
-        return param.replace("_", "<br/>_")
-    
-    # Default: use parameter name with category
-    return f"{param}<br/>{category.upper()}"
+    """Return the display label for a node (alias for :func:`_label`)."""
+    return _label(node)
 
 
 def _get_node_shape(node: Node) -> tuple[str, str]:
     """
-    Get mermaid shape syntax for a node.
-    
-    Parameters
-    ----------
-    node : Node
-        The node
-    
+    Get mermaid shape markers for a node.
+
     Returns
     -------
     tuple[str, str]
-        Opening and closing shape markers (e.g., "[", "]" or "{", "}")
+        Opening and closing shape markers, e.g. ``("[", "]")`` or ``("{", "}")``.
     """
     if node.type == "merge":
-        return "{", "}"  # Diamond shape for merge nodes
-    else:
-        return "[", "]"  # Rectangle shape for parameter nodes
+        return "{", "}"
+    return "[", "]"
 
 
-def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Graph") -> str:
+def _node_def(node: Node) -> str:
+    """Return the mermaid node definition line (indented 4 spaces)."""
+    nid = _sanitize_node_id(node.parameter)
+    lbl = _label(node)
+    if node.type == "merge":
+        return f"    {nid}{{{lbl}}}"
+    return f"    {nid}[{lbl}]"
+
+
+def _edge_line(start: Node, end: Node, method: str | None = None) -> str:
+    """Return a mermaid edge line (indented 4 spaces)."""
+    sid = _sanitize_node_id(start.parameter)
+    eid = _sanitize_node_id(end.parameter)
+    if method:
+        return f"    {sid} -->|{method}| {eid}"
+    return f"    {sid} --> {eid}"
+
+
+def _style_block(node_categories: Dict[str, List[Node]]) -> List[str]:
+    """Return classDef and class-assignment lines."""
+    lines = [
+        "    %% Styling",
+        "    classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px",
+        "    classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px",
+        "    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px",
+        "    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px",
+        "    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px",
+        "    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px",
+        "    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px",
+        "    ",
+    ]
+    mapping = [
+        ("root", "rootNode"),
+        ("measured", "measuredNode"),
+        ("merge", "mergeNode"),
+        ("layer_calc", "layerCalc"),
+        ("slab_calc", "slabCalc"),
+        ("weak_layer_calc", "weakLayerCalc"),
+        ("stability_calc", "stabilityCalc"),
+    ]
+    for cat, cls in mapping:
+        nodes = node_categories.get(cat, [])
+        if nodes:
+            ids = ",".join(_sanitize_node_id(n.parameter) for n in nodes)
+            lines.append(f"    class {ids} {cls}")
+    return lines
+
+
+def _mermaid_wrap(inner_lines: List[str]) -> str:
+    """Wrap lines in a mermaid code fence and return as string."""
+    return "\n".join(["```mermaid"] + inner_lines + ["```"])
+
+
+# ==============================================================================
+# Diagram 1 — Overview
+# ==============================================================================
+
+def generate_mermaid_overview(graph: Graph) -> str:
     """
-    Generate mermaid diagram syntax from a parameter graph.
-    
+    Generate a high-level overview mermaid diagram.
+
+    Five subgraph blocks represent the conceptual parameter groups.
+    No merge nodes, no method names — just the flow between groups.
+
     Parameters
     ----------
     graph : Graph
-        The parameter dependency graph
-    title : str, optional
-        Title comment for the diagram (default: "Parameter Dependency Graph")
-    
+        The parameter dependency graph (used only for node existence checks).
+
     Returns
     -------
     str
-        Mermaid diagram syntax as a string
-    
-    Examples
-    --------
-    >>> from snowpyt_mechparams.graph import graph
-    >>> diagram = generate_mermaid_diagram(graph)
-    >>> print(diagram)
+        Mermaid diagram syntax.
     """
-    lines = []
-    lines.append("```mermaid")
-    lines.append("graph TB")
-    
-    # Group nodes by category for organized output
-    node_categories: Dict[str, List[Node]] = {
-        "root": [],
-        "measured": [],
-        "merge": [],
-        "layer_calc": [],
-        "slab_calc": [],
-    }
-    
-    for node in graph.nodes:
-        category = _classify_node(node)
-        node_categories[category].append(node)
-    
-    # Generate node definitions by category
-    lines.append("    %% Root node")
-    for node in node_categories["root"]:
-        node_id = _sanitize_node_id(node.parameter)
-        label = _get_node_label(node)
-        open_shape, close_shape = _get_node_shape(node)
-        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    lines.append("    ")
-    lines.append("    %% Measured parameter nodes")
-    for node in node_categories["measured"]:
-        node_id = _sanitize_node_id(node.parameter)
-        label = _get_node_label(node)
-        open_shape, close_shape = _get_node_shape(node)
-        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    lines.append("    ")
-    lines.append("    %% Layer-level merge nodes")
-    layer_merges = [n for n in node_categories["merge"] 
-                    if n.parameter in {"merge_hand_hardness_grain_form",
-                                      "merge_hand_hardness_grain_form_grain_size",
-                                      "merge_density_grain_form"}]
-    for node in layer_merges:
-        node_id = _sanitize_node_id(node.parameter)
-        label = _get_node_label(node)
-        open_shape, close_shape = _get_node_shape(node)
-        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    lines.append("    ")
-    lines.append("    %% Calculated layer parameters")
-    for node in node_categories["layer_calc"]:
-        node_id = _sanitize_node_id(node.parameter)
-        label = _get_node_label(node)
-        open_shape, close_shape = _get_node_shape(node)
-        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    lines.append("    ")
-    lines.append("    %% Slab-level merge nodes")
-    slab_merges = [n for n in node_categories["merge"] 
-                   if n not in layer_merges]
-    for node in slab_merges:
-        node_id = _sanitize_node_id(node.parameter)
-        label = _get_node_label(node)
-        open_shape, close_shape = _get_node_shape(node)
-        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    lines.append("    ")
-    lines.append("    %% Slab parameters")
-    for node in node_categories["slab_calc"]:
-        node_id = _sanitize_node_id(node.parameter)
-        label = _get_node_label(node)
-        open_shape, close_shape = _get_node_shape(node)
-        lines.append(f"    {node_id}{open_shape}{label}{close_shape}")
-    
-    # Generate edges
-    lines.append("    ")
-    lines.append("    %% Snow pit to measured parameters (data flow)")
-    snow_pit_edges = [e for e in graph.edges 
-                      if e.start.parameter == "snow_pit"]
-    for edge in snow_pit_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Density pathways")
-    density_edges = [e for e in graph.edges 
-                     if (e.end.parameter == "density" and 
-                         e.start.parameter != "snow_pit")]
-    for edge in density_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    # Add edges to density merge nodes
-    density_merge_edges = [e for e in graph.edges
-                          if e.end.parameter in {"merge_hand_hardness_grain_form",
-                                                "merge_hand_hardness_grain_form_grain_size"}]
-    for edge in density_merge_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Elastic modulus pathways")
-    # Edges to merge_density_grain_form
-    merge_d_gf_in = [e for e in graph.edges 
-                     if e.end.parameter == "merge_density_grain_form"]
-    for edge in merge_d_gf_in:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        lines.append(f"    {start_id} --> {end_id}")
-    
-    # Edges from merge_density_grain_form to elastic_modulus
-    elastic_edges = [e for e in graph.edges 
-                     if (e.end.parameter == "elastic_modulus" and 
-                         e.start.parameter == "merge_density_grain_form")]
-    for edge in elastic_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Poisson's ratio pathways")
-    poisson_edges = [e for e in graph.edges 
-                     if e.end.parameter == "poissons_ratio"]
-    for edge in poisson_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Shear modulus pathways")
-    shear_edges = [e for e in graph.edges 
-                   if e.end.parameter == "shear_modulus"]
-    for edge in shear_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    lines.append("    ")
-    lines.append("    %% Slab-level calculations")
-    slab_edges = [e for e in graph.edges
-                  if (e.start.parameter in {"measured_layer_thickness", "elastic_modulus", 
-                                           "poissons_ratio", "shear_modulus",
-                                           "zi", "merge_E_nu", "merge_zi_E_nu",
-                                           "merge_hi_G", "merge_hi_E_nu"} and
-                      e.end.parameter in {"zi", "merge_E_nu", "merge_zi_E_nu",
-                                         "merge_hi_G", "merge_hi_E_nu",
-                                         "A11", "B11", "D11", "A55"})]
-    for edge in slab_edges:
-        start_id = _sanitize_node_id(edge.start.parameter)
-        end_id = _sanitize_node_id(edge.end.parameter)
-        if edge.method_name:
-            lines.append(f"    {start_id} -->|{edge.method_name}| {end_id}")
-        else:
-            lines.append(f"    {start_id} --> {end_id}")
-    
-    # Add styling
-    lines.append("    ")
-    lines.append("    %% Styling")
-    lines.append("    classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px")
-    lines.append("    classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px")
-    lines.append("    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px")
-    lines.append("    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px")
-    lines.append("    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px")
-    lines.append("    ")
-    
-    # Apply styles to nodes
-    if node_categories["root"]:
-        root_ids = [_sanitize_node_id(n.parameter) for n in node_categories["root"]]
-        lines.append(f"    class {','.join(root_ids)} rootNode")
-    
-    if node_categories["measured"]:
-        measured_ids = [_sanitize_node_id(n.parameter) for n in node_categories["measured"]]
-        lines.append(f"    class {','.join(measured_ids)} measuredNode")
-    
-    if node_categories["merge"]:
-        merge_ids = [_sanitize_node_id(n.parameter) for n in node_categories["merge"]]
-        lines.append(f"    class {','.join(merge_ids)} mergeNode")
-    
-    if node_categories["layer_calc"]:
-        layer_ids = [_sanitize_node_id(n.parameter) for n in node_categories["layer_calc"]]
-        lines.append(f"    class {','.join(layer_ids)} layerCalc")
-    
-    if node_categories["slab_calc"]:
-        slab_ids = [_sanitize_node_id(n.parameter) for n in node_categories["slab_calc"]]
-        lines.append(f"    class {','.join(slab_ids)} slabCalc")
-    
-    lines.append("```")
-    
-    return "\n".join(lines)
+    lines = [
+        "graph LR",
+        "",
+        "    subgraph INPUTS[Snow Pit Observations]",
+        "        meas_density[density]",
+        "        meas_hh[hand hardness]",
+        "        meas_gf[grain form]",
+        "        meas_gs[grain size]",
+        "        meas_thick[layer thickness]",
+        "    end",
+        "",
+        "    subgraph LAYER[Layer Parameters]",
+        "        rho[ρ — density]",
+        "        E[E — elastic modulus]",
+        "        nu[ν — Poisson's ratio]",
+        "        G[G — shear modulus]",
+        "    end",
+        "",
+        "    subgraph SLAB[Slab Stiffnesses]",
+        "        A11[A11]",
+        "        B11[B11]",
+        "        D11[D11]",
+        "        A55[A55]",
+        "    end",
+        "",
+        "    subgraph WEAKLAYER[Weak-Layer Parameters]",
+        "        Gc[G_c]",
+        "        GIc[G_Ic]",
+        "        GIIc[G_IIc]",
+        "        sigmac[σ_c]",
+        "        tauc[τ_c]",
+        "        sigcomp[σ_comp]",
+        "        rho_wl[ρ — weak-layer density]",
+        "    end",
+        "",
+        "    subgraph STABILITY[Stability Criteria]",
+        "        gdelta[g_Δ — WEAC skier]",
+        "        sr[S_r — Roch natural]",
+        "    end",
+        "",
+        "    %% Group-level data flow",
+        "    INPUTS --> LAYER",
+        "    INPUTS --> WEAKLAYER",
+        "    LAYER --> SLAB",
+        "    LAYER --> STABILITY",
+        "    WEAKLAYER --> STABILITY",
+        "",
+        "    %% Styling",
+        "    classDef inputGroup fill:#fff9c4,stroke:#f57f17,stroke-width:2px",
+        "    classDef layerGroup fill:#c8e6c9,stroke:#388e3c,stroke-width:2px",
+        "    classDef slabGroup fill:#ffccbc,stroke:#d84315,stroke-width:3px",
+        "    classDef wlGroup fill:#fff3e0,stroke:#e65100,stroke-width:2px",
+        "    classDef stabGroup fill:#fce4ec,stroke:#880e4f,stroke-width:3px",
+        "    ",
+        "    class meas_density,meas_hh,meas_gf,meas_gs,meas_thick inputGroup",
+        "    class rho,E,nu,G layerGroup",
+        "    class A11,B11,D11,A55 slabGroup",
+        "    class Gc,GIc,GIIc,sigmac,tauc,sigcomp,rho_wl wlGroup",
+        "    class gdelta,sr,ssk stabGroup",
+    ]
+    return _mermaid_wrap(lines)
 
 
-def save_mermaid_diagram(
-    graph: Graph, 
-    filepath: str, 
-    title: str = "Parameter Dependency Graph"
-) -> None:
+# ==============================================================================
+# Diagram 2 — Layer parameters (detail)
+# ==============================================================================
+
+def generate_mermaid_layer_detail(graph: Graph) -> str:
     """
-    Generate and save mermaid diagram to a file.
-    
+    Generate a detail mermaid diagram for layer parameter calculation paths.
+
+    Shows measured inputs → merge nodes → density / E / ν / G with
+    method names labeled on edges.
+
     Parameters
     ----------
     graph : Graph
-        The parameter dependency graph
-    filepath : str
-        Path to output file (typically .md or .mmd extension)
-    title : str, optional
-        Title for the diagram (default: "Parameter Dependency Graph")
-    
-    Examples
-    --------
-    >>> from snowpyt_mechparams.graph import graph
-    >>> save_mermaid_diagram(graph, "docs/parameter_graph.md")
+        The parameter dependency graph.
+
+    Returns
+    -------
+    str
+        Mermaid diagram syntax.
     """
-    diagram = generate_mermaid_diagram(graph, title=title)
-    
+    # Node names relevant to this subgraph
+    layer_node_names = {
+        "snow_pit",
+        "measured_density", "measured_hand_hardness",
+        "measured_grain_form", "measured_grain_size",
+        "merge_hand_hardness_grain_form",
+        "merge_hand_hardness_grain_form_grain_size",
+        "merge_density_grain_form",
+        "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+    }
+
+    node_map = {n.parameter: n for n in graph.nodes
+                if n.parameter in layer_node_names}
+
+    # Categorise for styling
+    cats: Dict[str, List[Node]] = {
+        "root": [], "measured": [], "merge": [],
+        "layer_calc": [], "slab_calc": [], "weak_layer_calc": [], "stability_calc": [],
+    }
+    for n in node_map.values():
+        cats[_classify_node(n)].append(n)
+
+    lines: List[str] = ["graph TB", ""]
+
+    # Node definitions
+    for n in node_map.values():
+        lines.append(_node_def(n))
+    lines.append("")
+
+    # Edges that touch only nodes in this subgraph
+    lines.append("    %% Edges")
+    for edge in graph.edges:
+        if (edge.start.parameter in layer_node_names
+                and edge.end.parameter in layer_node_names):
+            lines.append(_edge_line(edge.start, edge.end, edge.method_name))
+    lines.append("")
+
+    lines.extend(_style_block(cats))
+    return _mermaid_wrap(lines)
+
+
+# ==============================================================================
+# Diagram 3 — Slab stiffnesses (detail)
+# ==============================================================================
+
+def generate_mermaid_slab_detail(graph: Graph) -> str:
+    """
+    Generate a detail mermaid diagram for slab stiffness assembly.
+
+    Shows layer parameters → slab merge nodes → A11 / B11 / D11 / A55
+    with method names labeled on edges.
+
+    Parameters
+    ----------
+    graph : Graph
+        The parameter dependency graph.
+
+    Returns
+    -------
+    str
+        Mermaid diagram syntax.
+    """
+    slab_node_names = {
+        "measured_layer_thickness",
+        "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+        "zi", "merge_E_nu", "merge_zi_E_nu", "merge_hi_G", "merge_hi_E_nu",
+        "A11", "B11", "D11", "A55",
+    }
+
+    node_map = {n.parameter: n for n in graph.nodes
+                if n.parameter in slab_node_names}
+
+    cats: Dict[str, List[Node]] = {
+        "root": [], "measured": [], "merge": [],
+        "layer_calc": [], "slab_calc": [], "weak_layer_calc": [], "stability_calc": [],
+    }
+    for n in node_map.values():
+        cats[_classify_node(n)].append(n)
+
+    lines: List[str] = ["graph LR", ""]
+
+    for n in node_map.values():
+        lines.append(_node_def(n))
+    lines.append("")
+
+    lines.append("    %% Edges")
+    for edge in graph.edges:
+        if (edge.start.parameter in slab_node_names
+                and edge.end.parameter in slab_node_names):
+            lines.append(_edge_line(edge.start, edge.end, edge.method_name))
+    lines.append("")
+
+    lines.extend(_style_block(cats))
+    return _mermaid_wrap(lines)
+
+
+# ==============================================================================
+# Diagram 4 — Weak-layer parameters & stability criteria (detail)
+# ==============================================================================
+
+def generate_mermaid_stability_detail(graph: Graph) -> str:
+    """
+    Generate a detail mermaid diagram for weak-layer parameters and stability criteria.
+
+    Shows measured inputs → density → strength/fracture params and layer params,
+    then all weak-layer and layer params → stability outputs,
+    with method names labeled on edges.
+
+    Parameters
+    ----------
+    graph : Graph
+        The parameter dependency graph.
+
+    Returns
+    -------
+    str
+        Mermaid diagram syntax.
+    """
+    stability_node_names = {
+        "snow_pit",
+        "measured_density", "measured_hand_hardness",
+        "measured_grain_form", "measured_grain_size",
+        "measured_layer_thickness",
+        "G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp",
+        "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+        "merge_weac_inputs", "merge_roch_inputs",
+        "g_delta", "s_r",
+    }
+
+    node_map = {n.parameter: n for n in graph.nodes
+                if n.parameter in stability_node_names}
+
+    cats: Dict[str, List[Node]] = {
+        "root": [], "measured": [], "merge": [],
+        "layer_calc": [], "slab_calc": [], "weak_layer_calc": [], "stability_calc": [],
+    }
+    for n in node_map.values():
+        cats[_classify_node(n)].append(n)
+
+    lines: List[str] = ["graph LR", ""]
+
+    for n in node_map.values():
+        lines.append(_node_def(n))
+    lines.append("")
+
+    lines.append("    %% Edges")
+    for edge in graph.edges:
+        if (edge.start.parameter in stability_node_names
+                and edge.end.parameter in stability_node_names):
+            lines.append(_edge_line(edge.start, edge.end, edge.method_name))
+    lines.append("")
+
+    lines.extend(_style_block(cats))
+    return _mermaid_wrap(lines)
+
+
+# ==============================================================================
+# Full single-diagram (backwards-compatible)
+# ==============================================================================
+
+def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Graph") -> str:
+    """
+    Generate a single mermaid diagram containing the full parameter graph.
+
+    Kept for backwards compatibility. For publication use, prefer the
+    focused generators: :func:`generate_mermaid_overview`,
+    :func:`generate_mermaid_layer_detail`, etc.
+
+    Parameters
+    ----------
+    graph : Graph
+        The parameter dependency graph.
+    title : str, optional
+        Title comment for the diagram.
+
+    Returns
+    -------
+    str
+        Mermaid diagram syntax as a string.
+    """
+    node_categories: Dict[str, List[Node]] = {
+        "root": [], "measured": [], "merge": [],
+        "layer_calc": [], "slab_calc": [], "weak_layer_calc": [], "stability_calc": [],
+    }
+    for node in graph.nodes:
+        node_categories[_classify_node(node)].append(node)
+
+    layer_merges = [n for n in node_categories["merge"]
+                    if n.parameter in {
+                        "merge_hand_hardness_grain_form",
+                        "merge_hand_hardness_grain_form_grain_size",
+                        "merge_density_grain_form",
+                    }]
+    stability_merges = [n for n in node_categories["merge"]
+                        if n.parameter in {"merge_weac_inputs", "merge_roch_inputs"}]
+    slab_merges = [n for n in node_categories["merge"]
+                   if n not in layer_merges and n not in stability_merges]
+
+    lines: List[str] = ["```mermaid", "graph TB", ""]
+
+    def _emit_group(comment: str, nodes: List[Node]) -> None:
+        lines.append(f"    %% {comment}")
+        for n in nodes:
+            lines.append(_node_def(n))
+        lines.append("    ")
+
+    _emit_group("Root node", node_categories["root"])
+    _emit_group("Measured parameter nodes", node_categories["measured"])
+    _emit_group("Layer-level merge nodes", layer_merges)
+    _emit_group("Calculated layer parameters", node_categories["layer_calc"])
+    _emit_group("Slab-level merge nodes", slab_merges)
+    _emit_group("Slab parameters", node_categories["slab_calc"])
+    _emit_group("Weak-layer parameters", node_categories["weak_layer_calc"])
+    _emit_group("Stability merge nodes", stability_merges)
+    _emit_group("Stability model outputs", node_categories["stability_calc"])
+
+    lines.append("    %% All parameter relationships")
+    for edge in graph.edges:
+        lines.append(_edge_line(edge.start, edge.end, edge.method_name))
+
+    lines.append("    ")
+    lines.extend(_style_block(node_categories))
+    lines.append("```")
+    return "\n".join(lines)
+
+
+# ==============================================================================
+# Diagram 5 — Full detail (all nodes, all merge nodes, subgraph grouping)
+# ==============================================================================
+
+# Short edge-label abbreviations used in the full-detail diagram.
+# Keys must match the method_name values stored on graph edges.
+_METHOD_ABBREV: Dict[str, str] = {
+    "geldsetzer":             "G09",
+    "kim_jamieson_table2":    "KJ-t2",
+    "kim_jamieson_table5":    "KJ-t5",
+    "bergfeld":               "B23",
+    "kochle":                 "K14",
+    "wautier":                "W15",
+    "schottner":              "S26",
+    "srivastava":             "Sr16",
+    "weissgraeber_rosendahl": "W&R",
+    "weac_skier":             "WEAC",
+    "roch_natural":           "Roch-n",
+    "sigrist":                "Sg06",
+    "mellor":                 "M75",
+    "reiweger":               "R15",
+}
+
+# Ordered subgraph definitions for the full-detail mermaid diagram.
+# Each entry is (subgraph_id, display_title, [parameter_names]).
+_FULL_SUBGRAPHS = [
+    (
+        "INPUTS",
+        "Snow Pit Observations",
+        [
+            "snow_pit",
+            "measured_density",
+            "measured_hand_hardness",
+            "measured_grain_form",
+            "measured_grain_size",
+            "measured_layer_thickness",
+        ],
+    ),
+    (
+        "LAYER_MERGES",
+        "Layer Merge Nodes",
+        [
+            "merge_hand_hardness_grain_form",
+            "merge_hand_hardness_grain_form_grain_size",
+            "merge_density_grain_form",
+        ],
+    ),
+    (
+        "LAYER",
+        "Layer Parameters",
+        ["density", "elastic_modulus", "poissons_ratio", "shear_modulus"],
+    ),
+    (
+        "SLAB_MERGES",
+        "Slab Merge Nodes",
+        ["zi", "merge_E_nu", "merge_zi_E_nu", "merge_hi_G", "merge_hi_E_nu"],
+    ),
+    (
+        "SLAB",
+        "Slab Stiffnesses",
+        ["D11", "B11", "A11", "A55"],
+    ),
+    (
+        "WEAKLAYER",
+        "Weak-Layer Parameters",
+        [
+            "G_c", "G_Ic", "G_IIc",
+            "sigma_c", "tau_c", "sigma_comp",
+        ],
+    ),
+    (
+        "STABILITY",
+        "Stability Criteria",
+        ["merge_weac_inputs", "merge_roch_inputs", "g_delta", "s_r"],
+    ),
+]
+
+
+def generate_mermaid_full_detail(graph: Graph) -> str:
+    """
+    Generate a full-detail mermaid diagram of the entire parameter graph.
+
+    All nodes — including merge nodes — are shown, grouped into subgraph
+    blocks.  Method names are abbreviated on edges.  Greek symbols are used
+    in node labels where appropriate.
+
+    Parameters
+    ----------
+    graph : Graph
+        The parameter dependency graph.
+
+    Returns
+    -------
+    str
+        Mermaid diagram syntax.
+    """
+    node_map = {n.parameter: n for n in graph.nodes}
+
+    lines: List[str] = ["graph LR", ""]
+
+    # Emit subgraph blocks
+    for sg_id, sg_title, params in _FULL_SUBGRAPHS:
+        lines.append(f'    subgraph {sg_id}["{sg_title}"]')
+        for param in params:
+            if param in node_map:
+                lines.append("    " + _node_def(node_map[param]).lstrip())
+        lines.append("    end")
+        lines.append("")
+
+    # Emit edges with abbreviated method labels
+    lines.append("    %% Edges")
+    for edge in graph.edges:
+        if edge.method_name:
+            abbrev = _METHOD_ABBREV.get(edge.method_name, edge.method_name)
+            lines.append(_edge_line(edge.start, edge.end, abbrev))
+        else:
+            lines.append(_edge_line(edge.start, edge.end))
+    lines.append("")
+
+    # Styling: classify every node
+    cats: Dict[str, List[Node]] = {
+        "root": [], "measured": [], "merge": [],
+        "layer_calc": [], "slab_calc": [], "weak_layer_calc": [], "stability_calc": [],
+    }
+    for n in graph.nodes:
+        cats[_classify_node(n)].append(n)
+    lines.extend(_style_block(cats))
+
+    return _mermaid_wrap(lines)
+
+
+# ==============================================================================
+# Save helpers
+# ==============================================================================
+
+def _save(filepath: str, title: str, diagram: str) -> None:
     with open(filepath, "w") as f:
         f.write(f"# {title}\n\n")
         f.write(diagram)
         f.write("\n")
-    
     print(f"Saved mermaid diagram to: {filepath}")
 
 
-def print_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Graph") -> None:
+def save_mermaid_overview(
+    graph: Graph,
+    filepath: str,
+    title: str = "SnowPyt-MechParams — Overview",
+) -> None:
+    """Save the high-level overview mermaid diagram to *filepath*."""
+    _save(filepath, title, generate_mermaid_overview(graph))
+
+
+def save_mermaid_layer_detail(
+    graph: Graph,
+    filepath: str,
+    title: str = "SnowPyt-MechParams — Layer Parameters",
+) -> None:
+    """Save the layer-parameters detail mermaid diagram to *filepath*."""
+    _save(filepath, title, generate_mermaid_layer_detail(graph))
+
+
+def save_mermaid_slab_detail(
+    graph: Graph,
+    filepath: str,
+    title: str = "SnowPyt-MechParams — Slab Stiffnesses",
+) -> None:
+    """Save the slab stiffness detail mermaid diagram to *filepath*."""
+    _save(filepath, title, generate_mermaid_slab_detail(graph))
+
+
+def save_mermaid_stability_detail(
+    graph: Graph,
+    filepath: str,
+    title: str = "SnowPyt-MechParams — Weak-Layer Parameters & Stability Criteria",
+) -> None:
+    """Save the weak-layer / stability detail mermaid diagram to *filepath*."""
+    _save(filepath, title, generate_mermaid_stability_detail(graph))
+
+
+def save_mermaid_full_detail(
+    graph: Graph,
+    filepath: str,
+    title: str = "SnowPyt-MechParams — Full Parameter Graph",
+) -> None:
+    """Save the full-detail mermaid diagram (all nodes + subgraphs) to *filepath*."""
+    _save(filepath, title, generate_mermaid_full_detail(graph))
+
+
+def save_mermaid_diagram(
+    graph: Graph,
+    filepath: str,
+    title: str = "Parameter Dependency Graph",
+) -> None:
     """
-    Generate and print mermaid diagram to stdout.
-    
+    Generate and save the full single mermaid diagram to a file.
+
+    Kept for backwards compatibility.
+
     Parameters
     ----------
     graph : Graph
-        The parameter dependency graph
+        The parameter dependency graph.
+    filepath : str
+        Path to output file.
     title : str, optional
-        Title for the diagram (default: "Parameter Dependency Graph")
-    
-    Examples
-    --------
-    >>> from snowpyt_mechparams.graph import graph
-    >>> print_mermaid_diagram(graph)
+        Title for the diagram.
     """
-    diagram = generate_mermaid_diagram(graph, title=title)
-    print(diagram)
+    _save(filepath, title, generate_mermaid_diagram(graph, title=title))
 
 
-# CLI interface when run as a script
+def print_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Graph") -> None:
+    """Generate and print the full mermaid diagram to stdout."""
+    print(generate_mermaid_diagram(graph, title=title))
+
+
+# ==============================================================================
+# CLI when run as script
+# ==============================================================================
+
 if __name__ == "__main__":
     import sys
-    from pathlib import Path
-    
-    # Import the graph
+
     try:
         from snowpyt_mechparams.graph import graph
     except ImportError:
         print("Error: Could not import graph. Make sure the package is installed.")
         sys.exit(1)
-    
-    # Parse command line arguments
+
     if len(sys.argv) > 1:
         output_file = sys.argv[1]
-        save_mermaid_diagram(graph, output_file)
+        save_mermaid_diagram(graph, output_file, title="SnowPyt-MechParams Parameter Graph")
     else:
-        # Print to stdout
-        print_mermaid_diagram(graph)
+        print_mermaid_diagram(graph, title="SnowPyt-MechParams Parameter Graph")

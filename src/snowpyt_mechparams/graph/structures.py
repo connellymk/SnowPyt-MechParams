@@ -42,7 +42,7 @@ density
 
 See Also
 --------
-snowpyt_mechparams.graph.definitions : Complete parameter graph definition
+snowpyt_mechparams.graph.parameter_graph : Complete parameter graph definition
 snowpyt_mechparams.algorithm : Pathfinding algorithms for the graph
 """
 
@@ -55,13 +55,15 @@ from typing import Dict, FrozenSet, List, Literal, Optional
 NodeType = Literal["parameter", "merge"]
 
 # Type alias for parameter level classification
-# "layer"  — per-layer calculated parameter (density, elastic_modulus, …)
-# "slab"   — whole-slab calculated parameter (A11, B11, D11, A55, …)
-# None     
-NodeLevel = Optional[Literal["layer", "slab"]]
+# "layer"           — per-layer calculated parameter (density, elastic_modulus, …)
+# "slab"            — whole-slab calculated parameter (A11, B11, D11, A55, …)
+# "weak_layer"      — weak-layer fracture/strength parameter (G_c, G_Ic, …)
+# "stability_model" — stability criterion result (g_delta, …)
+# None              — special nodes (snow_pit, measured_*, merge_*)
+NodeLevel = Optional[Literal["layer", "slab", "weak_layer", "stability_model"]]
 
 
-@dataclass
+@dataclass(eq=False)
 class Node:
     """
     Represents a node in the parameter dependency graph.
@@ -116,11 +118,26 @@ class Node:
             raise ValueError(
                 f"Node type must be 'parameter' or 'merge', got '{self.type}'"
             )
-        if self.level not in (None, "layer", "slab"):
+        if self.level not in (None, "layer", "slab", "weak_layer", "stability_model"):
             raise ValueError(
-                f"Node level must be 'layer', 'slab', or None, got '{self.level}'"
+                f"Node level must be 'layer', 'slab', 'weak_layer', "
+                f"'stability_model', or None, got '{self.level}'"
             )
     
+    def __eq__(self, other: object) -> bool:
+        """
+        Equality keyed on ``(type, parameter)`` — consistent with ``__hash__``.
+
+        The default dataclass ``__eq__`` would compare ``incoming_edges`` and
+        ``outgoing_edges`` (lists of Edge objects that reference other Nodes),
+        creating a circular comparison that can recurse infinitely once the
+        graph is wired up.  Keying on ``(type, parameter)`` matches the hash
+        and avoids the cycle.
+        """
+        if not isinstance(other, Node):
+            return NotImplemented
+        return self.type == other.type and self.parameter == other.parameter
+
     def __hash__(self) -> int:
         """Make nodes hashable for use in sets/dicts."""
         return hash((self.type, self.parameter))
@@ -210,9 +227,10 @@ class Graph:
     """
     nodes: List[Node] = field(default_factory=list)
     edges: List[Edge] = field(default_factory=list)
+    _node_index: Dict[str, Node] = field(default_factory=dict, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        """Validate graph consistency."""
+        """Validate graph consistency and build node index."""
         # Check that all edges reference valid nodes
         node_ids = {id(node) for node in self.nodes}
         for edge in self.edges:
@@ -224,6 +242,9 @@ class Graph:
                 raise ValueError(
                     f"Edge references node not in graph: {edge.end}"
                 )
+        # Build O(1) lookup index
+        for node in self.nodes:
+            self._node_index[node.parameter] = node
     
     @property
     def layer_params(self) -> FrozenSet[str]:
@@ -249,6 +270,30 @@ class Graph:
         """
         return frozenset(n.parameter for n in self.nodes if n.level == "slab")
 
+    @property
+    def weak_layer_params(self) -> FrozenSet[str]:
+        """
+        Names of all weak-layer fracture/strength parameter nodes.
+
+        Returns
+        -------
+        FrozenSet[str]
+            Parameter names whose ``level == "weak_layer"``
+        """
+        return frozenset(n.parameter for n in self.nodes if n.level == "weak_layer")
+
+    @property
+    def stability_params(self) -> FrozenSet[str]:
+        """
+        Names of all stability-model result parameter nodes.
+
+        Returns
+        -------
+        FrozenSet[str]
+            Parameter names whose ``level == "stability_model"``
+        """
+        return frozenset(n.parameter for n in self.nodes if n.level == "stability_model")
+
     def get_node(self, parameter: str) -> Optional[Node]:
         """
         Get a node by its parameter name.
@@ -270,10 +315,7 @@ class Graph:
         ...     print(f"Found {node.type} node")
         Found parameter node
         """
-        for node in self.nodes:
-            if node.parameter == parameter:
-                return node
-        return None
+        return self._node_index.get(parameter)
     
     def add_node(self, node: Node) -> None:
         """
@@ -290,6 +332,7 @@ class Graph:
         """
         if node not in self.nodes:
             self.nodes.append(node)
+            self._node_index[node.parameter] = node
     
     def add_edge(self, edge: Edge) -> None:
         """

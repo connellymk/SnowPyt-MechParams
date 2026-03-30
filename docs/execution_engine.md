@@ -435,7 +435,7 @@ The `Layer.grain_form` field can store either basic codes (e.g., 'PP', 'RG') or 
 
 A11, B11, and D11 share the same computation structure — validate the slab, iterate layers, compute the plane-strain modulus `E_i / (1 - ν_i²)`, build z-coordinates relative to the centroid, and accumulate a weighted sum. They differ only in the power of z used in the weighting.
 
-This shared logic is extracted into `slab_parameters/_common.py`:
+This shared logic is extracted into `slab_parameters/_laminate_integration.py`:
 
 ```python
 def integrate_plane_strain_over_layers(
@@ -551,7 +551,7 @@ These sets are imported into `executor.py` to decide whether to call `_execute_s
 **In `executor.py`** the gate is:
 
 ```python
-from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
 
 if target_parameter in SLAB_PARAMS:
     slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
@@ -917,7 +917,7 @@ results.pathways[...].slab.layers[0].density_calculated  # ufloat(250, 10)
 - Allows partial results across pathways
 - Failures recorded in `ComputationTrace` for traceability
 - User can inspect which pathways succeeded/failed and why
-- **Debug logging**: All layer parameter modules (`density.py`, `elastic_modulus.py`, `poissons_ratio.py`, `shear_modulus.py`) and the shared slab helper (`_common.py`) emit `logger.debug()` messages at every NaN-return point, identifying which layer and which validation check triggered the early exit. Enable with `logging.basicConfig(level=logging.DEBUG)` to trace silent failures.
+- **Debug logging**: All layer parameter modules (`density.py`, `elastic_modulus.py`, `poissons_ratio.py`, `shear_modulus.py`) and the shared slab helper (`_laminate_integration.py`) emit `logger.debug()` messages at every NaN-return point, identifying which layer and which validation check triggered the early exit. Enable with `logging.basicConfig(level=logging.DEBUG)` to trace silent failures.
 
 ### 7. Full Traceability
 
@@ -948,15 +948,15 @@ snowpyt_mechparams/
 │   ├── poissons_ratio.py      # 2 poisson's ratio methods
 │   └── shear_modulus.py       # Shear modulus methods
 ├── slab_parameters/
-│   ├── _common.py             # Shared helper: integrate_plane_strain_over_layers()
-│   ├── A11.py                 # A11 calculation (extensional stiffness)
-│   ├── B11.py                 # B11 calculation (bending-extension coupling)
-│   ├── D11.py                 # D11 calculation (bending stiffness)
-│   └── A55.py                 # A55 calculation (shear stiffness)
+│   ├── _laminate_integration.py        # Shared helper: integrate_plane_strain_over_layers()
+│   ├── extensional_stiffness.py        # A11 calculation (extensional stiffness)
+│   ├── bending_extension_coupling.py   # B11 calculation (bending-extension coupling)
+│   ├── bending_stiffness.py            # D11 calculation (bending stiffness)
+│   └── shear_stiffness.py              # A55 calculation (shear stiffness)
 ├── graph/
 │   ├── __init__.py            # Exports 'graph' instance
 │   ├── structures.py          # Graph data structures (Node with level, Graph with layer_params/slab_params)
-│   ├── definitions.py         # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
+│   ├── parameter_graph.py     # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
 │   └── visualize.py           # Mermaid diagram generation
 ├── algorithm.py               # Pathway discovery algorithm
 ├── data_structures/

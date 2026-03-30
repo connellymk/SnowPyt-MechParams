@@ -1,16 +1,19 @@
-# Methods to calculate shear modulus of a slab layer
+"""Methods to calculate shear modulus of a snow layer.
 
-# Wautier et al. (2015)
+Empirical parameterizations from:
+- Wautier et al. (2015)
+"""
 
 import logging
-import numpy as np
 from typing import Any
 
+import numpy as np
 from uncertainties import ufloat
 
 from snowpyt_mechparams.constants import RHO_ICE, G_ICE
 
 logger = logging.getLogger(__name__)
+
 
 def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
     """
@@ -49,14 +52,15 @@ def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
+
 def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: ufloat = G_ICE, include_method_uncertainty: bool = True) -> ufloat:
     """
     Calculate the normalized average shear modulus (G) using the power-law
     relationship fitted by Wautier et al. (2015).
-    
+
     This relationship is derived from numerical homogenization calculations of the
     elastic stiffness tensor over 3-D X-ray microtomography images of snow.
-    
+
     Parameters
     ----------
     density : ufloat
@@ -69,28 +73,28 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
         Default is 407.7 ± 65.4 MPa (0.41 ± 0.07 GPa), calculated from the
         elastic modulus of ice E_ice = 1060 ± 170 MPa (1.06 ± 0.17 GPa) and
         Poisson's ratio ν_ice = 0.3 using G = E / (2 * (1 + ν)).
-        
+
     Returns
     -------
     ufloat
         Average shear modulus (G_snow) in MPa with associated uncertainty
-        
+
     Notes
     -----
     The relationship found to correlate well (R² = 0.97) between normalized
     average shear modulus (G_snow) and relative density is a power law (Eq. 5):
-    
+
     G_snow / G_ice = A * (ρ_snow / ρ_ice)^n
-    
+
     Where:
     A = 0.92
     n = 2.51
-    
+
     The default G_ice value (0.41 ± 0.07 GPa) is derived from the relationship
     G = E / (2 * (1 + ν)) using E_ice = 1.06 ± 0.17 GPa (the effective modulus
     of atmospheric ice accumulated and tested at -10°C, reported by Kermani et al.
     (2008)) and ν_ice = 0.3 (standard Poisson's ratio for ice).
-    
+
     Constants Used for Calculation:
     ρ_ice = 917.0 kg m⁻³
 
@@ -128,9 +132,8 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
     effective modulus of atmospheric ice. Cold Regions Science and Technology,
     53(2), 162–169.
     """
-
     # Validate grain form
-    main_grain_shape = grain_form[:2]
+    main_grain_shape = grain_form[:2].upper()
     if main_grain_shape not in ['DF', 'RG', 'FC', 'DH', 'MF']:
         logger.debug("wautier: unsupported grain_form=%r", grain_form)
         return ufloat(np.nan, np.nan)
@@ -142,16 +145,15 @@ def _calculate_shear_modulus_wautier(density: ufloat, grain_form: str, G_ice: uf
         logger.debug("wautier: density %.1f outside valid range 103-544", rho_snow.nominal_value)
         return ufloat(np.nan, np.nan)
 
-    # Wautier et al. (2015) power law coefficients (Eq. 5)
+    # Wautier et al. (2015) power law coefficients (Eq. 5).
     # NOTE: include_method_uncertainty has no effect here — the paper does not
     # report standard errors for A and n. Uncertainty propagates only from
     # input density and G_ice.
-    A = ufloat(0.92, 0.0)
-    n = ufloat(2.51, 0.0)
+    A = 0.92
+    n = 2.51
 
     # Calculate shear modulus (G_snow / G_ice = A * (ρ_snow / ρ_ice)^n)
     # G_snow = G_ice * A * (ρ_snow / ρ_ice)^n
     G_snow = G_ice * (A * ((rho_snow / RHO_ICE) ** n))
 
     return G_snow
-

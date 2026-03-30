@@ -115,8 +115,9 @@ snowpyt_mechparams.graph : Parameter dependency graph definition
 snowpyt_mechparams.execution : Execution engine for running pathways
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 from snowpyt_mechparams.graph.structures import Graph, Node
 
@@ -142,7 +143,7 @@ def _method_fingerprint(parameterization: 'Parameterization') -> str:
         Sorted, joined ``parameter:method`` pairs, e.g.
         ``"D11:weissgraeber_rosendahl->density:geldsetzer->elastic_modulus:bergfeld->..."``.
     """
-    methods: Dict[str, str] = {}
+    methods: dict[str, str] = {}
 
     skip_prefixes = ("measured_", "merge_")
     skip_names = {"snow_pit"}
@@ -211,7 +212,7 @@ class Branch:
     
     Attributes
     ----------
-    segments : List[PathSegment]
+    segments : list[PathSegment]
         Ordered list of calculation steps in this branch
     
     Examples
@@ -223,7 +224,7 @@ class Branch:
     >>> print(branch)
     snow_pit -- data_flow --> measured_density -- data_flow --> density
     """
-    segments: List[PathSegment]
+    segments: list[PathSegment]
     
     def __str__(self) -> str:
         """Return human-readable representation."""
@@ -252,9 +253,9 @@ class Parameterization:
     
     Attributes
     ----------
-    branches : List[Branch]
+    branches : list[Branch]
         All branches in this parameterization
-    merge_points : List[Tuple[List[int], str, List[PathSegment]]]
+    merge_points : list[tuple[list[int], str, list[PathSegment]]]
         Merge information: (branch_indices, merge_node_name, continuation_path)
         - branch_indices: Which branches feed into this merge
         - merge_node_name: Name of the merge node
@@ -286,8 +287,8 @@ class Parameterization:
     ...     ]
     ... )
     """
-    branches: List[Branch]
-    merge_points: List[Tuple[List[int], str, List[PathSegment]]]
+    branches: list[Branch]
+    merge_points: list[tuple[list[int], str, list[PathSegment]]]
     
     def __str__(self) -> str:
         """Return human-readable representation."""
@@ -325,9 +326,9 @@ class PathTree:
     ----------
     node_name : str
         Name of this node in the graph
-    branches : List[Tuple[PathTree, str]]
+    branches : list[tuple[PathTree, str]]
         Child subtrees with their edge names
-    edge_from_parent : Optional[str]
+    edge_from_parent : str | None
         Edge that led to this node from parent
     is_merge : bool
         Whether this node is a merge node
@@ -337,15 +338,49 @@ class PathTree:
     This is an internal class not exposed in the public API.
     """
     node_name: str
-    branches: List[Tuple['PathTree', str]]
-    edge_from_parent: Optional[str] = None
+    branches: list[tuple['PathTree', str]]
+    edge_from_parent: str | None = None
     is_merge: bool = False
+
+
+def _cartesian_product(
+    lists: list[list[tuple['PathTree', str]]]
+) -> list[list[tuple['PathTree', str]]]:
+    """
+    Return the Cartesian product of a list of lists.
+
+    Each inner list holds ``(PathTree, edge_name)`` pairs for one merge input.
+    The result is every combination that picks one element from each inner list.
+
+    This is a module-level helper (not a closure) so that it is defined once
+    and can be tested independently.  It is used exclusively by
+    :func:`find_parameterizations` when processing merge nodes.
+
+    Parameters
+    ----------
+    lists : list of lists
+        Each sub-list contains the candidate ``(PathTree, edge_name)`` tuples
+        for one incoming edge of a merge node.
+
+    Returns
+    -------
+    list of lists
+        All combinations, each containing exactly one element from every
+        sub-list.
+    """
+    if not lists:
+        return [[]]
+    result: list[list[tuple['PathTree', str]]] = []
+    for item in lists[0]:
+        for rest in _cartesian_product(lists[1:]):
+            result.append([item] + rest)
+    return result
 
 
 def find_parameterizations(
     graph: Graph,
     target_parameter: Node
-) -> List[Parameterization]:
+) -> list[Parameterization]:
     """
     Find all calculation pathways from snow_pit to target parameter.
     
@@ -363,7 +398,7 @@ def find_parameterizations(
     
     Returns
     -------
-    List[Parameterization]
+    list[Parameterization]
         All possible parameterizations, each showing branches and merge points.
         The number of parameterizations equals the product of alternative
         methods at each decision point.
@@ -413,9 +448,9 @@ def find_parameterizations(
     end_node = graph.get_node("snow_pit")
     
     # Memoization: cache results for each node
-    memo: Dict[Node, List[PathTree]] = {}
+    memo: dict[Node, list[PathTree]] = {}
     
-    def backtrack(node: Node) -> List[PathTree]:
+    def backtrack(node: Node) -> list[PathTree]:
         """
         Recursively find all path trees from node back to snow_pit.
         
@@ -429,7 +464,7 @@ def find_parameterizations(
         
         Returns
         -------
-        List[PathTree]
+        list[PathTree]
             All possible path trees from this node to snow_pit
         """
         # Check memoization cache
@@ -479,19 +514,7 @@ def find_parameterizations(
                 input_trees_list.append(trees_with_edge)
             
             # Compute cartesian product: combine one tree from each input
-            def cartesian_product(
-                lists: List[List[Tuple[PathTree, str]]]
-            ) -> List[List[Tuple[PathTree, str]]]:
-                """Compute cartesian product of lists."""
-                if not lists:
-                    return [[]]
-                result: List[List[Tuple[PathTree, str]]] = []
-                for item in lists[0]:
-                    for rest in cartesian_product(lists[1:]):
-                        result.append([item] + rest)
-                return result
-            
-            combinations = cartesian_product(input_trees_list)
+            combinations = _cartesian_product(input_trees_list)
             
             # Create a tree for each combination
             for combination in combinations:
@@ -556,24 +579,37 @@ def _tree_to_parameterization(tree: PathTree) -> Parameterization:
     branches = []
     merge_points = []
     closed_branches = set()  # Track branches that end at a merge
-    
+
+    def build_path_to_merge(n: PathTree) -> list[PathSegment]:
+        """Build path from snow_pit to node."""
+        if not n.branches:
+            return []
+        child, child_edge = n.branches[0]
+        child_path = build_path_to_merge(child)
+        seg = PathSegment(
+            from_node=child.node_name,
+            edge_name=child_edge,
+            to_node=n.node_name
+        )
+        return child_path + [seg]
+
     def process_node(
         node: PathTree,
-        continuation_path: List[PathSegment]
-    ) -> List[int]:
+        continuation_path: list[PathSegment]
+    ) -> list[int]:
         """
         Process a node and return list of branch indices.
-        
+
         Parameters
         ----------
         node : PathTree
             The current node being processed
-        continuation_path : List[PathSegment]
+        continuation_path : list[PathSegment]
             Path segments from this node to the target (for merge nodes)
-        
+
         Returns
         -------
-        List[int]
+        list[int]
             List of branch indices that reach this node
         """
         # Base case: reached snow_pit (leaf node)
@@ -582,16 +618,16 @@ def _tree_to_parameterization(tree: PathTree) -> Parameterization:
             branch = Branch(segments=[])
             branches.append(branch)
             return [len(branches) - 1]
-        
+
         # Merge node: all inputs must be included
         if node.is_merge:
             branch_indices = []
-            
+
             # Process each input to the merge
             for sub_tree, edge_name in node.branches:
                 # Recursively process each input (no continuation path for inputs)
                 sub_indices = process_node(sub_tree, [])
-                
+
                 # For each branch returned, extend it to this merge
                 for branch_idx in sub_indices:
                     # Check if this branch is closed (already ends at a merge)
@@ -609,19 +645,6 @@ def _tree_to_parameterization(tree: PathTree) -> Parameterization:
                         branch_indices.append(branch_idx)
                     else:
                         # Empty branch - build complete path from snow_pit
-                        def build_path_to_merge(n: PathTree) -> List[PathSegment]:
-                            """Build path from snow_pit to node."""
-                            if not n.branches:
-                                return []
-                            child, child_edge = n.branches[0]
-                            child_path = build_path_to_merge(child)
-                            seg = PathSegment(
-                                from_node=child.node_name,
-                                edge_name=child_edge,
-                                to_node=n.node_name
-                            )
-                            return child_path + [seg]
-                        
                         # Get path from snow_pit to sub_tree
                         path_to_subtree = build_path_to_merge(sub_tree)
                         
@@ -671,7 +694,7 @@ def _tree_to_parameterization(tree: PathTree) -> Parameterization:
     # If there's no merge (simple path), complete the branch
     if not merge_points and len(branch_indices) == 1:
         # Build the path by traversing the tree
-        def build_simple_path(node: PathTree) -> List[PathSegment]:
+        def build_simple_path(node: PathTree) -> list[PathSegment]:
             """Build a simple linear path from snow_pit to target."""
             if not node.branches:
                 return []
@@ -695,5 +718,4 @@ __all__ = [
     "Parameterization",
     "PathTree",
     "find_parameterizations",
-    "_method_fingerprint",
 ]

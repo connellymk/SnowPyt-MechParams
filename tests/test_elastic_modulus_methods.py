@@ -16,7 +16,7 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
-from snowpyt_mechparams.constants import RHO_ICE
+from snowpyt_mechparams.constants import RHO_ICE, E_ICE_POLYCRYSTALLINE
 
 
 # ---------------------------------------------------------------------------
@@ -81,9 +81,7 @@ class TestKochleNumerical:
 
     def test_low_density_rho_200(self):
         """rho=200, E_ice=10000: C2=0.0061/10000, C3=0.0396*917."""
-        import uncertainties.umath as umath
         rho = ufloat(200.0, 0.0)
-        E_ice = ufloat(10000.0, 0.0)
         C2 = 0.0061 / 10000.0
         C3 = 0.0396 * RHO_ICE
         expected = 10000.0 * C2 * math.exp(C3 * 200.0 / RHO_ICE)
@@ -118,11 +116,23 @@ class TestKochleNumerical:
         assert math.isnan(result.nominal_value)
 
     def test_unsupported_grain_form_returns_nan(self):
-        """Kochle only supports RG, RC, DH, MF."""
+        """Kochle only supports RG, FC, DH, MF."""
         result = calculate_elastic_modulus(
             "kochle", density=ufloat(300.0, 0.0), grain_form="PP",
         )
         assert math.isnan(result.nominal_value)
+
+    def test_FC_rho_300(self):
+        """FC grain form (formerly broken with 'RC' typo) returns a valid result."""
+        rho = ufloat(300.0, 0.0)
+        C2 = 6.0457 / 10000.0
+        C3 = 0.011 * RHO_ICE
+        expected = 10000.0 * C2 * math.exp(C3 * 300.0 / RHO_ICE)
+        result = calculate_elastic_modulus(
+            "kochle", density=rho, grain_form="FC",
+            include_method_uncertainty=False,
+        )
+        assert result.nominal_value == pytest.approx(expected, rel=1e-3)
 
 
 # ---------------------------------------------------------------------------
@@ -130,12 +140,12 @@ class TestKochleNumerical:
 # ---------------------------------------------------------------------------
 
 class TestWautierNumerical:
-    """E = E_ice * A * (rho/rho_ice)^n where A=0.78, n=2.34, E_ice=1060 MPa."""
+    """E = E_ice * A * (rho/rho_ice)^n where A=0.78, n=2.34, E_ice=E_ICE_POLYCRYSTALLINE."""
 
     def test_rho_300(self):
-        """rho=300: E = 1060 * 0.78 * (300/917)^2.34."""
+        """rho=300: E = E_ICE_POLYCRYSTALLINE * 0.78 * (300/917)^2.34."""
         rho = ufloat(300.0, 0.0)
-        E_ice = 1060.0
+        E_ice = E_ICE_POLYCRYSTALLINE.nominal_value
         expected = E_ice * 0.78 * (300.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
             "wautier", density=rho, grain_form="RG",
@@ -145,7 +155,7 @@ class TestWautierNumerical:
 
     def test_rho_200(self):
         rho = ufloat(200.0, 0.0)
-        E_ice = 1060.0
+        E_ice = E_ICE_POLYCRYSTALLINE.nominal_value
         expected = E_ice * 0.78 * (200.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
             "wautier", density=rho, grain_form="FC",

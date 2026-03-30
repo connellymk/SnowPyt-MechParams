@@ -14,10 +14,10 @@ common subpaths (e.g., multiple methods to calculate elastic modulus all
 using the same density calculation).
 """
 
-from typing import Optional
+from typing import Dict, List, Optional
 
-from snowpyt_mechparams.algorithm import find_parameterizations
-from snowpyt_mechparams.data_structures import Slab
+from snowpyt_mechparams.algorithm import find_parameterizations, Parameterization
+from snowpyt_mechparams.models import Slab
 from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.config import ExecutionConfig
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
@@ -43,7 +43,7 @@ class ExecutionEngine:
 
     Examples
     --------
-    >>> from algorithm.definitions import graph
+    >>> from snowpyt_mechparams.graph.parameter_graph import graph
     >>> from snowpyt_mechparams.execution import ExecutionEngine
     >>>
     >>> engine = ExecutionEngine(graph)
@@ -79,12 +79,18 @@ class ExecutionEngine:
         self.graph = graph
         self.cache = cache or ComputationCache()
         self.executor = PathwayExecutor(dispatcher, self.cache)
+        # Cache parameterizations by target parameter name.
+        # Pathway structure depends only on the graph (not on slab data), so
+        # the result of find_parameterizations is identical for every slab.
+        # Caching avoids redundant graph traversals across large batch runs.
+        self._pathway_cache: Dict[str, List[Parameterization]] = {}
 
     def execute_all(
         self,
         slab: Slab,
         target_parameter: str,
-        config: Optional[ExecutionConfig] = None
+        config: Optional[ExecutionConfig] = None,
+        pathways: Optional[List[Parameterization]] = None,
     ) -> ExecutionResults:
         """
         Execute all possible calculation pathways for a target parameter.
@@ -108,6 +114,12 @@ class ExecutionEngine:
         config : Optional[ExecutionConfig]
             Configuration for execution behavior (verbose output, etc.)
             If None, uses defaults (silent execution)
+        pathways : Optional[List[Parameterization]]
+            Pre-filtered list of parameterizations to run. If provided, the
+            engine runs exactly these pathways instead of finding all valid
+            pathways internally. Useful for running a known subset (e.g. the
+            32 slab-only g_delta pathways) without executing the full
+            combinatorial space.
 
         Returns
         -------
@@ -163,10 +175,13 @@ class ExecutionEngine:
         if target_node is None:
             raise ValueError(f"Unknown target parameter: {target_parameter}")
 
-        # Find all parameterizations (algorithm determines what's needed).
-        # find_parameterizations already deduplicates by method fingerprint,
-        # so every entry here represents a genuinely distinct calculation.
-        parameterizations = find_parameterizations(self.graph, target_node)
+        # Find (or accept) parameterizations to execute.
+        # If caller supplies a pre-filtered list, use it directly;
+        # otherwise find all pathways (cached by target_parameter).
+        if pathways is not None:
+            parameterizations = pathways
+        else:
+            parameterizations = self._get_parameterizations(target_parameter, target_node)
 
         # Execute each parameterization (cache persists across pathways)
         results = {}
@@ -252,12 +267,12 @@ class ExecutionEngine:
         if target_node is None:
             raise ValueError(f"Unknown target parameter: {target_parameter}")
 
-        # Find all parameterizations
-        parameterizations = find_parameterizations(self.graph, target_node)
+        # Find all parameterizations (cached for the engine's lifetime)
+        parameterizations = self._get_parameterizations(target_parameter, target_node)
 
         # Find the matching parameterization
         for param in parameterizations:
-            extracted = self.executor._extract_methods_from_parameterization(param)
+            extracted = self.executor.extract_methods_from_parameterization(param)
             if self._methods_match(extracted, methods):
                 return self.executor.execute_parameterization(
                     parameterization=param,
@@ -267,6 +282,37 @@ class ExecutionEngine:
                 )
 
         return None
+
+    def _get_parameterizations(
+        self,
+        target_parameter: str,
+        target_node: Node,
+    ) -> List[Parameterization]:
+        """
+        Return parameterizations for target_parameter, using the engine-level cache.
+
+        Pathway structure depends only on the graph, not on slab data, so the
+        result of find_parameterizations is identical for every slab.  Caching
+        here avoids redundant graph traversals across large batch runs
+        (e.g. 14,951 slabs × multiple targets).
+
+        Parameters
+        ----------
+        target_parameter : str
+            Name of the target parameter node.
+        target_node : Node
+            The corresponding graph node (already validated as non-None).
+
+        Returns
+        -------
+        List[Parameterization]
+            Deduplicated list of all calculation pathways to the target.
+        """
+        if target_parameter not in self._pathway_cache:
+            self._pathway_cache[target_parameter] = find_parameterizations(
+                self.graph, target_node
+            )
+        return self._pathway_cache[target_parameter]
 
     def _methods_match(
         self,
@@ -316,13 +362,13 @@ class ExecutionEngine:
         if target_node is None:
             raise ValueError(f"Unknown target parameter: {target_parameter}")
 
-        parameterizations = find_parameterizations(self.graph, target_node)
+        parameterizations = self._get_parameterizations(target_parameter, target_node)
 
         pathways = []
         for param in parameterizations:
-            methods = self.executor._extract_methods_from_parameterization(param)
-            description = self.executor._build_pathway_description(methods)
-            pathway_id = self.executor._build_pathway_id(methods)
+            methods = self.executor.extract_methods_from_parameterization(param)
+            description = self.executor.build_pathway_description(methods)
+            pathway_id = self.executor.build_pathway_id(methods)
             pathways.append({
                 "id": pathway_id,
                 "description": description,

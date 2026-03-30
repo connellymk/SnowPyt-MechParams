@@ -6,7 +6,7 @@ multiple slabs from a single pit when there are multiple ECT or CT test results.
 """
 
 from snowpyt_mechparams.snowpilot import parse_caaml_directory
-from snowpyt_mechparams.data_structures import Pit
+from snowpyt_mechparams.models import Pit
 import pandas as pd
 
 
@@ -64,7 +64,7 @@ def summarize_slabs_per_pit(df):
     print("\nSlabs per Pit Distribution:")
     print(f"Total pits: {len(slabs_per_pit)}")
     print(f"Total slabs: {len(df)}")
-    print(f"\nDistribution:")
+    print("\nDistribution:")
     for n_slabs, count in slabs_per_pit.value_counts().sort_index().items():
         print(f"  {count} pits with {n_slabs} slab(s)")
 

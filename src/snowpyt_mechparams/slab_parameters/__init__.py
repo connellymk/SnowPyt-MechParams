@@ -11,10 +11,10 @@ Note: Layer-level parameters (density, elastic modulus, shear modulus, Poisson's
 are in the layer_parameters module.
 """
 
-from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
-from snowpyt_mechparams.slab_parameters.A55 import calculate_A55
-from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
-from snowpyt_mechparams.slab_parameters.D11 import calculate_D11
+from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A11
+from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
+from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
+from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
 
 __all__ = [
     "calculate_A11",

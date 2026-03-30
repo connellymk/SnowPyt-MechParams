@@ -187,7 +187,7 @@ To use this package in Jupyter notebooks with your virtual environment:
 ### Basic Usage: Calculate Parameters for a Single Layer
 
 ```python
-from snowpyt_mechparams.data_structures import Layer
+from snowpyt_mechparams.models import Layer
 from snowpyt_mechparams.layer_parameters import calculate_density, calculate_elastic_modulus
 from uncertainties import ufloat
 
@@ -233,7 +233,7 @@ density_input_unc_only = calculate_density(
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.data_structures import Slab, Layer
+from snowpyt_mechparams.models import Slab, Layer
 from uncertainties import ufloat
 
 # Create a slab with multiple layers
@@ -277,7 +277,7 @@ for pathway_desc, pathway_result in results.pathways.items():
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
 from snowpyt_mechparams.snowpilot import parse_caaml_file
-from snowpyt_mechparams.data_structures import Pit
+from snowpyt_mechparams.models import Pit
 
 # Parse CAAML file from SnowPilot
 snow_pit = parse_caaml_file('path/to/snowpits-12345-caaml.xml')
@@ -306,7 +306,7 @@ for slab in slabs:
 
 ## Core Modules
 
-### Data Structures (`snowpyt_mechparams.data_structures`)
+### Data Structures (`snowpyt_mechparams.models`)
 
 - **`Layer`**: Represents a single snow layer with measured and calculated properties
   - `hand_hardness_index` property now returns a `ufloat` with `±U_HAND_HARDNESS_INDEX` (±0.67 HHI) applied automatically
@@ -343,7 +343,7 @@ Previously these constants were defined inline inside each method function; cent
 ### Parameterization Graph (`snowpyt_mechparams.graph`)
 
 - **`structures.py`**: Graph data structures (Node, Edge, Graph, GraphBuilder)
-- **`definitions.py`**: Complete parameter dependency graph with all methods
+- **`parameter_graph.py`**: Complete parameter dependency graph with all methods
 - **`visualize.py`**: Mermaid diagram generation for graph visualization
 - **`README.md`**: Documentation on graph structure and extending the graph
 
@@ -355,7 +355,7 @@ The graph represents:
 **Parameter classification** is derived automatically from the graph:
 
 ```python
-from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
 
 # LAYER_PARAMS = graph.layer_params  → frozenset of layer-level parameter names
 # SLAB_PARAMS  = graph.slab_params   → frozenset of slab-level parameter names
@@ -423,18 +423,11 @@ Executes parameterization pathways with dynamic programming:
 
 Comprehensive examples are available in the `examples/` directory:
 
-### Basic Examples
-
-- `execution_engine_demo.ipynb` - Introduction to the execution engine
-- `density_kim_jamieson_table5.ipynb` - Density estimation examples
-- `emod_bergfeld.ipynb` - Elastic modulus calculations
-- `poissons_ratio_comparison.ipynb` - Comparing Poisson's ratio methods
-
-### Advanced Analysis
+### Parameter Analysis
 
 - **`all_D11_pathways.ipynb`** - Comprehensive D11 analysis across all 32 pathways
   - Processes ~50,000 snow pits from SnowPilot dataset
-  - Executes ~473,032 pathway calculations (14,776 slabs × 32 pathways)
+  - Executes ~478,432 pathway calculations (14,951 slabs × 32 pathways)
   - Runs with `include_method_uncertainty=False` to isolate propagated input uncertainties
   - Analyzes success rates, inter-pathway variability, method comparisons, and relative uncertainty per pathway
   - Includes **Sankey diagrams** visualising the flow from density → elastic modulus → Poisson's ratio for selected pathways
@@ -445,19 +438,21 @@ Comprehensive examples are available in the `examples/` directory:
 - **`all_e_mod_pathways.ipynb`** - Analysis across all elastic modulus methods
 - **`all_poissons_ratio_pathways.ipynb`** - Analysis across all Poisson's ratio methods
 
-- **`compare_D11_across_pathways.ipynb`** - Legacy analysis (archived)
-  - Original notebook, superseded by v3
+### Stability Criteria
 
-### Visualization Examples
-
-- `dataset_stats.ipynb` - Dataset statistics and visualizations
-- Example outputs include pathway success rate charts, D11 distributions, and variability analysis
+- **`roch_skier_all_parameters.ipynb`** - Roch natural stability criterion across all density pathways
+  - Applies S_r = τ_c / τ; skier variant S_a = τ_c / (τ + δτ) available as commented-out option (δτ = 150 N/m², Föhn 1987)
+  - Compares results across 4 density methods; shows coverage rates and S_r distributions
+- **`stability_criteria_inputs.ipynb`** - Input parameter coverage analysis for Roch and WEAC criteria
+  - Shows which slabs have sufficient data for each criterion and pathway
+- **`stability_criteria_outputs.ipynb`** - Comparison of Roch and WEAC stability criterion outputs
+  - Classifies slabs, compares agreement between criteria
 
 ### Dataset Examples
 
-- `analyze_ectp_slabs.ipynb` - Create slabs from ECTP test results
-- `dataset_stats.ipynb` - Dataset summary statistics
-- `dataset_temp_info.ipynb` - Temperature data analysis
+- **`dataset_ectp_slabs.ipynb`** - Create slabs from ECTP test results; coverage statistics
+- **`dataset_overview.ipynb`** - Dataset grain form and layer type breakdown
+- **`weac_skier_all_pathways.ipynb`** - WEAC skier criterion across all 32 mechanical parameter pathways
 
 ## Project Structure
 
@@ -465,47 +460,53 @@ Comprehensive examples are available in the `examples/` directory:
 SnowPyt-MechParams/
 ├── src/snowpyt_mechparams/       # Main package source
 │   ├── constants.py              # Physical constants & standard measurement uncertainties
-│   ├── data_structures/          # Layer, Slab, Pit classes
+│   ├── models/                   # Layer, Slab, Pit, WeakLayer classes
 │   ├── layer_parameters/         # Layer-level calculation methods
 │   │   ├── density.py            # 4 density methods (accept hand_hardness_index ufloat)
 │   │   ├── elastic_modulus.py    # 4 elastic modulus methods
 │   │   ├── poissons_ratio.py     # 2 Poisson's ratio methods
 │   │   └── shear_modulus.py      # Shear modulus method
 │   ├── slab_parameters/          # Slab-level calculation methods
-│   │   ├── A11.py                # Extensional stiffness
-│   │   ├── B11.py                # Bending-extension coupling
-│   │   ├── D11.py                # Bending stiffness
-│   │   └── A55.py                # Shear stiffness
+│   │   ├── extensional_stiffness.py      # A11: Extensional stiffness
+│   │   ├── bending_extension_coupling.py # B11: Bending-extension coupling
+│   │   ├── bending_stiffness.py          # D11: Bending stiffness
+│   │   └── shear_stiffness.py            # A55: Shear stiffness
+│   ├── stability_criteria/       # Stability criteria implementations
+│   │   ├── roch/                 # Roch (1966) gravitational and skier criteria
+│   │   └── weac/                 # WEAC skier criterion adapter (optional dep)
 │   ├── graph/                    # Parameterization graph
 │   │   ├── structures.py         # Graph data structures
-│   │   ├── definitions.py        # Complete parameter dependency graph
+│   │   ├── parameter_graph.py    # Complete parameter dependency graph
 │   │   ├── visualize.py          # Mermaid diagram generation
 │   │   └── README.md             # Graph documentation
 │   ├── algorithm.py              # Pathway discovery algorithm
 │   ├── execution/                # Execution engine with dynamic programming
 │   │   ├── engine.py             # ExecutionEngine
 │   │   ├── executor.py           # PathwayExecutor (density-only caching)
-│   │   ├── dispatcher.py         # MethodDispatcher (+ supports_method_uncertainty())
-│   │   ├── cache.py              # ComputationCache (density-only; slab cache removed)
-│   │   ├── config.py             # ExecutionConfig (verbose + include_method_uncertainty)
+│   │   ├── dispatcher.py         # MethodDispatcher
+│   │   ├── cache.py              # ComputationCache
+│   │   ├── config.py             # ExecutionConfig
 │   │   └── results.py            # Result containers
-│   └── snowpilot_utils.py        # SnowPilot CAAML parsing
+│   └── snowpilot.py              # SnowPilot CAAML parsing
 ├── examples/                     # Jupyter notebook examples
 │   ├── all_D11_pathways.ipynb              # Full D11 analysis with Sankey diagrams
 │   ├── all_density_pathways.ipynb          # Density method comparison
 │   ├── all_e_mod_pathways.ipynb            # Elastic modulus method comparison
 │   ├── all_poissons_ratio_pathways.ipynb   # Poisson's ratio method comparison
-│   └── data/                     # SnowPilot dataset (50,278 CAAML files)
+│   ├── roch_skier_all_parameters.ipynb     # Roch stability criterion analysis
+│   ├── stability_criteria_inputs.ipynb     # Input coverage for stability criteria
+│   ├── stability_criteria_outputs.ipynb    # Roch vs WEAC output comparison
+│   ├── weac_skier_all_pathways.ipynb       # WEAC across all 32 pathways
+│   └── archive/                  # Earlier exploratory notebooks (for reference)
 ├── tests/                        # Test suite (pytest)
-│   ├── test_integration.py       # Integration tests
+│   ├── test_integration.py       # End-to-end integration tests
+│   ├── test_roch_criterion.py    # Roch criterion unit tests
+│   ├── test_weac_criterion.py    # WEAC criterion unit tests
 │   ├── test_executor_dynamic_programming.py   # Dynamic programming / cache tests
-│   ├── test_computation_cache.py              # ComputationCache unit tests
-│   ├── test_layer_parameter_method_uncertainty.py  # include_method_uncertainty tests
 │   └── ...                       # Additional test modules
 ├── docs/                         # Documentation
-│   ├── execution_engine.md       # Complete architecture & implementation
-│   ├── parameter_graph.md        # Complete graph visualization
-│   └── REFACTORING_COMPLETE.md   # Implementation summary
+│   ├── execution_engine.md       # Architecture and implementation details
+│   └── parameter_graph.md        # Complete graph visualization
 └── README.md                     # This file
 ```
 
@@ -527,18 +528,18 @@ make html
 - **`docs/execution_engine.md`**: Complete architecture and implementation with Mermaid diagrams
 - **`docs/parameter_graph.md`**: Full graph visualization
 - **`src/snowpyt_mechparams/graph/README.md`**: Graph structure and extension guide
-- **`src/snowpyt_mechparams/graph/definitions.py`**: Comprehensive inline documentation of all methods
+- **`src/snowpyt_mechparams/graph/parameter_graph.py`**: Comprehensive inline documentation of all methods
 
 ### 📊 Dataset Status
 
 - **SnowPilot dataset**: 50,278 CAAML files parsed successfully
-- **ECTP slabs**: ~14,776 slabs from ~12,347 pits (24.6% ECTP rate)
+- **ECTP slabs**: 14,951 slabs from ~12,347 pits (24.6% ECTP rate)
 - **D11 pathways**: 32 unique pathways (4 density × 4 E × 2 ν)
 - **Analysis**: Comprehensive pathway comparison in `all_D11_pathways.ipynb`
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! For questions, ideas, or to get involved, please open a [GitHub Discussion](https://github.com/connellymk/snowpyt-mechparams/discussions) or reach out to the project leads.
 
 ### Development Setup
 
@@ -546,7 +547,7 @@ For contributors who want to develop and test the package:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/snowpyt-mechparams.git
+git clone https://github.com/connellymk/snowpyt-mechparams.git
 cd snowpyt-mechparams
 
 # Create and activate virtual environment
@@ -568,7 +569,7 @@ pre-commit install
 To add a new calculation method to an existing parameter:
 
 1. **Implement the method** in the appropriate module (`layer_parameters/` or `slab_parameters/`)
-2. **Add a method edge** in `src/snowpyt_mechparams/graph/definitions.py`:
+2. **Add a method edge** in `src/snowpyt_mechparams/graph/parameter_graph.py`:
    ```python
    build_graph.method_edge(merge_node, parameter_node, "your_method_name")
    ```
@@ -581,7 +582,7 @@ To add a new calculation method to an existing parameter:
 To add an entirely new calculated parameter:
 
 1. **Implement the calculation** in `layer_parameters/` (per-layer) or `slab_parameters/` (whole-slab)
-2. **Create the parameter node** in `src/snowpyt_mechparams/graph/definitions.py` with the appropriate `level`:
+2. **Create the parameter node** in `src/snowpyt_mechparams/graph/parameter_graph.py` with the appropriate `level`:
    ```python
    # For a per-layer parameter
    new_param = build_graph.param("new_param", level="layer")
@@ -607,9 +608,9 @@ If you use SnowPyt-MechParams in your research, please cite:
 @software{snowpyt_mechparams,
   author = {Connelly, Mary and Verplanck, Samuel and {SnowPyt-MechParams Contributors}},
   title = {SnowPyt-MechParams: A collaborative Python library for snow mechanical parameter estimation},
-  url = {https://github.com/your-username/snowpyt-mechparams},
+  url = {https://github.com/connellymk/snowpyt-mechparams},
   version = {0.4.0},
-  year = {2025}
+  year = {2026}
 }
 ```
 
@@ -637,7 +638,7 @@ When using specific methods, please also cite the relevant publications:
 **Slab Parameters:**
 - Weißgraeber & Rosendahl (2023) - Classical laminate theory for layered snow slabs
 
-Full citations available in `src/snowpyt_mechparams/graph/definitions.py`.
+Full citations available in `src/snowpyt_mechparams/graph/parameter_graph.py`.
 
 ## License
 
@@ -651,7 +652,7 @@ This collaborative project is made possible by contributions from multiple acade
 - **Academic Contributors**: [Contributors will be listed here as they join the project]
 - **Institutional Affiliations**: Montana State University
 
-We welcome new academic collaborators! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome new academic collaborators! Reach out via email or open a [GitHub Discussion](https://github.com/connellymk/snowpyt-mechparams/discussions).
 
 ## Acknowledgments
 
@@ -668,11 +669,11 @@ We welcome new academic collaborators! See [CONTRIBUTING.md](CONTRIBUTING.md) fo
 - **Project Leads**: Mary Connelly and Samuel Verplanck, Montana State University
 - **Email**: connellymarykate@gmail.com, samuelverplanck@montana.edu
 - **Academic Collaboration Inquiries**: Please reach out to the project leads directly
-- **Issues**: [GitHub Issues](https://github.com/your-username/snowpyt-mechparams/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/snowpyt-mechparams/discussions)
+- **Issues**: [GitHub Issues](https://github.com/connellymk/snowpyt-mechparams/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/connellymk/snowpyt-mechparams/discussions)
 
-For academic researchers interested in collaborating, please see our [collaboration guidelines](CONTRIBUTING.md#scientific-contributions) and feel free to reach out through GitHub Discussions.
+For academic researchers interested in collaborating, feel free to reach out through GitHub Discussions.
 
 ---
 
-**Version**: 0.4.0 | **Last Updated**: February 2026 | **Python**: 3.8+ | **License**: MIT
+**Version**: 0.4.0 | **Last Updated**: March 2026 | **Python**: 3.9+ | **License**: MIT

@@ -1,7 +1,6 @@
 # Include important files in source distribution
 include README.md
 include LICENSE
-include requirements.txt
 include pyproject.toml
 
 # Include documentation

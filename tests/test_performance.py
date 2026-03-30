@@ -3,7 +3,7 @@
 import time
 from uncertainties import ufloat
 import pytest
-from snowpyt_mechparams import ExecutionEngine, Slab, Layer, ExecutionConfig
+from snowpyt_mechparams import ExecutionEngine, Slab, Layer
 from snowpyt_mechparams.graph import graph
 
 
@@ -40,7 +40,7 @@ def test_large_slab_execution_time():
     assert results.successful_pathways > 0
     
     # Print timing info
-    print(f"\n100-layer slab execution:")
+    print("\n100-layer slab execution:")
     print(f"  Total time: {elapsed:.3f}s")
     print(f"  Pathways: {results.total_pathways}")
     print(f"  Time per pathway: {(elapsed / results.total_pathways) * 1000:.1f}ms")
@@ -77,7 +77,7 @@ def test_copy_overhead_comparison():
     large_time = time.perf_counter() - start
     
     # Print comparison
-    print(f"\nCopy overhead comparison:")
+    print("\nCopy overhead comparison:")
     print(f"  10 layers: {small_time:.3f}s ({small_results.total_pathways} pathways)")
     print(f"  50 layers: {large_time:.3f}s ({large_results.total_pathways} pathways)")
     print(f"  Ratio: {large_time / small_time:.2f}x")
@@ -98,7 +98,7 @@ def test_cache_effectiveness_large_slab():
     
     # With 50 layers and multiple pathways sharing density calculations,
     # should have significant cache hits
-    print(f"\n50-layer slab cache effectiveness:")
+    print("\n50-layer slab cache effectiveness:")
     print(f"  Total pathways: {results.total_pathways}")
     print(f"  Cache hits: {results.cache_stats['hits']}")
     print(f"  Cache misses: {results.cache_stats['misses']}")
@@ -133,7 +133,7 @@ def test_memory_efficiency():
         result_size += sys.getsizeof(pathway.slab)
         result_size += sum(sys.getsizeof(layer) for layer in pathway.slab.layers)
     
-    print(f"\nMemory usage:")
+    print("\nMemory usage:")
     print(f"  Input slab: ~{total_input / 1024:.1f} KB")
     print(f"  All result slabs: ~{result_size / 1024:.1f} KB")
     print(f"  Pathways: {results.total_pathways}")

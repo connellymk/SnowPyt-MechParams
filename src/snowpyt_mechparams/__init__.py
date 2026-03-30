@@ -28,7 +28,7 @@ Quick Start
 -----------
 >>> from snowpyt_mechparams import ExecutionEngine
 >>> from snowpyt_mechparams.graph import graph
->>> from snowpyt_mechparams.data_structures import Slab, Layer
+>>> from snowpyt_mechparams.models import Slab, Layer
 >>>
 >>> # Create slab with measured data
 >>> layers = [Layer(thickness=30, density_measured=250, grain_form='RG')]
@@ -42,7 +42,7 @@ Quick Start
 """
 
 # Data structures
-from snowpyt_mechparams.data_structures import Layer, Slab
+from snowpyt_mechparams.models import Layer, Slab
 
 # Constants
 from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE, WEAK_LAYER_DEFINITIONS
@@ -51,12 +51,21 @@ from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE, WEAK_LAYER_D
 from snowpyt_mechparams import snowpilot
 
 # Layer parameter calculations
-from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
+from snowpyt_mechparams.layer_parameters import (
+    calculate_density,
+    calculate_elastic_modulus,
+    calculate_poissons_ratio,
+    calculate_shear_modulus,
+)
 
 # Weak layer parameters
 from snowpyt_mechparams.weak_layer_parameters import (
-    calculate_sigma_c_minus,
-    calculate_sigma_c_plus,
+    calculate_G_c,
+    calculate_G_Ic,
+    calculate_G_IIc,
+    calculate_tau_c,
+    calculate_sigma_comp,
+    calculate_sigma_c,
 )
 
 # Execution engine
@@ -72,11 +81,20 @@ from snowpyt_mechparams.execution import (
     MethodDispatcher,
 )
 
+# Stability criteria
+from snowpyt_mechparams.stability_criteria import (
+    RochResult,
+    calculate_roch,
+    calculate_shear_stress,
+    WeacSkierResult,
+    calculate_weac_skier,
+)
+
 # Graph and algorithm modules (imported as modules, not individual items)
 from snowpyt_mechparams import graph
 from snowpyt_mechparams import algorithm
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Mary Connelly and SnowPyt-MechParams Contributors"
 __email__ = "connellymarykate@gmail.com"
 __maintainer__ = "SnowPyt-MechParams Contributors"
@@ -92,10 +110,18 @@ __all__ = [
     "WEAK_LAYER_DEFINITIONS",
     # SnowPilot parsing
     "snowpilot",
-    # Calculation functions
+    # Layer parameter calculations
+    "calculate_density",
+    "calculate_elastic_modulus",
+    "calculate_poissons_ratio",
     "calculate_shear_modulus",
-    "calculate_sigma_c_minus",
-    "calculate_sigma_c_plus",
+    # Weak layer parameter calculations
+    "calculate_G_c",
+    "calculate_G_Ic",
+    "calculate_G_IIc",
+    "calculate_tau_c",
+    "calculate_sigma_comp",
+    "calculate_sigma_c",
     # Execution engine
     "ExecutionEngine",
     "ExecutionConfig",
@@ -106,6 +132,12 @@ __all__ = [
     "CacheStats",
     "PathwayExecutor",
     "MethodDispatcher",
+    # Stability criteria
+    "RochResult",
+    "calculate_roch",
+    "calculate_shear_stress",
+    "WeacSkierResult",
+    "calculate_weac_skier",
     # Graph and algorithm (as modules)
     "graph",
     "algorithm",

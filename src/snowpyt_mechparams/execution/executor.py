@@ -53,16 +53,20 @@ The density cache persists across pathway executions for the same slab but is
 cleared when moving to a new slab via clear_cache().
 """
 
+from dataclasses import replace
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from snowpyt_mechparams.algorithm import Parameterization
-from snowpyt_mechparams.data_structures import Layer, Slab, UncertainValue
+from snowpyt_mechparams.layer_parameters.density import calculate_density
+from snowpyt_mechparams.models import Layer, Slab, UncertainValue
 from snowpyt_mechparams.execution.cache import ComputationCache
-from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, ParameterLevel
+from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, _get_layer_input
 from snowpyt_mechparams.execution.results import (
     ComputationTrace, PathwayResult
 )
-from snowpyt_mechparams.graph.definitions import LAYER_PARAMS, SLAB_PARAMS
+from snowpyt_mechparams.graph.parameter_graph import (
+    SLAB_PARAMS, WEAK_LAYER_PARAMS, STABILITY_PARAMS
+)
 
 if TYPE_CHECKING:
     from snowpyt_mechparams.execution.config import ExecutionConfig
@@ -169,11 +173,11 @@ class PathwayExecutor:
         # Only clear cache when switching to a new slab (via clear_cache())
 
         # Extract the methods used from the parameterization
-        methods_used = self._extract_methods_from_parameterization(parameterization)
+        methods_used = self.extract_methods_from_parameterization(parameterization)
 
         # Build pathway description and ID
-        pathway_description = self._build_pathway_description(methods_used)
-        pathway_id = self._build_pathway_id(methods_used)
+        pathway_description = self.build_pathway_description(methods_used)
+        pathway_id = self.build_pathway_id(methods_used)
 
         # Track all computations in a flat list
         computation_trace: List[ComputationTrace] = []
@@ -185,15 +189,12 @@ class PathwayExecutor:
         # Build result layers using copy-on-write pattern
         # Only copy layers that need modification
         result_layers: List[Layer] = []
+        needs_computation = bool(execution_order)
 
         for layer_idx, original_layer in enumerate(slab.layers):
-            # Check if this layer needs any computation
-            needs_computation = any(param in methods_used for param in execution_order)
-            
             if needs_computation:
                 # This layer needs computation - create a shallow copy
                 # (Using dataclass replace is faster than deepcopy)
-                from dataclasses import replace
                 working_layer = replace(original_layer)
                 
                 # Execute computations on this layer
@@ -236,7 +237,6 @@ class PathwayExecutor:
         # Create result slab with computed layers
         # Use dataclasses.replace to preserve all slab attributes (metadata, weak_layer, etc.)
         # while only updating the layers list
-        from dataclasses import replace
         result_slab = replace(slab, layers=result_layers)
 
         # Execute slab-level calculations only when the target is a slab parameter.
@@ -246,11 +246,34 @@ class PathwayExecutor:
             slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
             computation_trace.extend(slab_traces)
 
+        # Execute weak-layer calculations when targeting a weak-layer parameter OR
+        # when targeting a stability parameter (which needs weak_layer fracture fields populated first).
+        if target_parameter in WEAK_LAYER_PARAMS or target_parameter in STABILITY_PARAMS:
+            weak_layer_params_in_pathway = {
+                p: m for p, m in methods_used.items() if p in WEAK_LAYER_PARAMS
+            }
+            if weak_layer_params_in_pathway:
+                wl_traces = self._execute_weak_layer_calculations(
+                    result_slab, weak_layer_params_in_pathway,
+                    density_method=methods_used.get("density"),
+                    config=config,
+                )
+                computation_trace.extend(wl_traces)
+
+        # Execute stability calculations when targeting a stability parameter (e.g. g_delta).
+        if target_parameter in STABILITY_PARAMS:
+            stability_traces = self._execute_stability_calculations(
+                result_slab, target_parameter, methods_used, config
+            )
+            computation_trace.extend(stability_traces)
+
         # Determine overall success.
         #
         # For slab-level targets, _execute_slab_calculations
         # emits exactly one trace for the requested parameter.  The filter
         # t.parameter == target_parameter isolates that trace.
+        #
+        # For weak-layer and stability targets, the same single-trace logic applies.
         #
         # For layer-level targets (density, elastic_modulus, poissons_ratio,
         # shear_modulus) a pathway specifies exactly ONE method per parameter.
@@ -261,7 +284,7 @@ class PathwayExecutor:
         # others) is therefore treated as pathway failure: if the method cannot
         # produce a value for every layer, the pathway as a whole has failed.
 
-        if target_parameter in SLAB_PARAMS:
+        if target_parameter in SLAB_PARAMS or target_parameter in WEAK_LAYER_PARAMS or target_parameter in STABILITY_PARAMS:
             success = any(
                 t.success and t.parameter == target_parameter
                 for t in computation_trace
@@ -285,7 +308,7 @@ class PathwayExecutor:
             warnings=warnings
         )
 
-    def _extract_methods_from_parameterization(
+    def extract_methods_from_parameterization(
         self,
         parameterization: Parameterization
     ) -> Dict[str, str]:
@@ -352,7 +375,7 @@ class PathwayExecutor:
 
         return methods
 
-    def _build_pathway_description(self, methods_used: Dict[str, str]) -> str:
+    def build_pathway_description(self, methods_used: Dict[str, str]) -> str:
         """
         Build a human-readable description of the pathway.
 
@@ -366,15 +389,18 @@ class PathwayExecutor:
         str
             Human-readable pathway description
         """
-        # Order: density -> elastic_modulus -> poissons_ratio -> shear_modulus
-        order = ["density", "elastic_modulus", "poissons_ratio", "shear_modulus"]
+        # Order: layer params first, then stability criterion
+        order = [
+            "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+            "g_delta", "s_r",
+        ]
         parts = []
         for param in order:
             if param in methods_used:
                 parts.append(f"{param}={methods_used[param]}")
         return " | ".join(parts)
 
-    def _build_pathway_id(self, methods_used: Dict[str, str]) -> str:
+    def build_pathway_id(self, methods_used: Dict[str, str]) -> str:
         """
         Build a unique identifier for the pathway.
 
@@ -402,7 +428,7 @@ class PathwayExecutor:
         layer_index: int,
         parameter: str,
         method: str,
-        config: 'ExecutionConfig' = None
+        config: Optional['ExecutionConfig'] = None
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get parameter from cache or compute it.
@@ -459,7 +485,8 @@ class PathwayExecutor:
             parameter=parameter,
             method_name=method,
             layer=layer,
-            **extra
+            slab=None,
+            **extra,
         )
 
         if value is not None:
@@ -498,7 +525,22 @@ class PathwayExecutor:
         List[str]
             Ordered list of parameters to compute
         """
-        # Always compute in dependency order
+        # Always compute in dependency order.
+        #
+        # This list is intentionally hardcoded to avoid per-pathway graph
+        # traversal overhead (significant when processing 14,951 slabs × 32
+        # pathways).  The ordering encodes two constraints:
+        #
+        #   1. ``density`` must come first — it is the upstream input for
+        #      ``elastic_modulus`` (all methods), ``poissons_ratio``
+        #      (srivastava), and ``shear_modulus`` (wautier).
+        #
+        #   2. ``elastic_modulus``, ``poissons_ratio``, ``shear_modulus`` are
+        #      independent of each other, so their relative order is arbitrary.
+        #
+        # MAINTENANCE NOTE: If a new layer-level parameter is added to the
+        # dispatcher and graph, it MUST be appended here in the correct
+        # dependency order, or it will be silently skipped during execution.
         order = []
 
         # Density first (if in pathway)
@@ -568,7 +610,6 @@ class PathwayExecutor:
 
         inputs = {}
         for input_name in spec.required_inputs:
-            from snowpyt_mechparams.execution.dispatcher import _get_layer_input
             value = _get_layer_input(layer, input_name, method_name=method_name)
             if value is not None:
                 # Simplify ufloat for display
@@ -653,7 +694,36 @@ class PathwayExecutor:
             layer.thickness is not None for layer in slab.layers
         )
 
-        if target_parameter in SLAB_PARAMS:
+        if target_parameter == "A55":
+            can_compute = (
+                all_layers_have_thickness and
+                all(layer.shear_modulus is not None for layer in slab.layers)
+            )
+            if can_compute:
+                value, was_cached, error_msg = self._get_or_compute_slab_param(
+                    slab, "A55", "weissgraeber_rosendahl"
+                )
+                return [ComputationTrace(
+                    parameter="A55",
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=value,
+                    success=value is not None,
+                    cached=was_cached,
+                    error=error_msg
+                )]
+            else:
+                return [ComputationTrace(
+                    parameter="A55",
+                    method_name="weissgraeber_rosendahl",
+                    layer_index=None,
+                    output=None,
+                    success=False,
+                    cached=False,
+                    error="Missing prerequisites: need G and thickness on all layers"
+                )]
+
+        elif target_parameter in SLAB_PARAMS:
             can_compute = (
                 all_layers_have_thickness and
                 all(layer.elastic_modulus is not None for layer in slab.layers) and
@@ -683,33 +753,187 @@ class PathwayExecutor:
                     error="Missing prerequisites: need E, ν, and thickness on all layers"
                 )]
 
-        elif target_parameter == "A55":
-            can_compute = (
-                all_layers_have_thickness and
-                all(layer.shear_modulus is not None for layer in slab.layers)
-            )
-            if can_compute:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "A55", "weissgraeber_rosendahl"
-                )
-                return [ComputationTrace(
-                    parameter="A55",
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=value,
-                    success=value is not None,
-                    cached=was_cached,
-                    error=error_msg
-                )]
-            else:
-                return [ComputationTrace(
-                    parameter="A55",
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=None,
-                    success=False,
-                    cached=False,
-                    error="Missing prerequisites: need G and thickness on all layers"
-                )]
-
         return []
+
+    @staticmethod
+    def _compute_weak_layer_density(
+        slab: Slab,
+        method: str,
+        include_method_uncertainty: bool = True,
+    ):
+        """
+        Compute density for the weak layer using the same density method as
+        the slab layers.  Returns an ``UncertainValue`` or ``None`` on failure.
+
+        This is called before density-dependent methods (``sigrist``, ``mellor``)
+        so that ``slab.weak_layer.density_calculated`` is available when they run.
+        """
+        wl = slab.weak_layer
+        if wl is None:
+            return None
+        if method == "data_flow":
+            return wl.density_measured if wl.density_measured is not None else None
+        if method in ("geldsetzer", "kim_jamieson_table2"):
+            if wl.hand_hardness_index is None or wl.grain_form is None:
+                return None
+            return calculate_density(
+                method,
+                hand_hardness_index=wl.hand_hardness_index,
+                grain_form=wl.grain_form,
+                include_method_uncertainty=include_method_uncertainty,
+            )
+        if method == "kim_jamieson_table5":
+            if wl.hand_hardness_index is None or wl.grain_form is None or wl.grain_size_avg is None:
+                return None
+            return calculate_density(
+                method,
+                hand_hardness_index=wl.hand_hardness_index,
+                grain_form=wl.grain_form,
+                grain_size=wl.grain_size_avg,
+                include_method_uncertainty=include_method_uncertainty,
+            )
+        return None
+
+    def _execute_weak_layer_calculations(
+        self,
+        slab: Slab,
+        params_to_compute: Dict[str, str],
+        density_method: Optional[str] = None,
+        config: Optional['ExecutionConfig'] = None,
+    ) -> List[ComputationTrace]:
+        """
+        Compute weak-layer fracture/strength parameters and store them on
+        ``slab.weak_layer``.
+
+        Parameters
+        ----------
+        slab : Slab
+            Working slab copy (mutated in place: fracture/strength fields on
+            ``slab.weak_layer`` are set).
+        params_to_compute : Dict[str, str]
+            Mapping of ``{parameter_name: method_name}`` for each weak-layer
+            parameter to compute (e.g. ``{"G_Ic": "weissgraeber_rosendahl"}``).
+        density_method : str, optional
+            The density method used for slab layers (e.g. ``"geldsetzer"``).
+            When provided and sigrist/mellor are among the params, weak-layer
+            density is computed first and stored on
+            ``slab.weak_layer.density_calculated`` so those methods can read it.
+        config : ExecutionConfig, optional
+            Execution configuration. When provided, ``include_method_uncertainty``
+            is forwarded to methods that declare that parameter.
+
+        Returns
+        -------
+        List[ComputationTrace]
+            One trace entry per parameter attempted.
+        """
+        traces = []
+
+        # If density-dependent methods are present, compute weak-layer density
+        # first so that sigrist/mellor can read slab.weak_layer.density_calculated.
+        DENSITY_DEPENDENT = {"sigrist", "mellor"}
+        needs_density = any(m in DENSITY_DEPENDENT for m in params_to_compute.values())
+        if needs_density and density_method is not None and slab.weak_layer is not None:
+            unc = config.include_method_uncertainty if config is not None else True
+            wl_density = self._compute_weak_layer_density(slab, density_method, unc)
+            if wl_density is not None:
+                slab.weak_layer.density_calculated = wl_density
+
+        for param, method in params_to_compute.items():
+            # Forward include_method_uncertainty to methods that accept it.
+            extra: Dict[str, Any] = {}
+            if config is not None and self.dispatcher.supports_method_uncertainty(param, method):
+                extra["include_method_uncertainty"] = config.include_method_uncertainty
+
+            value, error = self.dispatcher.execute(
+                parameter=param,
+                method_name=method,
+                slab=slab,
+                **extra,
+            )
+
+            if value is not None and slab.weak_layer is not None:
+                setattr(slab.weak_layer, param, value)
+
+            traces.append(ComputationTrace(
+                parameter=param,
+                method_name=method,
+                layer_index=None,
+                output=value,
+                success=value is not None,
+                cached=False,
+                error=error,
+            ))
+
+        return traces
+
+    def _execute_stability_calculations(
+        self,
+        slab: Slab,
+        target_parameter: str,
+        methods_used: Dict[str, str],
+        config: 'ExecutionConfig',
+    ) -> List[ComputationTrace]:
+        """
+        Run the stability criterion and store the full result on the slab.
+
+        The ``ComputationTrace`` records the key scalar metric rather than
+        the full result object, so the trace remains human-readable.  The
+        full result object is accessible directly on the slab:
+
+        - ``g_delta`` → ``slab.weac_result`` (``WeacSkierResult``)
+        - ``s_r``     → ``slab.roch_result`` (``RochResult``, natural variant)
+
+        Parameters
+        ----------
+        slab : Slab
+            Working slab copy with layer params and ``weak_layer`` fracture/strength
+            fields populated.  Mutated in place: the appropriate result attribute
+            (``weac_result`` or ``roch_result``) is set.
+        target_parameter : str
+            Graph node name for the stability output (e.g. ``"g_delta"`` or ``"s_r"``).
+        methods_used : Dict[str, str]
+            Full methods-used dict; used to look up the stability method name.
+        config : ExecutionConfig
+            Execution configuration; ``config.weac_timeout_seconds`` is
+            forwarded to the WEAC adapter as a per-slab solver budget.
+
+        Returns
+        -------
+        List[ComputationTrace]
+            Single-item list with the trace for *target_parameter*.
+        """
+        method = methods_used.get(target_parameter, "weac_skier")
+
+        extra: Dict[str, Any] = {}
+        if target_parameter == "g_delta" and config.weac_timeout_seconds is not None:
+            extra["timeout_seconds"] = config.weac_timeout_seconds
+
+        result, error = self.dispatcher.execute(
+            parameter=target_parameter,
+            method_name=method,
+            slab=slab,
+            **extra,
+        )
+
+        trace_output: Any = None
+        if result is not None:
+            if target_parameter == "g_delta":
+                slab.weac_result = result
+                # Expose the primary scalar metric in the trace for readability.
+                trace_output = getattr(result, "g_delta", result)
+            elif target_parameter == "s_r":
+                slab.roch_result = result
+                trace_output = getattr(result, "stability_index", result)
+            else:
+                trace_output = result
+
+        return [ComputationTrace(
+            parameter=target_parameter,
+            method_name=method,
+            layer_index=None,
+            output=trace_output,
+            success=result is not None,
+            cached=False,
+            error=error,
+        )]

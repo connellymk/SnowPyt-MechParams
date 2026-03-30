@@ -183,7 +183,7 @@ self._register(MethodSpec(
 
 ### 3. Add to Graph
 
-Add the method edge to `graph/definitions.py`:
+Add the method edge to `graph/parameter_graph.py`:
 
 ```python
 # If using existing merge node (density + grain_form)
@@ -267,8 +267,7 @@ python -m snowpyt_mechparams.graph.visualize docs/parameter_graph.md
 Or use the standalone script:
 
 ```bash
-cd src/snowpyt_mechparams/graph
-python generate_diagram.py ../../../docs/parameter_graph.md
+python scripts/generate_diagram.py docs/parameter_graph.md
 ```
 
 ## Module Structure
@@ -277,9 +276,8 @@ python generate_diagram.py ../../../docs/parameter_graph.md
 graph/
 ├── __init__.py          # Module exports
 ├── structures.py        # Node, Edge, Graph, GraphBuilder classes
-├── definitions.py       # Complete graph definition
+├── parameter_graph.py   # Complete graph definition
 ├── visualize.py         # Mermaid diagram generation
-├── generate_diagram.py  # Standalone diagram generator script
 └── README.md           # This file
 ```
 
@@ -288,7 +286,7 @@ graph/
 ```python
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
-from snowpyt_mechparams.data_structures import Slab, Layer
+from snowpyt_mechparams.models import Slab, Layer
 
 # Create a slab with measured data
 layers = [

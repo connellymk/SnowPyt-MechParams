@@ -3,7 +3,7 @@ SnowPilot/CAAML XML parser.
 
 This module provides simple parsing utilities for CAAML XML files from the
 SnowPilot dataset. For converting parsed data to Layer and Slab objects,
-use the Pit class from data_structures.
+use the Pit class from models.
 
 Workflow
 --------
@@ -14,7 +14,7 @@ Workflow
 Example
 -------
     >>> from snowpyt_mechparams.snowpilot import parse_caaml_file
-    >>> from snowpyt_mechparams.data_structures import Pit
+    >>> from snowpyt_mechparams.models import Pit
     >>>
     >>> # Step 1: Parse CAAML file to get snowpylot SnowPit
     >>> snow_pit = parse_caaml_file("profile.xml")

@@ -13,15 +13,13 @@ Tests cover:
 - Edge cases and error handling
 """
 
-import os
 import math
 from pathlib import Path
-from typing import Any, List
 from unittest.mock import Mock
 
 import pytest
 
-from snowpyt_mechparams.data_structures import Layer, Pit, Slab
+from snowpyt_mechparams.models import Layer, Pit, Slab
 from snowpyt_mechparams.snowpilot import parse_caaml_file
 
 
@@ -186,6 +184,7 @@ def mock_snowpylot_profile_with_ectp():
     ect_result.depth_top = 20.0  # Failure at 20cm (in layer 2)
     ect_result.fracture_character = "RP"  # Propagation
     ect_result.score = "ECTP15"
+    ect_result.propagation = True  # Explicitly set so the boolean branch is tested
     
     stability_tests = Mock()
     stability_tests.ECT = [ect_result]
@@ -491,44 +490,62 @@ def test_create_slabs_with_ectp_failure_layer(mock_snowpylot_profile_with_ectp):
 
 
 def test_create_slabs_ectp_returns_empty_when_no_propagation():
-    """Test that ECTP weak layer def returns empty list when no propagation tests."""
+    """Test that ECTP weak layer def returns empty list when propagation is False.
+
+    Uses two layers (0–10 cm slab, 10–20 cm weak layer) so a slab *would* be
+    created if propagation were True. The only gate that produces 0 slabs here
+    is the propagation filter in _get_matching_ect_results.
+    """
     snow_pit = Mock()
     snow_pit.snow_profile = Mock()
-    
-    layer = Mock()
-    layer.depth_top = [0.0]
-    layer.thickness = [10.0]
-    layer.hardness = "F"
-    layer.layer_of_concern = False
-    grain_form = Mock()
-    grain_form.sub_grain_class_code = None
-    grain_form.basic_grain_class_code = "RG"
-    grain_form.grain_size_avg = 1.0
-    layer.grain_form_primary = grain_form
-    
-    snow_pit.snow_profile.layers = [layer]
+
+    # Layer 0–10 cm (would be slab layer if propagation were True)
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [10.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    grain_form1 = Mock()
+    grain_form1.sub_grain_class_code = None
+    grain_form1.basic_grain_class_code = "RG"
+    grain_form1.grain_size_avg = 1.0
+    layer1.grain_form_primary = grain_form1
+
+    # Layer 10–20 cm (would be weak layer if propagation were True)
+    layer2 = Mock()
+    layer2.depth_top = [10.0]
+    layer2.thickness = [10.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = False
+    grain_form2 = Mock()
+    grain_form2.sub_grain_class_code = None
+    grain_form2.basic_grain_class_code = "FC"
+    grain_form2.grain_size_avg = 1.5
+    layer2.grain_form_primary = grain_form2
+
+    snow_pit.snow_profile.layers = [layer1, layer2]
     snow_pit.snow_profile.density_profile = []
     snow_pit.core_info = Mock()
     snow_pit.core_info.pit_id = "test"
     location = Mock()
     location.slope_angle = [30.0, "deg"]
     snow_pit.core_info.location = location
-    
-    # ECT test without propagation
+
+    # ECT result at 10 cm with propagation explicitly False — must be filtered out
     ect_result = Mock()
-    ect_result.depth_top = 5.0
-    ect_result.fracture_character = "RB"  # No propagation
-    ect_result.score = "ECT15"
-    
+    ect_result.depth_top = 10.0
+    ect_result.propagation = False   # Explicit False; not a truthy auto-Mock attribute
+    ect_result.test_score = "ECT15"  # No "ECTP" in score either
+
     stability_tests = Mock()
     stability_tests.ECT = [ect_result]
     stability_tests.CT = []
     stability_tests.PST = []
     snow_pit.stability_tests = stability_tests
-    
+
     pit = Pit.from_snow_pit(snow_pit)
     slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
-    
+
     assert len(slabs) == 0
 
 
@@ -828,3 +845,64 @@ def test_create_slabs_with_multiple_ectp_results():
     assert slabs[1].weak_layer.depth_top == 30.0
     assert slabs[1].test_result_index == 1
     assert slabs[1].slab_id == "multi_ectp_slab_1"
+
+
+def test_create_slabs_ectp_via_test_score_path():
+    """Test that a slab is created when propagation comes from test_score string.
+
+    Uses Mock(spec=...) so hasattr(ect, "propagation") is False, forcing the
+    filter to fall through to the test_score branch ("ECTP" in str(test_score)).
+    """
+    snow_pit = Mock()
+    snow_pit.snow_profile = Mock()
+
+    # Layer 0–10 cm (slab layer)
+    layer1 = Mock()
+    layer1.depth_top = [0.0]
+    layer1.thickness = [10.0]
+    layer1.hardness = "F"
+    layer1.layer_of_concern = False
+    gf1 = Mock()
+    gf1.sub_grain_class_code = None
+    gf1.basic_grain_class_code = "RG"
+    gf1.grain_size_avg = 1.0
+    layer1.grain_form_primary = gf1
+
+    # Layer 10–20 cm (weak layer)
+    layer2 = Mock()
+    layer2.depth_top = [10.0]
+    layer2.thickness = [10.0]
+    layer2.hardness = "4F"
+    layer2.layer_of_concern = False
+    gf2 = Mock()
+    gf2.sub_grain_class_code = None
+    gf2.basic_grain_class_code = "FC"
+    gf2.grain_size_avg = 1.5
+    layer2.grain_form_primary = gf2
+
+    snow_pit.snow_profile.layers = [layer1, layer2]
+    snow_pit.snow_profile.density_profile = []
+    snow_pit.core_info = Mock()
+    snow_pit.core_info.pit_id = "test_score_pit"
+    location = Mock()
+    location.slope_angle = [35.0, "deg"]
+    snow_pit.core_info.location = location
+
+    # ECT result: no propagation attr (spec excludes it), but test_score contains "ECTP"
+    ect_result = Mock(spec=["depth_top", "test_score", "fracture_character"])
+    ect_result.depth_top = 10.0
+    ect_result.test_score = "ECTP21"
+    ect_result.fracture_character = "RP"
+
+    stability_tests = Mock()
+    stability_tests.ECT = [ect_result]
+    stability_tests.CT = []
+    stability_tests.PST = []
+    snow_pit.stability_tests = stability_tests
+
+    pit = Pit.from_snow_pit(snow_pit)
+    slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    assert len(slabs) == 1
+    assert slabs[0].weak_layer.depth_top == 10.0
+    assert slabs[0].pit_id == "test_score_pit"

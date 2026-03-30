@@ -11,7 +11,7 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
-from snowpyt_mechparams.constants import RHO_ICE, G_ICE
+from snowpyt_mechparams.constants import RHO_ICE
 
 
 class TestWautierShearModulusNumerical:

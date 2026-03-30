@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snowpyt-mechparams"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
-    {name = "Mary Connelly", email = "your.email@example.com"},
+    {name = "Mary Connelly", email = "connellymarykate@gmail.com"},
+    {name = "Samuel Verplanck", email = "samuelverplanck@montana.edu"},
 ]
 maintainers = [
     {name = "SnowPyt-MechParams Contributors"},
@@ -14,18 +15,18 @@ maintainers = [
 description = "Collaborative Python library for estimating mechanical parameters from snow pit measurements with graph-based parameterization and dynamic programming"
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: Physics",
 ]
@@ -36,12 +37,26 @@ dependencies = [
     "pandas>=1.2.0",
     "snowpylot>=1.1.3",
     "uncertainties>=3.0.0",
-    "matplotlib>=3.3.0",
-    "seaborn>=0.11.0",
-    "tqdm>=4.0.0",
 ]
 
 [project.optional-dependencies]
+plotting = [
+    "matplotlib>=3.3.0",
+    "seaborn>=0.11.0",
+]
+io = [
+    "pyarrow>=10.0.0",
+    "fastparquet>=2024.0.0",
+]
+weac = [
+    "weac>=3.1.4",
+]
+docs = [
+    "sphinx>=4.0",
+    "sphinx-rtd-theme>=1.0",
+    "sphinx-autodoc-typehints>=1.10",
+    "myst-parser>=0.15",
+]
 dev = [
     "pytest>=6.0",
     "pytest-cov>=2.0",
@@ -51,24 +66,19 @@ dev = [
     "sphinx>=4.0",
     "sphinx-rtd-theme>=1.0",
     "jupyter>=1.0",
-    "matplotlib>=3.3.0",
-]
-docs = [
-    "sphinx>=4.0",
-    "sphinx-rtd-theme>=1.0",
-    "sphinx-autodoc-typehints>=1.10",
-    "myst-parser>=0.15",
-]
-plotting = [
+    "tqdm>=4.0.0",
     "matplotlib>=3.3.0",
     "seaborn>=0.11.0",
+    "pyarrow>=10.0.0",
+    "fastparquet>=2024.0.0",
 ]
 
+# TODO: update URLs before PyPI upload — replace with real repository URL
 [project.urls]
-Homepage = "https://github.com/your-username/snowpyt-mechparams"
+Homepage = "https://github.com/connellymk/snowpyt-mechparams"
 Documentation = "https://snowpyt-mechparams.readthedocs.io/"
-Repository = "https://github.com/your-username/snowpyt-mechparams.git"
-"Bug Tracker" = "https://github.com/your-username/snowpyt-mechparams/issues"
+Repository = "https://github.com/connellymk/snowpyt-mechparams.git"
+"Bug Tracker" = "https://github.com/connellymk/snowpyt-mechparams/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -78,7 +88,7 @@ where = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py39']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -106,7 +116,7 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -128,8 +138,13 @@ module = [
     "seaborn.*",
     "uncertainties.*",
     "snowpylot.*",
+    "weac.*",
 ]
 ignore_missing_imports = true
+
+[tool.ruff.lint.per-file-ignores]
+# Notebooks and examples often have imports after setup (E402) and compact syntax (E701)
+"examples/**" = ["E402", "E701"]
 
 [tool.coverage.run]
 source = ["src"]

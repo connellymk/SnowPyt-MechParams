@@ -12,10 +12,11 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.data_structures import Layer, Slab
-from snowpyt_mechparams.slab_parameters.A11 import calculate_A11
-from snowpyt_mechparams.slab_parameters.B11 import calculate_B11
-from snowpyt_mechparams.slab_parameters.D11 import calculate_D11
+from snowpyt_mechparams.models import Layer, Slab
+from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A11
+from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
+from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
+from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
 
 
 def _make_layer(thickness_cm, E_MPa, nu):
@@ -26,6 +27,14 @@ def _make_layer(thickness_cm, E_MPa, nu):
         poissons_ratio=ufloat(nu, 0.0),
     )
     return layer
+
+
+def _make_shear_layer(thickness_cm, G_MPa):
+    """Helper to create a Layer with shear_modulus and thickness set."""
+    return Layer(
+        thickness=ufloat(thickness_cm, 0.0),
+        shear_modulus=ufloat(G_MPa, 0.0),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -195,6 +204,54 @@ class TestB11Numerical:
 
 
 # ---------------------------------------------------------------------------
+# A55 = κ * Sum_i G_i * h_i,  κ = 5/6
+# ---------------------------------------------------------------------------
+
+class TestA55Numerical:
+    """A55: shear stiffness with κ = 5/6 correction factor."""
+
+    def test_single_layer(self):
+        """One layer: G=50 MPa, thickness=10 cm (100 mm).
+
+        A55 = (5/6) * 50 * 100 = 4166.667 N/mm
+        """
+        layer = _make_shear_layer(10.0, 50.0)
+        slab = Slab(layers=[layer], angle=0.0)
+        result = calculate_A55("weissgraeber_rosendahl", slab=slab)
+        expected = (5.0 / 6.0) * 50.0 * 100.0
+        assert result.nominal_value == pytest.approx(expected, rel=1e-6)
+
+    def test_two_layers(self):
+        """Two equal layers: G=50 MPa, 5 cm each (50 mm each).
+
+        A55 = (5/6) * (50*50 + 50*50) = (5/6) * 5000 = 4166.667 N/mm
+        Same total as a single 10 cm layer.
+        """
+        layer1 = _make_shear_layer(5.0, 50.0)
+        layer2 = _make_shear_layer(5.0, 50.0)
+        slab = Slab(layers=[layer1, layer2], angle=0.0)
+        result = calculate_A55("weissgraeber_rosendahl", slab=slab)
+        expected = (5.0 / 6.0) * (50.0 * 50.0 + 50.0 * 50.0)
+        assert result.nominal_value == pytest.approx(expected, rel=1e-6)
+
+    def test_missing_shear_modulus_returns_nan(self):
+        """Layer with shear_modulus=None should return NaN."""
+        layer = Layer(
+            thickness=ufloat(10.0, 0.0),
+            shear_modulus=None,
+        )
+        slab = Slab(layers=[layer], angle=0.0)
+        result = calculate_A55("weissgraeber_rosendahl", slab=slab)
+        assert math.isnan(result.nominal_value)
+
+    def test_unknown_method_raises(self):
+        layer = _make_shear_layer(10.0, 50.0)
+        slab = Slab(layers=[layer], angle=0.0)
+        with pytest.raises(ValueError, match="Unknown method"):
+            calculate_A55("nonexistent", slab=slab)
+
+
+# ---------------------------------------------------------------------------
 # Unknown method
 # ---------------------------------------------------------------------------
 
@@ -204,6 +261,12 @@ class TestUnknownSlabMethod:
         slab = Slab(layers=[layer], angle=0.0)
         with pytest.raises(ValueError, match="Unknown method"):
             calculate_A11("nonexistent", slab=slab)
+
+    def test_unknown_B11_raises(self):
+        layer = _make_layer(10.0, 100.0, 0.2)
+        slab = Slab(layers=[layer], angle=0.0)
+        with pytest.raises(ValueError, match="Unknown method"):
+            calculate_B11("nonexistent", slab=slab)
 
     def test_unknown_D11_raises(self):
         layer = _make_layer(10.0, 100.0, 0.2)

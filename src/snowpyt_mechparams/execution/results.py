@@ -12,7 +12,7 @@ SlabResult → PathwayResult → ExecutionResults) with a cleaner 3-level struct
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from snowpyt_mechparams.data_structures import Slab, UncertainValue
+from snowpyt_mechparams.models import Slab, UncertainValue
 
 
 @dataclass

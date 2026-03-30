@@ -15,7 +15,7 @@ cached.
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
-from snowpyt_mechparams.data_structures import UncertainValue
+from snowpyt_mechparams.models import UncertainValue
 
 
 @dataclass

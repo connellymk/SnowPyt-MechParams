@@ -366,25 +366,20 @@ build_graph.flow(sigma_comp, merge_weac_inputs)
 build_graph.method_edge(merge_weac_inputs, g_delta, "weac_skier")
 
 # Roch stability nodes (level="stability_model")
-s_r  = build_graph.param("s_r",  level="stability_model")  # natural: S_r  = τ_c / τ
-s_sk = build_graph.param("s_sk", level="stability_model")  # skier:   S_sk = (τ_c − τ) / τ_sk
+s_r  = build_graph.param("s_r",  level="stability_model")  # natural: S_r = τ_c / τ
 
 # Merge node aggregating Roch prerequisites:
 #   density (layer-level, for gravitational shear stress τ = Σ ρᵢhᵢg·sinθ)
 #   measured_layer_thickness (layer geometry, used in same shear stress sum)
 #   tau_c (weak-layer constant, for stability index numerator)
-# Both natural and skier variants share the same prerequisite nodes; τ_sk is a
-# constant computed internally in the dispatcher from STANDARD_SKIER_MASS_KG.
 merge_roch_inputs = build_graph.merge("merge_roch_inputs")
 
 build_graph.flow(density,                  merge_roch_inputs)
 build_graph.flow(measured_layer_thickness, merge_roch_inputs)
 build_graph.flow(tau_c,                    merge_roch_inputs)
 
-# merge_roch_inputs → s_r  via roch_natural (no skier load)
-# merge_roch_inputs → s_sk via roch_skier   (standard 80 kg skier load from constants)
+# merge_roch_inputs → s_r via roch_natural (no skier load)
 build_graph.method_edge(merge_roch_inputs, s_r,  "roch_natural")
-build_graph.method_edge(merge_roch_inputs, s_sk, "roch_skier")
 
 # ==============================================================================
 # STEP 4: Build the graph structure - Slab level
@@ -476,7 +471,6 @@ __all__ = [
     # Stability model parameters (calculated)
     'g_delta',
     's_r',
-    's_sk',
     # Merge nodes
     'merge_weac_inputs',
     'merge_roch_inputs',

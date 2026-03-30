@@ -53,7 +53,6 @@ graph LR
     merge_roch_inputs{Roch inputs}
     g_delta[g_Δ (WEAC)]
     s_r[S_r (Roch natural)]
-    s_sk[S_sk (Roch skier)]
     end
 
     %% Edges
@@ -103,7 +102,6 @@ graph LR
     measured_layer_thickness --> merge_roch_inputs
     tau_c --> merge_roch_inputs
     merge_roch_inputs -->|Roch-n| s_r
-    merge_roch_inputs -->|Roch-sk| s_sk
     measured_layer_thickness --> merge_zi
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
@@ -133,5 +131,5 @@ graph LR
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
     class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
-    class g_delta,s_r,s_sk stabilityCalc
+    class g_delta,s_r stabilityCalc
 ```

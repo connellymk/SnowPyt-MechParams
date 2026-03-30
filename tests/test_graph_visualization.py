@@ -147,7 +147,6 @@ def test_classify_node_stability_calc():
     """Test classification of stability model output nodes."""
     assert _classify_node(Node(type="parameter", parameter="g_delta", level="stability_model")) == "stability_calc"
     assert _classify_node(Node(type="parameter", parameter="s_r", level="stability_model")) == "stability_calc"
-    assert _classify_node(Node(type="parameter", parameter="s_sk", level="stability_model")) == "stability_calc"
 
 
 def test_generate_mermaid_complete_graph():

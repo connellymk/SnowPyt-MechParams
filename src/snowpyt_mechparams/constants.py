@@ -181,12 +181,10 @@ def resolve_grain_form_for_method(
 # ==========================================
 
 # Standard skier mass used in stability criteria (kg).
-# Reference: Föhn (1987); used as default in WEAC and Roch skier variant.
+# Reference: Föhn (1987); used as default in WEAC skier variant.
 STANDARD_SKIER_MASS_KG = 80.0
 
-# Standard ski contact area used to compute skier shear stress for the
-# Roch skier criterion (m²).  Combined with STANDARD_SKIER_MASS_KG:
-#   τ_sk = m × g / A_contact  ≈ 80 × 9.81 / 0.65 ≈ 1206 N/m²
+# Standard ski contact area (m²) — reference value; Föhn (1987).
 STANDARD_SKI_CONTACT_AREA_M2 = 0.65
 
 

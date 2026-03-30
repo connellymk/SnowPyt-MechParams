@@ -102,7 +102,7 @@ _NODE_LABELS: Dict[str, str] = {
     "sigma_comp": "σ_comp",
     "g_delta": "g_Δ (WEAC)",
     "s_r": "S_r (Roch natural)",
-    "s_sk": "S_sk (Roch skier)",
+
     # Merge node labels (short, single line)
     "merge_hand_hardness_grain_form": "HH + grain form",
     "merge_hand_hardness_grain_form_grain_size": "HH + grain form + size",
@@ -253,7 +253,6 @@ def generate_mermaid_overview(graph: Graph) -> str:
         "    subgraph STABILITY[Stability Criteria]",
         "        gdelta[g_Δ — WEAC skier]",
         "        sr[S_r — Roch natural]",
-        "        ssk[S_sk — Roch skier]",
         "    end",
         "",
         "    %% Group-level data flow",
@@ -426,7 +425,7 @@ def generate_mermaid_stability_detail(graph: Graph) -> str:
         "G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
         "merge_weac_inputs", "merge_roch_inputs",
-        "g_delta", "s_r", "s_sk",
+        "g_delta", "s_r",
     }
 
     node_map = {n.parameter: n for n in graph.nodes
@@ -544,7 +543,6 @@ _METHOD_ABBREV: Dict[str, str] = {
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
-    "roch_skier":             "Roch-sk",
     "sigrist":                "Sg06",
     "mellor":                 "M75",
     "reiweger":               "R15",
@@ -600,7 +598,7 @@ _FULL_SUBGRAPHS = [
     (
         "STABILITY",
         "Stability Criteria",
-        ["merge_weac_inputs", "merge_roch_inputs", "g_delta", "s_r", "s_sk"],
+        ["merge_weac_inputs", "merge_roch_inputs", "g_delta", "s_r"],
     ),
 ]
 

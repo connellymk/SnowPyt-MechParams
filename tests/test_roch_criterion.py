@@ -16,20 +16,15 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.constants import (
-    g,
-    STANDARD_SKIER_MASS_KG,
-    STANDARD_SKI_CONTACT_AREA_M2,
-)
+from snowpyt_mechparams.constants import g
 from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.models.weak_layer import WeakLayer
 from snowpyt_mechparams.stability_criteria.roch.roch_criterion import calculate_roch
 from snowpyt_mechparams.stability_criteria.roch.roch_result import RochResult
 from snowpyt_mechparams.stability_criteria.roch.shear_stress import calculate_shear_stress
 
-# Standard skier shear stress (Pa) — mirrors _ROCH_SKIER_STRESS_N_M2 in dispatcher.
-# 80 kg × 9.81 m/s² / 0.65 m² ≈ 1207.4 N/m²
-_SKIER_STRESS = STANDARD_SKIER_MASS_KG * g / STANDARD_SKI_CONTACT_AREA_M2
+# Arbitrary fixed skier stress used to test calculate_roch() with the skier variant.
+_SKIER_STRESS = 1207.4  # N/m² (≈ 80 kg × 9.81 / 0.65)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -203,7 +198,7 @@ class TestCalculateRochNaturalVariant:
 
 
 class TestCalculateRochSkierVariant:
-    """Numerical correctness and result fields for the skier (S_sk) criterion."""
+    """Numerical correctness and result fields for the skier (S_a) criterion."""
 
     def setup_method(self):
         self.slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)])
@@ -268,7 +263,7 @@ class TestRochEngineIntegration:
 
     def _make_engine_slab(self) -> Slab:
         """
-        Return a two-layer slab with a weak layer suitable for s_r / s_sk.
+        Return a two-layer slab with a weak layer suitable for s_r.
 
         Both slab layers and the weak layer have ``hand_hardness`` and
         ``grain_form`` set so that the geldsetzer, kim_jamieson_table2, and
@@ -318,31 +313,6 @@ class TestRochEngineIntegration:
             assert pr.slab.roch_result.variant == "natural"
             # stability_index must be a UFloat (uncertainty propagated)
             assert hasattr(pr.slab.roch_result.stability_index, "nominal_value")
-
-    def test_execute_all_ssk_populates_roch_skier_result(self):
-        """At least one s_sk pathway succeeds and sets slab.roch_skier_result.
-
-        Also verifies Fix 1: skier_stress is stored as a UFloat (not a plain
-        float), so .nominal_value is accessible without AttributeError.
-        """
-        from snowpyt_mechparams.graph.parameter_graph import graph
-        from snowpyt_mechparams.execution.engine import ExecutionEngine
-
-        engine = ExecutionEngine(graph)
-        slab = self._make_engine_slab()
-        results = engine.execute_all(slab, "s_sk")
-        successful = results.get_successful_pathways()
-        assert len(successful) > 0, "expected at least one successful s_sk pathway"
-        for _, pr in successful.items():
-            assert pr.slab.roch_skier_result is not None
-            assert pr.slab.roch_skier_result.variant == "skier"
-            # skier_stress must be a UFloat — plain float would raise AttributeError here.
-            stress = pr.slab.roch_skier_result.skier_stress
-            assert hasattr(stress, "nominal_value"), (
-                "roch_skier_result.skier_stress is a plain float, not a ufloat; "
-                "check that _ROCH_SKIER_STRESS_N_M2 in dispatcher.py is wrapped in ufloat()"
-            )
-            assert stress.nominal_value == pytest.approx(_SKIER_STRESS, rel=1e-5)
 
     def test_missing_weak_layer_causes_all_sr_pathways_to_fail(self):
         """Slab without a weak_layer → tau_c unavailable → all s_r pathways fail."""

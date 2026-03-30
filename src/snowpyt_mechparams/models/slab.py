@@ -86,7 +86,6 @@ class Slab:
     # Stability Criterion Results (populated by execution engine)
     weac_result: Optional["WeacSkierResult"] = None        # Full result from WEAC skier criterion
     roch_result: Optional["RochResult"] = None             # Roch natural criterion (S_r = τ_c / τ)
-    roch_skier_result: Optional["RochResult"] = None       # Roch skier criterion (S_sk = (τ_c − τ) / τ_sk)
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""

@@ -31,19 +31,7 @@ from snowpyt_mechparams.weak_layer_parameters.sigma_c import calculate_sigma_c
 from snowpyt_mechparams.weak_layer_parameters.sigma_comp import calculate_sigma_comp
 from snowpyt_mechparams.stability_criteria.weac import calculate_weac_skier
 from snowpyt_mechparams.stability_criteria.roch import calculate_roch
-from snowpyt_mechparams.constants import (
-    STANDARD_SKIER_MASS_KG,
-    STANDARD_SKI_CONTACT_AREA_M2,
-    g,
-)
-
-# Standard skier shear stress for the Roch skier criterion:
-# τ_sk = m × g / A_contact = 80 × 9.81 / 0.65 ≈ 1207.4 N/m²
-# Wrapped in ufloat(…, 0.0) so RochResult.skier_stress.nominal_value works
-# correctly in downstream analysis and notebooks.
-_ROCH_SKIER_STRESS_N_M2: UncertainValue = ufloat(
-    STANDARD_SKIER_MASS_KG * g / STANDARD_SKI_CONTACT_AREA_M2, 0.0
-)
+from snowpyt_mechparams.constants import g
 
 
 class ParameterLevel(Enum):
@@ -557,25 +545,6 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
-        # s_sk - Roch skier criterion (Föhn, 1987): S_sk = (τ_c − τ) / τ_sk
-        # τ_sk = STANDARD_SKIER_MASS_KG × g / STANDARD_SKI_CONTACT_AREA_M2 ≈ 1206 N/m²
-        # tau_c is passed in kPa; calculate_roch converts to Pa internally.
-        self._register(MethodSpec(
-            parameter="s_sk",
-            method_name="roch_skier",
-            level=ParameterLevel.STABILITY,
-            function=lambda slab: (
-                None
-                if slab.weak_layer is None or slab.weak_layer.tau_c is None
-                else calculate_roch(
-                    slab,
-                    tau_c=slab.weak_layer.tau_c,
-                    skier_stress=_ROCH_SKIER_STRESS_N_M2,
-                )
-            ),
-            required_inputs=["slab"],
-            optional_inputs={}
-        ))
 
     def get_method(self, parameter: str, method_name: str) -> Optional[MethodSpec]:
         """

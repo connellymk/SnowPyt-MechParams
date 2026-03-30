@@ -85,7 +85,6 @@ from snowpyt_mechparams.graph.parameter_graph import (
     # Stability model parameters
     g_delta,
     s_r,
-    s_sk,
     # Merge nodes
     merge_weac_inputs,
     merge_roch_inputs,
@@ -148,7 +147,6 @@ __all__ = [
     # Stability model parameters
     "g_delta",
     "s_r",
-    "s_sk",
     # Merge nodes
     "merge_weac_inputs",
     "merge_roch_inputs",

@@ -440,9 +440,9 @@ Comprehensive examples are available in the `examples/` directory:
 
 ### Stability Criteria
 
-- **`roch_skier_all_parameters.ipynb`** - Roch natural and skier stability criteria across all density pathways
-  - Applies S_r = τ_c / τ (natural) and S_sk = (τ_c − τ) / τ_sk (skier variant)
-  - Compares results across 4 density methods; shows coverage rates and S_r / S_sk distributions
+- **`roch_skier_all_parameters.ipynb`** - Roch natural stability criterion across all density pathways
+  - Applies S_r = τ_c / τ; skier variant S_a = τ_c / (τ + δτ) available as commented-out option (δτ = 150 N/m², Föhn 1987)
+  - Compares results across 4 density methods; shows coverage rates and S_r distributions
 - **`stability_criteria_inputs.ipynb`** - Input parameter coverage analysis for Roch and WEAC criteria
   - Shows which slabs have sufficient data for each criterion and pathway
 - **`stability_criteria_outputs.ipynb`** - Comparison of Roch and WEAC stability criterion outputs

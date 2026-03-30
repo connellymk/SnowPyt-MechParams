@@ -387,7 +387,7 @@ class TestStabilityNodes:
 
     def test_stability_nodes_exist(self):
         """All stability output nodes should exist with correct level."""
-        for param in ["g_delta", "s_r", "s_sk"]:
+        for param in ["g_delta", "s_r"]:
             node = graph.get_node(param)
             assert node is not None, f"Node {param} not found"
             assert node.level == "stability_model", \
@@ -405,16 +405,10 @@ class TestStabilityNodes:
         methods = [e.method_name for e in node.incoming_edges if e.method_name]
         assert "roch_natural" in methods
 
-    def test_s_sk_uses_roch_skier(self):
-        """s_sk should use the roch_skier method."""
-        node = graph.get_node("s_sk")
-        methods = [e.method_name for e in node.incoming_edges if e.method_name]
-        assert "roch_skier" in methods
-
     def test_STABILITY_PARAMS_contains_expected(self):
-        """STABILITY_PARAMS frozenset should contain exactly the 3 stability nodes."""
+        """STABILITY_PARAMS frozenset should contain exactly the 2 stability nodes."""
         from snowpyt_mechparams.graph.parameter_graph import STABILITY_PARAMS
-        assert STABILITY_PARAMS == {"g_delta", "s_r", "s_sk"}
+        assert STABILITY_PARAMS == {"g_delta", "s_r"}
 
     def test_merge_roch_inputs_has_correct_inputs(self):
         """merge_roch_inputs should have density and tau_c as inputs."""

@@ -392,7 +392,7 @@ class PathwayExecutor:
         # Order: layer params first, then stability criterion
         order = [
             "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-            "g_delta", "s_r", "s_sk",
+            "g_delta", "s_r",
         ]
         parts = []
         for param in order:
@@ -883,17 +883,15 @@ class PathwayExecutor:
 
         - ``g_delta`` → ``slab.weac_result`` (``WeacSkierResult``)
         - ``s_r``     → ``slab.roch_result`` (``RochResult``, natural variant)
-        - ``s_sk``    → ``slab.roch_skier_result`` (``RochResult``, skier variant)
 
         Parameters
         ----------
         slab : Slab
             Working slab copy with layer params and ``weak_layer`` fracture/strength
             fields populated.  Mutated in place: the appropriate result attribute
-            (``weac_result``, ``roch_result``, or ``roch_skier_result``) is set.
+            (``weac_result`` or ``roch_result``) is set.
         target_parameter : str
-            Graph node name for the stability output (e.g. ``"g_delta"``,
-            ``"s_r"``, or ``"s_sk"``).
+            Graph node name for the stability output (e.g. ``"g_delta"`` or ``"s_r"``).
         methods_used : Dict[str, str]
             Full methods-used dict; used to look up the stability method name.
         config : ExecutionConfig
@@ -926,9 +924,6 @@ class PathwayExecutor:
                 trace_output = getattr(result, "g_delta", result)
             elif target_parameter == "s_r":
                 slab.roch_result = result
-                trace_output = getattr(result, "stability_index", result)
-            elif target_parameter == "s_sk":
-                slab.roch_skier_result = result
                 trace_output = getattr(result, "stability_index", result)
             else:
                 trace_output = result

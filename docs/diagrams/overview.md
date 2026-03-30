@@ -38,7 +38,6 @@ graph LR
     subgraph STABILITY[Stability Criteria]
         gdelta[g_Δ — WEAC skier]
         sr[S_r — Roch natural]
-        ssk[S_sk — Roch skier]
     end
 
     %% Group-level data flow

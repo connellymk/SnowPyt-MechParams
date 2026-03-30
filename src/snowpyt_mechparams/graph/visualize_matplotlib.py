@@ -24,7 +24,7 @@ slab
 
 stability
     Detailed flowchart for weak-layer parameters and stability criteria:
-    measured inputs → fracture/strength params → g_Δ / S_r / S_sk.
+    measured inputs → fracture/strength params → g_Δ / S_r.
 
 Functions
 ---------
@@ -239,7 +239,7 @@ def generate_matplotlib_overview(graph: Graph) -> Figure:  # noqa: ARG001
         0.08:  "ρ_meas, HH,\ngrain form,\ngrain size,\nthickness",
         0.30:  "ρ, E, ν, G",
         0.52:  "A₁₁, B₁₁,\nD₁₁, A₅₅",
-        0.74:  "g_Δ, S_r, S_sk",
+        0.74:  "g_Δ, S_r",
     }
     wl_label = "G_c, G_Ic, G_IIc,\nσ_c, τ_c, σ_comp, ρ_wl"
     for xc, lbl in param_labels.items():
@@ -481,7 +481,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     Generate the weak-layer parameters and stability criteria detail figure.
 
     Shows measured inputs + shared density → σ_c / σ_comp / G_c / …
-    then → g_Δ / S_r / S_sk.  Width = 7.0 in (double column).
+    then → g_Δ / S_r.  Width = 7.0 in (double column).
 
     Parameters
     ----------
@@ -532,8 +532,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     # Outputs
     outputs: Dict[str, _Box] = {
         "gdelta": _Box("g_Δ\n(WEAC skier)",    C4, 0.78, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
-        "sr":     _Box("S_r\n(Roch natural)",  C4, 0.44, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
-        "ssk":    _Box("S_sk\n(Roch skier)",   C4, 0.22, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
+        "sr":     _Box("S_r\n(Roch natural)",  C4, 0.32, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
     }
 
     all_boxes = {**inp, **layer_stab, **wl_params, **stab_merge, **outputs}
@@ -595,13 +594,10 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     _draw_arrow(ax, stab_merge["m_weac"].x + MW/2, stab_merge["m_weac"].y,
                     outputs["gdelta"].x - BW/2, outputs["gdelta"].y,
                     label="weac_skier", color=sc_col, fontsize=5.0)
-    # m_roch → s_r, s_sk
+    # m_roch → s_r
     _draw_arrow(ax, stab_merge["m_roch"].x + MW/2, stab_merge["m_roch"].y,
                     outputs["sr"].x - BW/2, outputs["sr"].y,
                     label="roch_natural", color=sc_col, fontsize=5.0)
-    _draw_arrow(ax, stab_merge["m_roch"].x + MW/2, stab_merge["m_roch"].y,
-                    outputs["ssk"].x - BW/2, outputs["ssk"].y,
-                    label="roch_skier", color=sc_col, fontsize=5.0)
 
     fig.tight_layout(pad=0.1)
     return fig
@@ -624,7 +620,6 @@ _METHOD_ABBREV = {
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
-    "roch_skier":             "Roch-sk",
     "sigrist":                "Sg06",
     "mellor":                 "M75",
     "reiweger":               "R15",
@@ -665,7 +660,6 @@ _FULL_LABELS = {
     "merge_roch_inputs":                           "Roch\ninputs",
     "g_delta":                                     "g_Δ",
     "s_r":                                         "S_r",
-    "s_sk":                                        "S_sk",
 }
 
 # Colour for each node (by parameter name) — matches category colours.
@@ -702,7 +696,6 @@ _FULL_COLORS = {
     "merge_roch_inputs":                         (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "g_delta":                                   (_COLORS["stability"],  _EDGE_COLORS["stability"]),
     "s_r":                                       (_COLORS["stability"],  _EDGE_COLORS["stability"]),
-    "s_sk":                                      (_COLORS["stability"],  _EDGE_COLORS["stability"]),
 }
 
 # Manual (x, y) positions for every node.
@@ -759,8 +752,7 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
 
     # ── Stability outputs ─────────────────────────────────────────────────
     "g_delta":                                   (0.57, 0.17),
-    "s_r":                                       (0.73, 0.17),
-    "s_sk":                                      (0.87, 0.17),
+    "s_r":                                       (0.80, 0.17),
 }
 
 
@@ -848,7 +840,7 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
     """
     Generate a full-detail figure showing every node in the parameter graph.
 
-    All 35 nodes are drawn including all merge nodes.  Greek symbols are used
+    All 32 nodes are drawn including all merge nodes.  Greek symbols are used
     for parameter labels.  Method names are abbreviated on edges.  A bifurcating
     layout separates the slab pipeline (left) from the weak-layer/stability
     pipeline (right), with shared measured inputs at the top centre.
@@ -978,13 +970,14 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
 
 def save_matplotlib_diagrams(graph: Graph, output_dir: str, dpi: int = _DPI) -> None:
     """
-    Generate and save all four matplotlib figures to *output_dir*.
+    Generate and save all five matplotlib figures to *output_dir*.
 
     Files written:
     - ``overview.png``
     - ``layer_params.png``
     - ``slab_params.png``
     - ``stability.png``
+    - ``full.png``
 
     Parameters
     ----------

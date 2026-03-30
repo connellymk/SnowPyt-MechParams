@@ -26,7 +26,6 @@ graph LR
     end
 
     subgraph SLAB_MERGES["Slab Merge Nodes"]
-    zi{layer positions (z_i)}
     merge_E_nu{E + ν (all layers)}
     merge_zi_E_nu{z_i + E + ν}
     merge_hi_G{h_i + G (all layers)}
@@ -105,10 +104,10 @@ graph LR
     tau_c --> merge_roch_inputs
     merge_roch_inputs -->|Roch-n| s_r
     merge_roch_inputs -->|Roch-sk| s_sk
-    measured_layer_thickness --> zi
+    measured_layer_thickness --> merge_zi
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
-    zi --> merge_zi_E_nu
+    merge_zi --> merge_zi_E_nu
     merge_E_nu --> merge_zi_E_nu
     measured_layer_thickness --> merge_hi_G
     shear_modulus --> merge_hi_G
@@ -130,7 +129,7 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
     class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc

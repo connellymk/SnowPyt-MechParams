@@ -233,7 +233,7 @@ merge_d_gf = build_graph.merge("merge_density_grain_form")
 
 # Merge node for: spatial/thickness information
 # Used to represent layer positions (calculated from thickness)
-zi = build_graph.merge("zi")
+zi = build_graph.merge("merge_zi")
 
 # Merge node for: E and nu from all layers
 # Used by: merge_zi_E_nu (for D11), merge_hi_E_nu (for A11, B11)

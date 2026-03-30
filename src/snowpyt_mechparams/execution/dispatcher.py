@@ -38,8 +38,12 @@ from snowpyt_mechparams.constants import (
 )
 
 # Standard skier shear stress for the Roch skier criterion:
-# τ_sk = m × g / A_contact  ≈ 80 × g / 0.65 ≈ 1206 N/m²
-_ROCH_SKIER_STRESS_N_M2: float = STANDARD_SKIER_MASS_KG * g / STANDARD_SKI_CONTACT_AREA_M2
+# τ_sk = m × g / A_contact = 80 × 9.81 / 0.65 ≈ 1207.4 N/m²
+# Wrapped in ufloat(…, 0.0) so RochResult.skier_stress.nominal_value works
+# correctly in downstream analysis and notebooks.
+_ROCH_SKIER_STRESS_N_M2: UncertainValue = ufloat(
+    STANDARD_SKIER_MASS_KG * g / STANDARD_SKI_CONTACT_AREA_M2, 0.0
+)
 
 
 class ParameterLevel(Enum):

@@ -343,6 +343,40 @@ class PathTree:
     is_merge: bool = False
 
 
+def _cartesian_product(
+    lists: list[list[tuple['PathTree', str]]]
+) -> list[list[tuple['PathTree', str]]]:
+    """
+    Return the Cartesian product of a list of lists.
+
+    Each inner list holds ``(PathTree, edge_name)`` pairs for one merge input.
+    The result is every combination that picks one element from each inner list.
+
+    This is a module-level helper (not a closure) so that it is defined once
+    and can be tested independently.  It is used exclusively by
+    :func:`find_parameterizations` when processing merge nodes.
+
+    Parameters
+    ----------
+    lists : list of lists
+        Each sub-list contains the candidate ``(PathTree, edge_name)`` tuples
+        for one incoming edge of a merge node.
+
+    Returns
+    -------
+    list of lists
+        All combinations, each containing exactly one element from every
+        sub-list.
+    """
+    if not lists:
+        return [[]]
+    result: list[list[tuple['PathTree', str]]] = []
+    for item in lists[0]:
+        for rest in _cartesian_product(lists[1:]):
+            result.append([item] + rest)
+    return result
+
+
 def find_parameterizations(
     graph: Graph,
     target_parameter: Node
@@ -480,19 +514,7 @@ def find_parameterizations(
                 input_trees_list.append(trees_with_edge)
             
             # Compute cartesian product: combine one tree from each input
-            def cartesian_product(
-                lists: list[list[tuple[PathTree, str]]]
-            ) -> list[list[tuple[PathTree, str]]]:
-                """Compute cartesian product of lists."""
-                if not lists:
-                    return [[]]
-                result: list[list[tuple[PathTree, str]]] = []
-                for item in lists[0]:
-                    for rest in cartesian_product(lists[1:]):
-                        result.append([item] + rest)
-                return result
-            
-            combinations = cartesian_product(input_trees_list)
+            combinations = _cartesian_product(input_trees_list)
             
             # Create a tree for each combination
             for combination in combinations:

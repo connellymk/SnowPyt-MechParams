@@ -525,7 +525,22 @@ class PathwayExecutor:
         List[str]
             Ordered list of parameters to compute
         """
-        # Always compute in dependency order
+        # Always compute in dependency order.
+        #
+        # This list is intentionally hardcoded to avoid per-pathway graph
+        # traversal overhead (significant when processing 14,951 slabs × 32
+        # pathways).  The ordering encodes two constraints:
+        #
+        #   1. ``density`` must come first — it is the upstream input for
+        #      ``elastic_modulus`` (all methods), ``poissons_ratio``
+        #      (srivastava), and ``shear_modulus`` (wautier).
+        #
+        #   2. ``elastic_modulus``, ``poissons_ratio``, ``shear_modulus`` are
+        #      independent of each other, so their relative order is arbitrary.
+        #
+        # MAINTENANCE NOTE: If a new layer-level parameter is added to the
+        # dispatcher and graph, it MUST be appended here in the correct
+        # dependency order, or it will be silently skipped during execution.
         order = []
 
         # Density first (if in pathway)
@@ -860,21 +875,25 @@ class PathwayExecutor:
         config: 'ExecutionConfig',
     ) -> List[ComputationTrace]:
         """
-        Run the stability criterion and store the full result on
-        ``slab.weac_result``.
+        Run the stability criterion and store the full result on the slab.
 
-        The ``ComputationTrace`` records the key scalar metric (``g_delta``
-        for the WEAC skier criterion) rather than the full result object, so
-        the trace remains human-readable.  The full ``WeacSkierResult`` is
-        accessible via ``result_slab.weac_result``.
+        The ``ComputationTrace`` records the key scalar metric rather than
+        the full result object, so the trace remains human-readable.  The
+        full result object is accessible directly on the slab:
+
+        - ``g_delta`` → ``slab.weac_result`` (``WeacSkierResult``)
+        - ``s_r``     → ``slab.roch_result`` (``RochResult``, natural variant)
+        - ``s_sk``    → ``slab.roch_skier_result`` (``RochResult``, skier variant)
 
         Parameters
         ----------
         slab : Slab
             Working slab copy with layer params and ``weak_layer`` fracture/strength
-            fields populated.  Mutated in place: ``slab.weac_result`` is set.
+            fields populated.  Mutated in place: the appropriate result attribute
+            (``weac_result``, ``roch_result``, or ``roch_skier_result``) is set.
         target_parameter : str
-            Graph node name for the stability output (e.g. ``"g_delta"``).
+            Graph node name for the stability output (e.g. ``"g_delta"``,
+            ``"s_r"``, or ``"s_sk"``).
         methods_used : Dict[str, str]
             Full methods-used dict; used to look up the stability method name.
         config : ExecutionConfig

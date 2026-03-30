@@ -63,7 +63,7 @@ NodeType = Literal["parameter", "merge"]
 NodeLevel = Optional[Literal["layer", "slab", "weak_layer", "stability_model"]]
 
 
-@dataclass
+@dataclass(eq=False)
 class Node:
     """
     Represents a node in the parameter dependency graph.
@@ -124,6 +124,20 @@ class Node:
                 f"'stability_model', or None, got '{self.level}'"
             )
     
+    def __eq__(self, other: object) -> bool:
+        """
+        Equality keyed on ``(type, parameter)`` — consistent with ``__hash__``.
+
+        The default dataclass ``__eq__`` would compare ``incoming_edges`` and
+        ``outgoing_edges`` (lists of Edge objects that reference other Nodes),
+        creating a circular comparison that can recurse infinitely once the
+        graph is wired up.  Keying on ``(type, parameter)`` matches the hash
+        and avoids the cycle.
+        """
+        if not isinstance(other, Node):
+            return NotImplemented
+        return self.type == other.type and self.parameter == other.parameter
+
     def __hash__(self) -> int:
         """Make nodes hashable for use in sets/dicts."""
         return hash((self.type, self.parameter))

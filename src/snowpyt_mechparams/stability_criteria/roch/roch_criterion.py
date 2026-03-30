@@ -4,7 +4,7 @@ Roch (1966) gravitational and skier stability criteria for snow slabs.
 Two variants are implemented:
 
 * **Natural** — S_r = τ_c / τ  (Roch, 1966)
-* **Skier** — S_sk = (τ_c − τ) / τ_sk  (Föhn, 1987)
+* **Skier** — S_a = τ_c / (τ + δτ)  (Roch/Föhn)
 
 References
 ----------
@@ -48,9 +48,9 @@ def calculate_roch(
 
             S_r = τ_c / τ  (Roch, 1966)
 
-        If provided, the skier variant is used (Föhn, 1987):
+        If provided, the skier variant is used (Roch/Föhn):
 
-            S_sk = (τ_c − τ) / τ_sk
+            S_a = τ_c / (τ + δτ)
 
     Returns
     -------
@@ -81,12 +81,12 @@ def calculate_roch(
         index = tau_c_pa / tau
         variant: Literal["natural", "skier"] = "natural"
     else:
-        # Skier variant: S_sk = (τ_c − τ) / τ_sk.
-        # τ = 0 (flat terrain) is valid here; τ_sk = 0 is not.
+        # Skier variant: S_a = τ_c / (τ + δτ).
+        # τ = 0 (flat terrain) is valid here; δτ = 0 is not.
         skier_val = _nominal(skier_stress)
         if skier_val is None or math.isnan(skier_val) or skier_val == 0:
             return None
-        index = (tau_c_pa - tau) / skier_stress
+        index = tau_c_pa / (tau + skier_stress)
         variant = "skier"
 
     return RochResult(

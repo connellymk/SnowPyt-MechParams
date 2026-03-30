@@ -210,10 +210,10 @@ class TestCalculateRochSkierVariant:
         self.tau_c = ufloat(1.5, 0.0)               # 1.5 kPa = 1500 Pa
         self.tau_sk = ufloat(_SKIER_STRESS, 0.0)    # 80 kg × g / 0.65 m² ≈ 1207.4 N/m²
         self.expected_tau = 300.0 * 0.5 * _G * math.sin(math.radians(38.0))  # Pa
-        self.expected_ssk = (1500.0 - self.expected_tau) / _SKIER_STRESS
+        self.expected_ssk = 1500.0 / (self.expected_tau + _SKIER_STRESS)
 
     def test_correct_ssk_value(self):
-        """S_sk = (τ_c − τ) / τ_sk should match hand-computed value."""
+        """S_a = τ_c / (τ + δτ) should match hand-computed value."""
         result = calculate_roch(self.slab, tau_c=self.tau_c, skier_stress=self.tau_sk)
         assert result is not None
         assert result.stability_index.nominal_value == pytest.approx(self.expected_ssk, rel=1e-4)
@@ -234,23 +234,22 @@ class TestCalculateRochSkierVariant:
         result = calculate_roch(slab_flat, tau_c=self.tau_c, skier_stress=self.tau_sk)
         assert result is not None
         assert result.variant == "skier"
-        # τ=0, so S_sk = (tau_c_pa - 0) / tau_sk = 1500 / _SKIER_STRESS
+        # τ=0, so S_a = tau_c_pa / (0 + tau_sk) = 1500 / _SKIER_STRESS
         assert result.stability_index.nominal_value == pytest.approx(
             1500.0 / _SKIER_STRESS, rel=1e-4
         )
 
-    def test_stability_index_negative_when_slope_stress_exceeds_strength(self):
-        """τ > τ_c → S_sk < 0 (slope has already failed under gravity alone).
+    def test_stability_index_below_one_when_slope_stress_exceeds_strength(self):
+        """τ_c < τ → S_a < 1 (slope stress alone exceeds weak layer strength).
 
-        This is a valid physical scenario — the skier criterion allows negative
-        values and does not guard against them.  τ ≈ 400×0.80×9.81×sin(50°)
-        ≈ 2413 N/m² >> tau_c = 0.5 kPa = 500 Pa.
+        S_a = τ_c / (τ + δτ) is always ≥ 0; instability is indicated by S_a < 1.
+        τ ≈ 400×0.80×9.81×sin(50°) ≈ 2413 N/m² >> tau_c = 0.5 kPa = 500 Pa.
         """
         steep_slab = _make_slab(angle=50.0, layers=[(80.0, 400.0)])
         tau_c_tiny = ufloat(0.5, 0.0)  # 0.5 kPa = 500 Pa
         result = calculate_roch(steep_slab, tau_c=tau_c_tiny, skier_stress=self.tau_sk)
         assert result is not None
-        assert result.stability_index.nominal_value < 0.0
+        assert result.stability_index.nominal_value < 1.0
 
 
 # ---------------------------------------------------------------------------

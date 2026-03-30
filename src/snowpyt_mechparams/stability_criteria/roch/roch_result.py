@@ -18,7 +18,7 @@ class RochResult:
     Attributes
     ----------
     stability_index : UncertainValue
-        S_r = τ_c / τ  (natural)  or  S_sk = (τ_c − τ) / τ_sk  (skier).
+        S_n = τ_c / τ  (natural)  or  S_a = τ_c / (τ + δτ)  (skier).
         Values < 1 indicate instability.
     shear_stress : UncertainValue
         Gravitational shear stress τ on the weak layer [Pa = N/m²].

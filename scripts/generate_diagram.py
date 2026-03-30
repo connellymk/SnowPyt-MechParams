@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+#source .venv/bin/activate
+#python scripts/generate_diagram.py --type all --format both --output docs/diagrams/
+
 """
 Generate parameter graph diagrams for SnowPyt-MechParams.
 

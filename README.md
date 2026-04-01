@@ -57,6 +57,8 @@ All slab parameters calculated using classical laminate theory (Weißgraeber & R
 The graph-based calculation system enables:
 
 - **32 unique pathways to D11**: Automatically discovers all valid method combinations (4 density × 4 elastic modulus × 2 Poisson's ratio methods, with density shared between E and srivastava)
+- **`slab_elasticity_parameters` merge node**: Combines E + ν as the primary coverage analysis target for stability criteria; also provides 32 pathways
+- **Stability criterion wiring**: `weak_layer_info*` placeholder node signals that weak-layer fracture/strength data are not yet available; `g_delta` and `s_r` have 0 computable pathways until that node is populated
 - **Method independence**: Each method implemented independently, graph handles dependencies
 - **Extensibility**: Add new methods by implementing the function and adding a graph edge
 - **Provenance tracking**: Know exactly which methods produced each value
@@ -440,19 +442,14 @@ Comprehensive examples are available in the `examples/` directory:
 
 ### Stability Criteria
 
-- **`roch_skier_all_parameters.ipynb`** - Roch natural stability criterion across all density pathways
-  - Applies S_r = τ_c / τ; skier variant S_a = τ_c / (τ + δτ) available as commented-out option (δτ = 150 N/m², Föhn 1987)
-  - Compares results across 4 density methods; shows coverage rates and S_r distributions
 - **`stability_criteria_inputs.ipynb`** - Input parameter coverage analysis for Roch and WEAC criteria
-  - Shows which slabs have sufficient data for each criterion and pathway
-- **`stability_criteria_outputs.ipynb`** - Comparison of Roch and WEAC stability criterion outputs
-  - Classifies slabs, compares agreement between criteria
+  - Roch section: shows which slabs have density + thickness available across 4 density pathways
+  - WEAC section: shows which slabs have `slab_elasticity_parameters` (E + ν) computable across all 32 pathways
 
 ### Dataset Examples
 
 - **`dataset_ectp_slabs.ipynb`** - Create slabs from ECTP test results; coverage statistics
 - **`dataset_overview.ipynb`** - Dataset grain form and layer type breakdown
-- **`weac_skier_all_pathways.ipynb`** - WEAC skier criterion across all 32 mechanical parameter pathways
 
 ## Project Structure
 
@@ -493,10 +490,7 @@ SnowPyt-MechParams/
 │   ├── all_density_pathways.ipynb          # Density method comparison
 │   ├── all_e_mod_pathways.ipynb            # Elastic modulus method comparison
 │   ├── all_poissons_ratio_pathways.ipynb   # Poisson's ratio method comparison
-│   ├── roch_skier_all_parameters.ipynb     # Roch stability criterion analysis
 │   ├── stability_criteria_inputs.ipynb     # Input coverage for stability criteria
-│   ├── stability_criteria_outputs.ipynb    # Roch vs WEAC output comparison
-│   ├── weac_skier_all_pathways.ipynb       # WEAC across all 32 pathways
 │   └── archive/                  # Earlier exploratory notebooks (for reference)
 ├── tests/                        # Test suite (pytest)
 │   ├── test_integration.py       # End-to-end integration tests

@@ -75,14 +75,9 @@ from snowpyt_mechparams.graph.parameter_graph import (
     B11,
     D11,
     A55,
-    # Weak-layer fracture/strength parameters
-    G_c,
-    G_Ic,
-    G_IIc,
-    sigma_c,
-    tau_c,
-    sigma_comp,
-    # Stability model parameters
+    # Weak-layer placeholder and stability criterion targets
+    weak_layer_info,
+    slab_elasticity_parameters,
     g_delta,
     s_r,
     # Merge nodes
@@ -137,14 +132,9 @@ __all__ = [
     "B11",
     "D11",
     "A55",
-    # Weak-layer fracture/strength parameters
-    "G_c",
-    "G_Ic",
-    "G_IIc",
-    "sigma_c",
-    "tau_c",
-    "sigma_comp",
-    # Stability model parameters
+    # Weak-layer placeholder and stability criterion targets
+    "weak_layer_info",
+    "slab_elasticity_parameters",
     "g_delta",
     "s_r",
     # Merge nodes

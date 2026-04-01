@@ -57,7 +57,6 @@ from dataclasses import replace
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from snowpyt_mechparams.algorithm import Parameterization
-from snowpyt_mechparams.layer_parameters.density import calculate_density
 from snowpyt_mechparams.models import Layer, Slab, UncertainValue
 from snowpyt_mechparams.execution.cache import ComputationCache
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, _get_layer_input
@@ -247,7 +246,8 @@ class PathwayExecutor:
             computation_trace.extend(slab_traces)
 
         # Execute weak-layer calculations when targeting a weak-layer parameter OR
-        # when targeting a stability parameter (which needs weak_layer fracture fields populated first).
+        # when targeting a stability parameter. Currently weak_layer_info* has no methods,
+        # so params_to_compute will always be empty and no traces are added.
         if target_parameter in WEAK_LAYER_PARAMS or target_parameter in STABILITY_PARAMS:
             weak_layer_params_in_pathway = {
                 p: m for p, m in methods_used.items() if p in WEAK_LAYER_PARAMS
@@ -273,7 +273,7 @@ class PathwayExecutor:
         # emits exactly one trace for the requested parameter.  The filter
         # t.parameter == target_parameter isolates that trace.
         #
-        # For weak-layer and stability targets, the same single-trace logic applies.
+        # For weak-layer placeholder and stability targets, the same single-trace logic applies.
         #
         # For layer-level targets (density, elastic_modulus, poissons_ratio,
         # shear_modulus) a pathway specifies exactly ONE method per parameter.
@@ -755,45 +755,6 @@ class PathwayExecutor:
 
         return []
 
-    @staticmethod
-    def _compute_weak_layer_density(
-        slab: Slab,
-        method: str,
-        include_method_uncertainty: bool = True,
-    ):
-        """
-        Compute density for the weak layer using the same density method as
-        the slab layers.  Returns an ``UncertainValue`` or ``None`` on failure.
-
-        This is called before density-dependent methods (``sigrist``, ``mellor``)
-        so that ``slab.weak_layer.density_calculated`` is available when they run.
-        """
-        wl = slab.weak_layer
-        if wl is None:
-            return None
-        if method == "data_flow":
-            return wl.density_measured if wl.density_measured is not None else None
-        if method in ("geldsetzer", "kim_jamieson_table2"):
-            if wl.hand_hardness_index is None or wl.grain_form is None:
-                return None
-            return calculate_density(
-                method,
-                hand_hardness_index=wl.hand_hardness_index,
-                grain_form=wl.grain_form,
-                include_method_uncertainty=include_method_uncertainty,
-            )
-        if method == "kim_jamieson_table5":
-            if wl.hand_hardness_index is None or wl.grain_form is None or wl.grain_size_avg is None:
-                return None
-            return calculate_density(
-                method,
-                hand_hardness_index=wl.hand_hardness_index,
-                grain_form=wl.grain_form,
-                grain_size=wl.grain_size_avg,
-                include_method_uncertainty=include_method_uncertainty,
-            )
-        return None
-
     def _execute_weak_layer_calculations(
         self,
         slab: Slab,
@@ -802,25 +763,25 @@ class PathwayExecutor:
         config: Optional['ExecutionConfig'] = None,
     ) -> List[ComputationTrace]:
         """
-        Compute weak-layer fracture/strength parameters and store them on
-        ``slab.weak_layer``.
+        Attempt to compute weak-layer parameters and record traces.
+
+        ``WEAK_LAYER_PARAMS`` currently contains only ``weak_layer_info*``,
+        which has no registered methods, so ``params_to_compute`` will always
+        be empty and this method returns an empty list in practice.  The
+        method is retained for structural consistency with the execution
+        pipeline in case new weak-layer nodes are added in the future.
 
         Parameters
         ----------
         slab : Slab
-            Working slab copy (mutated in place: fracture/strength fields on
-            ``slab.weak_layer`` are set).
+            Working slab copy.
         params_to_compute : Dict[str, str]
             Mapping of ``{parameter_name: method_name}`` for each weak-layer
-            parameter to compute (e.g. ``{"G_Ic": "weissgraeber_rosendahl"}``).
+            parameter to compute.
         density_method : str, optional
-            The density method used for slab layers (e.g. ``"geldsetzer"``).
-            When provided and sigrist/mellor are among the params, weak-layer
-            density is computed first and stored on
-            ``slab.weak_layer.density_calculated`` so those methods can read it.
+            Unused; retained for call-site compatibility.
         config : ExecutionConfig, optional
-            Execution configuration. When provided, ``include_method_uncertainty``
-            is forwarded to methods that declare that parameter.
+            Execution configuration.
 
         Returns
         -------
@@ -829,18 +790,7 @@ class PathwayExecutor:
         """
         traces = []
 
-        # If density-dependent methods are present, compute weak-layer density
-        # first so that sigrist/mellor can read slab.weak_layer.density_calculated.
-        DENSITY_DEPENDENT = {"sigrist", "mellor"}
-        needs_density = any(m in DENSITY_DEPENDENT for m in params_to_compute.values())
-        if needs_density and density_method is not None and slab.weak_layer is not None:
-            unc = config.include_method_uncertainty if config is not None else True
-            wl_density = self._compute_weak_layer_density(slab, density_method, unc)
-            if wl_density is not None:
-                slab.weak_layer.density_calculated = wl_density
-
         for param, method in params_to_compute.items():
-            # Forward include_method_uncertainty to methods that accept it.
             extra: Dict[str, Any] = {}
             if config is not None and self.dispatcher.supports_method_uncertainty(param, method):
                 extra["include_method_uncertainty"] = config.include_method_uncertainty
@@ -851,9 +801,6 @@ class PathwayExecutor:
                 slab=slab,
                 **extra,
             )
-
-            if value is not None and slab.weak_layer is not None:
-                setattr(slab.weak_layer, param, value)
 
             traces.append(ComputationTrace(
                 parameter=param,
@@ -887,9 +834,8 @@ class PathwayExecutor:
         Parameters
         ----------
         slab : Slab
-            Working slab copy with layer params and ``weak_layer`` fracture/strength
-            fields populated.  Mutated in place: the appropriate result attribute
-            (``weac_result`` or ``roch_result``) is set.
+            Working slab copy with layer params populated.  Mutated in place:
+            the appropriate result attribute (``weac_result`` or ``roch_result``) is set.
         target_parameter : str
             Graph node name for the stability output (e.g. ``"g_delta"`` or ``"s_r"``).
         methods_used : Dict[str, str]

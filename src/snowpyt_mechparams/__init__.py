@@ -15,6 +15,7 @@ Data Structures
 Parameter Calculation
     layer_parameters - Methods for layer-level properties (density, E, ν, G)
     slab_parameters - Methods for slab-level plate theory parameters (A11, B11, D11, A55)
+    stability_criteria - Roch and WEAC stability criterion implementations
 
 Parameterization Graph
     graph - Directed graph of all available calculation methods
@@ -56,16 +57,6 @@ from snowpyt_mechparams.layer_parameters import (
     calculate_elastic_modulus,
     calculate_poissons_ratio,
     calculate_shear_modulus,
-)
-
-# Weak layer parameters
-from snowpyt_mechparams.weak_layer_parameters import (
-    calculate_G_c,
-    calculate_G_Ic,
-    calculate_G_IIc,
-    calculate_tau_c,
-    calculate_sigma_comp,
-    calculate_sigma_c,
 )
 
 # Execution engine
@@ -115,13 +106,6 @@ __all__ = [
     "calculate_elastic_modulus",
     "calculate_poissons_ratio",
     "calculate_shear_modulus",
-    # Weak layer parameter calculations
-    "calculate_G_c",
-    "calculate_G_Ic",
-    "calculate_G_IIc",
-    "calculate_tau_c",
-    "calculate_sigma_comp",
-    "calculate_sigma_c",
     # Execution engine
     "ExecutionEngine",
     "ExecutionConfig",

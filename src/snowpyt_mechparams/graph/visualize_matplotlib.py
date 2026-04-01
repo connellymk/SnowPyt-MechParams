@@ -212,7 +212,7 @@ def generate_matplotlib_overview(graph: Graph) -> Figure:  # noqa: ARG001
         _Box("Snow Pit\nObservations",  0.08, Y, BW, BH, _COLORS["input"],     _EDGE_COLORS["input"],     bold=True),
         _Box("Layer\nParameters",       0.30, Y, BW, BH, _COLORS["layer"],     _EDGE_COLORS["layer"],     bold=True),
         _Box("Slab\nStiffnesses",       0.52, Y, BW, BH, _COLORS["slab"],      _EDGE_COLORS["slab"],      bold=True),
-        _Box("Weak-Layer\nParameters",  0.30, 0.15, BW, 0.20, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"], bold=True),
+        _Box("Weak-Layer\nInfo*",        0.30, 0.15, BW, 0.20, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"], bold=True),
         _Box("Stability\nCriteria",     0.74, Y, BW, BH, _COLORS["stability"], _EDGE_COLORS["stability"], bold=True),
     ]
 
@@ -241,7 +241,7 @@ def generate_matplotlib_overview(graph: Graph) -> Figure:  # noqa: ARG001
         0.52:  "A₁₁, B₁₁,\nD₁₁, A₅₅",
         0.74:  "g_Δ, S_r",
     }
-    wl_label = "G_c, G_Ic, G_IIc,\nσ_c, τ_c, σ_comp, ρ_wl"
+    wl_label = "weak_layer_info*\n(placeholder)"
     for xc, lbl in param_labels.items():
         ax.text(xc, Y - BH/2 - 0.07, lbl,
                 ha="center", va="top", fontsize=5.5,
@@ -478,10 +478,11 @@ def generate_matplotlib_slab_detail(graph: Graph) -> Figure:  # noqa: ARG001
 
 def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG001
     """
-    Generate the weak-layer parameters and stability criteria detail figure.
+    Generate the stability criterion inputs detail figure.
 
-    Shows measured inputs + shared density → σ_c / σ_comp / G_c / …
-    then → g_Δ / S_r.  Width = 7.0 in (double column).
+    Shows measured inputs → layer params → slab_elasticity_parameters merge node,
+    with weak_layer_info* placeholder feeding both WEAC and Roch merge nodes,
+    then → g_Δ / S_r outputs.  Width = 7.0 in (double column).
 
     Parameters
     ----------
@@ -492,35 +493,30 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     -------
     Figure
     """
-    fig, ax = _new_fig(_DOUBLE_COL, 4.2)
+    fig, ax = _new_fig(_DOUBLE_COL, 3.8)
 
-    BW, BH = 0.12, 0.09
-    MW, MH = 0.16, 0.09
+    BW, BH = 0.13, 0.10
+    MW, MH = 0.17, 0.10
 
-    C0, C1, C2, C3, C4 = 0.08, 0.26, 0.50, 0.68, 0.90
+    C0, C1, C2, C3, C4 = 0.08, 0.26, 0.48, 0.70, 0.90
 
     # Measured inputs (C0 column)
     inp: Dict[str, _Box] = {
-        "sp":        _Box("snow pit\n(root)",    C0, 0.88, BW, BH, _COLORS["root"],  _EDGE_COLORS["root"]),
-        "meas_thick":_Box("layer\nthickness",    C0, 0.49, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
+        "meas_thick": _Box("layer\nthickness",   C0, 0.55, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
     }
 
-    # Layer params that feed stability (shared density also feeds sigma_c/sigma_comp)
+    # Layer params that feed stability
     layer_stab: Dict[str, _Box] = {
-        "rho":  _Box("ρ (density)",  C1, 0.92, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "E":    _Box("E",            C1, 0.80, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "nu":   _Box("ν",            C1, 0.68, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "G":    _Box("G",            C1, 0.56, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "rho":  _Box("ρ (density)",  C1, 0.88, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "E":    _Box("E",            C1, 0.70, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "nu":   _Box("ν",            C1, 0.55, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "G":    _Box("G",            C1, 0.40, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
     }
 
-    # Weak-layer params
-    wl_params: Dict[str, _Box] = {
-        "Gc":      _Box("G_c",     C2, 0.92, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-        "GIc":     _Box("G_Ic",    C2, 0.80, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-        "GIIc":    _Box("G_IIc",   C2, 0.68, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-        "tauc":    _Box("τ_c",     C2, 0.56, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-        "sigmac":  _Box("σ_c",     C2, 0.44, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-        "sigcomp": _Box("σ_comp",  C2, 0.28, BW, BH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
+    # Slab elasticity merge node (E + ν) and weak-layer info placeholder
+    mid_nodes: Dict[str, _Box] = {
+        "elast":   _Box("slab elasticity\n(E + ν)",          C2, 0.62, MW, MH, _COLORS["merge"],      _EDGE_COLORS["merge"]),
+        "wl_info": _Box("weak layer\ninfo* (placeholder)",   C2, 0.28, MW, MH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
     }
 
     # Merge nodes for stability
@@ -531,64 +527,52 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
 
     # Outputs
     outputs: Dict[str, _Box] = {
-        "gdelta": _Box("g_Δ\n(WEAC skier)",    C4, 0.78, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
-        "sr":     _Box("S_r\n(Roch natural)",  C4, 0.32, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
+        "gdelta": _Box("g_Δ\n(WEAC skier)",   C4, 0.78, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
+        "sr":     _Box("S_r\n(Roch natural)", C4, 0.32, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
     }
 
-    all_boxes = {**inp, **layer_stab, **wl_params, **stab_merge, **outputs}
+    all_boxes = {**inp, **layer_stab, **mid_nodes, **stab_merge, **outputs}
     for box in all_boxes.values():
         _draw_box(ax, box)
 
     ac = "#555555"
     wc = _EDGE_COLORS["weak_layer"]
+    mc = _EDGE_COLORS["merge"]
     sc_col = _EDGE_COLORS["stability"]
 
-    # snow_pit → constant weak-layer params
-    for key in ["Gc", "GIc", "GIIc", "tauc"]:
-        _draw_arrow(ax, inp["sp"].x + BW/2, inp["sp"].y,
-                        wl_params[key].x - BW/2, wl_params[key].y,
-                        label="W&R", color=wc, fontsize=4.5)
-    _draw_arrow(ax, inp["sp"].x + BW/2, inp["sp"].y,
-                    wl_params["sigmac"].x - BW/2, wl_params["sigmac"].y,
-                    label="W&R", color=wc, fontsize=4.5)
-    _draw_arrow(ax, inp["sp"].x + BW/2, inp["sp"].y,
-                    wl_params["sigcomp"].x - BW/2, wl_params["sigcomp"].y,
-                    label="reiweger", color=wc, fontsize=4.5)
+    # E, ν → slab_elasticity_parameters
+    _draw_arrow(ax, layer_stab["E"].x + BW/2,  layer_stab["E"].y,
+                    mid_nodes["elast"].x - MW/2, mid_nodes["elast"].y, color=mc)
+    _draw_arrow(ax, layer_stab["nu"].x + BW/2, layer_stab["nu"].y,
+                    mid_nodes["elast"].x - MW/2, mid_nodes["elast"].y, color=mc)
 
-    # density → density-dependent weak-layer params (shared node)
+    # slab_elasticity + rho + G + thickness → m_weac
+    _draw_arrow(ax, mid_nodes["elast"].x + MW/2, mid_nodes["elast"].y,
+                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y, color=ac)
     _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
-                    wl_params["sigmac"].x - BW/2, wl_params["sigmac"].y,
-                    label="sigrist", color=wc, fontsize=4.5,
-                    connectionstyle="arc3,rad=0.20")
-    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
-                    wl_params["sigcomp"].x - BW/2, wl_params["sigcomp"].y,
-                    label="mellor", color=wc, fontsize=4.5,
-                    connectionstyle="arc3,rad=0.25")
-
-    # Layer params → m_weac
-    for key in ["rho", "E", "nu", "G"]:
-        _draw_arrow(ax, layer_stab[key].x + BW/2, layer_stab[key].y,
-                        stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y, color=ac)
-
-    # WL params → m_weac
-    for key in ["Gc", "GIc", "GIIc", "tauc", "sigmac", "sigcomp"]:
-        _draw_arrow(ax, wl_params[key].x + BW/2, wl_params[key].y,
-                        stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y, color=ac)
-
-    # rho + tau_c → m_roch
-    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
-                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y, color=ac,
-                    connectionstyle="arc3,rad=0.15")
-    _draw_arrow(ax, wl_params["tauc"].x + BW/2, wl_params["tauc"].y,
-                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y, color=ac)
-
-    # measured_layer_thickness → m_weac and m_roch
-    _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
                     stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
                     color=ac, connectionstyle="arc3,rad=-0.15")
+    _draw_arrow(ax, layer_stab["G"].x + BW/2, layer_stab["G"].y,
+                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
+                    color=ac, connectionstyle="arc3,rad=0.10")
+    _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
+                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
+                    color=ac, connectionstyle="arc3,rad=-0.10")
+
+    # weak_layer_info* → m_weac and m_roch
+    _draw_arrow(ax, mid_nodes["wl_info"].x + MW/2, mid_nodes["wl_info"].y,
+                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
+                    color=wc, connectionstyle="arc3,rad=0.15")
+    _draw_arrow(ax, mid_nodes["wl_info"].x + MW/2, mid_nodes["wl_info"].y,
+                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y, color=wc)
+
+    # rho + thickness → m_roch
+    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
+                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y,
+                    color=ac, connectionstyle="arc3,rad=0.20")
     _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
                     stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y,
-                    color=ac, connectionstyle="arc3,rad=0.1")
+                    color=ac, connectionstyle="arc3,rad=0.10")
 
     # m_weac → g_delta
     _draw_arrow(ax, stab_merge["m_weac"].x + MW/2, stab_merge["m_weac"].y,
@@ -620,9 +604,6 @@ _METHOD_ABBREV = {
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
-    "sigrist":                "Sg06",
-    "mellor":                 "M75",
-    "reiweger":               "R15",
 }
 
 # Node labels with Greek symbols — mirrors _NODE_LABELS in visualize.py but
@@ -650,12 +631,8 @@ _FULL_LABELS = {
     "B11":                                         "B₁₁",
     "D11":                                         "D₁₁",
     "A55":                                         "A₅₅",
-    "G_c":                                         "G_c",
-    "G_Ic":                                        "G_Ic",
-    "G_IIc":                                       "G_IIc",
-    "sigma_c":                                     "σ_c",
-    "tau_c":                                       "τ_c",
-    "sigma_comp":                                  "σ_comp",
+    "weak_layer_info*":                            "WL info*\n(placeholder)",
+    "slab_elasticity_parameters":                  "E+ν\n(slab elast.)",
     "merge_weac_inputs":                           "WEAC\ninputs",
     "merge_roch_inputs":                           "Roch\ninputs",
     "g_delta":                                     "g_Δ",
@@ -686,12 +663,8 @@ _FULL_COLORS = {
     "B11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "D11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "A55":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
-    "G_c":                                       (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-    "G_Ic":                                      (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-    "G_IIc":                                     (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-    "sigma_c":                                   (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-    "tau_c":                                     (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-    "sigma_comp":                                (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
+    "weak_layer_info*":                          (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
+    "slab_elasticity_parameters":                (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_weac_inputs":                         (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_roch_inputs":                         (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "g_delta":                                   (_COLORS["stability"],  _EDGE_COLORS["stability"]),
@@ -738,17 +711,13 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "A11":                                       (0.28, 0.17),
     "B11":                                       (0.38, 0.17),
 
-    # ── Weak-layer fracture / strength params ─────────────────────────────
-    "G_c":                                       (0.56, 0.53),
-    "G_Ic":                                      (0.64, 0.53),
-    "G_IIc":                                     (0.72, 0.53),
-    "tau_c":                                     (0.80, 0.53),
-    "sigma_c":                                   (0.63, 0.43),
-    "sigma_comp":                                (0.76, 0.43),
+    # ── Stability inputs (placeholder + slab elasticity merge) ───────────
+    "weak_layer_info*":                          (0.72, 0.50),
+    "slab_elasticity_parameters":               (0.55, 0.40),
 
     # ── Stability merge nodes ─────────────────────────────────────────────
-    "merge_weac_inputs":                         (0.64, 0.31),
-    "merge_roch_inputs":                         (0.80, 0.31),
+    "merge_weac_inputs":                         (0.64, 0.28),
+    "merge_roch_inputs":                         (0.80, 0.28),
 
     # ── Stability outputs ─────────────────────────────────────────────────
     "g_delta":                                   (0.57, 0.17),
@@ -840,9 +809,9 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
     """
     Generate a full-detail figure showing every node in the parameter graph.
 
-    All 32 nodes are drawn including all merge nodes.  Greek symbols are used
+    All nodes are drawn including all merge nodes.  Greek symbols are used
     for parameter labels.  Method names are abbreviated on edges.  A bifurcating
-    layout separates the slab pipeline (left) from the weak-layer/stability
+    layout separates the slab pipeline (left) from the stability-criterion
     pipeline (right), with shared measured inputs at the top centre.
 
     Width = 7.0 in (double column), Height = 9.5 in.  DPI = 300.
@@ -871,8 +840,8 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         (0.26, 0.325, 0.44, 0.17,  "#FFF8E1", "Slab Merge Nodes"),
         (0.26, 0.17,  0.38, 0.10,  "#FFE0B2", "Slab Stiffnesses"),
         (0.69, 0.73,  0.26, 0.13,  "#E8EAF6", "WL Merge Nodes"),
-        (0.68, 0.48,  0.32, 0.22,  "#FFF3E0", "Weak-Layer Parameters"),
-        (0.72, 0.31,  0.26, 0.09,  "#FCE4EC", "Stability Merge Nodes"),
+        (0.66, 0.45,  0.36, 0.18,  "#FFF3E0", "Stability Inputs"),
+        (0.72, 0.28,  0.26, 0.09,  "#FCE4EC", "Stability Merge Nodes"),
         (0.72, 0.17,  0.38, 0.10,  "#F8BBD9", "Stability Outputs"),
     ]
     for gx, gy, gw, gh, gc, glbl in _group_rects:
@@ -914,19 +883,17 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         # Long lateral arrows (shared measured inputs to WL merges)
         if abs(dx) > 0.25 and abs(dy) < 0.20:
             cs = f"arc3,rad={0.15 * (-1 if dy >= 0 else 1):.2f}"
-        # Snow pit → WL fracture constants (long downward-right arrows)
-        elif sp == "snow_pit" and y1 < 0.60:
-            cs = f"arc3,rad={0.12 * (1 if x1 > 0.50 else -1):.2f}"
         # density → merge_roch (crosses pipeline boundary)
         elif sp == "density" and ep == "merge_roch_inputs":
             cs = "arc3,rad=-0.25"
-        # density → sigma_c / sigma_comp (shared density feeds weak-layer strength)
-        elif sp == "density" and ep in ("sigma_c", "sigma_comp"):
-            cs = "arc3,rad=0.10"
-        # layer params feeding WEAC (cross-pipeline long arrows)
-        elif sp in ("density", "elastic_modulus", "poissons_ratio", "shear_modulus") \
+        # layer params or slab_elasticity feeding WEAC (cross-pipeline long arrows)
+        elif sp in ("density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+                    "slab_elasticity_parameters") \
                 and ep == "merge_weac_inputs":
             cs = f"arc3,rad={0.20:.2f}"
+        # weak_layer_info* feeding stability merges
+        elif sp == "weak_layer_info*" and ep in ("merge_weac_inputs", "merge_roch_inputs"):
+            cs = "arc3,rad=-0.10"
 
         _draw_full_arrow(ax, sp, ep, label=lbl, connectionstyle=cs)
 

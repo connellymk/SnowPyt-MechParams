@@ -342,43 +342,52 @@ class TestGraphDispatcherConsistency:
 
 
 class TestWeakLayerNodes:
-    """Test weak-layer fracture/strength parameter nodes."""
+    """Test weak-layer placeholder node structure."""
 
-    def test_weak_layer_nodes_exist(self):
-        """All weak-layer parameter nodes should exist with correct level."""
+    def test_weak_layer_info_placeholder_exists(self):
+        """weak_layer_info* placeholder node should exist with correct level."""
+        node = graph.get_node("weak_layer_info*")
+        assert node is not None
+        assert node.level == "weak_layer"
+
+    def test_weak_layer_info_has_no_incoming_method_edges(self):
+        """weak_layer_info* is a placeholder — no method edges should feed into it."""
+        node = graph.get_node("weak_layer_info*")
+        method_edges = [e for e in node.incoming_edges if e.method_name]
+        assert len(method_edges) == 0
+
+    def test_old_weak_layer_params_removed(self):
+        """Old weak-layer parameter nodes should no longer be in the graph."""
         for param in ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]:
             node = graph.get_node(param)
-            assert node is not None, f"Node {param} not found"
-            assert node.level == "weak_layer", f"{param} has wrong level: {node.level}"
+            assert node is None, f"Node {param!r} should have been removed"
 
-    def test_weak_layer_nodes_have_weissgraeber_rosendahl_method(self):
-        """G_c, G_Ic, G_IIc, sigma_c, tau_c use the weissgraeber_rosendahl method."""
-        for param in ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c"]:
-            node = graph.get_node(param)
-            methods = [e.method_name for e in node.incoming_edges if e.method_name]
-            assert "weissgraeber_rosendahl" in methods, \
-                f"{param} missing weissgraeber_rosendahl method"
-
-    def test_sigma_comp_has_reiweger_method(self):
-        """sigma_comp uses the reiweger method (Reiweger et al. 2015, cited by W&R 2023)."""
-        node = graph.get_node("sigma_comp")
-        methods = [e.method_name for e in node.incoming_edges if e.method_name]
-        assert "reiweger" in methods
-
-    def test_WEAK_LAYER_PARAMS_contains_expected(self):
-        """WEAK_LAYER_PARAMS frozenset should contain the expected weak-layer nodes."""
+    def test_WEAK_LAYER_PARAMS_contains_placeholder(self):
+        """WEAK_LAYER_PARAMS frozenset should contain only the placeholder node."""
         from snowpyt_mechparams.graph.parameter_graph import WEAK_LAYER_PARAMS
-        expected = {"G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"}
-        assert WEAK_LAYER_PARAMS == expected
+        assert WEAK_LAYER_PARAMS == {"weak_layer_info*"}
 
-    def test_merge_weac_inputs_has_correct_inputs(self):
-        """merge_weac_inputs should aggregate all 10 WEAC prerequisite nodes."""
+    def test_slab_elasticity_parameters_node_exists(self):
+        """slab_elasticity_parameters merge node should exist."""
+        node = graph.get_node("slab_elasticity_parameters")
+        assert node is not None
+        assert node.type == "merge"
+
+    def test_slab_elasticity_parameters_inputs(self):
+        """slab_elasticity_parameters should receive E and ν as inputs."""
+        node = graph.get_node("slab_elasticity_parameters")
+        inputs = {e.start.parameter for e in node.incoming_edges}
+        assert "elastic_modulus" in inputs
+        assert "poissons_ratio" in inputs
+
+    def test_merge_weac_inputs_has_new_inputs(self):
+        """merge_weac_inputs should aggregate the new stability prerequisite nodes."""
         node = graph.get_node("merge_weac_inputs")
         assert node is not None
         assert node.type == "merge"
         inputs = {e.start.parameter for e in node.incoming_edges}
-        for expected in ["density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-                         "G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]:
+        for expected in ["slab_elasticity_parameters", "density", "shear_modulus",
+                         "measured_layer_thickness", "weak_layer_info*"]:
             assert expected in inputs, f"merge_weac_inputs missing input: {expected}"
 
 
@@ -411,13 +420,14 @@ class TestStabilityNodes:
         assert STABILITY_PARAMS == {"g_delta", "s_r"}
 
     def test_merge_roch_inputs_has_correct_inputs(self):
-        """merge_roch_inputs should have density and tau_c as inputs."""
+        """merge_roch_inputs should have density and weak_layer_info* as inputs."""
         node = graph.get_node("merge_roch_inputs")
         assert node is not None
         assert node.type == "merge"
         inputs = {e.start.parameter for e in node.incoming_edges}
         assert "density" in inputs
-        assert "tau_c" in inputs
+        assert "weak_layer_info*" in inputs
+        assert "tau_c" not in inputs
 
 
 if __name__ == "__main__":

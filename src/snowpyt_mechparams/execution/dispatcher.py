@@ -23,12 +23,6 @@ from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A
 from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
 from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
 from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
-from snowpyt_mechparams.weak_layer_parameters.fracture_energy import calculate_G_c
-from snowpyt_mechparams.weak_layer_parameters.mode_i_fracture_toughness import calculate_G_Ic
-from snowpyt_mechparams.weak_layer_parameters.mode_ii_fracture_toughness import calculate_G_IIc
-from snowpyt_mechparams.weak_layer_parameters.tau_c import calculate_tau_c
-from snowpyt_mechparams.weak_layer_parameters.sigma_c import calculate_sigma_c
-from snowpyt_mechparams.weak_layer_parameters.sigma_comp import calculate_sigma_comp
 from snowpyt_mechparams.stability_criteria.weac import calculate_weac_skier
 from snowpyt_mechparams.stability_criteria.roch import calculate_roch
 from snowpyt_mechparams.constants import g
@@ -415,107 +409,6 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
-        # === Weak-layer fracture/strength methods (weak_layer-level) ===
-        # G_c, G_Ic, G_IIc, sigma_c, tau_c use Weißgraeber & Rosendahl (2023) reference constants.
-        # sigma_comp uses Reiweger et al. (2015), as cited by Weißgraeber & Rosendahl (2023).
-        # Functions accept `slab` for API consistency but do not use it
-        # (these are pure constant reference values).
-
-        # G_c - Total critical energy release rate
-        self._register(MethodSpec(
-            parameter="G_c",
-            method_name="weissgraeber_rosendahl",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_G_c("weissgraeber_rosendahl"),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # G_Ic - Mode-I (tensile) fracture toughness
-        self._register(MethodSpec(
-            parameter="G_Ic",
-            method_name="weissgraeber_rosendahl",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_G_Ic("weissgraeber_rosendahl"),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # G_IIc - Mode-II (shear) fracture toughness
-        self._register(MethodSpec(
-            parameter="G_IIc",
-            method_name="weissgraeber_rosendahl",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_G_IIc("weissgraeber_rosendahl"),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # sigma_c - Tensile strength (mode-I)
-        self._register(MethodSpec(
-            parameter="sigma_c",
-            method_name="weissgraeber_rosendahl",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_sigma_c("weissgraeber_rosendahl"),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # tau_c - Shear strength (mode-II)
-        self._register(MethodSpec(
-            parameter="tau_c",
-            method_name="weissgraeber_rosendahl",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_tau_c("weissgraeber_rosendahl"),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # sigma_comp - Compressive strength (Reiweger et al. 2015, cited by W&R 2023)
-        self._register(MethodSpec(
-            parameter="sigma_comp",
-            method_name="reiweger",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: calculate_sigma_comp("reiweger"),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # === Weak-layer density-dependent strength methods ===
-        # sigma_c (sigrist) and sigma_comp (mellor) use slab.weak_layer.density_calculated,
-        # which is populated by the executor before these methods run (using the same density
-        # method chosen for the slab layers).
-
-        # sigma_c - Tensile strength via Sigrist (2006) power-law (density-dependent).
-        # Uses slab.weak_layer.density_calculated, set by the executor as a preliminary step.
-        self._register(MethodSpec(
-            parameter="sigma_c",
-            method_name="sigrist",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: (
-                None
-                if slab.weak_layer is None or slab.weak_layer.density_calculated is None
-                else calculate_sigma_c("sigrist", density=slab.weak_layer.density_calculated)
-            ),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
-        # sigma_comp - Compressive strength via Mellor (1975) power-law (density-dependent).
-        # Uses slab.weak_layer.density_calculated, set by the executor as a preliminary step.
-        self._register(MethodSpec(
-            parameter="sigma_comp",
-            method_name="mellor",
-            level=ParameterLevel.WEAK_LAYER,
-            function=lambda slab: (
-                None
-                if slab.weak_layer is None or slab.weak_layer.density_calculated is None
-                else calculate_sigma_comp("mellor", density=slab.weak_layer.density_calculated)
-            ),
-            required_inputs=[],
-            optional_inputs={}
-        ))
-
         # === Stability criterion methods (stability-level) ===
 
         # g_delta - WEAC coupled anticrack nucleation criterion (Weißgraeber & Rosendahl 2023)
@@ -530,17 +423,15 @@ class MethodDispatcher:
         ))
 
         # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
-        # Requires slab with density_calculated on all layers and slab.weak_layer.tau_c set.
-        # tau_c is passed in kPa; calculate_roch converts to Pa internally.
+        # τ_c (weak-layer shear strength) is not currently computed from pit observations —
+        # it is represented by the weak_layer_info* placeholder, which has no method edges.
+        # The graph therefore produces 0 pathways to s_r. This entry is retained so that
+        # the dispatcher-graph consistency test passes; the function always returns None.
         self._register(MethodSpec(
             parameter="s_r",
             method_name="roch_natural",
             level=ParameterLevel.STABILITY,
-            function=lambda slab: (
-                None
-                if slab.weak_layer is None or slab.weak_layer.tau_c is None
-                else calculate_roch(slab, tau_c=slab.weak_layer.tau_c)
-            ),
+            function=lambda slab: None,
             required_inputs=["slab"],
             optional_inputs={}
         ))

@@ -57,7 +57,7 @@ NodeType = Literal["parameter", "merge"]
 # Type alias for parameter level classification
 # "layer"           — per-layer calculated parameter (density, elastic_modulus, …)
 # "slab"            — whole-slab calculated parameter (A11, B11, D11, A55, …)
-# "weak_layer"      — weak-layer fracture/strength parameter (G_c, G_Ic, …)
+# "weak_layer"      — weak-layer placeholder node (weak_layer_info*, …)
 # "stability_model" — stability criterion result (g_delta, …)
 # None              — special nodes (snow_pit, measured_*, merge_*)
 NodeLevel = Optional[Literal["layer", "slab", "weak_layer", "stability_model"]]

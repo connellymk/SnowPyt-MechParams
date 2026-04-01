@@ -39,13 +39,9 @@ graph LR
     A55[A55]
     end
 
-    subgraph WEAKLAYER["Weak-Layer Parameters"]
-    G_c[G_c]
-    G_Ic[G_Ic]
-    G_IIc[G_IIc]
-    sigma_c[σ_c]
-    tau_c[τ_c]
-    sigma_comp[σ_comp]
+    subgraph STABILITY_MERGES["Stability Criterion Inputs"]
+    slab_elasticity_parameters{slab elasticity (E + ν)}
+    weak_layer_info*[weak layer info* (placeholder)]
     end
 
     subgraph STABILITY["Stability Criteria"]
@@ -78,29 +74,17 @@ graph LR
     measured_grain_form -->|K14| poissons_ratio
     merge_density_grain_form -->|Sr16| poissons_ratio
     merge_density_grain_form -->|W15| shear_modulus
-    snow_pit -->|W&R| G_c
-    snow_pit -->|W&R| G_Ic
-    snow_pit -->|W&R| G_IIc
-    snow_pit -->|W&R| sigma_c
-    snow_pit -->|W&R| tau_c
-    snow_pit -->|R15| sigma_comp
-    density -->|Sg06| sigma_c
-    density -->|M75| sigma_comp
+    elastic_modulus --> slab_elasticity_parameters
+    poissons_ratio --> slab_elasticity_parameters
+    slab_elasticity_parameters --> merge_weac_inputs
     density --> merge_weac_inputs
-    elastic_modulus --> merge_weac_inputs
-    poissons_ratio --> merge_weac_inputs
     shear_modulus --> merge_weac_inputs
     measured_layer_thickness --> merge_weac_inputs
-    G_c --> merge_weac_inputs
-    G_Ic --> merge_weac_inputs
-    G_IIc --> merge_weac_inputs
-    sigma_c --> merge_weac_inputs
-    tau_c --> merge_weac_inputs
-    sigma_comp --> merge_weac_inputs
+    weak_layer_info* --> merge_weac_inputs
     merge_weac_inputs -->|WEAC| g_delta
     density --> merge_roch_inputs
     measured_layer_thickness --> merge_roch_inputs
-    tau_c --> merge_roch_inputs
+    weak_layer_info* --> merge_roch_inputs
     merge_roch_inputs -->|Roch-n| s_r
     measured_layer_thickness --> merge_zi
     elastic_modulus --> merge_E_nu
@@ -127,9 +111,9 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
-    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
+    class weak_layer_info* weakLayerCalc
     class g_delta,s_r stabilityCalc
 ```

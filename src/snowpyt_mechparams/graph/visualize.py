@@ -5,14 +5,14 @@ This module provides utilities to visualize the parameter dependency graph
 as mermaid diagrams for documentation and as matplotlib figures for publication.
 
 Overview diagram
-    One high-level diagram showing the five conceptual parameter groups with
+    One high-level diagram showing the conceptual parameter groups with
     simple arrows between them — no merge nodes, no method names.
 
 Detail diagrams
     Three focused diagrams, one per subsystem, with method-labeled edges:
     - Layer parameters (density, E, ν, G)
     - Slab stiffnesses (A11, B11, D11, A55)
-    - Weak-layer parameters and stability criteria
+    - Stability criteria inputs (slab_elasticity_parameters, weak_layer_info* placeholder)
 
 Functions
 ---------
@@ -94,12 +94,7 @@ _NODE_LABELS: Dict[str, str] = {
     "B11": "B11",
     "D11": "D11",
     "A55": "A55",
-    "G_c": "G_c",
-    "G_Ic": "G_Ic",
-    "G_IIc": "G_IIc",
-    "sigma_c": "σ_c",
-    "tau_c": "τ_c",
-    "sigma_comp": "σ_comp",
+    "weak_layer_info*": "weak layer info* (placeholder)",
     "g_delta": "g_Δ (WEAC)",
     "s_r": "S_r (Roch natural)",
 
@@ -112,6 +107,7 @@ _NODE_LABELS: Dict[str, str] = {
     "merge_zi_E_nu": "z_i + E + ν",
     "merge_hi_G": "h_i + G (all layers)",
     "merge_hi_E_nu": "h_i + E + ν",
+    "slab_elasticity_parameters": "slab elasticity (E + ν)",
     "merge_weac_inputs": "WEAC inputs",
     "merge_roch_inputs": "Roch inputs",
 }
@@ -240,24 +236,18 @@ def generate_mermaid_overview(graph: Graph) -> str:
         "        A55[A55]",
         "    end",
         "",
-        "    subgraph WEAKLAYER[Weak-Layer Parameters]",
-        "        Gc[G_c]",
-        "        GIc[G_Ic]",
-        "        GIIc[G_IIc]",
-        "        sigmac[σ_c]",
-        "        tauc[τ_c]",
-        "        sigcomp[σ_comp]",
-        "        rho_wl[ρ — weak-layer density]",
+        "    subgraph WEAKLAYER[Weak-Layer Info]",
+        "        wl_info[weak layer info* — placeholder]",
         "    end",
         "",
         "    subgraph STABILITY[Stability Criteria]",
+        "        elast[slab elasticity params — E + ν]",
         "        gdelta[g_Δ — WEAC skier]",
         "        sr[S_r — Roch natural]",
         "    end",
         "",
         "    %% Group-level data flow",
         "    INPUTS --> LAYER",
-        "    INPUTS --> WEAKLAYER",
         "    LAYER --> SLAB",
         "    LAYER --> STABILITY",
         "    WEAKLAYER --> STABILITY",
@@ -272,8 +262,8 @@ def generate_mermaid_overview(graph: Graph) -> str:
         "    class meas_density,meas_hh,meas_gf,meas_gs,meas_thick inputGroup",
         "    class rho,E,nu,G layerGroup",
         "    class A11,B11,D11,A55 slabGroup",
-        "    class Gc,GIc,GIIc,sigmac,tauc,sigcomp,rho_wl wlGroup",
-        "    class gdelta,sr,ssk stabGroup",
+        "    class wl_info wlGroup",
+        "    class elast,gdelta,sr stabGroup",
     ]
     return _mermaid_wrap(lines)
 
@@ -401,11 +391,11 @@ def generate_mermaid_slab_detail(graph: Graph) -> str:
 
 def generate_mermaid_stability_detail(graph: Graph) -> str:
     """
-    Generate a detail mermaid diagram for weak-layer parameters and stability criteria.
+    Generate a detail mermaid diagram for stability criterion inputs.
 
-    Shows measured inputs → density → strength/fracture params and layer params,
-    then all weak-layer and layer params → stability outputs,
-    with method names labeled on edges.
+    Shows measured inputs → layer params → slab_elasticity_parameters,
+    with the weak_layer_info* placeholder and the WEAC / Roch merge nodes
+    leading to g_Δ and S_r outputs.
 
     Parameters
     ----------
@@ -422,8 +412,9 @@ def generate_mermaid_stability_detail(graph: Graph) -> str:
         "measured_density", "measured_hand_hardness",
         "measured_grain_form", "measured_grain_size",
         "measured_layer_thickness",
-        "G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
+        "weak_layer_info*",
+        "slab_elasticity_parameters",
         "merge_weac_inputs", "merge_roch_inputs",
         "g_delta", "s_r",
     }
@@ -543,9 +534,6 @@ _METHOD_ABBREV: Dict[str, str] = {
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
-    "sigrist":                "Sg06",
-    "mellor":                 "M75",
-    "reiweger":               "R15",
 }
 
 # Ordered subgraph definitions for the full-detail mermaid diagram.
@@ -588,12 +576,9 @@ _FULL_SUBGRAPHS = [
         ["D11", "B11", "A11", "A55"],
     ),
     (
-        "WEAKLAYER",
-        "Weak-Layer Parameters",
-        [
-            "G_c", "G_Ic", "G_IIc",
-            "sigma_c", "tau_c", "sigma_comp",
-        ],
+        "STABILITY_MERGES",
+        "Stability Criterion Inputs",
+        ["slab_elasticity_parameters", "weak_layer_info*"],
     ),
     (
         "STABILITY",
@@ -698,9 +683,9 @@ def save_mermaid_slab_detail(
 def save_mermaid_stability_detail(
     graph: Graph,
     filepath: str,
-    title: str = "SnowPyt-MechParams — Weak-Layer Parameters & Stability Criteria",
+    title: str = "SnowPyt-MechParams — Stability Criteria Inputs",
 ) -> None:
-    """Save the weak-layer / stability detail mermaid diagram to *filepath*."""
+    """Save the stability criterion inputs mermaid diagram to *filepath*."""
     _save(filepath, title, generate_mermaid_stability_detail(graph))
 
 

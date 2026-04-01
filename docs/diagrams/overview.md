@@ -25,24 +25,18 @@ graph LR
         A55[A55]
     end
 
-    subgraph WEAKLAYER[Weak-Layer Parameters]
-        Gc[G_c]
-        GIc[G_Ic]
-        GIIc[G_IIc]
-        sigmac[σ_c]
-        tauc[τ_c]
-        sigcomp[σ_comp]
-        rho_wl[ρ — weak-layer density]
+    subgraph WEAKLAYER[Weak-Layer Info]
+        wl_info[weak layer info* — placeholder]
     end
 
     subgraph STABILITY[Stability Criteria]
+        elast[slab elasticity params — E + ν]
         gdelta[g_Δ — WEAC skier]
         sr[S_r — Roch natural]
     end
 
     %% Group-level data flow
     INPUTS --> LAYER
-    INPUTS --> WEAKLAYER
     LAYER --> SLAB
     LAYER --> STABILITY
     WEAKLAYER --> STABILITY
@@ -57,6 +51,6 @@ graph LR
     class meas_density,meas_hh,meas_gf,meas_gs,meas_thick inputGroup
     class rho,E,nu,G layerGroup
     class A11,B11,D11,A55 slabGroup
-    class Gc,GIc,GIIc,sigmac,tauc,sigcomp,rho_wl wlGroup
-    class gdelta,sr,ssk stabGroup
+    class wl_info wlGroup
+    class elast,gdelta,sr stabGroup
 ```

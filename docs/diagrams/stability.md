@@ -13,15 +13,11 @@ graph LR
     elastic_modulus[E (elastic modulus)]
     poissons_ratio[ν (Poisson's ratio)]
     shear_modulus[G (shear modulus)]
-    G_c[G_c]
-    G_Ic[G_Ic]
-    G_IIc[G_IIc]
-    sigma_c[σ_c]
-    tau_c[τ_c]
-    sigma_comp[σ_comp]
+    weak_layer_info*[weak layer info* (placeholder)]
+    slab_elasticity_parameters{slab elasticity (E + ν)}
     g_delta[g_Δ (WEAC)]
-    merge_weac_inputs{WEAC inputs}
     s_r[S_r (Roch natural)]
+    merge_weac_inputs{WEAC inputs}
     merge_roch_inputs{Roch inputs}
 
     %% Edges
@@ -32,29 +28,17 @@ graph LR
     snow_pit --> measured_layer_thickness
     measured_density --> density
     measured_grain_form -->|kochle| poissons_ratio
-    snow_pit -->|weissgraeber_rosendahl| G_c
-    snow_pit -->|weissgraeber_rosendahl| G_Ic
-    snow_pit -->|weissgraeber_rosendahl| G_IIc
-    snow_pit -->|weissgraeber_rosendahl| sigma_c
-    snow_pit -->|weissgraeber_rosendahl| tau_c
-    snow_pit -->|reiweger| sigma_comp
-    density -->|sigrist| sigma_c
-    density -->|mellor| sigma_comp
+    elastic_modulus --> slab_elasticity_parameters
+    poissons_ratio --> slab_elasticity_parameters
+    slab_elasticity_parameters --> merge_weac_inputs
     density --> merge_weac_inputs
-    elastic_modulus --> merge_weac_inputs
-    poissons_ratio --> merge_weac_inputs
     shear_modulus --> merge_weac_inputs
     measured_layer_thickness --> merge_weac_inputs
-    G_c --> merge_weac_inputs
-    G_Ic --> merge_weac_inputs
-    G_IIc --> merge_weac_inputs
-    sigma_c --> merge_weac_inputs
-    tau_c --> merge_weac_inputs
-    sigma_comp --> merge_weac_inputs
+    weak_layer_info* --> merge_weac_inputs
     merge_weac_inputs -->|weac_skier| g_delta
     density --> merge_roch_inputs
     measured_layer_thickness --> merge_roch_inputs
-    tau_c --> merge_roch_inputs
+    weak_layer_info* --> merge_roch_inputs
     merge_roch_inputs -->|roch_natural| s_r
 
     %% Styling
@@ -68,8 +52,8 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_weac_inputs,merge_roch_inputs mergeNode
+    class slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
-    class G_c,G_Ic,G_IIc,sigma_c,tau_c,sigma_comp weakLayerCalc
+    class weak_layer_info* weakLayerCalc
     class g_delta,s_r stabilityCalc
 ```

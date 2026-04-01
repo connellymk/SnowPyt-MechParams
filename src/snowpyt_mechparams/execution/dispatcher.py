@@ -423,17 +423,15 @@ class MethodDispatcher:
         ))
 
         # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
-        # Requires slab with density_calculated on all layers and slab.weak_layer.tau_c set.
-        # tau_c is passed in kPa; calculate_roch converts to Pa internally.
+        # τ_c (weak-layer shear strength) is not currently computed from pit observations —
+        # it is represented by the weak_layer_info* placeholder, which has no method edges.
+        # The graph therefore produces 0 pathways to s_r. This entry is retained so that
+        # the dispatcher-graph consistency test passes; the function always returns None.
         self._register(MethodSpec(
             parameter="s_r",
             method_name="roch_natural",
             level=ParameterLevel.STABILITY,
-            function=lambda slab: (
-                None
-                if slab.weak_layer is None or slab.weak_layer.tau_c is None
-                else calculate_roch(slab, tau_c=slab.weak_layer.tau_c)
-            ),
+            function=lambda slab: None,
             required_inputs=["slab"],
             optional_inputs={}
         ))

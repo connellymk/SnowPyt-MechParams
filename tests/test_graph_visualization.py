@@ -137,10 +137,8 @@ def test_generate_mermaid_has_styling():
 
 
 def test_classify_node_weak_layer_calc():
-    """Test classification of weak-layer parameter nodes."""
-    assert _classify_node(Node(type="parameter", parameter="G_c", level="weak_layer")) == "weak_layer_calc"
-    assert _classify_node(Node(type="parameter", parameter="tau_c", level="weak_layer")) == "weak_layer_calc"
-    assert _classify_node(Node(type="parameter", parameter="sigma_comp", level="weak_layer")) == "weak_layer_calc"
+    """Test classification of weak-layer placeholder nodes."""
+    assert _classify_node(Node(type="parameter", parameter="weak_layer_info*", level="weak_layer")) == "weak_layer_calc"
 
 
 def test_classify_node_stability_calc():

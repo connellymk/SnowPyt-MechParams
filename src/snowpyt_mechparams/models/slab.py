@@ -36,9 +36,8 @@ class Slab:
     # Weak Layer
     weak_layer: Optional[WeakLayer]
         Weak layer of the slab. Holds all measured Layer fields (thickness,
-        density, hand hardness, grain form, grain size) plus the six computed
-        fracture/strength parameters (G_c, G_Ic, G_IIc, sigma_c, tau_c,
-        sigma_comp) populated by the execution engine.
+        density, hand hardness, grain form, grain size) for the layer
+        beneath the slab. Fracture/strength parameters are not stored here.
 
     # Metadata
     pit_id : Optional[str]

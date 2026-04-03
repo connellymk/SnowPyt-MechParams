@@ -191,7 +191,7 @@ class TestFindParameterizationsSlabLevel:
         node = graph.get_node("D11")
         pathways = find_parameterizations(graph, node)
 
-        # D11 requires: zi (thickness) + E + ν
+        # D11 requires: thickness + E + ν
         # Total: 16 (E) × 2 (ν) × 1 (thickness) = 32 pathways
         assert len(pathways) == 32
         
@@ -262,7 +262,7 @@ class TestParameterizationStructure:
         assert len(pathway.branches) >= 3  # At least thickness, E, ν paths
         
         # Should have multiple merge points
-        assert len(pathway.merge_points) >= 2  # At least merge_E_nu and merge_zi_E_nu
+        assert len(pathway.merge_points) >= 1  # At least merge_hi_E_nu
         
         # Final merge should lead to D11
         final_merge = pathway.merge_points[-1]

@@ -103,9 +103,7 @@ _NODE_LABELS: Dict[str, str] = {
     "merge_hand_hardness_grain_form_grain_size": "HH + grain form + size",
     "merge_density_grain_form": "ρ + grain form",
     "merge_elastic_modulus_poissons_ratio": "E + ν (layer)",
-    "zi": "layer positions (z_i)",
     "merge_E_nu": "E + ν (all layers)",
-    "merge_zi_E_nu": "z_i + E + ν",
     "merge_hi_G": "h_i + G (all layers)",
     "merge_hi_E_nu": "h_i + E + ν",
     "slab_elasticity_parameters": "slab elasticity (E + ν)",
@@ -356,7 +354,7 @@ def generate_mermaid_slab_detail(graph: Graph) -> str:
     slab_node_names = {
         "measured_layer_thickness",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-        "zi", "merge_E_nu", "merge_zi_E_nu", "merge_hi_G", "merge_hi_E_nu",
+        "merge_E_nu", "merge_hi_G", "merge_hi_E_nu",
         "A11", "B11", "D11", "A55",
     }
 
@@ -573,7 +571,7 @@ _FULL_SUBGRAPHS = [
     (
         "SLAB_MERGES",
         "Slab Merge Nodes",
-        ["zi", "merge_E_nu", "merge_zi_E_nu", "merge_hi_G", "merge_hi_E_nu"],
+        ["merge_E_nu", "merge_hi_G", "merge_hi_E_nu"],
     ),
     (
         "SLAB",

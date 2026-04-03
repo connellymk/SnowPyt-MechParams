@@ -413,18 +413,16 @@ def generate_matplotlib_slab_detail(graph: Graph) -> Figure:  # noqa: ARG001
     }
 
     merge_boxes: Dict[str, _Box] = {
-        "zi":          _Box("layer positions\n(z_i)",   C1, 0.85, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
         "m_E_nu":      _Box("E + ν\n(all layers)",      C1, 0.56, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
-        "m_zi_E_nu":   _Box("z_i + E + ν",              C2, 0.78, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
         "m_hi_G":      _Box("h_i + G",                  C2, 0.38, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
-        "m_hi_E_nu":   _Box("h_i + E + ν",              C2, 0.18, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
+        "m_hi_E_nu":   _Box("h_i + E + ν",              C2, 0.58, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
     }
 
     output_boxes: Dict[str, _Box] = {
-        "D11": _Box("D₁₁\nbending stiffness",         C3, 0.82, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
-        "A55": _Box("A₅₅\nshear stiffness",           C3, 0.56, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
-        "A11": _Box("A₁₁\nextensional stiffness",     C3, 0.30, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
-        "B11": _Box("B₁₁\nbending-ext. coupling",     C3, 0.10, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
+        "D11": _Box("D₁₁\nbending stiffness",         C3, 0.80, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
+        "A55": _Box("A₅₅\nshear stiffness",           C3, 0.36, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
+        "A11": _Box("A₁₁\nextensional stiffness",     C3, 0.58, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
+        "B11": _Box("B₁₁\nbending-ext. coupling",     C3, 0.14, BW, BH*1.3, _COLORS["slab"], _EDGE_COLORS["slab"]),
     }
 
     for box in {**layer_boxes, **merge_boxes, **output_boxes}.values():
@@ -434,9 +432,6 @@ def generate_matplotlib_slab_detail(graph: Graph) -> Figure:  # noqa: ARG001
     mc = _EDGE_COLORS["merge"]
     sc = _EDGE_COLORS["slab"]
 
-    # thickness → zi
-    _draw_arrow(ax, layer_boxes["thick"].x + BW/2,  layer_boxes["thick"].y,
-                    merge_boxes["zi"].x - MW/2,      merge_boxes["zi"].y, color=ac)
     # E, nu → m_E_nu
     _draw_arrow(ax, layer_boxes["E"].x + BW/2,   layer_boxes["E"].y,
                     merge_boxes["m_E_nu"].x - MW/2, merge_boxes["m_E_nu"].y, color=ac)
@@ -454,21 +449,17 @@ def generate_matplotlib_slab_detail(graph: Graph) -> Figure:  # noqa: ARG001
                     color=ac, connectionstyle="arc3,rad=0.25")
     _draw_arrow(ax, merge_boxes["m_E_nu"].x + MW/2, merge_boxes["m_E_nu"].y,
                     merge_boxes["m_hi_E_nu"].x - MW/2, merge_boxes["m_hi_E_nu"].y, color=mc)
-    # zi + m_E_nu → m_zi_E_nu
-    _draw_arrow(ax, merge_boxes["zi"].x + MW/2,      merge_boxes["zi"].y,
-                    merge_boxes["m_zi_E_nu"].x - MW/2, merge_boxes["m_zi_E_nu"].y, color=mc)
-    _draw_arrow(ax, merge_boxes["m_E_nu"].x + MW/2, merge_boxes["m_E_nu"].y,
-                    merge_boxes["m_zi_E_nu"].x - MW/2, merge_boxes["m_zi_E_nu"].y, color=mc)
     # merges → outputs (weissgraeber_rosendahl)
     wlbl = "W&R (2023)"
-    _draw_arrow(ax, merge_boxes["m_zi_E_nu"].x + MW/2,  merge_boxes["m_zi_E_nu"].y,
+    _draw_arrow(ax, merge_boxes["m_hi_E_nu"].x + MW/2,  merge_boxes["m_hi_E_nu"].y,
                     output_boxes["D11"].x - BW/2,        output_boxes["D11"].y,
+                    label=wlbl, color=sc, fontsize=5.5,
+                    connectionstyle="arc3,rad=0.15")
+    _draw_arrow(ax, merge_boxes["m_hi_E_nu"].x + MW/2,  merge_boxes["m_hi_E_nu"].y,
+                    output_boxes["A11"].x - BW/2,        output_boxes["A11"].y,
                     label=wlbl, color=sc, fontsize=5.5)
     _draw_arrow(ax, merge_boxes["m_hi_G"].x + MW/2,     merge_boxes["m_hi_G"].y,
                     output_boxes["A55"].x - BW/2,        output_boxes["A55"].y,
-                    label=wlbl, color=sc, fontsize=5.5)
-    _draw_arrow(ax, merge_boxes["m_hi_E_nu"].x + MW/2,  merge_boxes["m_hi_E_nu"].y,
-                    output_boxes["A11"].x - BW/2,        output_boxes["A11"].y,
                     label=wlbl, color=sc, fontsize=5.5)
     _draw_arrow(ax, merge_boxes["m_hi_E_nu"].x + MW/2,  merge_boxes["m_hi_E_nu"].y,
                     output_boxes["B11"].x - BW/2,        output_boxes["B11"].y,
@@ -631,9 +622,7 @@ _FULL_LABELS = {
     "elastic_modulus":                             "E",
     "poissons_ratio":                              "ν",
     "shear_modulus":                               "G",
-    "zi":                                          "z_i",
     "merge_E_nu":                                  "E+ν",
-    "merge_zi_E_nu":                               "z_i+E+ν",
     "merge_hi_G":                                  "h_i+G",
     "merge_hi_E_nu":                               "h_i+E+ν",
     "A11":                                         "A₁₁",
@@ -664,9 +653,7 @@ _FULL_COLORS = {
     "elastic_modulus":                           (_COLORS["layer"],      _EDGE_COLORS["layer"]),
     "poissons_ratio":                            (_COLORS["layer"],      _EDGE_COLORS["layer"]),
     "shear_modulus":                             (_COLORS["layer"],      _EDGE_COLORS["layer"]),
-    "zi":                                        (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_E_nu":                                (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "merge_zi_E_nu":                             (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_hi_G":                                (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_hi_E_nu":                             (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "A11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
@@ -710,16 +697,14 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "shear_modulus":                             (0.36, 0.47),
 
     # ── Slab merge nodes ─────────────────────────────────────────────────
-    "zi":                                        (0.87, 0.73),
     "merge_E_nu":                                (0.19, 0.37),
     "merge_hi_G":                                (0.38, 0.37),
-    "merge_hi_E_nu":                             (0.28, 0.28),
-    "merge_zi_E_nu":                             (0.13, 0.28),
+    "merge_hi_E_nu":                             (0.22, 0.28),
 
     # ── Slab outputs ──────────────────────────────────────────────────────
-    "D11":                                       (0.05, 0.17),
+    "D11":                                       (0.05, 0.28),
     "A55":                                       (0.16, 0.17),
-    "A11":                                       (0.28, 0.17),
+    "A11":                                       (0.16, 0.28),
     "B11":                                       (0.38, 0.17),
 
     # ── Stability inputs (placeholder + slab elasticity merge) ───────────

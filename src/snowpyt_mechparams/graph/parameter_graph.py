@@ -18,13 +18,11 @@ Layer-Level:
     snow_pit → measured_layer_thickness (thickness)
 
 Slab-Level:
-    measured_layer_thickness → zi (spatial information)
     elastic_modulus + poissons_ratio → merge_E_nu
     elastic_modulus + poissons_ratio → slab_elasticity_parameters  [coverage target]
 
-    zi + merge_E_nu → merge_zi_E_nu → D11
+    measured_layer_thickness + merge_E_nu → merge_hi_E_nu → A11, B11, D11
     measured_layer_thickness + shear_modulus → merge_hi_G → A55
-    measured_layer_thickness + merge_E_nu → merge_hi_E_nu → A11, B11
 
 Stability Criteria (inputs only — weak-layer info is a placeholder):
     slab_elasticity_parameters + density + shear_modulus
@@ -93,11 +91,9 @@ layer-level calculations before attempting slab-level calculations.
 
 **Merge Nodes**: Special nodes that combine multiple inputs:
 - merge_elastic_modulus_poissons_ratio: Combines layer-level E and ν for G
-- zi: Represents spatial/thickness information for layers
 - merge_E_nu: Combines E and ν from all layers (for plane-strain modulus)
-- merge_zi_E_nu: Combines spatial info with E/ν (for D11 bending calculation)
 - merge_hi_G: Combines thickness with shear modulus (for A55)
-- merge_hi_E_nu: Combines thickness with E/ν (for A11, B11)
+- merge_hi_E_nu: Combines thickness with E/ν (for A11, B11, D11)
 
 **Shared Density Node**: The ``density`` node feeds ``elastic_modulus`` and
 ``poissons_ratio`` (srivastava) for slab-layer calculations. Because
@@ -252,25 +248,17 @@ merge_elastic_modulus_poissons_ratio = build_graph.merge(
 
 # --- Slab-level merge nodes ---
 
-# Merge node for: spatial/thickness information
-# Used to represent layer positions (calculated from thickness)
-zi = build_graph.merge("merge_zi")
-
 # Merge node for: E and nu from all layers
-# Used by: merge_zi_E_nu (for D11), merge_hi_E_nu (for A11, B11)
+# Used by: merge_hi_E_nu (for A11, B11, D11)
 merge_E_nu = build_graph.merge("merge_E_nu")
-
-# Merge node for: spatial info + E + nu (for D11)
-# D11 needs layer positions because bending stiffness depends on distance
-# from neutral axis (z² weighting)
-merge_zi_E_nu = build_graph.merge("merge_zi_E_nu")
 
 # Merge node for: thickness + shear modulus (for A55)
 # A55 = κ * Σ G_i * h_i
 merge_hi_G = build_graph.merge("merge_hi_G")
 
-# Merge node for: thickness + E + nu (for A11, B11)
-# A11 and B11 involve integrating plane-strain modulus over thickness
+# Merge node for: thickness + E + nu (for A11, B11, D11)
+# All three stiffness integrals consume the same layer-level inputs; D11
+# derives z-coordinates internally from thickness within the slab method.
 merge_hi_E_nu = build_graph.merge("merge_hi_E_nu")
 
 # ==============================================================================
@@ -383,29 +371,22 @@ build_graph.method_edge(merge_roch_inputs, s_r, "roch_natural")
 # STEP 4: Build the graph structure - Slab level
 # ==============================================================================
 
-# --- Merge 1: zi (spatial/thickness information) ---
-build_graph.flow(measured_layer_thickness, zi)
-
-# --- Merge 2: merge_E_nu (elastic properties from all layers) ---
+# --- Merge 1: merge_E_nu (elastic properties from all layers) ---
 build_graph.flow(elastic_modulus, merge_E_nu)
 build_graph.flow(poissons_ratio, merge_E_nu)
 
-# --- Merge 3: merge_zi_E_nu (spatial + elastic properties for D11) ---
-build_graph.flow(zi, merge_zi_E_nu)
-build_graph.flow(merge_E_nu, merge_zi_E_nu)
-
-# --- Merge 4: merge_hi_G (thickness + shear for A55) ---
+# --- Merge 2: merge_hi_G (thickness + shear for A55) ---
 build_graph.flow(measured_layer_thickness, merge_hi_G)
 build_graph.flow(shear_modulus, merge_hi_G)
 
-# --- Merge 5: merge_hi_E_nu (thickness + elastic properties for A11, B11) ---
+# --- Merge 3: merge_hi_E_nu (thickness + elastic properties for A11, B11, D11) ---
 build_graph.flow(measured_layer_thickness, merge_hi_E_nu)
 build_graph.flow(merge_E_nu, merge_hi_E_nu)
 
 # --- Slab parameter calculations ---
 
-# D11: Requires spatial position + E + nu for all layers
-build_graph.method_edge(merge_zi_E_nu, D11, "weissgraeber_rosendahl")
+# D11: Requires thickness + E + nu for all layers
+build_graph.method_edge(merge_hi_E_nu, D11, "weissgraeber_rosendahl")
 
 # A55: Requires thickness + G for all layers
 build_graph.method_edge(merge_hi_G, A55, "weissgraeber_rosendahl")

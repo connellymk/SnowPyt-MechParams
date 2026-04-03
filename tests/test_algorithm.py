@@ -141,9 +141,13 @@ class TestFindParameterizationsLayerLevel:
         """Should find all shear modulus calculation pathways."""
         node = graph.get_node("shear_modulus")
         pathways = find_parameterizations(graph, node)
-        
-        # wautier method with 4 density methods
-        assert len(pathways) == 4
+
+        # shear_modulus requires E + ν
+        # - E: 4 density methods × 4 E methods = 16 pathways
+        # - ν: kochle (grain_form only) or srivastava (density + grain_form,
+        #      sharing the same density method already used for E) = 2 methods
+        # Total: 16 × 2 = 32 unique pathways
+        assert len(pathways) == 32
 
 
 class TestFindParameterizationsSlabLevel:
@@ -202,11 +206,10 @@ class TestFindParameterizationsSlabLevel:
         """Should find all A55 calculation pathways."""
         node = graph.get_node("A55")
         pathways = find_parameterizations(graph, node)
-        
+
         # A55 requires: thickness + G
-        # Only wautier method for G with 4 density methods
-        # = 4 pathways
-        assert len(pathways) == 4
+        # G inherits the same 32 unique E/ν pathways as shear_modulus
+        assert len(pathways) == 32
 
 
 class TestParameterizationStructure:

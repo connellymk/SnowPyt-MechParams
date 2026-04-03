@@ -295,6 +295,7 @@ def generate_matplotlib_layer_detail(graph: Graph) -> Figure:  # noqa: ARG001
         "m_hh_gf":    _Box("HH + grain form",         C1, 0.65, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
         "m_hh_gf_gs": _Box("HH + grain form + size",  C1, 0.38, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
         "m_d_gf":     _Box("ρ + grain form",           C1, 0.11, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
+        "m_E_nu_G":   _Box("E + ν",                    C2, 0.32, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
     }
 
     # --- Density node (col 2, mid height) ---
@@ -358,10 +359,16 @@ def generate_matplotlib_layer_detail(graph: Graph) -> Figure:  # noqa: ARG001
                     label="srivastava", color=_EDGE_COLORS["layer"], fontsize=5.5,
                     connectionstyle="arc3,rad=-0.1")
 
-    # m_d_gf → G (wautier)
-    _draw_arrow(ax, merges["m_d_gf"].x + MW/2,  merges["m_d_gf"].y,
+    # E + ν → G
+    _draw_arrow(ax, outputs["E"].x,               outputs["E"].y - BH*0.7,
+                    merges["m_E_nu_G"].x + MW*0.1, merges["m_E_nu_G"].y + MH*0.45,
+                    color=ac, connectionstyle="arc3,rad=0.1")
+    _draw_arrow(ax, outputs["nu"].x + BW*0.15,    outputs["nu"].y - BH*0.7,
+                    merges["m_E_nu_G"].x - MW*0.1, merges["m_E_nu_G"].y + MH*0.45,
+                    color=ac, connectionstyle="arc3,rad=-0.1")
+    _draw_arrow(ax, merges["m_E_nu_G"].x + MW/2, merges["m_E_nu_G"].y,
                     outputs["G"].x - BW/2,        outputs["G"].y,
-                    label="wautier", color=_EDGE_COLORS["layer"], fontsize=5.5)
+                    label="lame_relationship", color=_EDGE_COLORS["layer"], fontsize=5.0)
 
     # density → output (data flow)
     _draw_arrow(ax, density_box.x + BW/2, density_box.y,
@@ -601,6 +608,7 @@ _METHOD_ABBREV = {
     "wautier":                "W15",
     "schottner":              "S26",
     "srivastava":             "Sr16",
+    "lame_relationship":      "Lam",
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
@@ -618,6 +626,7 @@ _FULL_LABELS = {
     "merge_hand_hardness_grain_form":              "HH+GF",
     "merge_hand_hardness_grain_form_grain_size":   "HH+GF\n+GS",
     "merge_density_grain_form":                    "ρ+GF",
+    "merge_elastic_modulus_poissons_ratio":        "E+ν\n(layer)",
     "density":                                     "ρ",
     "elastic_modulus":                             "E",
     "poissons_ratio":                              "ν",
@@ -650,6 +659,7 @@ _FULL_COLORS = {
     "merge_hand_hardness_grain_form":            (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_hand_hardness_grain_form_grain_size": (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_density_grain_form":                  (_COLORS["merge"],      _EDGE_COLORS["merge"]),
+    "merge_elastic_modulus_poissons_ratio":      (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "density":                                   (_COLORS["layer"],      _EDGE_COLORS["layer"]),
     "elastic_modulus":                           (_COLORS["layer"],      _EDGE_COLORS["layer"]),
     "poissons_ratio":                            (_COLORS["layer"],      _EDGE_COLORS["layer"]),
@@ -691,6 +701,7 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "merge_hand_hardness_grain_form":            (0.21, 0.73),
     "merge_hand_hardness_grain_form_grain_size": (0.34, 0.73),
     "merge_density_grain_form":                  (0.24, 0.58),
+    "merge_elastic_modulus_poissons_ratio":      (0.36, 0.58),
 
     # ── Layer parameters ──────────────────────────────────────────────────
     "density":                                   (0.10, 0.65),

@@ -11,9 +11,9 @@ Graph Structure
 ---------------
 
 Layer-Level:
-    snow_pit → measured_* → density → elastic_modulus
-                                    → poissons_ratio
-                                    → shear_modulus
+    snow_pit → measured_* → density → elastic_modulus ↘
+                                    → poissons_ratio  → shear_modulus
+    snow_pit → measured_grain_form ────────────────↗
 
     snow_pit → measured_layer_thickness (thickness)
 
@@ -53,7 +53,8 @@ Layer Parameters:
 - srivastava: From density and grain form [Srivastava et al. 2016]
 
 **Shear Modulus** (MPa):
-- wautier: From density and grain form [Wautier et al. 2015]
+- lame_relationship: From elastic modulus and Poisson's ratio using
+  G = E / (2 * (1 + ν))
 
 Slab Parameters (Plate Theory):
 
@@ -91,19 +92,21 @@ properties computed. The execution engine handles this by completing all
 layer-level calculations before attempting slab-level calculations.
 
 **Merge Nodes**: Special nodes that combine multiple inputs:
+- merge_elastic_modulus_poissons_ratio: Combines layer-level E and ν for G
 - zi: Represents spatial/thickness information for layers
 - merge_E_nu: Combines E and ν from all layers (for plane-strain modulus)
 - merge_zi_E_nu: Combines spatial info with E/ν (for D11 bending calculation)
 - merge_hi_G: Combines thickness with shear modulus (for A55)
 - merge_hi_E_nu: Combines thickness with E/ν (for A11, B11)
 
-**Shared Density Node**: The ``density`` node feeds ``elastic_modulus``,
-``poissons_ratio`` (srivastava), and ``shear_modulus`` for slab-layer
-calculations. Because ``density`` is shared, any pathway that uses
-``srivastava`` for Poisson's ratio must use the *same* density method —
-there is no independent density choice for Poisson's ratio. This constrains
-D11 and ``slab_elasticity_parameters`` to 4 density × 4 E × 2 ν = **32 unique
-pathways**. ``find_parameterizations`` enforces this through deduplication; see
+**Shared Density Node**: The ``density`` node feeds ``elastic_modulus`` and
+``poissons_ratio`` (srivastava) for slab-layer calculations. Because
+``density`` is shared, any pathway that uses ``srivastava`` for Poisson's
+ratio must use the *same* density method as elastic modulus — there is no
+independent density choice for Poisson's ratio. This constrains D11,
+``slab_elasticity_parameters``, ``shear_modulus``, and A55 to
+4 density × 4 E × 2 ν = **32 unique pathways**. ``find_parameterizations``
+enforces this through deduplication; see
 ``snowpyt_mechparams.algorithm._method_fingerprint`` for details.
 
 **weak_layer_info* Placeholder**: The ``weak_layer_info*`` node represents
@@ -237,9 +240,15 @@ merge_hh_gf = build_graph.merge("merge_hand_hardness_grain_form")
 merge_hh_gf_gs = build_graph.merge("merge_hand_hardness_grain_form_grain_size")
 
 # Merge node for: density + grain_form
-# Used by: elastic_modulus.{bergfeld,kochle,wautier,schottner}, 
-#          poissons_ratio.srivastava, shear_modulus.wautier
+# Used by: elastic_modulus.{bergfeld,kochle,wautier,schottner},
+#          poissons_ratio.srivastava
 merge_d_gf = build_graph.merge("merge_density_grain_form")
+
+# Merge node for: elastic_modulus + poissons_ratio
+# Used by: shear_modulus.lame_relationship
+merge_elastic_modulus_poissons_ratio = build_graph.merge(
+    "merge_elastic_modulus_poissons_ratio"
+)
 
 # --- Slab-level merge nodes ---
 
@@ -316,8 +325,14 @@ build_graph.method_edge(merge_d_gf, poissons_ratio, "srivastava")
 
 # --- Shear modulus calculation paths ---
 
-# Method using density + grain_form (reuses merge_d_gf)
-build_graph.method_edge(merge_d_gf, shear_modulus, "wautier")
+# Method using elastic_modulus + poissons_ratio
+build_graph.flow(elastic_modulus, merge_elastic_modulus_poissons_ratio)
+build_graph.flow(poissons_ratio, merge_elastic_modulus_poissons_ratio)
+build_graph.method_edge(
+    merge_elastic_modulus_poissons_ratio,
+    shear_modulus,
+    "lame_relationship",
+)
 
 # ==============================================================================
 # STEP 3b: Stability criterion nodes and placeholder

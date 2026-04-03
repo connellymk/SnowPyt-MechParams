@@ -16,6 +16,7 @@ graph LR
     merge_hand_hardness_grain_form{HH + grain form}
     merge_hand_hardness_grain_form_grain_size{HH + grain form + size}
     merge_density_grain_form{ρ + grain form}
+    merge_elastic_modulus_poissons_ratio{E + ν (layer)}
     end
 
     subgraph LAYER["Layer Parameters"]
@@ -73,7 +74,9 @@ graph LR
     merge_density_grain_form -->|S26| elastic_modulus
     measured_grain_form -->|K14| poissons_ratio
     merge_density_grain_form -->|Sr16| poissons_ratio
-    merge_density_grain_form -->|W15| shear_modulus
+    elastic_modulus --> merge_elastic_modulus_poissons_ratio
+    poissons_ratio --> merge_elastic_modulus_poissons_ratio
+    merge_elastic_modulus_poissons_ratio -->|Lam| shear_modulus
     elastic_modulus --> slab_elasticity_parameters
     poissons_ratio --> slab_elasticity_parameters
     slab_elasticity_parameters --> merge_weac_inputs
@@ -111,7 +114,7 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_elastic_modulus_poissons_ratio,merge_zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
     class weak_layer_info* weakLayerCalc

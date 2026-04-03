@@ -354,16 +354,18 @@ class MethodDispatcher:
 
         # === Shear modulus methods (layer-level) ===
 
-        # Wautier method
+        # Lamé relationship
         self._register(MethodSpec(
             parameter="shear_modulus",
-            method_name="wautier",
+            method_name="lame_relationship",
             level=ParameterLevel.LAYER,
-            function=lambda density, grain_form, include_method_uncertainty=True: calculate_shear_modulus(
-                "wautier", density=density, grain_form=grain_form,
+            function=lambda elastic_modulus, poissons_ratio, include_method_uncertainty=True: calculate_shear_modulus(
+                "lame_relationship",
+                elastic_modulus=elastic_modulus,
+                poissons_ratio=poissons_ratio,
                 include_method_uncertainty=include_method_uncertainty
             ),
-            required_inputs=["density", "grain_form"],
+            required_inputs=["elastic_modulus", "poissons_ratio"],
             optional_inputs={}
         ))
 

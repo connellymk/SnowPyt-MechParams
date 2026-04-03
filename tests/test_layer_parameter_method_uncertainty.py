@@ -5,7 +5,7 @@ Covers:
 - calculate_density (geldsetzer, kim_jamieson_table2, kim_jamieson_table5)
 - calculate_elastic_modulus (bergfeld, kochle, wautier, schottner)
 - calculate_poissons_ratio (kochle, srivastava)
-- calculate_shear_modulus (wautier)
+- calculate_shear_modulus (lame_relationship)
 
 For each method the tests verify:
 1. Default behaviour is unchanged (include_method_uncertainty=True)
@@ -453,70 +453,78 @@ class TestPoissonsRatioMethodUncertainty:
 class TestShearModulusMethodUncertainty:
     """Tests for include_method_uncertainty in calculate_shear_modulus."""
 
-    # --- wautier ---
+    # --- lame_relationship ---
 
-    def test_wautier_nominal_value_unchanged(self):
-        """wautier A/n have zero uncertainty; nominal must be consistent."""
-        rho = ufloat(300.0, 10.0)
-        on = calculate_shear_modulus("wautier", density=rho, grain_form="RG")
+    def test_lame_relationship_nominal_value_unchanged(self):
+        """Method flag should not change the Lamé relationship nominal value."""
+        elastic_modulus = ufloat(12.0, 1.0)
+        poissons_ratio = ufloat(0.2, 0.01)
+        on = calculate_shear_modulus(
+            "lame_relationship",
+            elastic_modulus=elastic_modulus,
+            poissons_ratio=poissons_ratio,
+        )
         off = calculate_shear_modulus(
-            "wautier",
+            "lame_relationship",
             include_method_uncertainty=False,
-            density=rho,
-            grain_form="RG",
+            elastic_modulus=elastic_modulus,
+            poissons_ratio=poissons_ratio,
         )
         assert _nominal(on) == pytest.approx(_nominal(off))
 
-    def test_wautier_false_still_propagates_input_uncertainty(self):
-        """Even with method uncertainty off, density uncertainty propagates."""
-        rho_uncertain = ufloat(300.0, 30.0)
-        rho_exact = ufloat(300.0, 0.0)
+    def test_lame_relationship_false_still_propagates_input_uncertainty(self):
+        """Even with method uncertainty off, E/ν uncertainty propagates."""
+        elastic_modulus_uncertain = ufloat(18.0, 1.8)
+        elastic_modulus_exact = ufloat(18.0, 0.0)
+        poissons_ratio = ufloat(0.15, 0.0)
 
         with_unc = calculate_shear_modulus(
-            "wautier",
+            "lame_relationship",
             include_method_uncertainty=False,
-            density=rho_uncertain,
-            grain_form="RG",
+            elastic_modulus=elastic_modulus_uncertain,
+            poissons_ratio=poissons_ratio,
         )
         without_unc = calculate_shear_modulus(
-            "wautier",
+            "lame_relationship",
             include_method_uncertainty=False,
-            density=rho_exact,
-            grain_form="RG",
+            elastic_modulus=elastic_modulus_exact,
+            poissons_ratio=poissons_ratio,
         )
         assert _std(with_unc) > _std(without_unc)
 
-    def test_wautier_custom_G_ice_uncertainty_is_not_method_uncertainty(self):
-        """G_ice uncertainty is an input parameter, not a method choice.
-        Passing include_method_uncertainty=False should NOT zero G_ice's std_dev."""
-        rho = ufloat(300.0, 0.0)
-        G_ice_uncertain = ufloat(407.7, 65.4)
-        G_ice_exact = ufloat(407.7, 0.0)
+    def test_lame_relationship_poissons_ratio_uncertainty_is_input_uncertainty(self):
+        """Poisson's ratio uncertainty is an input, not method uncertainty."""
+        elastic_modulus = ufloat(18.0, 0.0)
+        poissons_ratio_uncertain = ufloat(0.15, 0.02)
+        poissons_ratio_exact = ufloat(0.15, 0.0)
 
-        with_G_ice_unc = calculate_shear_modulus(
-            "wautier",
+        with_nu_unc = calculate_shear_modulus(
+            "lame_relationship",
             include_method_uncertainty=False,
-            density=rho,
-            grain_form="RG",
-            G_ice=G_ice_uncertain,
+            elastic_modulus=elastic_modulus,
+            poissons_ratio=poissons_ratio_uncertain,
         )
-        without_G_ice_unc = calculate_shear_modulus(
-            "wautier",
+        without_nu_unc = calculate_shear_modulus(
+            "lame_relationship",
             include_method_uncertainty=False,
-            density=rho,
-            grain_form="RG",
-            G_ice=G_ice_exact,
+            elastic_modulus=elastic_modulus,
+            poissons_ratio=poissons_ratio_exact,
         )
-        assert _std(with_G_ice_unc) > _std(without_G_ice_unc)
+        assert _std(with_nu_unc) > _std(without_nu_unc)
 
-    def test_wautier_true_explicit_matches_default(self):
-        rho = ufloat(300.0, 10.0)
-        default = calculate_shear_modulus("wautier", density=rho, grain_form="FC")
+    def test_lame_relationship_true_explicit_matches_default(self):
+        elastic_modulus = ufloat(18.0, 1.0)
+        poissons_ratio = ufloat(0.17, 0.01)
+        default = calculate_shear_modulus(
+            "lame_relationship",
+            elastic_modulus=elastic_modulus,
+            poissons_ratio=poissons_ratio,
+        )
         explicit = calculate_shear_modulus(
-            "wautier",
+            "lame_relationship",
             include_method_uncertainty=True,
-            density=rho,
-            grain_form="FC",
+            elastic_modulus=elastic_modulus,
+            poissons_ratio=poissons_ratio,
         )
         assert _nominal(default) == pytest.approx(_nominal(explicit))
         assert _std(default) == pytest.approx(_std(explicit))

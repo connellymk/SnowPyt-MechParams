@@ -102,6 +102,7 @@ _NODE_LABELS: Dict[str, str] = {
     "merge_hand_hardness_grain_form": "HH + grain form",
     "merge_hand_hardness_grain_form_grain_size": "HH + grain form + size",
     "merge_density_grain_form": "ρ + grain form",
+    "merge_elastic_modulus_poissons_ratio": "E + ν (layer)",
     "zi": "layer positions (z_i)",
     "merge_E_nu": "E + ν (all layers)",
     "merge_zi_E_nu": "z_i + E + ν",
@@ -297,6 +298,7 @@ def generate_mermaid_layer_detail(graph: Graph) -> str:
         "merge_hand_hardness_grain_form",
         "merge_hand_hardness_grain_form_grain_size",
         "merge_density_grain_form",
+        "merge_elastic_modulus_poissons_ratio",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
     }
 
@@ -482,6 +484,7 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
                         "merge_hand_hardness_grain_form",
                         "merge_hand_hardness_grain_form_grain_size",
                         "merge_density_grain_form",
+                        "merge_elastic_modulus_poissons_ratio",
                     }]
     stability_merges = [n for n in node_categories["merge"]
                         if n.parameter in {"merge_weac_inputs", "merge_roch_inputs"}]
@@ -531,6 +534,7 @@ _METHOD_ABBREV: Dict[str, str] = {
     "wautier":                "W15",
     "schottner":              "S26",
     "srivastava":             "Sr16",
+    "lame_relationship":      "Lam",
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
@@ -558,6 +562,7 @@ _FULL_SUBGRAPHS = [
             "merge_hand_hardness_grain_form",
             "merge_hand_hardness_grain_form_grain_size",
             "merge_density_grain_form",
+            "merge_elastic_modulus_poissons_ratio",
         ],
     ),
     (

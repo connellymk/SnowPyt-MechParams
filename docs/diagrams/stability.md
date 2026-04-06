@@ -1,4 +1,4 @@
-# SnowPyt-MechParams — Weak-Layer Parameters & Stability Criteria
+# SnowPyt-MechParams — Slab Elasticity Coverage & Stability Criteria
 
 ```mermaid
 graph LR

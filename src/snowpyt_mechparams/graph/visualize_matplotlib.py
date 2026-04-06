@@ -669,55 +669,73 @@ _FULL_COLORS = {
 }
 
 # Manual (x, y) positions for every node.
-# Layout: bifurcating from shared inputs at the top.
-#   Slab pipeline fans to the LEFT  (x < 0.50)
-#   WL/stability pipeline fans to the RIGHT (x > 0.50)
+# Layout: strict top-to-bottom topological order so every arrow descends in y.
+#   Slab pipeline on the LEFT  (x ≤ 0.50)
+#   Stability pipeline on the RIGHT (x > 0.50)
 # y=1 is top, y=0 is bottom (matplotlib axes fraction).
+#
+# Row summary (y values):
+#   0.91  snow_pit
+#   0.82  measured inputs
+#   0.73  merge_HH_GF, merge_HH_GF_GS
+#   0.64  density
+#   0.55  merge_density_grain_form
+#   0.46  elastic_modulus, poissons_ratio
+#   0.37  merge_elastic_modulus_poissons_ratio (layer E+ν→G),
+#         merge_E_nu (slab E+ν), slab_elasticity_parameters
+#   0.28  shear_modulus, merge_hi_E_nu, weak_layer_info*
+#   0.19  merge_hi_G, merge_weac_inputs, merge_roch_inputs
+#   0.10  D11, A11, B11, A55, g_delta, s_r
 _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     # ── Root ──────────────────────────────────────────────────────────────
-    "snow_pit":                                  (0.50, 0.95),
+    "snow_pit":                                  (0.50, 0.91),
 
-    # ── Measured inputs (shared, spread across the top) ───────────────────
-    "measured_density":                          (0.13, 0.84),
-    "measured_hand_hardness":                    (0.27, 0.84),
-    "measured_grain_form":                       (0.50, 0.84),
-    "measured_grain_size":                       (0.66, 0.84),
-    "measured_layer_thickness":                  (0.87, 0.84),
+    # ── Measured inputs ───────────────────────────────────────────────────
+    "measured_density":                          (0.10, 0.82),
+    "measured_hand_hardness":                    (0.25, 0.82),
+    "measured_grain_form":                       (0.50, 0.82),
+    "measured_grain_size":                       (0.68, 0.82),
+    "measured_layer_thickness":                  (0.87, 0.82),
 
-    # ── Layer merge nodes (left pipeline) ─────────────────────────────────
-    "merge_hand_hardness_grain_form":            (0.21, 0.73),
-    "merge_hand_hardness_grain_form_grain_size": (0.34, 0.73),
-    "merge_density_grain_form":                  (0.24, 0.58),
-    "merge_elastic_modulus_poissons_ratio":      (0.36, 0.58),
+    # ── Density merge nodes ───────────────────────────────────────────────
+    "merge_hand_hardness_grain_form":            (0.22, 0.73),
+    "merge_hand_hardness_grain_form_grain_size": (0.35, 0.73),
 
-    # ── Layer parameters ──────────────────────────────────────────────────
-    "density":                                   (0.10, 0.65),
-    "elastic_modulus":                           (0.13, 0.47),
-    "poissons_ratio":                            (0.24, 0.47),
-    "shear_modulus":                             (0.36, 0.47),
+    # ── Density ───────────────────────────────────────────────────────────
+    "density":                                   (0.10, 0.64),
 
-    # ── Slab merge nodes ─────────────────────────────────────────────────
-    "merge_E_nu":                                (0.19, 0.37),
-    "merge_hi_G":                                (0.38, 0.37),
-    "merge_hi_E_nu":                             (0.22, 0.28),
+    # ── Density + grain_form merge ────────────────────────────────────────
+    "merge_density_grain_form":                  (0.24, 0.55),
 
-    # ── Slab outputs ──────────────────────────────────────────────────────
-    "D11":                                       (0.05, 0.28),
-    "A55":                                       (0.16, 0.17),
-    "A11":                                       (0.16, 0.28),
-    "B11":                                       (0.38, 0.17),
+    # ── Elastic modulus and Poisson's ratio ───────────────────────────────
+    "elastic_modulus":                           (0.13, 0.46),
+    "poissons_ratio":                            (0.25, 0.46),
 
-    # ── Stability inputs (placeholder + slab elasticity merge) ───────────
-    "weak_layer_info*":                          (0.72, 0.50),
-    "slab_elasticity_parameters":               (0.55, 0.40),
+    # ── Row y=0.37: three merge nodes feeding the slab/stability pipelines ─
+    # Layer E+ν merge → shear modulus G
+    "merge_elastic_modulus_poissons_ratio":      (0.19, 0.37),
+    # Slab E+ν merge → merge_hi_E_nu → A11/B11/D11
+    "merge_E_nu":                                (0.36, 0.37),
+    # Slab elasticity coverage target (E+ν for stability)
+    "slab_elasticity_parameters":                (0.62, 0.37),
 
-    # ── Stability merge nodes ─────────────────────────────────────────────
-    "merge_weac_inputs":                         (0.64, 0.28),
-    "merge_roch_inputs":                         (0.80, 0.28),
+    # ── Row y=0.28: shear modulus, slab h+E+ν merge, weak-layer placeholder ─
+    "shear_modulus":                             (0.12, 0.28),
+    "merge_hi_E_nu":                             (0.28, 0.28),
+    "weak_layer_info*":                          (0.80, 0.46),
 
-    # ── Stability outputs ─────────────────────────────────────────────────
-    "g_delta":                                   (0.57, 0.17),
-    "s_r":                                       (0.80, 0.17),
+    # ── Row y=0.19: slab h+G merge, stability merge nodes ─────────────────
+    "merge_hi_G":                                (0.42, 0.19),
+    "merge_weac_inputs":                         (0.65, 0.19),
+    "merge_roch_inputs":                         (0.82, 0.19),
+
+    # ── Row y=0.10: all outputs ───────────────────────────────────────────
+    "D11":                                       (0.06, 0.10),
+    "A11":                                       (0.18, 0.10),
+    "B11":                                       (0.30, 0.10),
+    "A55":                                       (0.42, 0.10),
+    "g_delta":                                   (0.65, 0.10),
+    "s_r":                                       (0.82, 0.10),
 }
 
 
@@ -759,18 +777,11 @@ def _draw_full_arrow(
     x0, y0 = _FULL_POSITIONS[start_param]
     x1, y1 = _FULL_POSITIONS[end_param]
 
-    # Offset arrow endpoints to the edge of each box.
-    # Choose exit/entry side based on dominant direction.
-    dx, dy = x1 - x0, y1 - y0
-
-    if abs(dx) >= abs(dy):
-        # Predominantly horizontal
-        x0 += BW / 2 * (1 if dx > 0 else -1)
-        x1 -= BW / 2 * (1 if dx > 0 else -1)
-    else:
-        # Predominantly vertical
-        y0 += BH / 2 * (1 if dy > 0 else -1)
-        y1 -= BH / 2 * (1 if dy > 0 else -1)
+    # All arrows exit from the bottom-centre of the source node and
+    # enter the top-centre of the destination node, so the diagram reads
+    # top-to-bottom consistently.
+    y0 -= BH / 2
+    y1 += BH / 2
 
     # Edge colour: use destination node's edge colour
     _, ec = _FULL_COLORS.get(end_param, ("#888888", "#555555"))
@@ -831,14 +842,30 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
     # Each group is a semi-transparent filled rectangle behind its nodes.
     _group_rects = [
         # (x_centre, y_centre, width, height, colour, label)
-        (0.50, 0.895, 0.98, 0.17,  "#FFFDE7", "Snow Pit Observations"),
-        (0.26, 0.66,  0.46, 0.22,  "#E8F5E9", "Layer Parameters"),
-        (0.26, 0.325, 0.44, 0.17,  "#FFF8E1", "Slab Merge Nodes"),
-        (0.26, 0.17,  0.38, 0.10,  "#FFE0B2", "Slab Stiffnesses"),
-        (0.69, 0.73,  0.26, 0.13,  "#E8EAF6", "WL Merge Nodes"),
-        (0.66, 0.45,  0.36, 0.18,  "#FFF3E0", "Stability Inputs"),
-        (0.72, 0.28,  0.26, 0.09,  "#FCE4EC", "Stability Merge Nodes"),
-        (0.72, 0.17,  0.38, 0.10,  "#F8BBD9", "Stability Outputs"),
+        #
+        # Snow Pit Observations: snow_pit(0.50,0.91) + measured inputs(y=0.82).
+        # Top of rect = 0.965, label at 0.953 — above snow_pit box top (0.94).
+        (0.50,  0.885, 0.98, 0.20,  "#FFFDE7", "Snow Pit Observations"),
+        #
+        # Layer Parameters: HH merges(0.73), density(0.64), merge_d_gf(0.55),
+        # E/ν(0.46), merge_E_nu_layer(0.37), G(0.28).
+        # x: 0.07–0.32, y: 0.24–0.77
+        (0.20,  0.505, 0.30, 0.56,  "#E8F5E9", "Layer Parameters"),
+        #
+        # Slab Stiffnesses: merge_E_nu(0.36,0.37), merge_hi_E_nu(0.28,0.28),
+        # merge_hi_G(0.42,0.19), D11/A11/B11/A55(y=0.10).
+        # x: 0.22–0.47, y: 0.06–0.41
+        (0.35,  0.235, 0.28, 0.36,  "#FFE0B2", "Slab Stiffnesses"),
+        #
+        # Stability Inputs: slab_elast(0.62,0.37) + weak_layer_info*(0.80,0.46).
+        # x: 0.57–0.85, y: 0.33–0.50
+        (0.71,  0.415, 0.30, 0.20,  "#FFF3E0", "Stability Inputs"),
+        #
+        # Stability Merge Nodes: merge_weac(0.65,0.19), merge_roch(0.82,0.19).
+        (0.735, 0.19,  0.32, 0.12,  "#FCE4EC", "Stability Merge Nodes"),
+        #
+        # Stability Outputs: g_delta(0.65,0.10), s_r(0.82,0.10).
+        (0.735, 0.10,  0.32, 0.12,  "#F8BBD9", "Stability Outputs"),
     ]
     for gx, gy, gw, gh, gc, glbl in _group_rects:
         x0, y0 = gx - gw / 2, gy - gh / 2
@@ -874,22 +901,33 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         x1, y1 = _FULL_POSITIONS[ep]
         dx, dy = x1 - x0, y1 - y0
 
-        # Heuristics for curvature direction / magnitude
+        # Curvature overrides.  With all arrows exiting the bottom of the source
+        # and entering the top of the destination, most short-range connections
+        # stay straight (rad=0.0).  Overrides are needed only for long
+        # cross-pipeline arrows that would otherwise overlap other nodes.
         cs = "arc3,rad=0.0"
-        # Long lateral arrows (shared measured inputs to WL merges)
-        if abs(dx) > 0.25 and abs(dy) < 0.20:
-            cs = f"arc3,rad={0.15 * (-1 if dy >= 0 else 1):.2f}"
-        # density → merge_roch (crosses pipeline boundary)
+
+        # layer_thickness → merge_hi_E_nu / merge_hi_G: long leftward diagonals;
+        # arc inward (negative = clockwise for a mostly-downward path) to keep
+        # them away from the slab merge nodes in the centre.
+        if sp == "measured_layer_thickness" and ep in ("merge_hi_E_nu", "merge_hi_G"):
+            cs = "arc3,rad=-0.20"
+        # layer_thickness → stability merges: long arrow from far right going left;
+        # slight curve to separate from the vertical density arrows.
+        elif sp == "measured_layer_thickness" and ep in ("merge_weac_inputs", "merge_roch_inputs"):
+            cs = "arc3,rad=0.15"
+        # density → stability merges: long rightward cross-pipeline arrows;
+        # curve outward so they don't overlap the slab assembly nodes.
+        elif sp == "density" and ep == "merge_weac_inputs":
+            cs = "arc3,rad=0.25"
         elif sp == "density" and ep == "merge_roch_inputs":
-            cs = "arc3,rad=-0.25"
-        # layer params or slab_elasticity feeding WEAC (cross-pipeline long arrows)
-        elif sp in ("density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-                    "slab_elasticity_parameters") \
-                and ep == "merge_weac_inputs":
-            cs = f"arc3,rad={0.20:.2f}"
-        # weak_layer_info* feeding stability merges
-        elif sp == "weak_layer_info*" and ep in ("merge_weac_inputs", "merge_roch_inputs"):
-            cs = "arc3,rad=-0.10"
+            cs = "arc3,rad=0.35"
+        # shear_modulus → merge_weac: rightward cross-pipeline arrow.
+        elif sp == "shear_modulus" and ep == "merge_weac_inputs":
+            cs = "arc3,rad=0.20"
+        # slab_elasticity_parameters → merge_weac: nearly vertical, straight.
+        elif sp == "slab_elasticity_parameters" and ep == "merge_weac_inputs":
+            cs = "arc3,rad=0.0"
 
         _draw_full_arrow(ax, sp, ep, label=lbl, connectionstyle=cs)
 

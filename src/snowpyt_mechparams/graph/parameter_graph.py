@@ -346,13 +346,11 @@ s_r     = build_graph.param("s_r",     level="stability_model")  # Roch natural:
 # Merge node aggregating all WEAC prerequisites:
 #   slab_elasticity_parameters: E + ν for all slab layers
 #   density: for slab layer gravitational and elastic calculations
-#   shear_modulus: for slab shear stiffness
 #   measured_layer_thickness: layer geometry
 #   weak_layer_info*: placeholder for currently unavailable weak-layer data
 merge_weac_inputs = build_graph.merge("merge_weac_inputs")
 build_graph.flow(slab_elasticity_parameters, merge_weac_inputs)
 build_graph.flow(density,                    merge_weac_inputs)
-build_graph.flow(shear_modulus,              merge_weac_inputs)
 build_graph.flow(measured_layer_thickness,   merge_weac_inputs)
 build_graph.flow(weak_layer_info,            merge_weac_inputs)
 build_graph.method_edge(merge_weac_inputs, g_delta, "weac_skier")

@@ -503,12 +503,11 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
         "meas_thick": _Box("layer\nthickness",   C0, 0.55, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
     }
 
-    # Layer params that feed stability
+    # Layer params that feed stability (G is not a WEAC input)
     layer_stab: Dict[str, _Box] = {
-        "rho":  _Box("ρ (density)",  C1, 0.88, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "E":    _Box("E",            C1, 0.70, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "nu":   _Box("ν",            C1, 0.55, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "G":    _Box("G",            C1, 0.40, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "rho":  _Box("ρ (density)",  C1, 0.85, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "E":    _Box("E",            C1, 0.68, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "nu":   _Box("ν",            C1, 0.52, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
     }
 
     # Slab elasticity merge node (E + ν) and weak-layer info placeholder
@@ -544,15 +543,12 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     _draw_arrow(ax, layer_stab["nu"].x + BW/2, layer_stab["nu"].y,
                     mid_nodes["elast"].x - MW/2, mid_nodes["elast"].y, color=mc)
 
-    # slab_elasticity + rho + G + thickness → m_weac
+    # slab_elasticity + rho + thickness → m_weac
     _draw_arrow(ax, mid_nodes["elast"].x + MW/2, mid_nodes["elast"].y,
                     stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y, color=ac)
     _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
                     stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
                     color=ac, connectionstyle="arc3,rad=-0.15")
-    _draw_arrow(ax, layer_stab["G"].x + BW/2, layer_stab["G"].y,
-                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
-                    color=ac, connectionstyle="arc3,rad=0.10")
     _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
                     stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
                     color=ac, connectionstyle="arc3,rad=-0.10")
@@ -844,25 +840,20 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         # (x_centre, y_centre, width, height, colour, label)
         #
         # Snow Pit Observations: snow_pit(0.50,0.91) + measured inputs(y=0.82).
-        # Top of rect = 0.965, label at 0.953 — above snow_pit box top (0.94).
+        # Top of rect = 0.985, label at 0.973 — above snow_pit box top (0.94).
         (0.50,  0.885, 0.98, 0.20,  "#FFFDE7", "Snow Pit Observations"),
         #
         # Layer Parameters: HH merges(0.73), density(0.64), merge_d_gf(0.55),
         # E/ν(0.46), merge_E_nu_layer(0.37), G(0.28).
-        # x: 0.07–0.32, y: 0.24–0.77
-        (0.20,  0.505, 0.30, 0.56,  "#E8F5E9", "Layer Parameters"),
+        # x: 0.04–0.34, y: 0.24–0.77
+        (0.19,  0.505, 0.32, 0.56,  "#E8F5E9", "Layer Parameters"),
         #
-        # Slab Stiffnesses: merge_E_nu(0.36,0.37), merge_hi_E_nu(0.28,0.28),
-        # merge_hi_G(0.42,0.19), D11/A11/B11/A55(y=0.10).
-        # x: 0.22–0.47, y: 0.06–0.41
-        (0.35,  0.235, 0.28, 0.36,  "#FFE0B2", "Slab Stiffnesses"),
+        # Slab Stiffnesses: D11(0.06), A11(0.18), B11(0.30), A55(0.42) at y=0.10.
+        # Merge nodes are not boxed separately.
+        (0.24,  0.10,  0.48, 0.12,  "#FFE0B2", "Slab Stiffnesses"),
         #
         # Stability Inputs: slab_elast(0.62,0.37) + weak_layer_info*(0.80,0.46).
-        # x: 0.57–0.85, y: 0.33–0.50
         (0.71,  0.415, 0.30, 0.20,  "#FFF3E0", "Stability Inputs"),
-        #
-        # Stability Merge Nodes: merge_weac(0.65,0.19), merge_roch(0.82,0.19).
-        (0.735, 0.19,  0.32, 0.12,  "#FCE4EC", "Stability Merge Nodes"),
         #
         # Stability Outputs: g_delta(0.65,0.10), s_r(0.82,0.10).
         (0.735, 0.10,  0.32, 0.12,  "#F8BBD9", "Stability Outputs"),
@@ -922,9 +913,6 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
             cs = "arc3,rad=0.25"
         elif sp == "density" and ep == "merge_roch_inputs":
             cs = "arc3,rad=0.35"
-        # shear_modulus → merge_weac: rightward cross-pipeline arrow.
-        elif sp == "shear_modulus" and ep == "merge_weac_inputs":
-            cs = "arc3,rad=0.20"
         # slab_elasticity_parameters → merge_weac: nearly vertical, straight.
         elif sp == "slab_elasticity_parameters" and ep == "merge_weac_inputs":
             cs = "arc3,rad=0.0"

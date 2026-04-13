@@ -145,7 +145,7 @@ class TestWautierNumerical:
     def test_rho_300(self):
         """rho=300: E = E_ICE_POLYCRYSTALLINE * 0.78 * (300/917)^2.34."""
         rho = ufloat(300.0, 0.0)
-        E_ice = E_ICE_POLYCRYSTALLINE.nominal_value
+        E_ice = E_ICE_POLYCRYSTALLINE
         expected = E_ice * 0.78 * (300.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
             "wautier", density=rho, grain_form="RG",
@@ -155,7 +155,7 @@ class TestWautierNumerical:
 
     def test_rho_200(self):
         rho = ufloat(200.0, 0.0)
-        E_ice = E_ICE_POLYCRYSTALLINE.nominal_value
+        E_ice = E_ICE_POLYCRYSTALLINE
         expected = E_ice * 0.78 * (200.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
             "wautier", density=rho, grain_form="FC",

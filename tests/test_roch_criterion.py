@@ -135,6 +135,11 @@ class TestCalculateRochNoneConditions:
         slab = _make_slab(angle=-5.0, layers=[(50.0, 300.0)])
         assert calculate_roch(slab, tau_c=ufloat(1.5, 0.0)) is None
 
+    def test_natural_returns_none_nan_angle(self):
+        """NaN-valued angles should be treated as missing inputs."""
+        slab = _make_slab(angle=float("nan"), layers=[(50.0, 300.0)])
+        assert calculate_roch(slab, tau_c=ufloat(1.5, 0.0)) is None
+
     def test_skier_returns_none_zero_skier_stress(self):
         """τ_sk=0 makes the skier criterion undefined."""
         slab = _make_slab(angle=38.0, layers=[(50.0, 300.0)])
@@ -245,5 +250,4 @@ class TestCalculateRochSkierVariant:
         result = calculate_roch(steep_slab, tau_c=tau_c_tiny, skier_stress=self.tau_sk)
         assert result is not None
         assert result.stability_index.nominal_value < 1.0
-
 

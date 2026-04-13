@@ -16,7 +16,7 @@ import numpy as np
 from uncertainties import ufloat
 from uncertainties.core import AffineScalarFunc
 
-from snowpyt_mechparams.models import Slab
+from snowpyt_mechparams.models import Slab, UncertainValue
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ LayerAccumulator = Callable[
 def integrate_plane_strain_over_layers(
     slab: Slab,
     accumulate: LayerAccumulator,
-) -> ufloat:
+) -> UncertainValue:
     """Validate *slab*, iterate its layers, and accumulate a weighted sum.
 
     For each layer the function:

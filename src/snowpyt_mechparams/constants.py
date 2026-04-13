@@ -9,8 +9,6 @@ This module contains:
 
 from typing import Optional
 
-from uncertainties import ufloat
-
 # ==========================================
 # Physical Constants for Ice
 # ==========================================
@@ -28,12 +26,12 @@ RHO_ICE = 917.0  # kg/m³
 # choice of value does not affect the output. It must still match the assumption
 # made when the empirical C_0 constants were fit (10 GPa) to keep the algebra
 # self-consistent.
-E_ICE_POLYCRYSTALLINE = ufloat(10000.0, 0.0)  # MPa (10 GPa)
+E_ICE_POLYCRYSTALLINE: float = 10000.0  # MPa (10 GPa)
 
 # Shear modulus of ice (MPa)
 # Derived from E_ICE_POLYCRYSTALLINE via G = E / (2 * (1 + ν)) with ν_ice = 0.3:
 # G = 10000 / (2 * 1.3) ≈ 3846.15 MPa.
-G_ICE = ufloat(3846.15, 0.0)  # MPa
+G_ICE: float = 3846.15  # MPa
 
 # Standard gravitational acceleration (m/s²)
 # Used in gravitational shear stress calculations (Roch criterion, WEAC inputs).

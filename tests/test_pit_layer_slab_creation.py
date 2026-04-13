@@ -14,10 +14,12 @@ Tests cover:
 """
 
 import math
+import warnings
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Pit, Slab
 from snowpyt_mechparams.snowpilot import parse_caaml_file
@@ -457,6 +459,25 @@ def test_create_slabs_layer_of_concern_returns_empty_when_absent():
     assert len(slabs) == 0
 
 
+def test_create_slabs_layer_of_concern_handles_uncertain_depths_without_warning():
+    """Uncertain layer depths should be compared using nominal values."""
+    layers = [
+        Layer(depth_top=ufloat(0.0, 0.2), thickness=ufloat(10.0, 0.5), layer_of_concern=False),
+        Layer(depth_top=ufloat(10.0, 0.2), thickness=ufloat(5.0, 0.25), layer_of_concern=True),
+        Layer(depth_top=ufloat(15.0, 0.2), thickness=ufloat(20.0, 1.0), layer_of_concern=False),
+    ]
+    pit = Pit(pit_id="uncertain_loc", slope_angle=35.0, layers=layers)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        slabs = pit.create_slabs(weak_layer_def="layer_of_concern")
+
+    assert len(slabs) == 1
+    assert len(slabs[0].layers) == 1
+    assert slabs[0].layers[0].depth_top.nominal_value == pytest.approx(0.0)
+    assert slabs[0].weak_layer.depth_top.nominal_value == pytest.approx(10.0)
+
+
 # ============================================================================
 # Test Slab Creation - ECTP_failure_layer
 # ============================================================================
@@ -487,6 +508,35 @@ def test_create_slabs_with_ectp_failure_layer(mock_snowpylot_profile_with_ectp):
     # Check slab layers (should include layers above 20cm)
     assert len(slab.layers) == 2  # Layers at 0cm and 10cm
     assert all(layer.depth_top < 20.0 for layer in slab.layers)
+
+
+def test_create_slabs_ectp_handles_uncertain_depths_without_warning():
+    """Test-result slab creation should nominalize uncertain layer depths."""
+    layers = [
+        Layer(depth_top=ufloat(0.0, 0.2), thickness=ufloat(10.0, 0.5), layer_of_concern=False),
+        Layer(depth_top=ufloat(10.0, 0.2), thickness=ufloat(10.0, 0.5), layer_of_concern=False),
+        Layer(depth_top=ufloat(20.0, 0.2), thickness=ufloat(10.0, 0.5), layer_of_concern=False),
+    ]
+    ect_result = Mock()
+    ect_result.propagation = True
+    ect_result.test_score = "ECTP12"
+    ect_result.depth_top = 12.0
+
+    pit = Pit(
+        pit_id="uncertain_ectp",
+        slope_angle=35.0,
+        layers=layers,
+        ECT_results=[ect_result],
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        slabs = pit.create_slabs(weak_layer_def="ECTP_failure_layer")
+
+    assert len(slabs) == 1
+    assert len(slabs[0].layers) == 1
+    assert slabs[0].layers[0].depth_top.nominal_value == pytest.approx(0.0)
+    assert slabs[0].weak_layer.depth_top.nominal_value == pytest.approx(10.0)
 
 
 def test_create_slabs_ectp_returns_empty_when_no_propagation():

@@ -126,6 +126,12 @@ class TestNominalHelper:
         result = self._nominal(ufloat(-3.5, 0.1))
         assert result == pytest.approx(-3.5)
 
+    def test_nan_float_returns_none(self):
+        assert self._nominal(float("nan")) is None
+
+    def test_nan_ufloat_returns_none(self):
+        assert self._nominal(ufloat(float("nan"), float("nan"))) is None
+
 
 # ---------------------------------------------------------------------------
 # calculate_weac_skier — validation / early-return None (no WEAC required)
@@ -144,6 +150,12 @@ class TestCalculateWeacSkierValidation:
         """Slab with angle=None should return None."""
         slab = _make_minimal_slab()
         slab.angle = None  # type: ignore[assignment]
+        assert self.fn(slab) is None
+
+    def test_returns_none_when_angle_is_nan(self):
+        """Slab with angle=NaN should be treated as missing input."""
+        slab = _make_minimal_slab()
+        slab.angle = float("nan")  # type: ignore[assignment]
         assert self.fn(slab) is None
 
     def test_returns_none_when_weak_layer_is_none(self):
@@ -169,6 +181,12 @@ class TestCalculateWeacSkierValidation:
         )
         weak_layer = WeakLayer(thickness=ufloat(3.0, 0.0))  # no density
         slab = Slab(layers=[layer], angle=ufloat(35.0, 0.0), weak_layer=weak_layer)
+        assert self.fn(slab) is None
+
+    def test_returns_none_when_weak_layer_density_is_nan(self):
+        """NaN-valued weak-layer density should be treated as missing."""
+        slab = _make_minimal_slab()
+        slab.weak_layer.density_measured = ufloat(float("nan"), float("nan"))  # type: ignore[union-attr]
         assert self.fn(slab) is None
 
     def test_returns_none_when_weak_layer_has_no_thickness(self):
@@ -198,6 +216,12 @@ class TestCalculateWeacSkierValidation:
             density_measured=ufloat(150.0, 0.0),
         )
         slab = Slab(layers=[layer], angle=ufloat(35.0, 0.0), weak_layer=weak_layer)
+        assert self.fn(slab) is None
+
+    def test_returns_none_when_slab_layer_density_is_nan(self):
+        """NaN-valued slab density should short-circuit before WEAC validation."""
+        slab = _make_minimal_slab()
+        slab.layers[0].density_calculated = ufloat(float("nan"), float("nan"))
         assert self.fn(slab) is None
 
     def test_returns_none_when_slab_layer_missing_elastic_modulus(self):

@@ -9,12 +9,14 @@ import logging
 from typing import Any
 
 import numpy as np
-from uncertainties import ufloat
+from uncertainties import UFloat, ufloat
+
+from snowpyt_mechparams.models import UncertainValue
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
+def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
     """
     Calculate Poisson's ratio of a slab layer based on specified method and
     input parameters.
@@ -54,7 +56,7 @@ def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = Tru
         )
 
 
-def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty: bool = True) -> UncertainValue:
     """
     Calculate Poisson's ratio using Köchle and Schneebeli (2014) grain-type-
     specific mean values.
@@ -122,7 +124,7 @@ def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty
         logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
         return ufloat(np.nan, np.nan)
 
-    def _u(val: float, std: float) -> ufloat:
+    def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
     if main_grain_shape == 'RG':
@@ -135,7 +137,11 @@ def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty
     return nu_snow
 
 
-def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_poissons_ratio_srivastava(
+    density: UncertainValue,
+    grain_form: str,
+    include_method_uncertainty: bool = True,
+) -> UncertainValue:
     """
     Calculate Poisson's ratio using Srivastava et al. (2016) grain-type-specific
     mean values.
@@ -146,9 +152,10 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, inclu
 
     Parameters
     ----------
-    density : ufloat
-        Snow density (ρ) in kg/m³ with associated uncertainty. Used only for
-        range validation (must be > 200 kg/m³); not used in the returned value.
+    density : UncertainValue
+        Snow density (ρ) in kg/m³. May be a plain float or an uncertain value.
+        Used only for range validation (must be > 200 kg/m³); not used in the
+        returned value.
     grain_form : str
         Grain form classification. Supported values:
         - 'RG', 'PP', 'DF', 'FC', 'DH'
@@ -210,7 +217,7 @@ def _calculate_poissons_ratio_srivastava(density: ufloat, grain_form: str, inclu
     # Assign Poisson's ratio based on grain form.
     # Note: density value is not used in the calculation as the study found
     # no clear density dependence, but density must be within valid ranges.
-    def _u(val: float, std: float) -> ufloat:
+    def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
     if main_grain_shape == 'RG':

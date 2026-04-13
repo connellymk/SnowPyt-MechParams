@@ -1,6 +1,7 @@
 # Pit data structure for snow mechanical parameter calculations
 
 from dataclasses import dataclass, field
+import math
 from typing import Any, List, Literal, Optional, Union
 
 from snowpyt_mechparams.models._types import UncertainValue
@@ -89,6 +90,20 @@ class Pit:
         """
         return next((layer for layer in self.layers if layer.layer_of_concern), None)
 
+    @staticmethod
+    def _nominal_depth(value: Optional[UncertainValue]) -> Optional[float]:
+        """
+        Convert a depth-like value to a comparable nominal float.
+
+        Returns ``None`` for missing or NaN-valued depths.
+        """
+        if value is None:
+            return None
+        depth = float(getattr(value, "nominal_value", value))
+        if math.isnan(depth):
+            return None
+        return depth
+
     def create_slabs(
         self,
         weak_layer_def: Optional[WeakLayerDef] = None,
@@ -141,13 +156,15 @@ class Pit:
             return slabs
 
         if weak_layer_def == "layer_of_concern":
-            if self.layer_of_concern is None or self.layer_of_concern.depth_top is None:
+            weak_layer = self.layer_of_concern
+            weak_layer_depth_top = None if weak_layer is None else self._nominal_depth(weak_layer.depth_top)
+            if weak_layer is None or weak_layer_depth_top is None:
                 return slabs
 
             slab_layers = [
                 layer for layer in self.layers
-                if layer.depth_top is not None
-                and layer.depth_top < self.layer_of_concern.depth_top
+                if (layer_depth_top := self._nominal_depth(layer.depth_top)) is not None
+                and layer_depth_top < weak_layer_depth_top
             ]
 
             if not slab_layers:
@@ -156,7 +173,7 @@ class Pit:
             slab = Slab(
                 layers=slab_layers,
                 angle=self.slope_angle,
-                weak_layer=WeakLayer.from_layer(self.layer_of_concern),
+                weak_layer=WeakLayer.from_layer(weak_layer),
                 pit_id=self.pit_id,
                 slab_id=f"{self.pit_id}_slab_0" if self.pit_id else "slab_0",
                 weak_layer_source="layer_of_concern",
@@ -286,24 +303,26 @@ class Pit:
             failure_depth = raw[0] if len(raw) > 0 else None
         else:
             failure_depth = raw
+        failure_depth = self._nominal_depth(failure_depth)
         if failure_depth is None:
             return None
 
         weak_layer = None
         for layer in self.layers:
-            if layer.depth_top is not None and layer.depth_bottom is not None:
-                dt = getattr(layer.depth_top, "nominal_value", layer.depth_top)
-                db = getattr(layer.depth_bottom, "nominal_value", layer.depth_bottom)
-                if dt <= failure_depth < db:
-                    weak_layer = layer
-                    break
+            dt = self._nominal_depth(layer.depth_top)
+            db = self._nominal_depth(layer.depth_bottom)
+            if dt is not None and db is not None and dt <= failure_depth < db:
+                weak_layer = layer
+                break
 
-        if weak_layer is None or weak_layer.depth_top is None:
+        weak_layer_depth_top = None if weak_layer is None else self._nominal_depth(weak_layer.depth_top)
+        if weak_layer is None or weak_layer_depth_top is None:
             return None
 
         slab_layers = [
             layer for layer in self.layers
-            if layer.depth_top is not None and layer.depth_top < weak_layer.depth_top
+            if (layer_depth_top := self._nominal_depth(layer.depth_top)) is not None
+            and layer_depth_top < weak_layer_depth_top
         ]
 
         if not slab_layers:

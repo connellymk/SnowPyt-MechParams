@@ -11,15 +11,15 @@ import logging
 from typing import Any
 
 import numpy as np
-from uncertainties import ufloat
-from uncertainties import umath
+from uncertainties import UFloat, ufloat, umath
 
 from snowpyt_mechparams.constants import RHO_ICE, E_ICE_POLYCRYSTALLINE
+from snowpyt_mechparams.models import UncertainValue
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
+def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
     """
     Calculate elastic modulus of a slab layer based on specified method and
     input parameters.
@@ -67,7 +67,11 @@ def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = Tr
         )
 
 
-def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_bergfeld(
+    density: UncertainValue,
+    grain_form: str,
+    include_method_uncertainty: bool = True,
+) -> UncertainValue:
     """
     Calculate elastic modulus using Bergfeld et al. (2023) formula.
 
@@ -78,8 +82,8 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str, includ
 
     Parameters
     ----------
-    density : ufloat
-        Snow density in kg/m³ with associated uncertainty
+    density : UncertainValue
+        Snow density in kg/m³. May be a plain float or an uncertain value.
     grain_form : str
         Grain form classification. Supported values:
         - 'PP', 'RG', 'DF'
@@ -159,7 +163,12 @@ def _calculate_elastic_modulus_bergfeld(density: ufloat, grain_form: str, includ
     return E_snow
 
 
-def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_kochle(
+    density: UncertainValue,
+    grain_form: str,
+    E_ice: UncertainValue = E_ICE_POLYCRYSTALLINE,
+    include_method_uncertainty: bool = True,
+) -> UncertainValue:
     """
     Calculate Young's modulus (E) using the exponential relationships fitted by
     Köchle and Schneebeli (2014).
@@ -175,14 +184,14 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
 
     Parameters
     ----------
-    density : ufloat
-        Snow density (ρ) in kg/m³ with associated uncertainty
+    density : UncertainValue
+        Snow density (ρ) in kg/m³. May be a plain float or an uncertain value.
     grain_form : str
         Grain form classification. Supported values:
         - 'RG', 'FC', 'DH', 'MF'
-    E_ice : ufloat, optional
-        Young's modulus of ice in MPa with associated uncertainty.
-        Default is 10 GPa (10,000 MPa)
+    E_ice : UncertainValue, optional
+        Young's modulus of ice in MPa. May be a plain float or an uncertain
+        value. Default is 10 GPa (10,000 MPa).
 
     Returns
     -------
@@ -282,7 +291,12 @@ def _calculate_elastic_modulus_kochle(density: ufloat, grain_form: str, E_ice: u
     return E_snow
 
 
-def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_wautier(
+    density: UncertainValue,
+    grain_form: str,
+    E_ice: UncertainValue = E_ICE_POLYCRYSTALLINE,
+    include_method_uncertainty: bool = True,
+) -> UncertainValue:
     """
     Calculate the normalized average Young's modulus (E) using the power-law
     relationship fitted by Wautier et al. (2015).
@@ -292,14 +306,16 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
 
     Parameters
     ----------
-    density : ufloat
-        Snow density (ρ_snow) in kg/m³ with associated uncertainty
+    density : UncertainValue
+        Snow density (ρ_snow) in kg/m³. May be a plain float or an uncertain
+        value.
     grain_form : str
         Grain form classification. Supported values:
         - 'DF', 'RG', 'FC', 'DH', 'MF'
-    E_ice : ufloat, optional
-        Young's modulus of ice in MPa with associated uncertainty.
-        Default is 10 GPa (10,000 MPa), the bulk polycrystalline ice modulus.
+    E_ice : UncertainValue, optional
+        Young's modulus of ice in MPa. May be a plain float or an uncertain
+        value. Default is 10 GPa (10,000 MPa), the bulk polycrystalline ice
+        modulus.
 
     Returns
     -------
@@ -382,7 +398,12 @@ def _calculate_elastic_modulus_wautier(density: ufloat, grain_form: str, E_ice: 
     return E_snow
 
 
-def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice: ufloat = E_ICE_POLYCRYSTALLINE, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_elastic_modulus_schottner(
+    density: UncertainValue,
+    grain_form: str,
+    E_ice: UncertainValue = E_ICE_POLYCRYSTALLINE,
+    include_method_uncertainty: bool = True,
+) -> UncertainValue:
     """
     Calculate the effective elastic modulus (E_eff) using the volume fraction
     power-law relationships determined experimentally by Schöttner et al. (2026).
@@ -391,12 +412,12 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice
 
     Parameters
     ----------
-    density : ufloat
-        Snow density (ρ) in kg/m³ with associated uncertainty.
+    density : UncertainValue
+        Snow density (ρ) in kg/m³. May be a plain float or an uncertain value.
     grain_form : str
         Grain form classification. Supported values:
         - 'DF', 'RG', 'FC', 'DH', 'SH'
-    E_ice : ufloat, optional
+    E_ice : UncertainValue, optional
         Young's modulus of bulk polycrystalline ice (E_•) in MPa, used for
         normalization. Default is 10 GPa (10,000 MPa).
 
@@ -430,7 +451,7 @@ def _calculate_elastic_modulus_schottner(density: ufloat, grain_form: str, E_ice
 
     rho_snow = density  # kg/m³, input
 
-    def _u(val: float, std: float) -> ufloat:
+    def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
     if main_grain_shape in ['DF', 'RG']:

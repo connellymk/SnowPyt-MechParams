@@ -10,22 +10,21 @@ from math import sqrt
 from typing import Any, cast
 
 import numpy as np
-from uncertainties import ufloat
-from uncertainties import umath
+from uncertainties import UFloat, ufloat, umath
 
 from snowpyt_mechparams.models import UncertainValue
 
 logger = logging.getLogger(__name__)
 
 
-def _to_ufloat(val: UncertainValue) -> ufloat:
+def _to_ufloat(val: UncertainValue) -> UFloat:
     """Convert UncertainValue to ufloat. Plain floats get zero uncertainty."""
     if isinstance(val, (int, float)):
         return ufloat(float(val), 0.0)
-    return cast(ufloat, val)
+    return cast(UFloat, val)
 
 
-def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
+def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
     """
     Calculate density of a snow layer based on specified method and input parameters.
 
@@ -77,7 +76,7 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
         )
 
 
-def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True) -> ufloat:
+def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True) -> UncertainValue:
     """
     Calculate density using Geldsetzer et al. empirical formulas.
 
@@ -177,7 +176,7 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
 
 def _calculate_density_kim_jamieson_table2(
     hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True
-) -> ufloat:
+) -> UncertainValue:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
     on hand hardness and grain form, updated from Geldsetzer et al. (2000)
@@ -285,7 +284,7 @@ def _calculate_density_kim_jamieson_table2(
 
 def _calculate_density_kim_jamieson_table5(
     hand_hardness_index: UncertainValue, grain_form: str, grain_size: UncertainValue, include_method_uncertainty: bool = True
-) -> ufloat:
+) -> UncertainValue:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
     on hand hardness, grain form, and grain size.

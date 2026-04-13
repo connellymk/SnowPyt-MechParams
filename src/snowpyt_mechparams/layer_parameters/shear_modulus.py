@@ -2,10 +2,10 @@
 
 from typing import Any
 
-from uncertainties import ufloat
+from snowpyt_mechparams.models import UncertainValue
 
 
-def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> ufloat:
+def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
     """
     Calculate shear modulus of a slab layer based on specified method and
     input parameters.
@@ -46,20 +46,20 @@ def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True
 
 
 def _calculate_shear_modulus_lame_relationship(
-    elastic_modulus: ufloat,
-    poissons_ratio: ufloat,
+    elastic_modulus: UncertainValue,
+    poissons_ratio: UncertainValue,
     include_method_uncertainty: bool = True,
-) -> ufloat:
+) -> UncertainValue:
     """
     Calculate shear modulus from elastic modulus and Poisson's ratio using the
     isotropic Lamé relationship.
 
     Parameters
     ----------
-    elastic_modulus : ufloat
-        Elastic modulus (E) in MPa with associated uncertainty
-    poissons_ratio : ufloat
-        Poisson's ratio (ν) with associated uncertainty
+    elastic_modulus : UncertainValue
+        Elastic modulus (E) in MPa. May be a plain float or an uncertain value.
+    poissons_ratio : UncertainValue
+        Poisson's ratio (ν). May be a plain float or an uncertain value.
     include_method_uncertainty : bool, optional
         Accepted for API consistency but has no effect. The Lamé relationship
         has no empirical fit parameters, so only input uncertainties propagate.

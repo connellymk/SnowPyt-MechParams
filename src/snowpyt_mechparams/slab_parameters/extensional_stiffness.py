@@ -2,14 +2,13 @@
 
 from typing import Any
 
-from uncertainties import ufloat
 from uncertainties.core import AffineScalarFunc
 
-from snowpyt_mechparams.models import Slab
+from snowpyt_mechparams.models import Slab, UncertainValue
 from snowpyt_mechparams.slab_parameters._laminate_integration import integrate_plane_strain_over_layers
 
 
-def calculate_A11(method: str, **kwargs: Any) -> ufloat:
+def calculate_A11(method: str, **kwargs: Any) -> UncertainValue:
     """
     Calculate extensional stiffness of a layered slab based on specified method
     and input parameters.
@@ -48,7 +47,7 @@ def calculate_A11(method: str, **kwargs: Any) -> ufloat:
         )
 
 
-def _calculate_A11_weissgraeber_rosendahl(slab: Slab) -> ufloat:
+def _calculate_A11_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     """
     Calculate extensional stiffness using Weißgraeber & Rosendahl (2023)
     formulation based on classical laminate theory.

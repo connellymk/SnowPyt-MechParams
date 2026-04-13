@@ -6,12 +6,12 @@ from typing import Any
 import numpy as np
 from uncertainties import ufloat
 
-from snowpyt_mechparams.models import Slab
+from snowpyt_mechparams.models import Slab, UncertainValue
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_A55(method: str, **kwargs: Any) -> ufloat:
+def calculate_A55(method: str, **kwargs: Any) -> UncertainValue:
     """
     Calculate shear stiffness of a layered slab based on specified method
     and input parameters.
@@ -51,7 +51,7 @@ def calculate_A55(method: str, **kwargs: Any) -> ufloat:
         )
 
 
-def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> ufloat:
+def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     """
     Calculate shear stiffness using Weißgraeber & Rosendahl (2023) formulation
     based on classical laminate theory with first-order shear deformation.

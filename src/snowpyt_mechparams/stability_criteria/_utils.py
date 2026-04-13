@@ -2,6 +2,7 @@
 Internal utilities shared across stability criterion implementations.
 """
 
+import math
 from typing import Any, Optional
 
 
@@ -18,10 +19,15 @@ def _nominal(v: Any) -> Optional[float]:
     -------
     Optional[float]
         ``float(v.nominal_value)`` for UFloat, ``float(v)`` for plain
-        numeric types, ``None`` if *v* is ``None``.
+        numeric types, ``None`` if *v* is ``None`` or the resulting value is
+        NaN.
     """
     if v is None:
         return None
     if hasattr(v, "nominal_value"):
-        return float(v.nominal_value)
-    return float(v)
+        value = float(v.nominal_value)
+    else:
+        value = float(v)
+    if math.isnan(value):
+        return None
+    return value

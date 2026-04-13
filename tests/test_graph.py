@@ -378,15 +378,20 @@ class TestWeakLayerNodes:
         assert "elastic_modulus" in inputs
         assert "poissons_ratio" in inputs
 
-    def test_merge_weac_inputs_has_new_inputs(self):
-        """merge_weac_inputs should aggregate the new stability prerequisite nodes."""
+    def test_merge_weac_inputs_has_slab_side_weac_inputs(self):
+        """merge_weac_inputs should aggregate the slab-side WEAC coverage inputs."""
         node = graph.get_node("merge_weac_inputs")
         assert node is not None
         assert node.type == "merge"
         inputs = {e.start.parameter for e in node.incoming_edges}
-        for expected in ["slab_elasticity_parameters", "density", "shear_modulus",
-                         "measured_layer_thickness", "weak_layer_info*"]:
+        for expected in [
+            "slab_elasticity_parameters",
+            "density",
+            "measured_layer_thickness",
+            "weak_layer_info*",
+        ]:
             assert expected in inputs, f"merge_weac_inputs missing input: {expected}"
+        assert "shear_modulus" not in inputs
 
 
 class TestStabilityNodes:

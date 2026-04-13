@@ -1,9 +1,14 @@
 """
 WEAC skier stability criterion adapter.
 
-Converts a SnowPyt ``Slab`` (with computed layer mechanical parameters and
-populated ``weak_layer`` fracture/strength parameters) into WEAC inputs and
-runs the coupled anticrack nucleation criterion.
+Converts a SnowPyt ``Slab`` with fully populated slab mechanics into WEAC
+inputs and runs the coupled anticrack nucleation criterion.
+
+This adapter is intentionally broader than the current graph-based manuscript
+workflow. The graph presently stops at slab-side coverage targets plus the
+``weak_layer_info*`` placeholder, so population analyses do not reach this
+adapter unless weak-layer data and any additional slab properties are supplied
+explicitly.
 
 Units at the SnowPyt / WEAC boundary
 --------------------------------------
@@ -85,9 +90,10 @@ def calculate_weac_skier(
     """
     Run the WEAC coupled skier criterion on a SnowPyt ``Slab``.
 
-    The adapter converts SnowPyt's layer mechanical parameters and weak-layer
-    fracture/strength data into WEAC inputs, runs the coupled anticrack
-    nucleation criterion, and returns a ``WeacSkierResult``.
+    The adapter converts SnowPyt's layer mechanical parameters and any
+    available weak-layer fracture/strength data into WEAC inputs, runs the
+    coupled anticrack nucleation criterion, and returns a
+    ``WeacSkierResult``.
 
     Parameters
     ----------
@@ -97,7 +103,8 @@ def calculate_weac_skier(
         * All layers having ``density_calculated``, ``elastic_modulus``,
           ``poissons_ratio``, ``shear_modulus``, and ``thickness`` populated.
         * ``weak_layer`` set (provides ``rho`` and ``h`` for WEAC's WeakLayer).
-        * ``weak_layer`` set with fracture/strength params populated.
+        * Weak-layer fracture/strength parameters supplied either as dynamic
+          attributes on ``slab.weak_layer`` or via ``weak_layer_overrides``.
         * ``angle`` set (slope angle in degrees).
 
     skier_mass : float, optional

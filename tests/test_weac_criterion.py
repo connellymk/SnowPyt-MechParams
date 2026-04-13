@@ -10,7 +10,7 @@ Integration tests cover (require ``weac`` installed):
 - Full round-trip: Slab → calculate_weac_skier → WeacSkierResult
 - Unit-conversion correctness (cm → mm)
 - UFloat stripping at adapter boundary
-- weak_layer_overrides take precedence over slab.weak_layer
+- weak_layer_overrides take precedence over slab defaults / weak-layer attrs
 """
 
 from __future__ import annotations
@@ -40,10 +40,9 @@ def _make_minimal_slab(
     G: float = 2.0,
     wl_rho: float = 150.0,
     wl_h_cm: float = 3.0,
-    with_weac_layer: bool = True,
 ) -> Slab:
     """
-    Build a minimal ``Slab`` that satisfies every required-input check in
+    Build a minimal ``Slab`` that satisfies the slab-side input checks in
     ``calculate_weac_skier``.
 
     Parameters
@@ -60,9 +59,12 @@ def _make_minimal_slab(
         Weak-layer density (kg/m³).
     wl_h_cm : float
         Weak-layer thickness (cm).
-    with_weac_layer : bool
-        If True, populate the ``WeakLayer`` with Weißgraeber/Rosendahl reference
-        fracture/strength values.
+
+    Notes
+    -----
+    The returned ``WeakLayer`` includes only thickness and density, matching the
+    current ``WeakLayer`` data model. WEAC fracture/strength terms are supplied
+    either by WEAC defaults or by ``weak_layer_overrides`` in the tests below.
     """
     layers = [
         Layer(
@@ -78,14 +80,6 @@ def _make_minimal_slab(
     weak_layer = WeakLayer(
         thickness=ufloat(wl_h_cm, 0.0),
         density_measured=ufloat(wl_rho, 0.0),
-        **(dict(
-            G_c=ufloat(1.0, 0.0),
-            G_Ic=ufloat(0.56, 0.0),
-            G_IIc=ufloat(0.79, 0.0),
-            sigma_c=ufloat(6.16, 0.0),
-            tau_c=ufloat(5.09, 0.0),
-            sigma_comp=ufloat(2.6, 0.0),
-        ) if with_weac_layer else {})
     )
 
     return Slab(

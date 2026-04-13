@@ -25,7 +25,7 @@ Slab-Level:
     measured_layer_thickness + shear_modulus → merge_hi_G → A55
 
 Stability Criteria (inputs only — weak-layer info is a placeholder):
-    slab_elasticity_parameters + density + shear_modulus
+    slab_elasticity_parameters + density
         + measured_layer_thickness + weak_layer_info* → merge_weac_inputs → g_delta
     density + measured_layer_thickness + weak_layer_info* → merge_roch_inputs → s_r
 
@@ -343,11 +343,15 @@ build_graph.flow(poissons_ratio,  slab_elasticity_parameters)
 g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled criterion (≥1 = unstable)
 s_r     = build_graph.param("s_r",     level="stability_model")  # Roch natural: S_r = τ_c / τ
 
-# Merge node aggregating all WEAC prerequisites:
+# Merge node aggregating the slab-side WEAC inputs analysed in this manuscript:
 #   slab_elasticity_parameters: E + ν for all slab layers
-#   density: for slab layer gravitational and elastic calculations
+#   density: slab-layer density for loading / geometry context
 #   measured_layer_thickness: layer geometry
 #   weak_layer_info*: placeholder for currently unavailable weak-layer data
+#
+# Full WEAC execution through the direct adapter also requires layer shear modulus,
+# but that executable path is intentionally deferred here until weak-layer methods
+# are added and population-scale criterion execution is brought into scope.
 merge_weac_inputs = build_graph.merge("merge_weac_inputs")
 build_graph.flow(slab_elasticity_parameters, merge_weac_inputs)
 build_graph.flow(density,                    merge_weac_inputs)

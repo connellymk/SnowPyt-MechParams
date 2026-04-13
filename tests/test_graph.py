@@ -158,6 +158,7 @@ class TestMergeNodes:
             "merge_hand_hardness_grain_form",
             "merge_hand_hardness_grain_form_grain_size",
             "merge_density_grain_form",
+            "merge_elastic_modulus_poissons_ratio",
         ]
         for merge in merge_nodes:
             node = graph.get_node(merge)
@@ -167,9 +168,7 @@ class TestMergeNodes:
     def test_slab_level_merge_nodes_exist(self):
         """Slab-level merge nodes should exist."""
         merge_nodes = [
-            "merge_zi",
             "merge_E_nu",
-            "merge_zi_E_nu",
             "merge_hi_G",
             "merge_hi_E_nu",
         ]
@@ -187,16 +186,15 @@ class TestMergeNodes:
         input_params = {edge.start.parameter for edge in node.incoming_edges}
         assert "elastic_modulus" in input_params
         assert "poissons_ratio" in input_params
-    
-    def test_merge_zi_E_nu_has_correct_inputs(self):
-        """merge_zi_E_nu should combine merge_zi and merge_E_nu."""
-        node = graph.get_node("merge_zi_E_nu")
+
+    def test_merge_elastic_modulus_poissons_ratio_has_correct_inputs(self):
+        """Layer-level E/ν merge should combine elastic_modulus and poissons_ratio."""
+        node = graph.get_node("merge_elastic_modulus_poissons_ratio")
         assert node is not None
 
-        # Check incoming edges
         input_params = {edge.start.parameter for edge in node.incoming_edges}
-        assert "merge_zi" in input_params
-        assert "merge_E_nu" in input_params
+        assert "elastic_modulus" in input_params
+        assert "poissons_ratio" in input_params
     
     def test_merge_hi_G_has_correct_inputs(self):
         """merge_hi_G should combine measured_layer_thickness and shear_modulus."""

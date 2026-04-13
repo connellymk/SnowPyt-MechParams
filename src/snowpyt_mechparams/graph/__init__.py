@@ -33,11 +33,10 @@ properties computed. The execution engine handles this by completing all
 layer-level calculations before attempting slab-level calculations.
 
 **Merge Nodes**: Special nodes that combine multiple inputs:
-- zi: Represents spatial/thickness information for layers
+- merge_elastic_modulus_poissons_ratio: Combines layer-level E and ν for G
 - merge_E_nu: Combines E and ν from all layers (for plane-strain modulus)
-- merge_zi_E_nu: Combines spatial info with E/ν (for D11 bending calculation)
 - merge_hi_G: Combines thickness with shear modulus (for A55)
-- merge_hi_E_nu: Combines thickness with E/ν (for A11, B11)
+- merge_hi_E_nu: Combines thickness with E/ν (for A11, B11, D11)
 
 See Also
 --------

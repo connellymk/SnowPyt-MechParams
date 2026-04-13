@@ -16,6 +16,7 @@ graph LR
     merge_hand_hardness_grain_form{HH + grain form}
     merge_hand_hardness_grain_form_grain_size{HH + grain form + size}
     merge_density_grain_form{ρ + grain form}
+    merge_elastic_modulus_poissons_ratio{E + ν (layer)}
     end
 
     subgraph LAYER["Layer Parameters"]
@@ -27,7 +28,6 @@ graph LR
 
     subgraph SLAB_MERGES["Slab Merge Nodes"]
     merge_E_nu{E + ν (all layers)}
-    merge_zi_E_nu{z_i + E + ν}
     merge_hi_G{h_i + G (all layers)}
     merge_hi_E_nu{h_i + E + ν}
     end
@@ -73,12 +73,13 @@ graph LR
     merge_density_grain_form -->|S26| elastic_modulus
     measured_grain_form -->|K14| poissons_ratio
     merge_density_grain_form -->|Sr16| poissons_ratio
-    merge_density_grain_form -->|W15| shear_modulus
+    elastic_modulus --> merge_elastic_modulus_poissons_ratio
+    poissons_ratio --> merge_elastic_modulus_poissons_ratio
+    merge_elastic_modulus_poissons_ratio -->|Lam| shear_modulus
     elastic_modulus --> slab_elasticity_parameters
     poissons_ratio --> slab_elasticity_parameters
     slab_elasticity_parameters --> merge_weac_inputs
     density --> merge_weac_inputs
-    shear_modulus --> merge_weac_inputs
     measured_layer_thickness --> merge_weac_inputs
     weak_layer_info* --> merge_weac_inputs
     merge_weac_inputs -->|WEAC| g_delta
@@ -86,16 +87,13 @@ graph LR
     measured_layer_thickness --> merge_roch_inputs
     weak_layer_info* --> merge_roch_inputs
     merge_roch_inputs -->|Roch-n| s_r
-    measured_layer_thickness --> merge_zi
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
-    merge_zi --> merge_zi_E_nu
-    merge_E_nu --> merge_zi_E_nu
     measured_layer_thickness --> merge_hi_G
     shear_modulus --> merge_hi_G
     measured_layer_thickness --> merge_hi_E_nu
     merge_E_nu --> merge_hi_E_nu
-    merge_zi_E_nu -->|W&R| D11
+    merge_hi_E_nu -->|W&R| D11
     merge_hi_G -->|W&R| A55
     merge_hi_E_nu -->|W&R| A11
     merge_hi_E_nu -->|W&R| B11
@@ -111,7 +109,7 @@ graph LR
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_zi,merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu,slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_elastic_modulus_poissons_ratio,merge_E_nu,merge_hi_G,merge_hi_E_nu,slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
     class weak_layer_info* weakLayerCalc

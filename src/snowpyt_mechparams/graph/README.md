@@ -19,11 +19,10 @@ The graph enables the execution engine to:
 ### Layer-Level Parameters
 
 ```
-snow_pit → measured_density → density → elastic_modulus
-        → measured_hand_hardness ↗         ↓
-        → measured_grain_form ↗      poissons_ratio
-        → measured_grain_size          ↓
-                                  shear_modulus
+snow_pit → measured_density → density → elastic_modulus ↘
+        → measured_hand_hardness ↗         ↓               merge_elastic_modulus_poissons_ratio → shear_modulus
+        → measured_grain_form ↗      poissons_ratio      ↗
+        → measured_grain_size
 ```
 
 **Available parameters:**
@@ -35,10 +34,8 @@ snow_pit → measured_density → density → elastic_modulus
 ### Slab-Level Parameters
 
 ```
-measured_layer_thickness → zi ↘
-                                merge_zi_E_nu → D11
-elastic_modulus → merge_E_nu ↗ ↓
-poissons_ratio → ↗              merge_hi_E_nu → A11, B11
+elastic_modulus → merge_E_nu ↘
+poissons_ratio → ↗              merge_hi_E_nu → A11, B11, D11
 measured_layer_thickness → ↗
 
 measured_layer_thickness → merge_hi_G → A55
@@ -66,8 +63,9 @@ Represent measured or calculated parameters. Examples:
 
 Combine multiple parameters as inputs to a calculation method. Examples:
 - `merge_density_grain_form` - Combines density and grain form for elastic modulus calculation
+- `merge_elastic_modulus_poissons_ratio` - Combines elastic modulus and Poisson's ratio for shear modulus calculation
 - `merge_E_nu` - Combines elastic modulus and Poisson's ratio from all layers
-- `merge_zi_E_nu` - Combines spatial information with elastic properties for D11
+- `merge_hi_E_nu` - Combines thickness with elastic properties for A11, B11, and D11
 
 **Key insight:** Merge nodes are shared between methods that use the same input combination, enabling efficient pathway enumeration.
 
@@ -97,7 +95,7 @@ E_node = graph.get_node("elastic_modulus")
 pathways = find_parameterizations(graph, E_node)
 
 print(f"Found {len(pathways)} pathways")
-# Output: Found 4 pathways (bergfeld, kochle, wautier, schottner)
+# Output: Found 16 pathways
 ```
 
 ### Exploring Graph Structure
@@ -219,7 +217,7 @@ def test_new_method():
 - **Köchle & Schneebeli (2014)**: Elastic modulus and Poisson's ratio
   - DOI: [10.3189/2014JoG13J220](https://doi.org/10.3189/2014JoG13J220)
 
-- **Wautier et al. (2015)**: Elastic and shear modulus from microstructure
+- **Wautier et al. (2015)**: Elastic modulus from microstructure
   - DOI: [10.1002/2015GL065227](https://doi.org/10.1002/2015GL065227)
 
 - **Schöttner et al. (2024)**: Elastic modulus from microstructure evolution

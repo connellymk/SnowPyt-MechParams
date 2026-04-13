@@ -13,19 +13,17 @@ graph LR
     D11[D11]
     A55[A55]
     merge_E_nu{E + ν (all layers)}
-    merge_zi_E_nu{z_i + E + ν}
     merge_hi_G{h_i + G (all layers)}
     merge_hi_E_nu{h_i + E + ν}
 
     %% Edges
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
-    merge_E_nu --> merge_zi_E_nu
     measured_layer_thickness --> merge_hi_G
     shear_modulus --> merge_hi_G
     measured_layer_thickness --> merge_hi_E_nu
     merge_E_nu --> merge_hi_E_nu
-    merge_zi_E_nu -->|weissgraeber_rosendahl| D11
+    merge_hi_E_nu -->|weissgraeber_rosendahl| D11
     merge_hi_G -->|weissgraeber_rosendahl| A55
     merge_hi_E_nu -->|weissgraeber_rosendahl| A11
     merge_hi_E_nu -->|weissgraeber_rosendahl| B11
@@ -40,7 +38,7 @@ graph LR
     classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
     
     class measured_layer_thickness measuredNode
-    class merge_E_nu,merge_zi_E_nu,merge_hi_G,merge_hi_E_nu mergeNode
+    class merge_E_nu,merge_hi_G,merge_hi_E_nu mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
 ```

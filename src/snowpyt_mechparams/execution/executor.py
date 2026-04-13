@@ -35,13 +35,15 @@ The executor caches only **density** values at the layer level.
    - Records which method was used for each parameter.
    - Useful for understanding calculation paths.
 
-Parameters that depend on density — elastic_modulus, poissons_ratio, and
-shear_modulus — are **never cached**. Their results depend on which density
-value was computed for this specific pathway. Caching them with the key
-``(layer_idx, parameter, method)`` would miss the upstream density method,
-causing the first pathway's E/ν/G values (and their uncertainty budgets) to
-be returned for every subsequent pathway that uses the same E/ν/G method but
-a different density method. Always computing fresh ensures each pathway
+Downstream layer parameters — elastic_modulus, poissons_ratio, and
+shear_modulus — are **never cached**. Their results depend on which upstream
+pathway was computed for this specific layer. In particular, shear_modulus now
+depends on elastic_modulus and poissons_ratio, which may themselves depend on
+different density methods across pathways. Caching these downstream values with
+the key ``(layer_idx, parameter, method)`` would miss that upstream context,
+causing the first pathway's E/ν/G values (and their uncertainty budgets) to be
+returned for every subsequent pathway that uses the same method name but a
+different upstream pathway. Always computing fresh ensures each pathway
 receives the correct uncertainty budget.
 
 Slab parameters (D11, A11, B11, A55) are **never cached** for the same
@@ -433,14 +435,13 @@ class PathwayExecutor:
         """
         Get parameter from cache or compute it.
 
-        Only ``density`` values are cached across pathways. Parameters that
-        depend on density (elastic_modulus, poissons_ratio, shear_modulus) are
-        always computed fresh because their values — including the uncertainty
-        budget — differ depending on which density method is used upstream.
-        Caching them under ``(layer_idx, parameter, method)`` would silently
-        return the first pathway's result (computed from density method A) for
-        every subsequent pathway that uses the same E/ν/G method but a
-        different density method (B, C, …), collapsing distinct uncertainty
+        Only ``density`` values are cached across pathways. Downstream
+        parameters (elastic_modulus, poissons_ratio, shear_modulus) are always
+        computed fresh because their values — including the uncertainty budget
+        — differ depending on the upstream pathway. Caching them under
+        ``(layer_idx, parameter, method)`` would silently return the first
+        pathway's result for every subsequent pathway that uses the same method
+        name but different upstream inputs, collapsing distinct uncertainty
         budgets into one incorrect value.
 
         Handles special cases for layer properties (thickness) which are
@@ -511,7 +512,7 @@ class PathwayExecutor:
         - elastic_modulus depends on density
         - poissons_ratio depends on density when using srivastava, not when
           using kochle; density always comes first so either case is covered
-        - shear_modulus depends on density
+        - shear_modulus depends on elastic_modulus and poissons_ratio
 
         Parameters
         ----------
@@ -532,11 +533,15 @@ class PathwayExecutor:
         # pathways).  The ordering encodes two constraints:
         #
         #   1. ``density`` must come first — it is the upstream input for
-        #      ``elastic_modulus`` (all methods), ``poissons_ratio``
-        #      (srivastava), and ``shear_modulus`` (wautier).
+        #      ``elastic_modulus`` (all methods) and ``poissons_ratio``
+        #      (srivastava).
         #
-        #   2. ``elastic_modulus``, ``poissons_ratio``, ``shear_modulus`` are
-        #      independent of each other, so their relative order is arbitrary.
+        #   2. ``shear_modulus`` must come after ``elastic_modulus`` and
+        #      ``poissons_ratio`` because ``lame_relationship`` consumes both.
+        #
+        #   3. ``elastic_modulus`` and ``poissons_ratio`` are independent of
+        #      each other once density is available, so their relative order is
+        #      arbitrary.
         #
         # MAINTENANCE NOTE: If a new layer-level parameter is added to the
         # dispatcher and graph, it MUST be appended here in the correct
@@ -547,7 +552,7 @@ class PathwayExecutor:
         if "density" in methods_used:
             order.append("density")
 
-        # Then the others (they may depend on density)
+        # Then the downstream layer parameters in dependency order
         for param in ["elastic_modulus", "poissons_ratio", "shear_modulus"]:
             if param in methods_used:
                 order.append(param)

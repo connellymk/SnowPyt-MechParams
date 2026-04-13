@@ -1,4 +1,4 @@
-# SnowPyt-MechParams — Weak-Layer Parameters & Stability Criteria
+# SnowPyt-MechParams — Slab Elasticity Coverage & Stability Criteria
 
 ```mermaid
 graph LR
@@ -32,7 +32,6 @@ graph LR
     poissons_ratio --> slab_elasticity_parameters
     slab_elasticity_parameters --> merge_weac_inputs
     density --> merge_weac_inputs
-    shear_modulus --> merge_weac_inputs
     measured_layer_thickness --> merge_weac_inputs
     weak_layer_info* --> merge_weac_inputs
     merge_weac_inputs -->|weac_skier| g_delta

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-#source .venv/bin/activate
+#source venv/bin/activate
 #python scripts/generate_diagram.py --type all --format both --output docs/diagrams/
 
 """
@@ -21,8 +21,10 @@ Available --type values:
     overview    High-level five-group overview (no method names)
     layer       Layer parameter pathways (density, E, ν, G) with methods
     slab        Slab stiffness assembly (A11, B11, D11, A55) with methods
-    stability   Weak-layer parameters and stability criteria with methods
-    all         Generate all four diagrams (default)
+    stability   Slab elasticity coverage target, weak-layer placeholder, and
+                g_delta/s_r criterion nodes with methods
+    full        Full graph with all merge nodes, all methods, all subsystems
+    all         Generate all five diagrams (default)
 
 Available --format values:
     mermaid     Mermaid markdown file(s) only
@@ -125,7 +127,7 @@ def main() -> None:
         ("overview",   "SnowPyt-MechParams — Overview"),
         ("layer",      "SnowPyt-MechParams — Layer Parameters"),
         ("slab",       "SnowPyt-MechParams — Slab Stiffnesses"),
-        ("stability",  "SnowPyt-MechParams — Weak-Layer Parameters & Stability Criteria"),
+        ("stability",  "SnowPyt-MechParams — Slab Elasticity Coverage & Stability Criteria"),
         ("full",       "SnowPyt-MechParams — Full Parameter Graph"),
     ]
 

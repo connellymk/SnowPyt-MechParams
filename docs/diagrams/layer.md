@@ -15,6 +15,7 @@ graph TB
     merge_hand_hardness_grain_form{HH + grain form}
     merge_hand_hardness_grain_form_grain_size{HH + grain form + size}
     merge_density_grain_form{ρ + grain form}
+    merge_elastic_modulus_poissons_ratio{E + ν (layer)}
 
     %% Edges
     snow_pit --> measured_density
@@ -37,7 +38,9 @@ graph TB
     merge_density_grain_form -->|schottner| elastic_modulus
     measured_grain_form -->|kochle| poissons_ratio
     merge_density_grain_form -->|srivastava| poissons_ratio
-    merge_density_grain_form -->|wautier| shear_modulus
+    elastic_modulus --> merge_elastic_modulus_poissons_ratio
+    poissons_ratio --> merge_elastic_modulus_poissons_ratio
+    merge_elastic_modulus_poissons_ratio -->|lame_relationship| shear_modulus
 
     %% Styling
     classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
@@ -50,6 +53,6 @@ graph TB
     
     class snow_pit rootNode
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size measuredNode
-    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form mergeNode
+    class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_elastic_modulus_poissons_ratio mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
 ```

@@ -5,11 +5,11 @@ implementing dynamic programming to avoid redundant calculations across
 pathway executions for the same slab.
 
 Only **density** values are cached. Downstream layer parameters
-(elastic_modulus, poissons_ratio, shear_modulus) depend on which density
-method was used upstream, so caching them would silently return wrong values
-for pathways that use a different density method. Slab parameters (D11, A11,
-B11, A55) depend on those downstream values and are therefore also never
-cached.
+(elastic_modulus, poissons_ratio, shear_modulus) depend on the upstream
+pathway, so caching them would silently return wrong values for pathways that
+use different density, elastic-modulus, or Poisson's-ratio choices. Slab
+parameters (D11, A11, B11, A55) depend on those downstream values and are
+therefore also never cached.
 """
 
 from dataclasses import dataclass
@@ -77,9 +77,8 @@ class ComputationCache:
 
     Only density is cached because it depends solely on layer-intrinsic data
     (hand hardness, grain form, grain size). Downstream parameters
-    (elastic_modulus, poissons_ratio, shear_modulus) depend on which density
-    value was computed for each pathway and must therefore be computed fresh
-    for every pathway.
+    (elastic_modulus, poissons_ratio, shear_modulus) depend on the upstream
+    pathway and must therefore be computed fresh for every pathway.
 
     Features
     --------

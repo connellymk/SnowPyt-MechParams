@@ -102,9 +102,8 @@ _NODE_LABELS: Dict[str, str] = {
     "merge_hand_hardness_grain_form": "HH + grain form",
     "merge_hand_hardness_grain_form_grain_size": "HH + grain form + size",
     "merge_density_grain_form": "ρ + grain form",
-    "zi": "layer positions (z_i)",
+    "merge_elastic_modulus_poissons_ratio": "E + ν (layer)",
     "merge_E_nu": "E + ν (all layers)",
-    "merge_zi_E_nu": "z_i + E + ν",
     "merge_hi_G": "h_i + G (all layers)",
     "merge_hi_E_nu": "h_i + E + ν",
     "slab_elasticity_parameters": "slab elasticity (E + ν)",
@@ -297,6 +296,7 @@ def generate_mermaid_layer_detail(graph: Graph) -> str:
         "merge_hand_hardness_grain_form",
         "merge_hand_hardness_grain_form_grain_size",
         "merge_density_grain_form",
+        "merge_elastic_modulus_poissons_ratio",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
     }
 
@@ -354,7 +354,7 @@ def generate_mermaid_slab_detail(graph: Graph) -> str:
     slab_node_names = {
         "measured_layer_thickness",
         "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-        "zi", "merge_E_nu", "merge_zi_E_nu", "merge_hi_G", "merge_hi_E_nu",
+        "merge_E_nu", "merge_hi_G", "merge_hi_E_nu",
         "A11", "B11", "D11", "A55",
     }
 
@@ -482,6 +482,7 @@ def generate_mermaid_diagram(graph: Graph, title: str = "Parameter Dependency Gr
                         "merge_hand_hardness_grain_form",
                         "merge_hand_hardness_grain_form_grain_size",
                         "merge_density_grain_form",
+                        "merge_elastic_modulus_poissons_ratio",
                     }]
     stability_merges = [n for n in node_categories["merge"]
                         if n.parameter in {"merge_weac_inputs", "merge_roch_inputs"}]
@@ -531,6 +532,7 @@ _METHOD_ABBREV: Dict[str, str] = {
     "wautier":                "W15",
     "schottner":              "S26",
     "srivastava":             "Sr16",
+    "lame_relationship":      "Lam",
     "weissgraeber_rosendahl": "W&R",
     "weac_skier":             "WEAC",
     "roch_natural":           "Roch-n",
@@ -558,6 +560,7 @@ _FULL_SUBGRAPHS = [
             "merge_hand_hardness_grain_form",
             "merge_hand_hardness_grain_form_grain_size",
             "merge_density_grain_form",
+            "merge_elastic_modulus_poissons_ratio",
         ],
     ),
     (
@@ -568,7 +571,7 @@ _FULL_SUBGRAPHS = [
     (
         "SLAB_MERGES",
         "Slab Merge Nodes",
-        ["zi", "merge_E_nu", "merge_zi_E_nu", "merge_hi_G", "merge_hi_E_nu"],
+        ["merge_E_nu", "merge_hi_G", "merge_hi_E_nu"],
     ),
     (
         "SLAB",

@@ -821,12 +821,14 @@ def build_d11_distribution_figure(
     top_n: int = 12,
 ) -> plt.Figure:
     """Create the D11 top-pathways boxplot figure."""
-    selected = list(ordered_paths[:top_n])
+    selected_keys = select_d11_top_pathways(ordered_paths, pathway_nominal, top_n=top_n)
+    selected_lookup = dict(ordered_paths)
     data: list[np.ndarray] = []
     labels: list[str] = []
     colors: list[str] = []
 
-    for pathway, n_success in selected:
+    for pathway in selected_keys:
+        n_success = selected_lookup[pathway]
         values = np.asarray(pathway_nominal.get(pathway, []), dtype=float)
         values = values[np.isfinite(values) & (values > 0)]
         if values.size == 0:
@@ -876,6 +878,25 @@ def build_d11_distribution_figure(
     return fig
 
 
+def select_d11_top_pathways(
+    ordered_paths: Sequence[tuple[str, int]],
+    pathway_nominal: dict[str, Sequence[float]],
+    *,
+    top_n: int = 12,
+) -> list[str]:
+    """Return the top-N D11 pathways with valid positive nominal values."""
+    selected: list[str] = []
+    for pathway, _n_success in ordered_paths:
+        values = np.asarray(pathway_nominal.get(pathway, []), dtype=float)
+        values = values[np.isfinite(values) & (values > 0)]
+        if values.size == 0:
+            continue
+        selected.append(pathway)
+        if len(selected) == top_n:
+            break
+    return selected
+
+
 def prepare_roch_table(roch_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame:
     """Create the compact Roch table."""
     table = roch_cov.copy()
@@ -916,16 +937,21 @@ def prepare_weac_table(weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int =
     )
 
 
-def prepare_d11_representative_table(summary_df: pd.DataFrame) -> pd.DataFrame:
-    """Select the representative D11 pathways used in the paper table."""
-    selected_paths = [
-        "geldsetzer -> wautier -> kochle",
-        "kim_jamieson_table2 -> wautier -> kochle",
-        "geldsetzer -> schottner -> kochle",
-        "kim_jamieson_table2 -> schottner -> kochle",
-        "geldsetzer -> kochle -> srivastava",
-        "data_flow -> wautier -> kochle",
-    ]
+def _scientific_to_latex(value: str) -> str:
+    """Convert a scientific-notation string like 1.234e+05 to LaTeX math."""
+    coefficient, exponent = value.split("e")
+    return rf"${coefficient} \times 10^{{{int(exponent)}}}$"
+
+
+def prepare_d11_top_pathways_table(
+    summary_df: pd.DataFrame,
+    ordered_paths: Sequence[tuple[str, int]],
+    pathway_nominal: dict[str, Sequence[float]],
+    *,
+    top_n: int = 12,
+) -> pd.DataFrame:
+    """Create a table for the same top-N D11 pathways shown in the figure."""
+    selected_paths = select_d11_top_pathways(ordered_paths, pathway_nominal, top_n=top_n)
     table = summary_df.set_index("Pathway").loc[selected_paths].reset_index()
     return pd.DataFrame(
         {
@@ -935,7 +961,7 @@ def prepare_d11_representative_table(summary_df: pd.DataFrame) -> pd.DataFrame:
             ],
             "Successful slabs": table["Slabs"].astype(str),
             "Coverage (%)": table["Coverage (%)"].astype(str),
-            "Mean D11 (N m)": table["Mean D11 (N m)"].astype(str),
+            "Mean D11 (N m)": table["Mean D11 (N m)"].map(_scientific_to_latex),
             "Mean relative uncertainty (%)": table["Mean relative uncertainty (%)"].astype(str),
         }
     )
@@ -944,4 +970,3 @@ def prepare_d11_representative_table(summary_df: pd.DataFrame) -> pd.DataFrame:
 def notebook_latex(df: pd.DataFrame) -> str:
     """Return a compact LaTeX string for notebook display."""
     return df.to_latex(index=False, escape=False)
-

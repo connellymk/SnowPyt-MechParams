@@ -10,7 +10,13 @@ Import pattern in notebooks:
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
+
+os.environ.setdefault(
+    'MPLCONFIGDIR',
+    str(Path(__file__).resolve().parents[1] / '.matplotlib'),
+)
 
 import matplotlib as mpl
 import numpy as np
@@ -22,6 +28,7 @@ from snowpyt_mechparams.models import Pit, Slab
 SINGLE_COL = 3.35   # inches
 DOUBLE_COL = 7.0    # inches
 DPI = 300
+PAPER_FIGURES_DIR = Path(__file__).resolve().parents[2] / 'mech_params_paper' / 'figures'
 
 
 def hess_rcparams() -> None:
@@ -29,6 +36,7 @@ def hess_rcparams() -> None:
     mpl.rcParams['font.family'] = 'sans-serif'
     mpl.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
     mpl.rcParams['figure.dpi'] = DPI
+    mpl.rcParams['savefig.dpi'] = DPI
 
 
 # ── Wong (2011) colorblind-safe palette — density method colours ─────────────

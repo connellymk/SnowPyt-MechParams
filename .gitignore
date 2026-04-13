@@ -118,6 +118,9 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
+
+# Local plotting cache used by paper notebooks
+.matplotlib/
 /site
 
 # mypy

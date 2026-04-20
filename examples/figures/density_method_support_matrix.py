@@ -18,6 +18,7 @@ import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = REPO_ROOT / "src"
+EXAMPLES_DIR = REPO_ROOT / "examples"
 os.environ.setdefault("MPLCONFIGDIR", str(REPO_ROOT / ".matplotlib"))
 
 import matplotlib
@@ -29,8 +30,11 @@ import matplotlib.pyplot as plt
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
+if str(EXAMPLES_DIR) not in sys.path:
+    sys.path.insert(0, str(EXAMPLES_DIR))
 
 from snowpyt_mechparams.constants import HARDNESS_MAPPING
+from notebook_utils import PAPER_FIGURES_DIR
 
 
 METHODS = [
@@ -38,6 +42,10 @@ METHODS = [
     ("kim_jamieson_table2", "Kim and Jamieson Table 2", "#D87745"),
     ("kim_jamieson_table5", "Kim and Jamieson Table 5", "#4E9F50"),
 ]
+
+GRID_COLOR = "#7F7F7F"
+METHOD_GRID_COLOR = "#D0D0D0"
+NOT_SUPPORTED_COLOR = "#FFFFFF"
 
 GRAIN_FORM_ORDER = [
     "PP",
@@ -56,6 +64,24 @@ GRAIN_FORM_ORDER = [
     "MFcr",
     "IF",
 ]
+
+GRAIN_FORM_COUNTS = {
+    "PP": 14958,
+    "PPgp": 2582,
+    "MM": 16,
+    "DF": 29426,
+    "RG": 36017,
+    "RGmx": 0,
+    "RGxf": 6164,
+    "FC": 34628,
+    "FCmx": 0,
+    "FCxr": 27445,
+    "DH": 7064,
+    "SH": 4612,
+    "MF": 6768,
+    "MFcr": 37997,
+    "IF": 5577,
+}
 
 HARDNESS_RANGES = {
     "geldsetzer": {
@@ -111,29 +137,18 @@ def _draw_support_cell(
     y: int,
     supported_methods: list[tuple[str, str, str]],
 ) -> None:
-    """Draw one matrix cell, splitting supported cells by method color."""
-    ax.add_patch(
-        mpatches.Rectangle(
-            (x - 0.5, y - 0.5),
-            1.0,
-            1.0,
-            facecolor="#F1F1F1",
-            edgecolor="white",
-            linewidth=1.2,
-        )
-    )
-    if not supported_methods:
-        return
-
-    segment_width = 1.0 / len(supported_methods)
-    for segment, (_method, _label, color) in enumerate(supported_methods):
+    """Draw one matrix cell as fixed horizontal method bands."""
+    supported_method_names = {method for method, _label, _color in supported_methods}
+    segment_height = 1.0 / len(METHODS)
+    for segment, (method, _label, color) in enumerate(METHODS):
+        facecolor = color if method in supported_method_names else NOT_SUPPORTED_COLOR
         ax.add_patch(
             mpatches.Rectangle(
-                (x - 0.5 + segment * segment_width, y - 0.5),
-                segment_width,
+                (x - 0.5, y - 0.5 + segment * segment_height),
                 1.0,
-                facecolor=color,
-                edgecolor="white",
+                segment_height,
+                facecolor=facecolor,
+                edgecolor=METHOD_GRID_COLOR,
                 linewidth=0.6,
             )
         )
@@ -142,11 +157,28 @@ def _draw_support_cell(
 def build_density_method_support_figure() -> plt.Figure:
     """Build a grain-form by hand-hardness support figure."""
     hardness_items = list(HARDNESS_MAPPING.items())
-    fig, ax = plt.subplots(figsize=(8.8, 6.7))
+    fig, ax = plt.subplots(figsize=(9.2, 6.7))
 
     for y, grain_form in enumerate(GRAIN_FORM_ORDER):
         for x, (_hardness_code, hhi) in enumerate(hardness_items):
             _draw_support_cell(ax, x, y, _supported_methods(grain_form, hhi))
+
+    ax.vlines(
+        np.arange(-0.5, len(hardness_items) + 0.5, 1),
+        -0.5,
+        len(GRAIN_FORM_ORDER) - 0.5,
+        colors=GRID_COLOR,
+        linewidth=0.6,
+        zorder=10,
+    )
+    ax.hlines(
+        np.arange(-0.5, len(GRAIN_FORM_ORDER) + 0.5, 1),
+        -0.5,
+        len(hardness_items) - 0.5,
+        colors=GRID_COLOR,
+        linewidth=0.6,
+        zorder=10,
+    )
 
     ax.set_xlim(-0.5, len(hardness_items) - 0.5)
     ax.set_ylim(len(GRAIN_FORM_ORDER) - 0.5, -0.5)
@@ -158,7 +190,12 @@ def build_density_method_support_figure() -> plt.Figure:
         rotation_mode="anchor",
     )
     ax.set_yticks(np.arange(len(GRAIN_FORM_ORDER)))
-    ax.set_yticklabels(GRAIN_FORM_ORDER)
+    ax.set_yticklabels(
+        [
+            f"{grain_form} (n={GRAIN_FORM_COUNTS[grain_form]:,})"
+            for grain_form in GRAIN_FORM_ORDER
+        ]
+    )
     ax.tick_params(axis="both", length=0, labelsize=8)
     ax.set_xlabel("Hand-hardness")
     ax.set_ylabel("Grain form")
@@ -177,7 +214,11 @@ def build_density_method_support_figure() -> plt.Figure:
         for _method, label, color in METHODS
     ]
     handles.append(
-        mpatches.Patch(facecolor="#F1F1F1", edgecolor="#B8B8B8", label="Not supported"),
+        mpatches.Patch(
+            facecolor=NOT_SUPPORTED_COLOR,
+            edgecolor=GRID_COLOR,
+            label="Not supported",
+        ),
     )
     fig.legend(
         handles=handles,
@@ -187,17 +228,18 @@ def build_density_method_support_figure() -> plt.Figure:
         bbox_to_anchor=(0.54, 0.07),
         fontsize=8,
     )
-    fig.subplots_adjust(left=0.09, right=0.99, top=0.92, bottom=0.20)
+    fig.subplots_adjust(left=0.16, right=0.99, top=0.92, bottom=0.20)
     return fig
 
 
 def main() -> None:
-    """Save the support figure as PNG and PDF in this directory."""
-    output_dir = Path(__file__).resolve().parent
+    """Save the support figure as PNG and PDF in the paper figures directory."""
+    output_dir = PAPER_FIGURES_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
     fig = build_density_method_support_figure()
     for extension in ("png", "pdf"):
         fig.savefig(
-            output_dir / f"density_method_support_matrix.{extension}",
+            output_dir / f"grain_form_hardness_ranges.{extension}",
             dpi=300,
             bbox_inches="tight",
         )

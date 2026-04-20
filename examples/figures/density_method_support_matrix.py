@@ -1,8 +1,7 @@
-"""Create a binary support figure for empirical density methods.
+"""Create a support figure for empirical density methods.
 
-The figure compares which hand-hardness classes and grain forms are supported
-by each implemented empirical density method. It intentionally encodes only
-support versus non-support.
+The figure compares which hand-hardness and grain-form combinations are
+supported by each implemented empirical density method.
 
 Run from the repository root:
 
@@ -27,23 +26,23 @@ matplotlib.use("Agg")
 
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from snowpyt_mechparams.constants import GRAIN_FORM_METHODS, HARDNESS_MAPPING
+from snowpyt_mechparams.constants import HARDNESS_MAPPING
 
 
 METHODS = [
-    ("geldsetzer", "Geldsetzer and\nJamieson"),
-    ("kim_jamieson_table2", "Kim and Jamieson\nTable 2"),
-    ("kim_jamieson_table5", "Kim and Jamieson\nTable 5"),
+    ("geldsetzer", "Geldsetzer and Jamieson", "#3B78A6"),
+    ("kim_jamieson_table2", "Kim and Jamieson Table 2", "#D87745"),
+    ("kim_jamieson_table5", "Kim and Jamieson Table 5", "#4E9F50"),
 ]
 
 GRAIN_FORM_ORDER = [
     "PP",
     "PPgp",
+    "MM",
     "DF",
     "RG",
     "RGmx",
@@ -52,105 +51,143 @@ GRAIN_FORM_ORDER = [
     "FCmx",
     "FCxr",
     "DH",
+    "SH",
     "MF",
     "MFcr",
+    "IF",
 ]
 
+HARDNESS_RANGES = {
+    "geldsetzer": {
+        "PP": (0.67, 4.00),    # F- to P
+        "PPgp": (0.67, 4.00),  # F- to P
+        "DF": (0.67, 4.33),    # F- to P+
+        "RG": (1.00, 5.33),    # F to K+
+        "RGmx": (0.67, 4.33),  # F- to P+
+        "FC": (0.67, 4.67),    # F- to K-
+        "FCmx": (1.00, 5.33),  # F to K+
+        "DH": (1.00, 5.00),    # F to K
+    },
+    "kim_jamieson_table2": {
+        "PP": (0.67, 4.00),    # F- to P
+        "PPgp": (0.67, 4.00),  # F- to P
+        "DF": (0.67, 4.67),    # F- to K-
+        "RG": (0.67, 5.33),    # F- to K+
+        "RGmx": (0.67, 4.33),  # F- to P+
+        "RGxf": (0.67, 4.33),  # F- to P+
+        "FC": (0.67, 5.00),    # F- to K
+        "FCmx": (0.67, 5.33),  # F- to K+
+        "FCxr": (0.67, 5.33),  # F- to K+
+        "DH": (1.00, 5.00),    # F to K
+        "MFcr": (2.00, 5.33),  # 4F to K+
+    },
+    "kim_jamieson_table5": {
+        "FC": (1.67, 4.00),    # 4F- to P
+        "FCxr": (2.33, 4.33),  # 4F+ to P+
+        "PP": (0.67, 2.00),    # F- to 4F
+        "PPgp": (1.00, 3.33),  # F to 1F+
+        "DF": (1.00, 3.00),    # F to 1F
+        "MF": (2.33, 4.33),    # 4F+ to P+
+    },
+}
 
-def _support_matrix(labels: list[str], supported_by_method: dict[str, set[str]]) -> np.ndarray:
-    """Return a binary method-by-label support matrix."""
-    return np.array(
-        [
-            [label in supported_by_method[method] for label in labels]
-            for method, _method_label in METHODS
-        ],
-        dtype=int,
-    )
+
+def _supported_methods(grain_form: str, hhi: float) -> list[tuple[str, str, str]]:
+    """Return density methods supporting a grain-form/HHI combination."""
+    supported = []
+    for method, label, color in METHODS:
+        method_ranges = HARDNESS_RANGES[method]
+        if grain_form not in method_ranges:
+            continue
+        min_hhi, max_hhi = method_ranges[grain_form]
+        if min_hhi <= hhi <= max_hhi:
+            supported.append((method, label, color))
+    return supported
 
 
-def _density_method_grain_forms() -> dict[str, set[str]]:
-    """Collect supported basic and sub-grain forms for each density method."""
-    return {
-        method: set(codes["basic_grain_class"]) | set(codes["sub_grain_class"])
-        for method, codes in GRAIN_FORM_METHODS.items()
-    }
-
-
-def _draw_matrix(
+def _draw_support_cell(
     ax: plt.Axes,
-    matrix: np.ndarray,
-    column_labels: list[str],
-    panel_label: str,
-    *,
-    show_y_labels: bool,
+    x: int,
+    y: int,
+    supported_methods: list[tuple[str, str, str]],
 ) -> None:
-    """Draw a compact binary support matrix."""
-    cmap = ListedColormap(["#F1F1F1", "#3F7F8F"])
-    ax.imshow(matrix, cmap=cmap, vmin=0, vmax=1, aspect="auto")
+    """Draw one matrix cell, splitting supported cells by method color."""
+    ax.add_patch(
+        mpatches.Rectangle(
+            (x - 0.5, y - 0.5),
+            1.0,
+            1.0,
+            facecolor="#F1F1F1",
+            edgecolor="white",
+            linewidth=1.2,
+        )
+    )
+    if not supported_methods:
+        return
 
-    ax.set_xticks(np.arange(len(column_labels)))
-    ax.set_xticklabels(column_labels, rotation=0, ha="center")
-    ax.set_yticks(np.arange(len(METHODS)))
-    ax.set_yticklabels([label for _method, label in METHODS] if show_y_labels else [])
+    segment_width = 1.0 / len(supported_methods)
+    for segment, (_method, _label, color) in enumerate(supported_methods):
+        ax.add_patch(
+            mpatches.Rectangle(
+                (x - 0.5 + segment * segment_width, y - 0.5),
+                segment_width,
+                1.0,
+                facecolor=color,
+                edgecolor="white",
+                linewidth=0.6,
+            )
+        )
+
+
+def build_density_method_support_figure() -> plt.Figure:
+    """Build a grain-form by hand-hardness support figure."""
+    hardness_items = list(HARDNESS_MAPPING.items())
+    fig, ax = plt.subplots(figsize=(8.8, 6.7))
+
+    for y, grain_form in enumerate(GRAIN_FORM_ORDER):
+        for x, (_hardness_code, hhi) in enumerate(hardness_items):
+            _draw_support_cell(ax, x, y, _supported_methods(grain_form, hhi))
+
+    ax.set_xlim(-0.5, len(hardness_items) - 0.5)
+    ax.set_ylim(len(GRAIN_FORM_ORDER) - 0.5, -0.5)
+    ax.set_xticks(np.arange(len(hardness_items)))
+    ax.set_xticklabels(
+        [code for code, _hhi in hardness_items],
+        rotation=45,
+        ha="right",
+        rotation_mode="anchor",
+    )
+    ax.set_yticks(np.arange(len(GRAIN_FORM_ORDER)))
+    ax.set_yticklabels(GRAIN_FORM_ORDER)
     ax.tick_params(axis="both", length=0, labelsize=8)
-    ax.set_title(panel_label, loc="left", fontsize=10, fontweight="bold", pad=8)
-
-    ax.set_xticks(np.arange(-0.5, len(column_labels), 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, len(METHODS), 1), minor=True)
-    ax.grid(which="minor", color="white", linewidth=1.4)
-    ax.tick_params(which="minor", bottom=False, left=False)
+    ax.set_xlabel("Hand-hardness")
+    ax.set_ylabel("Grain form")
+    ax.set_title(
+        "Density method support by hand hardness and grain form",
+        loc="left",
+        fontsize=10,
+        fontweight="bold",
+    )
 
     for spine in ax.spines.values():
         spine.set_visible(False)
 
-
-def build_density_method_support_figure() -> plt.Figure:
-    """Build the two-panel density-method support figure."""
-    hardness_labels = list(HARDNESS_MAPPING)
-    hardness_support = {
-        method: set(hardness_labels)
-        for method, _method_label in METHODS
-    }
-    grain_form_support = _density_method_grain_forms()
-
-    hardness_matrix = _support_matrix(hardness_labels, hardness_support)
-    grain_form_matrix = _support_matrix(GRAIN_FORM_ORDER, grain_form_support)
-
-    fig, axes = plt.subplots(
-        2,
-        1,
-        figsize=(7.2, 3.7),
-        gridspec_kw={"height_ratios": [1.0, 1.0], "hspace": 0.58},
-    )
-
-    _draw_matrix(
-        axes[0],
-        hardness_matrix,
-        hardness_labels,
-        "a) Supported hand-hardness classes",
-        show_y_labels=True,
-    )
-    _draw_matrix(
-        axes[1],
-        grain_form_matrix,
-        GRAIN_FORM_ORDER,
-        "b) Supported grain forms",
-        show_y_labels=True,
-    )
-
     handles = [
-        mpatches.Patch(facecolor="#3F7F8F", label="Supported"),
-        mpatches.Patch(facecolor="#F1F1F1", edgecolor="#B8B8B8", label="Not supported"),
+        mpatches.Patch(facecolor=color, label=label)
+        for _method, label, color in METHODS
     ]
+    handles.append(
+        mpatches.Patch(facecolor="#F1F1F1", edgecolor="#B8B8B8", label="Not supported"),
+    )
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=2,
+        ncol=4,
         frameon=False,
-        bbox_to_anchor=(0.54, -0.02),
+        bbox_to_anchor=(0.54, 0.07),
         fontsize=8,
     )
-    fig.subplots_adjust(left=0.20, right=0.98, top=0.92, bottom=0.18)
+    fig.subplots_adjust(left=0.09, right=0.99, top=0.92, bottom=0.20)
     return fig
 
 

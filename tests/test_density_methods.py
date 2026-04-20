@@ -216,23 +216,43 @@ class TestKimJamiesonTable2Numerical:
         assert math.isnan(result.nominal_value)
 
     def test_unsupported_hand_hardness_returns_nan(self):
-        """FC is only supported from F+ to P in Kim & Jamieson Table 2."""
+        """PP is only supported from F- to P in Kim & Jamieson Table 3."""
         result = calculate_density(
             "kim_jamieson_table2",
-            hand_hardness_index=ufloat(1.0, 0.0),
-            grain_form="FC",
+            hand_hardness_index=ufloat(4.33, 0.0),
+            grain_form="PP",
         )
         assert math.isnan(result.nominal_value)
 
     def test_supported_hand_hardness_boundary_is_inclusive(self):
-        """PP at 4F hardness is still supported."""
+        """PP at P hardness is still supported."""
         result = calculate_density(
             "kim_jamieson_table2",
-            hand_hardness_index=ufloat(2.0, 0.0),
+            hand_hardness_index=ufloat(4.0, 0.0),
             grain_form="PP",
             include_method_uncertainty=False,
         )
-        assert result.nominal_value == pytest.approx(41.3 + 40.3 * 2.0, abs=0.01)
+        assert result.nominal_value == pytest.approx(41.3 + 40.3 * 4.0, abs=0.01)
+
+    def test_RGmx_linear(self):
+        """RGmx uses the Kim & Jamieson mixed rounded-grain coefficients."""
+        result = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(4.33, 0.0),
+            grain_form="RGmx",
+            include_method_uncertainty=False,
+        )
+        assert result.nominal_value == pytest.approx(85.0 + 46.3 * 4.33, abs=0.01)
+
+    def test_FCmx_linear(self):
+        """FCmx uses the Kim & Jamieson mixed faceted-crystal coefficients."""
+        result = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(5.33, 0.0),
+            grain_form="FCmx",
+            include_method_uncertainty=False,
+        )
+        assert result.nominal_value == pytest.approx(68.8 + 58.6 * 5.33, abs=0.01)
 
 
 # ---------------------------------------------------------------------------

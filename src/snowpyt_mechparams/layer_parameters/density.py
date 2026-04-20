@@ -211,18 +211,17 @@ def _calculate_density_kim_jamieson_table2(
         applied. Obtain via ``Layer.hand_hardness_index``.
     grain_form : str
         Grain form classification. Supported values:
-        - 'PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG'
-        Supported hand-hardness ranges by grain form, from Table 2
-        10th-90th percentile hardness ranges:
-        - PP: F- to 4F
-        - PPgp: F to 1F+
-        - DF: F to 1F
-        - RGxf: F to P
-        - FC: F+ to P
-        - FCxr: 4F+ to P+
-        - DH: F to P
-        - MFcr: 1F+ to K
-        - RG: 4F+ to P+
+        - 'PP', 'PPgp', 'DF', 'RG', 'RGmx', 'RGxf', 'FC', 'FCmx',
+          'FCxr', 'DH', 'MFcr'
+        Supported hand-hardness ranges by grain form, from Table 3:
+        - PP, PPgp: F- to P
+        - DF: F- to K-
+        - RG: F- to K+
+        - RGmx/RGxf: F- to P+
+        - FC: F- to K
+        - FCmx/FCxr: F- to K+
+        - DH: F to K
+        - MFcr: 4F to K+
 
     Returns
     -------
@@ -252,7 +251,10 @@ def _calculate_density_kim_jamieson_table2(
     2014 Proceedings, Banff, Canada, 2014 pp.540-547.
     """
     # Validate grain form
-    valid_grain_forms = ['PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG']
+    valid_grain_forms = [
+        'PP', 'PPgp', 'DF', 'RG', 'RGmx', 'RGxf', 'FC', 'FCmx', 'FCxr',
+        'DH', 'MFcr',
+    ]
     if grain_form not in valid_grain_forms:
         logger.debug("_calculate_density_kim_jamieson_table2: unsupported grain_form=%r", grain_form)
         return ufloat(np.nan, np.nan)
@@ -262,18 +264,20 @@ def _calculate_density_kim_jamieson_table2(
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)
 
-    # Supported hand-hardness ranges are the 10th-90th percentile ranges
-    # reported in Kim and Jamieson (2014) Table 2.
+    # Supported hand-hardness ranges are based on the non-blank calculated
+    # density values in Kim and Jamieson (2014) Table 3.
     hardness_ranges = {
-        'PP': (0.67, 2.00),    # F- to 4F
-        'PPgp': (1.00, 3.33),  # F to 1F+
-        'DF': (1.00, 3.00),    # F to 1F
-        'RGxf': (1.00, 4.00),  # F to P
-        'FC': (1.33, 4.00),    # F+ to P
-        'FCxr': (2.33, 4.33),  # 4F+ to P+
-        'DH': (1.00, 4.00),    # F to P
-        'MFcr': (3.33, 5.00),  # 1F+ to K
-        'RG': (2.33, 4.33),    # 4F+ to P+
+        'PP': (0.67, 4.00),    # F- to P
+        'PPgp': (0.67, 4.00),  # F- to P
+        'DF': (0.67, 4.67),    # F- to K-
+        'RG': (0.67, 5.33),    # F- to K+
+        'RGmx': (0.67, 4.33),  # F- to P+
+        'RGxf': (0.67, 4.33),  # F- to P+
+        'FC': (0.67, 5.00),    # F- to K
+        'FCmx': (0.67, 5.33),  # F- to K+
+        'FCxr': (0.67, 5.33),  # F- to K+
+        'DH': (1.00, 5.00),    # F to K
+        'MFcr': (2.00, 5.33),  # 4F to K+
     }
     min_hhi, max_hhi = hardness_ranges[grain_form]
     if not min_hhi <= h.nominal_value <= max_hhi:
@@ -296,8 +300,10 @@ def _calculate_density_kim_jamieson_table2(
         'PP': {'A': 41.3, 'B': 40.3, 'SE': 27.0, 'formula': 'linear'},
         'PPgp': {'A': 61.8, 'B': 46.4, 'SE': 43.0, 'formula': 'linear'},
         'DF': {'A': 62.5, 'B': 37.4, 'SE': 31.0, 'formula': 'linear'},
+        'RGmx': {'A': 85.0, 'B': 46.3, 'SE': 40.0, 'formula': 'linear'},
         'RGxf': {'A': 85.0, 'B': 46.3, 'SE': 40.0, 'formula': 'linear'},
         'FC': {'A': 103, 'B': 50.6, 'SE': 47.0, 'formula': 'linear'},
+        'FCmx': {'A': 68.8, 'B': 58.6, 'SE': 46.0, 'formula': 'linear'},
         'FCxr': {'A': 68.8, 'B': 58.6, 'SE': 46.0, 'formula': 'linear'},
         'DH': {'A': 214.0, 'B': 19.0, 'SE': 48.0, 'formula': 'linear'},
         'MFcr': {'A': 235, 'B': 15.1, 'SE': 58.0, 'formula': 'linear'},

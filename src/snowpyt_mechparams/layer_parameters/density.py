@@ -91,6 +91,13 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     grain_form : str
         Grain form classification. Supported values:
         - 'PP', 'PPgp', 'DF', 'RG', 'RGmx', 'FC', 'FCmx', 'DH'
+        Supported hand-hardness ranges by grain form:
+        - PP, PPgp: F- to P
+        - DF, RGmx: F- to P+
+        - RG: F to K+
+        - FC: F- to K-
+        - FCmx: F to K+
+        - DH: F to K
 
     Returns
     -------
@@ -133,6 +140,22 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
         logger.debug("_calculate_density_geldsetzer: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)
+
+    # Supported hand-hardness ranges are based on the non-blank calculated
+    # density values in Geldsetzer and Jamieson (2000) Table 4.
+    hardness_ranges = {
+        'PP': (0.67, 4.00),    # F- to P
+        'PPgp': (0.67, 4.00),  # F- to P
+        'DF': (0.67, 4.33),    # F- to P+
+        'RG': (1.00, 5.33),    # F to K+
+        'RGmx': (0.67, 4.33),  # F- to P+
+        'FC': (0.67, 4.67),    # F- to K-
+        'FCmx': (1.00, 5.33),  # F to K+
+        'DH': (1.00, 5.00),    # F to K
+    }
+    min_hhi, max_hhi = hardness_ranges[grain_form]
+    if not min_hhi <= h.nominal_value <= max_hhi:
+        return ufloat(np.nan, np.nan)
 
     # Table 3: Linear regressions of density on hardness index h by groups
     # of grain types. From Geldsetzer and Jamieson (2000).
@@ -189,6 +212,17 @@ def _calculate_density_kim_jamieson_table2(
     grain_form : str
         Grain form classification. Supported values:
         - 'PP', 'PPgp', 'DF', 'RGxf', 'FC', 'FCxr', 'DH', 'MFcr', 'RG'
+        Supported hand-hardness ranges by grain form, from Table 2
+        10th-90th percentile hardness ranges:
+        - PP: F- to 4F
+        - PPgp: F to 1F+
+        - DF: F to 1F
+        - RGxf: F to P
+        - FC: F+ to P
+        - FCxr: 4F+ to P+
+        - DH: F to P
+        - MFcr: 1F+ to K
+        - RG: 4F+ to P+
 
     Returns
     -------
@@ -227,6 +261,23 @@ def _calculate_density_kim_jamieson_table2(
         logger.debug("_calculate_density_kim_jamieson_table2: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)
+
+    # Supported hand-hardness ranges are the 10th-90th percentile ranges
+    # reported in Kim and Jamieson (2014) Table 2.
+    hardness_ranges = {
+        'PP': (0.67, 2.00),    # F- to 4F
+        'PPgp': (1.00, 3.33),  # F to 1F+
+        'DF': (1.00, 3.00),    # F to 1F
+        'RGxf': (1.00, 4.00),  # F to P
+        'FC': (1.33, 4.00),    # F+ to P
+        'FCxr': (2.33, 4.33),  # 4F+ to P+
+        'DH': (1.00, 4.00),    # F to P
+        'MFcr': (3.33, 5.00),  # 1F+ to K
+        'RG': (2.33, 4.33),    # 4F+ to P+
+    }
+    min_hhi, max_hhi = hardness_ranges[grain_form]
+    if not min_hhi <= h.nominal_value <= max_hhi:
+        return ufloat(np.nan, np.nan)
 
     # Table 2: Linear regressions of density on hand hardness index by
     # grain types (Equation 1), except for a non-linear regression for RG (Equation 2)
@@ -300,6 +351,14 @@ def _calculate_density_kim_jamieson_table5(
     grain_form : str
         Grain form classification. Supported values:
         - 'FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF'
+        Supported hand-hardness ranges by grain form, from Table 6
+        10th-90th percentile hardness ranges:
+        - FC: 4F- to P
+        - FCxr: 4F+ to P+
+        - PP: F- to 4F
+        - PPgp: F to 1F+
+        - DF: F to 1F
+        - MF: 4F+ to P+
     grain_size : UncertainValue
         Grain size in mm with measurement uncertainty already applied
         (``ufloat(gs, U_GRAIN_SIZE)``). Obtain via ``Layer.grain_size_avg``.
@@ -332,6 +391,21 @@ def _calculate_density_kim_jamieson_table5(
         logger.debug("_calculate_density_kim_jamieson_table5: hand_hardness_index is None")
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)
+
+    # Supported hand-hardness ranges are the 10th-90th percentile ranges
+    # reported in Kim and Jamieson (2014) Table 6 for Equation 5.
+    hardness_ranges = {
+        'FC': (1.67, 4.00),    # 4F- to P
+        'FCxr': (2.33, 4.33),  # 4F+ to P+
+        'PP': (0.67, 2.00),    # F- to 4F
+        'PPgp': (1.00, 3.33),  # F to 1F+
+        'DF': (1.00, 3.00),    # F to 1F
+        'MF': (2.33, 4.33),    # 4F+ to P+
+    }
+    min_hhi, max_hhi = hardness_ranges[grain_form]
+    if not min_hhi <= h.nominal_value <= max_hhi:
+        return ufloat(np.nan, np.nan)
+
     gs = _to_ufloat(grain_size)
 
     # Table 6: Significant multivariable linear regression of density on hardness index

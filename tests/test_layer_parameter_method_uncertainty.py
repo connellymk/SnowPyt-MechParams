@@ -33,9 +33,11 @@ from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_mo
 # Hand hardness index values (from HARDNESS_MAPPING in constants.py)
 # "F" -> 1.0, "1F" -> 3.0, with standard uncertainty ±0.67
 HHI_F = ufloat(1.0, 0.67)    # Fist
+HHI_4F = ufloat(2.0, 0.67)   # Four Fingers
 HHI_1F = ufloat(3.0, 0.67)   # One Finger
 # Exact (zero uncertainty) variants for isolating method uncertainty
 HHI_F_EXACT = ufloat(1.0, 0.0)
+HHI_4F_EXACT = ufloat(2.0, 0.0)
 HHI_1F_EXACT = ufloat(3.0, 0.0)
 
 # Grain size with standard uncertainty
@@ -106,26 +108,26 @@ class TestDensityMethodUncertainty:
         result = calculate_density(
             "kim_jamieson_table2",
             include_method_uncertainty=False,
-            hand_hardness_index=HHI_F_EXACT,
+            hand_hardness_index=HHI_4F_EXACT,
             grain_form="FC",
         )
         assert _std(result) == 0.0
 
     def test_kim_jamieson_table2_nominal_value_unchanged(self):
         on = calculate_density(
-            "kim_jamieson_table2", hand_hardness_index=HHI_F, grain_form="FC"
+            "kim_jamieson_table2", hand_hardness_index=HHI_4F, grain_form="FC"
         )
         off = calculate_density(
             "kim_jamieson_table2",
             include_method_uncertainty=False,
-            hand_hardness_index=HHI_F,
+            hand_hardness_index=HHI_4F,
             grain_form="FC",
         )
         assert _nominal(on) == pytest.approx(_nominal(off))
 
     def test_kim_jamieson_table2_true_has_nonzero_uncertainty(self):
         result = calculate_density(
-            "kim_jamieson_table2", hand_hardness_index=HHI_F, grain_form="FC"
+            "kim_jamieson_table2", hand_hardness_index=HHI_4F, grain_form="FC"
         )
         assert _std(result) > 0
 
@@ -135,7 +137,7 @@ class TestDensityMethodUncertainty:
         result = calculate_density(
             "kim_jamieson_table5",
             include_method_uncertainty=False,
-            hand_hardness_index=HHI_F_EXACT,
+            hand_hardness_index=HHI_4F_EXACT,
             grain_form="FC",
             grain_size=GS_1MM_EXACT,
         )
@@ -144,14 +146,14 @@ class TestDensityMethodUncertainty:
     def test_kim_jamieson_table5_nominal_value_unchanged(self):
         on = calculate_density(
             "kim_jamieson_table5",
-            hand_hardness_index=HHI_F,
+            hand_hardness_index=HHI_4F,
             grain_form="FC",
             grain_size=GS_1MM,
         )
         off = calculate_density(
             "kim_jamieson_table5",
             include_method_uncertainty=False,
-            hand_hardness_index=HHI_F,
+            hand_hardness_index=HHI_4F,
             grain_form="FC",
             grain_size=GS_1MM,
         )
@@ -160,7 +162,7 @@ class TestDensityMethodUncertainty:
     def test_kim_jamieson_table5_true_has_nonzero_uncertainty(self):
         result = calculate_density(
             "kim_jamieson_table5",
-            hand_hardness_index=HHI_F,
+            hand_hardness_index=HHI_4F,
             grain_form="FC",
             grain_size=GS_1MM,
         )

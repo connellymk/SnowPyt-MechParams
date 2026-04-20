@@ -15,7 +15,7 @@ def create_large_slab(n_layers: int = 100) -> Slab:
             depth_top=i * 10,
             thickness=ufloat(10, 0.5),
             hand_hardness="4F",
-            grain_form="RG",
+            grain_form="FC",
             density_measured=ufloat(250, 10) if i % 10 == 0 else None  # Sparse measured data
         )
         layers.append(layer)

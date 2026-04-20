@@ -83,6 +83,25 @@ class TestGeldsetzerNumerical:
         )
         assert math.isnan(result.nominal_value)
 
+    def test_unsupported_hand_hardness_returns_nan(self):
+        """PP is only supported from F- to P in Geldsetzer Table 4."""
+        result = calculate_density(
+            "geldsetzer",
+            hand_hardness_index=ufloat(5.0, 0.0),
+            grain_form="PP",
+        )
+        assert math.isnan(result.nominal_value)
+
+    def test_supported_hand_hardness_boundary_is_inclusive(self):
+        """PP at P hardness is still supported."""
+        result = calculate_density(
+            "geldsetzer",
+            hand_hardness_index=ufloat(4.0, 0.0),
+            grain_form="PP",
+            include_method_uncertainty=False,
+        )
+        assert result.nominal_value == pytest.approx(189.0, abs=0.01)
+
     def test_method_uncertainty_adds_SE(self):
         """SE for FC is 43 kg/m³; with exact inputs, std_dev should equal SE."""
         result = calculate_density(
@@ -136,8 +155,8 @@ class TestKimJamiesonTable2Numerical:
         assert result.nominal_value == pytest.approx(214.0 + 19.0 * 1.0, abs=0.01)
 
     def test_RG_nonlinear(self):
-        """RG: rho = 91.8 * e^(0.270*h).  h=2.0 => 91.8*e^0.54."""
-        h = 2.0
+        """RG: rho = 91.8 * e^(0.270*h).  h=3.0 => 91.8*e^0.81."""
+        h = 3.0
         expected = 91.8 * math.e ** (0.270 * h)
         result = calculate_density(
             "kim_jamieson_table2",
@@ -150,11 +169,11 @@ class TestKimJamiesonTable2Numerical:
     def test_RG_method_uncertainty_propagated_through_exponent(self):
         """RG SE=0.2 is the SE of coefficient B (not a density SE).
 
-        With include_method_uncertainty=True and exact input (h=2, std=0),
+        With include_method_uncertainty=True and exact input (h=3, std=0),
         the only source of uncertainty is B=0.270±0.2. The density uncertainty
-        should be rho * h * sigma_B = 91.8*e^(0.54) * 2 * 0.2 ≈ 63 kg/m³.
+        should be rho * h * sigma_B = 91.8*e^(0.81) * 3 * 0.2.
         """
-        h = 2.0
+        h = 3.0
         result_with = calculate_density(
             "kim_jamieson_table2",
             hand_hardness_index=ufloat(h, 0.0),
@@ -195,6 +214,25 @@ class TestKimJamiesonTable2Numerical:
             grain_form="SH",
         )
         assert math.isnan(result.nominal_value)
+
+    def test_unsupported_hand_hardness_returns_nan(self):
+        """FC is only supported from F+ to P in Kim & Jamieson Table 2."""
+        result = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(1.0, 0.0),
+            grain_form="FC",
+        )
+        assert math.isnan(result.nominal_value)
+
+    def test_supported_hand_hardness_boundary_is_inclusive(self):
+        """PP at 4F hardness is still supported."""
+        result = calculate_density(
+            "kim_jamieson_table2",
+            hand_hardness_index=ufloat(2.0, 0.0),
+            grain_form="PP",
+            include_method_uncertainty=False,
+        )
+        assert result.nominal_value == pytest.approx(41.3 + 40.3 * 2.0, abs=0.01)
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +278,28 @@ class TestKimJamiesonTable5Numerical:
             grain_size=ufloat(1.0, 0.0),
         )
         assert math.isnan(result.nominal_value)
+
+    def test_unsupported_hand_hardness_returns_nan(self):
+        """FC is only supported from 4F- to P in Kim & Jamieson Table 6."""
+        result = calculate_density(
+            "kim_jamieson_table5",
+            hand_hardness_index=ufloat(1.0, 0.0),
+            grain_form="FC",
+            grain_size=ufloat(1.0, 0.0),
+        )
+        assert math.isnan(result.nominal_value)
+
+    def test_supported_hand_hardness_boundary_is_inclusive(self):
+        """PP at 4F hardness is still supported."""
+        result = calculate_density(
+            "kim_jamieson_table5",
+            hand_hardness_index=ufloat(2.0, 0.0),
+            grain_form="PP",
+            grain_size=ufloat(2.0, 0.0),
+            include_method_uncertainty=False,
+        )
+        expected = 40.0 * 2.0 + (-7.33) * 2.0 + 52.8
+        assert result.nominal_value == pytest.approx(expected, abs=0.01)
 
 
 # ---------------------------------------------------------------------------

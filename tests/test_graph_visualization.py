@@ -6,6 +6,8 @@ import pytest
 from snowpyt_mechparams.graph.structures import GraphBuilder, Node
 from snowpyt_mechparams.graph.visualize import (
     generate_mermaid_diagram,
+    generate_mermaid_full_detail,
+    generate_mermaid_stability_detail,
     _classify_node,
     _sanitize_node_id,
     _get_node_label,
@@ -171,6 +173,28 @@ def test_generate_mermaid_complete_graph():
     assert "```mermaid" in diagram
     assert "graph TB" in diagram
     assert "classDef" in diagram
+
+
+def test_generate_mermaid_stability_detail_uses_slab_weight_graph():
+    """Slab-weight detail should reflect the canonical graph, not old criteria."""
+    diagram = generate_mermaid_stability_detail()
+
+    assert "slab_weight_with_elasticity" in diagram
+    assert "merge_slab_weight_shear_elasticity" in diagram
+    assert "measured_slope_angle" in diagram
+    assert "merge_weac_inputs" not in diagram
+    assert "merge_roch_inputs" not in diagram
+    assert "weak_layer_info" not in diagram
+
+
+def test_generate_mermaid_full_detail_groups_slab_weight_branch():
+    """Full detail should derive readable slab-weight groups from the graph."""
+    diagram = generate_mermaid_full_detail()
+
+    assert 'subgraph WEIGHT_MERGES["Slab Weight Merge Nodes"]' in diagram
+    assert 'subgraph WEIGHT["Slab Weight Pathways"]' in diagram
+    assert "slab_weight_shear" in diagram
+    assert "merge_slab_weight_slope_angle" in diagram
 
 
 if __name__ == "__main__":

@@ -6,12 +6,13 @@ the parameterization graph to actual calculation function implementations.
 """
 
 import inspect
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from uncertainties import ufloat
+from uncertainties import ufloat, umath
 
 from snowpyt_mechparams.constants import resolve_grain_form_for_method
 from snowpyt_mechparams.models import Layer, Slab, UncertainValue
@@ -23,13 +24,11 @@ from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A
 from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
 from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
 from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
-from snowpyt_mechparams.stability_criteria.weac import calculate_weac_skier
-from snowpyt_mechparams.stability_criteria.roch import calculate_roch
 from snowpyt_mechparams.constants import g
 
 
 class ParameterLevel(Enum):
-    """Whether a parameter is computed per-layer, per-slab, as a weak-layer constant, or as a stability criterion result."""
+    """Whether a parameter is computed per-layer, per-slab, or by a legacy graph level."""
     LAYER = "layer"
     SLAB = "slab"
     WEAK_LAYER = "weak_layer"
@@ -189,6 +188,46 @@ def _get_layer_input(
             return ufloat(float(value), 0.0)
 
     return value
+
+
+def _calculate_slab_weight(slab: Slab) -> Optional[UncertainValue]:
+    """Return slab weight per unit area from layer densities and thicknesses."""
+    total = None
+    for layer in slab.layers:
+        density = _resolve_density(layer)
+        if density is None or layer.thickness is None:
+            return None
+        layer_weight = density * (layer.thickness / 100.0) * g
+        total = layer_weight if total is None else total + layer_weight
+    return total
+
+
+def _calculate_slab_weight_shear(slab: Slab) -> Optional[UncertainValue]:
+    """Project slab weight onto the slope-parallel direction."""
+    slab_weight = getattr(slab, "slab_weight", None)
+    if slab_weight is None:
+        slab_weight = _calculate_slab_weight(slab)
+    if slab_weight is None or slab.angle is None:
+        return None
+    return slab_weight * umath.sin(slab.angle * math.pi / 180.0)
+
+
+def _calculate_slab_weight_with_elasticity(slab: Slab) -> Optional[UncertainValue]:
+    """
+    Return slope-parallel slab weight when all elastic layer inputs are present.
+
+    The value remains W_s; the target records that density, thickness, slope
+    angle, elastic modulus, and Poisson's ratio are all available along the
+    pathway.
+    """
+    if not all(layer.elastic_modulus is not None for layer in slab.layers):
+        return None
+    if not all(layer.poissons_ratio is not None for layer in slab.layers):
+        return None
+    slab_weight_shear = getattr(slab, "slab_weight_shear", None)
+    if slab_weight_shear is None:
+        slab_weight_shear = _calculate_slab_weight_shear(slab)
+    return slab_weight_shear
 
 
 class MethodDispatcher:
@@ -411,29 +450,31 @@ class MethodDispatcher:
             optional_inputs={}
         ))
 
-        # === Stability criterion methods (stability-level) ===
+        # === Slab weight coverage targets (slab-level) ===
 
-        # g_delta - WEAC coupled anticrack nucleation criterion (Weißgraeber & Rosendahl 2023)
-        # Requires weac to be installed: pip install snowpyt-mechparams[weac]
         self._register(MethodSpec(
-            parameter="g_delta",
-            method_name="weac_skier",
-            level=ParameterLevel.STABILITY,
-            function=lambda slab, **kwargs: calculate_weac_skier(slab, **kwargs),
+            parameter="slab_weight",
+            method_name="sum_layer_weight",
+            level=ParameterLevel.SLAB,
+            function=lambda slab: _calculate_slab_weight(slab),
             required_inputs=["slab"],
             optional_inputs={}
         ))
 
-        # s_r - Roch (1966) natural stability index: S_r = τ_c / τ
-        # τ_c (weak-layer shear strength) is not currently computed from pit observations —
-        # it is represented by the weak_layer_info* placeholder, which has no method edges.
-        # The graph therefore produces 0 pathways to s_r. This entry is retained so that
-        # the dispatcher-graph consistency test passes; the function always returns None.
         self._register(MethodSpec(
-            parameter="s_r",
-            method_name="roch_natural",
-            level=ParameterLevel.STABILITY,
-            function=lambda slab: None,
+            parameter="slab_weight_shear",
+            method_name="slope_parallel_component",
+            level=ParameterLevel.SLAB,
+            function=lambda slab: _calculate_slab_weight_shear(slab),
+            required_inputs=["slab"],
+            optional_inputs={}
+        ))
+
+        self._register(MethodSpec(
+            parameter="slab_weight_with_elasticity",
+            method_name="combine_shear_weight_and_elasticity",
+            level=ParameterLevel.SLAB,
+            function=lambda slab: _calculate_slab_weight_with_elasticity(slab),
             required_inputs=["slab"],
             optional_inputs={}
         ))
@@ -520,15 +561,14 @@ class MethodDispatcher:
                 return None, "Layer required for layer-level method"
             inputs = self._gather_layer_inputs(layer, spec)
         elif spec.level == ParameterLevel.WEAK_LAYER:
-            # Weak-layer methods are constant reference values; slab is passed
-            # for API consistency but is not used by the function.
+            # Legacy hook retained for downstream extensions.
             if slab is None:
                 return None, "Slab required for weak-layer method"
             inputs = {"slab": slab}
         else:
-            # SLAB and STABILITY levels both receive the full slab.
+            # Slab-level methods receive the full slab.
             if slab is None:
-                return None, "Slab required for slab-level / stability method"
+                return None, "Slab required for slab-level method"
             inputs = {"slab": slab}
 
         if inputs is None:

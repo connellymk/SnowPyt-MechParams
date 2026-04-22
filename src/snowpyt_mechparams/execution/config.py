@@ -26,12 +26,8 @@ class ExecutionConfig:
         uncertainties propagate; the method's own standard error is suppressed.
         Default: True
     weac_timeout_seconds : Optional[float]
-        Per-slab wall-clock time limit (seconds) for the WEAC coupled criterion
-        solver.  If the solver does not finish within this budget the slab is
-        treated as a pathway failure and excluded from results.  Only effective
-        on POSIX systems (macOS / Linux); silently ignored on Windows.
-        ``None`` (default) disables the timeout.  A value of ``5.0`` is a
-        reasonable default for large batch runs over real-world datasets.
+        Deprecated compatibility field. The parameter graph no longer exposes
+        WEAC criterion execution targets, so this value is currently unused.
 
     Examples
     --------
@@ -51,11 +47,6 @@ class ExecutionConfig:
 
     >>> config = ExecutionConfig(include_method_uncertainty=False)
     >>> results = engine.execute_all(slab, "density", config=config)
-
-    With per-slab timeout for large batch runs:
-
-    >>> config = ExecutionConfig(include_method_uncertainty=False, weac_timeout_seconds=5.0)
-    >>> results = engine.execute_all(slab, "g_delta", config=config)
 
     Notes
     -----

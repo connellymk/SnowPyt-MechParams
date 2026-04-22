@@ -4,7 +4,6 @@
 graph LR
 
     measured_layer_thickness[layer thickness]
-    density[ρ (density)]
     elastic_modulus[E (elastic modulus)]
     poissons_ratio[ν (Poisson's ratio)]
     shear_modulus[G (shear modulus)]
@@ -39,6 +38,6 @@ graph LR
     
     class measured_layer_thickness measuredNode
     class merge_E_nu,merge_hi_G,merge_hi_E_nu mergeNode
-    class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
+    class elastic_modulus,poissons_ratio,shear_modulus layerCalc
     class A11,B11,D11,A55 slabCalc
 ```

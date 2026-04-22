@@ -23,8 +23,8 @@ slab
     layer params → A11 / B11 / D11 / A55, with merge nodes.
 
 stability
-    Detailed flowchart for weak-layer parameters and stability criteria:
-    measured inputs → fracture/strength params → g_Δ / S_r.
+    Detailed flowchart for slab weight pathways:
+    density + thickness → W, W + slope → W_s, W_s + E + ν.
 
 Functions
 ---------
@@ -212,8 +212,7 @@ def generate_matplotlib_overview(graph: Graph) -> Figure:  # noqa: ARG001
         _Box("Snow Pit\nObservations",  0.08, Y, BW, BH, _COLORS["input"],     _EDGE_COLORS["input"],     bold=True),
         _Box("Layer\nParameters",       0.30, Y, BW, BH, _COLORS["layer"],     _EDGE_COLORS["layer"],     bold=True),
         _Box("Slab\nStiffnesses",       0.52, Y, BW, BH, _COLORS["slab"],      _EDGE_COLORS["slab"],      bold=True),
-        _Box("Weak-Layer\nInfo*",        0.30, 0.15, BW, 0.20, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"], bold=True),
-        _Box("Stability\nCriteria",     0.74, Y, BW, BH, _COLORS["stability"], _EDGE_COLORS["stability"], bold=True),
+        _Box("Slab Weight\nPathways",   0.74, Y, BW, BH, _COLORS["stability"], _EDGE_COLORS["stability"], bold=True),
     ]
 
     for box in boxes:
@@ -225,30 +224,24 @@ def generate_matplotlib_overview(graph: Graph) -> Figure:  # noqa: ARG001
     _draw_arrow(ax, 0.08 + BW/2, Y, 0.30 - BW/2, Y, color=arrow_color)
     # Layer → Slab
     _draw_arrow(ax, 0.30 + BW/2, Y, 0.52 - BW/2, Y, color=arrow_color)
-    # Observations → Weak-Layer (down)
-    _draw_arrow(ax, 0.08 + BW/2, 0.15, 0.30 - BW/2, 0.15, color=arrow_color)
-    # Layer → Stability
+    # Layer → Slab weight pathways
     _draw_arrow(ax, 0.30 + BW/2, Y - 0.06, 0.74 - BW/2, Y - 0.06,
                 color=arrow_color, connectionstyle="arc3,rad=-0.15")
-    # Weak-Layer → Stability
-    _draw_arrow(ax, 0.30 + BW/2, 0.15, 0.74 - BW/2, Y - BH/2,
-                color=arrow_color, connectionstyle="arc3,rad=0.2")
+    # Observations → Slab weight pathways
+    _draw_arrow(ax, 0.08 + BW/2, Y + 0.06, 0.74 - BW/2, Y + 0.06,
+                color=arrow_color, connectionstyle="arc3,rad=0.15")
 
     # Sub-labels listing individual parameters
     param_labels = {
-        0.08:  "ρ_meas, HH,\ngrain form,\ngrain size,\nthickness",
+        0.08:  "ρ_meas, HH,\ngrain form,\ngrain size,\nthickness,\nslope",
         0.30:  "ρ, E, ν, G",
         0.52:  "A₁₁, B₁₁,\nD₁₁, A₅₅",
-        0.74:  "g_Δ, S_r",
+        0.74:  "W, W_s,\nW_s + E + ν",
     }
-    wl_label = "weak_layer_info*\n(placeholder)"
     for xc, lbl in param_labels.items():
         ax.text(xc, Y - BH/2 - 0.07, lbl,
                 ha="center", va="top", fontsize=5.5,
                 transform=ax.transAxes, color="#444444")
-    ax.text(0.30, 0.15 - 0.13, wl_label,
-            ha="center", va="top", fontsize=5.5,
-            transform=ax.transAxes, color="#444444")
 
     fig.tight_layout(pad=0.1)
     return fig
@@ -471,16 +464,16 @@ def generate_matplotlib_slab_detail(graph: Graph) -> Figure:  # noqa: ARG001
 
 
 # ---------------------------------------------------------------------------
-# Figure 4 — Weak-layer parameters & stability criteria (detail)
+# Figure 4 — Slab weight pathways (detail)
 # ---------------------------------------------------------------------------
 
 def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG001
     """
-    Generate the stability criterion inputs detail figure.
+    Generate the slab weight pathway detail figure.
 
-    Shows measured inputs → layer params → slab_elasticity_parameters merge node,
-    with weak_layer_info* placeholder feeding both WEAC and Roch merge nodes,
-    then → g_Δ / S_r outputs.  Width = 7.0 in (double column).
+    Shows density + thickness → W, W + slope angle → W_s, and
+    W_s + E + ν → slab weight with elasticity. Width = 7.0 in
+    (double column).
 
     Parameters
     ----------
@@ -491,91 +484,75 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     -------
     Figure
     """
-    fig, ax = _new_fig(_DOUBLE_COL, 3.8)
+    fig, ax = _new_fig(_DOUBLE_COL, 3.2)
 
     BW, BH = 0.13, 0.10
-    MW, MH = 0.17, 0.10
+    MW, MH = 0.18, 0.10
 
-    C0, C1, C2, C3, C4 = 0.08, 0.26, 0.48, 0.70, 0.90
+    C0, C1, C2, C3, C4 = 0.08, 0.27, 0.48, 0.70, 0.90
 
-    # Measured inputs (C0 column)
     inp: Dict[str, _Box] = {
-        "meas_thick": _Box("layer\nthickness",   C0, 0.55, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
+        "thick": _Box("layer\nthickness", C0, 0.70, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
+        "angle": _Box("slope\nangle", C0, 0.42, BW, BH, _COLORS["input"], _EDGE_COLORS["input"]),
     }
 
-    # Layer params that feed stability (G is not a WEAC input)
-    layer_stab: Dict[str, _Box] = {
-        "rho":  _Box("ρ (density)",  C1, 0.85, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "E":    _Box("E",            C1, 0.68, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
-        "nu":   _Box("ν",            C1, 0.52, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+    layer_params: Dict[str, _Box] = {
+        "rho": _Box("ρ (density)", C1, 0.76, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "E": _Box("E", C1, 0.54, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
+        "nu": _Box("ν", C1, 0.34, BW, BH, _COLORS["layer"], _EDGE_COLORS["layer"]),
     }
 
-    # Slab elasticity merge node (E + ν) and weak-layer info placeholder
-    mid_nodes: Dict[str, _Box] = {
-        "elast":   _Box("slab elasticity\n(E + ν)",          C2, 0.62, MW, MH, _COLORS["merge"],      _EDGE_COLORS["merge"]),
-        "wl_info": _Box("weak layer\ninfo* (placeholder)",   C2, 0.28, MW, MH, _COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
+    merges: Dict[str, _Box] = {
+        "m_weight": _Box("ρ + h_i", C2, 0.72, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
+        "m_shear": _Box("W + slope", C2, 0.44, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
+        "m_elastic": _Box("W_s + E + ν", C3, 0.44, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
     }
 
-    # Merge nodes for stability
-    stab_merge: Dict[str, _Box] = {
-        "m_weac": _Box("WEAC inputs", C3, 0.70, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
-        "m_roch": _Box("Roch inputs", C3, 0.32, MW, MH, _COLORS["merge"], _EDGE_COLORS["merge"]),
-    }
-
-    # Outputs
     outputs: Dict[str, _Box] = {
-        "gdelta": _Box("g_Δ\n(WEAC skier)",   C4, 0.78, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
-        "sr":     _Box("S_r\n(Roch natural)", C4, 0.32, BW, BH*1.4, _COLORS["stability"], _EDGE_COLORS["stability"]),
+        "W": _Box("slab weight\n(W)", C3, 0.72, BW, BH*1.25, _COLORS["slab"], _EDGE_COLORS["slab"], bold=True),
+        "Ws": _Box("slab weight_shear\n(W_s)", C3, 0.22, BW*1.25, BH*1.25, _COLORS["slab"], _EDGE_COLORS["slab"], fontsize=6.4, bold=True),
+        "Wse": _Box("slab weight\nwith elasticity", C4, 0.44, BW*1.35, BH*1.35, _COLORS["slab"], _EDGE_COLORS["slab"], fontsize=6.4, bold=True),
     }
 
-    all_boxes = {**inp, **layer_stab, **mid_nodes, **stab_merge, **outputs}
+    all_boxes = {**inp, **layer_params, **merges, **outputs}
     for box in all_boxes.values():
         _draw_box(ax, box)
 
     ac = "#555555"
-    wc = _EDGE_COLORS["weak_layer"]
     mc = _EDGE_COLORS["merge"]
-    sc_col = _EDGE_COLORS["stability"]
 
-    # E, ν → slab_elasticity_parameters
-    _draw_arrow(ax, layer_stab["E"].x + BW/2,  layer_stab["E"].y,
-                    mid_nodes["elast"].x - MW/2, mid_nodes["elast"].y, color=mc)
-    _draw_arrow(ax, layer_stab["nu"].x + BW/2, layer_stab["nu"].y,
-                    mid_nodes["elast"].x - MW/2, mid_nodes["elast"].y, color=mc)
+    _draw_arrow(ax, layer_params["rho"].x + BW/2, layer_params["rho"].y,
+                merges["m_weight"].x - MW/2, merges["m_weight"].y, color=mc)
+    _draw_arrow(ax, inp["thick"].x + BW/2, inp["thick"].y,
+                merges["m_weight"].x - MW/2, merges["m_weight"].y,
+                color=mc, connectionstyle="arc3,rad=-0.12")
+    _draw_arrow(ax, merges["m_weight"].x + MW/2, merges["m_weight"].y,
+                outputs["W"].x - BW/2, outputs["W"].y,
+                label="W", color=ac, fontsize=5.0)
 
-    # slab_elasticity + rho + thickness → m_weac
-    _draw_arrow(ax, mid_nodes["elast"].x + MW/2, mid_nodes["elast"].y,
-                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y, color=ac)
-    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
-                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
-                    color=ac, connectionstyle="arc3,rad=-0.15")
-    _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
-                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
-                    color=ac, connectionstyle="arc3,rad=-0.10")
+    _draw_arrow(ax, outputs["W"].x, outputs["W"].y - BH*0.63,
+                merges["m_shear"].x + MW*0.15, merges["m_shear"].y + MH/2,
+                color=mc, connectionstyle="arc3,rad=-0.20")
+    _draw_arrow(ax, inp["angle"].x + BW/2, inp["angle"].y,
+                merges["m_shear"].x - MW/2, merges["m_shear"].y,
+                color=mc)
+    _draw_arrow(ax, merges["m_shear"].x + MW/2, merges["m_shear"].y,
+                outputs["Ws"].x - BW/2, outputs["Ws"].y,
+                label="W_s", color=ac, fontsize=5.0,
+                connectionstyle="arc3,rad=-0.22")
 
-    # weak_layer_info* → m_weac and m_roch
-    _draw_arrow(ax, mid_nodes["wl_info"].x + MW/2, mid_nodes["wl_info"].y,
-                    stab_merge["m_weac"].x - MW/2, stab_merge["m_weac"].y,
-                    color=wc, connectionstyle="arc3,rad=0.15")
-    _draw_arrow(ax, mid_nodes["wl_info"].x + MW/2, mid_nodes["wl_info"].y,
-                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y, color=wc)
-
-    # rho + thickness → m_roch
-    _draw_arrow(ax, layer_stab["rho"].x + BW/2, layer_stab["rho"].y,
-                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y,
-                    color=ac, connectionstyle="arc3,rad=0.20")
-    _draw_arrow(ax, inp["meas_thick"].x + BW/2, inp["meas_thick"].y,
-                    stab_merge["m_roch"].x - MW/2, stab_merge["m_roch"].y,
-                    color=ac, connectionstyle="arc3,rad=0.10")
-
-    # m_weac → g_delta
-    _draw_arrow(ax, stab_merge["m_weac"].x + MW/2, stab_merge["m_weac"].y,
-                    outputs["gdelta"].x - BW/2, outputs["gdelta"].y,
-                    label="weac_skier", color=sc_col, fontsize=5.0)
-    # m_roch → s_r
-    _draw_arrow(ax, stab_merge["m_roch"].x + MW/2, stab_merge["m_roch"].y,
-                    outputs["sr"].x - BW/2, outputs["sr"].y,
-                    label="roch_natural", color=sc_col, fontsize=5.0)
+    _draw_arrow(ax, outputs["Ws"].x + BW*0.63, outputs["Ws"].y,
+                merges["m_elastic"].x - MW/2, merges["m_elastic"].y,
+                color=mc, connectionstyle="arc3,rad=0.16")
+    _draw_arrow(ax, layer_params["E"].x + BW/2, layer_params["E"].y,
+                merges["m_elastic"].x - MW/2, merges["m_elastic"].y,
+                color=mc, connectionstyle="arc3,rad=-0.10")
+    _draw_arrow(ax, layer_params["nu"].x + BW/2, layer_params["nu"].y,
+                merges["m_elastic"].x - MW/2, merges["m_elastic"].y,
+                color=mc, connectionstyle="arc3,rad=0.12")
+    _draw_arrow(ax, merges["m_elastic"].x + MW/2, merges["m_elastic"].y,
+                outputs["Wse"].x - BW*0.68, outputs["Wse"].y,
+                label="W_s+Eν", color=ac, fontsize=4.8)
 
     fig.tight_layout(pad=0.1)
     return fig
@@ -597,8 +574,9 @@ _METHOD_ABBREV = {
     "srivastava":             "Sr16",
     "lame_relationship":      "Lam",
     "weissgraeber_rosendahl": "W&R",
-    "weac_skier":             "WEAC",
-    "roch_natural":           "Roch-n",
+    "sum_layer_weight":       "W",
+    "slope_parallel_component": "W_s",
+    "combine_shear_weight_and_elasticity": "W_s+Eν",
 }
 
 # Node labels with Greek symbols — mirrors _NODE_LABELS in visualize.py but
@@ -610,6 +588,7 @@ _FULL_LABELS = {
     "measured_grain_form":                         "grain\nform",
     "measured_grain_size":                         "grain\nsize",
     "measured_layer_thickness":                    "layer\nthickness",
+    "measured_slope_angle":                        "slope\nangle",
     "merge_hand_hardness_grain_form":              "HH+GF",
     "merge_hand_hardness_grain_form_grain_size":   "HH+GF\n+GS",
     "merge_density_grain_form":                    "ρ+GF",
@@ -625,12 +604,12 @@ _FULL_LABELS = {
     "B11":                                         "B₁₁",
     "D11":                                         "D₁₁",
     "A55":                                         "A₅₅",
-    "weak_layer_info*":                            "WL info*\n(placeholder)",
-    "slab_elasticity_parameters":                  "E+ν\n(slab elast.)",
-    "merge_weac_inputs":                           "WEAC\ninputs",
-    "merge_roch_inputs":                           "Roch\ninputs",
-    "g_delta":                                     "g_Δ",
-    "s_r":                                         "S_r",
+    "merge_slab_weight_inputs":                    "ρ+h_i",
+    "slab_weight":                                 "W",
+    "merge_slab_weight_slope_angle":               "W+slope",
+    "slab_weight_shear":                           "W_s",
+    "merge_slab_weight_shear_elasticity":          "W_s+E+ν",
+    "slab_weight_with_elasticity":                 "W_s\n+E+ν",
 }
 
 # Colour for each node (by parameter name) — matches category colours.
@@ -641,6 +620,7 @@ _FULL_COLORS = {
     "measured_grain_form":                       (_COLORS["input"],      _EDGE_COLORS["input"]),
     "measured_grain_size":                       (_COLORS["input"],      _EDGE_COLORS["input"]),
     "measured_layer_thickness":                  (_COLORS["input"],      _EDGE_COLORS["input"]),
+    "measured_slope_angle":                      (_COLORS["input"],      _EDGE_COLORS["input"]),
     "merge_hand_hardness_grain_form":            (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_hand_hardness_grain_form_grain_size": (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "merge_density_grain_form":                  (_COLORS["merge"],      _EDGE_COLORS["merge"]),
@@ -656,12 +636,12 @@ _FULL_COLORS = {
     "B11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "D11":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "A55":                                       (_COLORS["slab"],       _EDGE_COLORS["slab"]),
-    "weak_layer_info*":                          (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"]),
-    "slab_elasticity_parameters":                (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "merge_weac_inputs":                         (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "merge_roch_inputs":                         (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "g_delta":                                   (_COLORS["stability"],  _EDGE_COLORS["stability"]),
-    "s_r":                                       (_COLORS["stability"],  _EDGE_COLORS["stability"]),
+    "merge_slab_weight_inputs":                  (_COLORS["merge"],      _EDGE_COLORS["merge"]),
+    "slab_weight":                               (_COLORS["slab"],       _EDGE_COLORS["slab"]),
+    "merge_slab_weight_slope_angle":             (_COLORS["merge"],      _EDGE_COLORS["merge"]),
+    "slab_weight_shear":                         (_COLORS["slab"],       _EDGE_COLORS["slab"]),
+    "merge_slab_weight_shear_elasticity":        (_COLORS["merge"],      _EDGE_COLORS["merge"]),
+    "slab_weight_with_elasticity":               (_COLORS["slab"],       _EDGE_COLORS["slab"]),
 }
 
 # Manual (x, y) positions for every node.
@@ -677,11 +657,11 @@ _FULL_COLORS = {
 #   0.64  density
 #   0.55  merge_density_grain_form
 #   0.46  elastic_modulus, poissons_ratio
-#   0.37  merge_elastic_modulus_poissons_ratio (layer E+ν→G),
-#         merge_E_nu (slab E+ν), slab_elasticity_parameters
-#   0.28  shear_modulus, merge_hi_E_nu, weak_layer_info*
-#   0.19  merge_hi_G, merge_weac_inputs, merge_roch_inputs
-#   0.10  D11, A11, B11, A55, g_delta, s_r
+#   0.37  merge_elastic_modulus_poissons_ratio (layer E+ν→G), merge_E_nu
+#   0.28  shear_modulus, merge_hi_E_nu, merge_slab_weight_inputs, slab_weight
+#   0.19  merge_hi_G, merge_slab_weight_slope_angle, slab_weight_shear
+#   0.10  D11, A11, B11, A55, merge_slab_weight_shear_elasticity,
+#         slab_weight_with_elasticity
 _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     # ── Root ──────────────────────────────────────────────────────────────
     "snow_pit":                                  (0.50, 0.91),
@@ -690,8 +670,9 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "measured_density":                          (0.10, 0.82),
     "measured_hand_hardness":                    (0.25, 0.82),
     "measured_grain_form":                       (0.50, 0.82),
-    "measured_grain_size":                       (0.68, 0.82),
-    "measured_layer_thickness":                  (0.87, 0.82),
+    "measured_grain_size":                       (0.64, 0.82),
+    "measured_layer_thickness":                  (0.80, 0.82),
+    "measured_slope_angle":                      (0.93, 0.82),
 
     # ── Density merge nodes ───────────────────────────────────────────────
     "merge_hand_hardness_grain_form":            (0.22, 0.73),
@@ -712,26 +693,25 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "merge_elastic_modulus_poissons_ratio":      (0.19, 0.37),
     # Slab E+ν merge → merge_hi_E_nu → A11/B11/D11
     "merge_E_nu":                                (0.36, 0.37),
-    # Slab elasticity coverage target (E+ν for stability)
-    "slab_elasticity_parameters":                (0.62, 0.37),
 
-    # ── Row y=0.28: shear modulus, slab h+E+ν merge, weak-layer placeholder ─
+    # ── Row y=0.28: shear modulus, slab h+E+ν merge, slab weight ─
     "shear_modulus":                             (0.12, 0.28),
     "merge_hi_E_nu":                             (0.28, 0.28),
-    "weak_layer_info*":                          (0.80, 0.46),
+    "merge_slab_weight_inputs":                  (0.66, 0.55),
+    "slab_weight":                               (0.66, 0.43),
 
-    # ── Row y=0.19: slab h+G merge, stability merge nodes ─────────────────
+    # ── Row y=0.19: slab h+G merge and slope-parallel weight ─────────────
     "merge_hi_G":                                (0.42, 0.19),
-    "merge_weac_inputs":                         (0.65, 0.19),
-    "merge_roch_inputs":                         (0.82, 0.19),
+    "merge_slab_weight_slope_angle":             (0.78, 0.31),
+    "slab_weight_shear":                         (0.78, 0.19),
+    "merge_slab_weight_shear_elasticity":        (0.78, 0.10),
 
     # ── Row y=0.10: all outputs ───────────────────────────────────────────
     "D11":                                       (0.06, 0.10),
     "A11":                                       (0.18, 0.10),
     "B11":                                       (0.30, 0.10),
     "A55":                                       (0.42, 0.10),
-    "g_delta":                                   (0.65, 0.10),
-    "s_r":                                       (0.82, 0.10),
+    "slab_weight_with_elasticity":               (0.93, 0.10),
 }
 
 
@@ -814,7 +794,7 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
 
     All nodes are drawn including all merge nodes.  Greek symbols are used
     for parameter labels.  Method names are abbreviated on edges.  A bifurcating
-    layout separates the slab pipeline (left) from the stability-criterion
+    layout separates the stiffness pipeline (left) from the slab-weight
     pipeline (right), with shared measured inputs at the top centre.
 
     Width = 7.0 in (double column), Height = 9.5 in.  DPI = 300.
@@ -852,11 +832,8 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         # Merge nodes are not boxed separately.
         (0.24,  0.10,  0.48, 0.12,  "#FFE0B2", "Slab Stiffnesses"),
         #
-        # Stability Inputs: slab_elast(0.62,0.37) + weak_layer_info*(0.80,0.46).
-        (0.71,  0.415, 0.30, 0.20,  "#FFF3E0", "Stability Inputs"),
-        #
-        # Stability Outputs: g_delta(0.65,0.10), s_r(0.82,0.10).
-        (0.735, 0.10,  0.32, 0.12,  "#F8BBD9", "Stability Outputs"),
+        # Slab Weight Pathways: W, W_s, and W_s+E+ν.
+        (0.77,  0.31,  0.42, 0.56,  "#FCE4EC", "Slab Weight Pathways"),
     ]
     for gx, gy, gw, gh, gc, glbl in _group_rects:
         x0, y0 = gx - gw / 2, gy - gh / 2
@@ -903,18 +880,17 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         # them away from the slab merge nodes in the centre.
         if sp == "measured_layer_thickness" and ep in ("merge_hi_E_nu", "merge_hi_G"):
             cs = "arc3,rad=-0.20"
-        # layer_thickness → stability merges: long arrow from far right going left;
-        # slight curve to separate from the vertical density arrows.
-        elif sp == "measured_layer_thickness" and ep in ("merge_weac_inputs", "merge_roch_inputs"):
-            cs = "arc3,rad=0.15"
-        # density → stability merges: long rightward cross-pipeline arrows;
-        # curve outward so they don't overlap the slab assembly nodes.
-        elif sp == "density" and ep == "merge_weac_inputs":
+        # layer_thickness → slab weight: long rightward cross-pipeline arrow.
+        elif sp == "measured_layer_thickness" and ep == "merge_slab_weight_inputs":
+            cs = "arc3,rad=-0.15"
+        # density → slab weight: long rightward cross-pipeline arrow.
+        elif sp == "density" and ep == "merge_slab_weight_inputs":
             cs = "arc3,rad=0.25"
-        elif sp == "density" and ep == "merge_roch_inputs":
-            cs = "arc3,rad=0.35"
-        # slab_elasticity_parameters → merge_weac: nearly vertical, straight.
-        elif sp == "slab_elasticity_parameters" and ep == "merge_weac_inputs":
+        elif sp == "measured_slope_angle" and ep == "merge_slab_weight_slope_angle":
+            cs = "arc3,rad=-0.20"
+        elif sp in ("elastic_modulus", "poissons_ratio") and ep == "merge_slab_weight_shear_elasticity":
+            cs = "arc3,rad=-0.25"
+        elif sp == "slab_weight_shear" and ep == "merge_slab_weight_shear_elasticity":
             cs = "arc3,rad=0.0"
 
         _draw_full_arrow(ax, sp, ep, label=lbl, connectionstyle=cs)
@@ -925,9 +901,7 @@ def generate_matplotlib_full_detail(graph: Graph) -> Figure:
         (_COLORS["input"],      _EDGE_COLORS["input"],      "Measured input"),
         (_COLORS["merge"],      _EDGE_COLORS["merge"],      "Merge node"),
         (_COLORS["layer"],      _EDGE_COLORS["layer"],      "Layer parameter"),
-        (_COLORS["slab"],       _EDGE_COLORS["slab"],       "Slab stiffness"),
-        (_COLORS["weak_layer"], _EDGE_COLORS["weak_layer"], "Weak-layer parameter"),
-        (_COLORS["stability"],  _EDGE_COLORS["stability"],  "Stability output"),
+        (_COLORS["slab"],       _EDGE_COLORS["slab"],       "Slab parameter"),
     ]
     lx, ly = 0.57, 0.08
     row_h = 0.013

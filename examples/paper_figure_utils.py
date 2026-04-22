@@ -674,22 +674,22 @@ def build_density_pathways_figure() -> plt.Figure:
     return fig
 
 
-def build_coverage_comparison_figure(
-    roch_cov: pd.DataFrame,
-    weac_cov: pd.DataFrame,
+def build_slab_weight_coverage_comparison_figure(
+    shear_cov: pd.DataFrame,
+    elasticity_cov: pd.DataFrame,
     total_slabs: int,
     *,
     top_n: int = 12,
 ) -> plt.Figure:
-    """Create the Roch vs WEAC coverage comparison figure."""
-    roch_plot = roch_cov.sort_values("n_all_inputs").copy()
-    weac_plot = weac_cov.head(top_n).copy().sort_values("n_all_inputs")
-    weac_plot["label"] = [
+    """Create the slab-weight shear vs elastic-input coverage comparison figure."""
+    shear_plot = shear_cov.sort_values("n_all_inputs").copy()
+    elasticity_plot = elasticity_cov.head(top_n).copy().sort_values("n_all_inputs")
+    elasticity_plot["label"] = [
         format_method_path(dm, em, nu, short=True)
         for dm, em, nu in zip(
-            weac_plot["density_method"],
-            weac_plot["emod_method"],
-            weac_plot["nu_method"],
+            elasticity_plot["density_method"],
+            elasticity_plot["emod_method"],
+            elasticity_plot["nu_method"],
             strict=True,
         )
     ]
@@ -702,32 +702,36 @@ def build_coverage_comparison_figure(
         gridspec_kw={"width_ratios": [1.0, 1.8]},
     )
 
-    for ax, title in zip(axes, ["(a) Roch slab inputs", "(b) WEAC slab elasticity"], strict=True):
+    for ax, title in zip(
+        axes,
+        ["(a) Slab weight_shear", "(b) Slab weight with elasticity"],
+        strict=True,
+    ):
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
         ax.text(0.02, 0.98, title, ha="left", va="top", fontsize=8, fontweight="bold", transform=ax.transAxes)
 
-    roch_widths = roch_plot["n_all_inputs"] / total_slabs * 100.0
+    shear_widths = shear_plot["n_all_inputs"] / total_slabs * 100.0
     axes[0].barh(
-        [method_label(method, short=True) for method in roch_plot["density_method"]],
-        roch_widths,
-        color=[DENSITY_COLORS[m] for m in roch_plot["density_method"]],
+        [method_label(method, short=True) for method in shear_plot["density_method"]],
+        shear_widths,
+        color=[DENSITY_COLORS[m] for m in shear_plot["density_method"]],
         edgecolor=COLOR_BORDER,
         linewidth=0.7,
         alpha=0.85,
     )
-    for y_idx, width in enumerate(roch_widths):
+    for y_idx, width in enumerate(shear_widths):
         axes[0].text(width + 0.6, y_idx, f"{width:.1f}%", va="center", ha="left", fontsize=7.5)
 
-    weac_widths = weac_plot["n_all_inputs"] / total_slabs * 100.0
+    elasticity_widths = elasticity_plot["n_all_inputs"] / total_slabs * 100.0
     axes[1].barh(
-        weac_plot["label"],
-        weac_widths,
-        color=[DENSITY_COLORS[m] for m in weac_plot["density_method"]],
+        elasticity_plot["label"],
+        elasticity_widths,
+        color=[DENSITY_COLORS[m] for m in elasticity_plot["density_method"]],
         edgecolor=COLOR_BORDER,
         linewidth=0.7,
         alpha=0.85,
     )
-    for y_idx, width in enumerate(weac_widths):
+    for y_idx, width in enumerate(elasticity_widths):
         axes[1].text(width + 0.35, y_idx, f"{width:.1f}%", va="center", ha="left", fontsize=7.0)
 
     axes[0].set_xlabel("Coverage of ECTP slabs (%)")
@@ -750,8 +754,31 @@ def build_coverage_comparison_figure(
     return fig
 
 
-def build_weac_attrition_figure(steps: Sequence[tuple[str, int]], total_slabs: int, pathway_label: str) -> plt.Figure:
-    """Create a funnel-style WEAC attrition figure."""
+def build_coverage_comparison_figure(
+    roch_cov: pd.DataFrame,
+    weac_cov: pd.DataFrame,
+    total_slabs: int,
+    *,
+    top_n: int = 12,
+) -> plt.Figure:
+    """Create the coverage comparison figure.
+
+    Kept for backwards compatibility with earlier Roch/WEAC notebook names.
+    """
+    return build_slab_weight_coverage_comparison_figure(
+        roch_cov,
+        weac_cov,
+        total_slabs,
+        top_n=top_n,
+    )
+
+
+def build_slab_weight_attrition_figure(
+    steps: Sequence[tuple[str, int]],
+    total_slabs: int,
+    pathway_label: str,
+) -> plt.Figure:
+    """Create a funnel-style slab-weight-with-elasticity attrition figure."""
     fig, ax = plt.subplots(figsize=(DOUBLE_COL, 2.8))
     ax.axis("off")
 
@@ -811,6 +838,14 @@ def build_weac_attrition_figure(steps: Sequence[tuple[str, int]], total_slabs: i
 
     fig.tight_layout(pad=0.3)
     return fig
+
+
+def build_weac_attrition_figure(steps: Sequence[tuple[str, int]], total_slabs: int, pathway_label: str) -> plt.Figure:
+    """Create a funnel-style attrition figure.
+
+    Kept for backwards compatibility with earlier WEAC notebook names.
+    """
+    return build_slab_weight_attrition_figure(steps, total_slabs, pathway_label)
 
 
 def build_d11_distribution_figure(
@@ -897,9 +932,9 @@ def select_d11_top_pathways(
     return selected
 
 
-def prepare_roch_table(roch_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame:
-    """Create the compact Roch table."""
-    table = roch_cov.copy()
+def prepare_slab_weight_shear_table(shear_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame:
+    """Create the compact slab-weight-shear coverage table."""
+    table = shear_cov.copy()
     table["Successful slabs"] = table["n_all_inputs"].map(lambda value: f"{int(value):,}")
     table["Coverage (%)"] = table["n_all_inputs"].map(lambda value: f"{100.0 * value / total_slabs:.1f}")
     table["Mean layer density (kg m^-3)"] = table["density_nom"].map(lambda value: f"{value:.1f}")
@@ -915,9 +950,22 @@ def prepare_roch_table(roch_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame
     ].assign(**{"Density method": lambda frame: frame["Density method"].map(method_label)})
 
 
-def prepare_weac_table(weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int = 8) -> pd.DataFrame:
-    """Create the compact WEAC table."""
-    table = weac_cov.head(top_n).copy()
+def prepare_roch_table(roch_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame:
+    """Create the compact density-only coverage table.
+
+    Kept for backwards compatibility with earlier Roch notebook names.
+    """
+    return prepare_slab_weight_shear_table(roch_cov, total_slabs)
+
+
+def prepare_slab_weight_elasticity_table(
+    elasticity_cov: pd.DataFrame,
+    total_slabs: int,
+    *,
+    top_n: int = 8,
+) -> pd.DataFrame:
+    """Create the compact slab-weight-with-elasticity coverage table."""
+    table = elasticity_cov.head(top_n).copy()
     table["Successful slabs"] = table["n_all_inputs"].map(lambda value: f"{int(value):,}")
     table["Coverage (%)"] = table["n_all_inputs"].map(lambda value: f"{100.0 * value / total_slabs:.1f}")
     return table.rename(
@@ -935,6 +983,14 @@ def prepare_weac_table(weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int =
             "nu method": lambda frame: frame["nu method"].map(method_label),
         }
     )
+
+
+def prepare_weac_table(weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int = 8) -> pd.DataFrame:
+    """Create the compact elastic-input coverage table.
+
+    Kept for backwards compatibility with earlier WEAC notebook names.
+    """
+    return prepare_slab_weight_elasticity_table(weac_cov, total_slabs, top_n=top_n)
 
 
 def _scientific_to_latex(value: str) -> str:

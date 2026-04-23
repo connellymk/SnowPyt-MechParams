@@ -957,15 +957,11 @@ def prepare_slab_weight_shear_table(shear_cov: pd.DataFrame, total_slabs: int) -
     table = shear_cov.copy()
     table["Successful slabs"] = table["n_all_inputs"].map(lambda value: f"{int(value):,}")
     table["Coverage (%)"] = table["n_all_inputs"].map(lambda value: f"{100.0 * value / total_slabs:.1f}")
-    table["Mean layer density (kg m^-3)"] = table["density_nom"].map(lambda value: f"{value:.1f}")
-    table["Mean relative uncertainty (%)"] = table["density_rel_unc"].map(lambda value: f"{100.0 * value:.1f}")
     return table.rename(columns={"density_method": "Density method"})[
         [
             "Density method",
             "Successful slabs",
             "Coverage (%)",
-            "Mean layer density (kg m^-3)",
-            "Mean relative uncertainty (%)",
         ]
     ].assign(**{"Density method": lambda frame: frame["Density method"].map(method_label)})
 

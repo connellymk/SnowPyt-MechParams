@@ -201,7 +201,7 @@ class TestUpdatedGraphStructure:
         for param in [
             "slab_weight",
             "slab_weight_shear",
-            "slab_weight_with_elasticity",
+            "slab_weight_shear_with_elasticity",
         ]:
             node = g.get_node(param)
             assert node is not None
@@ -223,8 +223,8 @@ class TestUpdatedGraphStructure:
         input_params = {e.start.parameter for e in node.incoming_edges}
         assert input_params == {"slab_weight", "measured_slope_angle"}
 
-    def test_slab_weight_elasticity_merge_has_correct_inputs(self):
-        """Slab weight with elasticity should merge W_s, E, and ν."""
+    def test_slab_weight_shear_elasticity_merge_has_correct_inputs(self):
+        """Slab weight_shear with elasticity should merge W_s, E, and ν."""
         from snowpyt_mechparams.graph import graph as g
 
         node = g.get_node("merge_slab_weight_shear_elasticity")
@@ -253,12 +253,12 @@ class TestUpdatedGraphStructure:
         pathways = find_parameterizations(g, node)
         assert len(pathways) == 4
 
-    def test_slab_weight_with_elasticity_has_32_pathways(self):
+    def test_slab_weight_shear_with_elasticity_has_32_pathways(self):
         """4 density × 4 E-mod × 2 ν pathways should reach elastic slab weight."""
         from snowpyt_mechparams.graph import graph as g
         from snowpyt_mechparams.algorithm import find_parameterizations
 
-        node = g.get_node("slab_weight_with_elasticity")
+        node = g.get_node("slab_weight_shear_with_elasticity")
         pathways = find_parameterizations(g, node)
         assert len(pathways) == 32
 

@@ -49,7 +49,7 @@ graph LR
     subgraph WEIGHT["Slab Weight Pathways"]
     slab_weight[slab weight (W)]
     slab_weight_shear[slab weight_shear (W_s)]
-    slab_weight_with_elasticity[slab weight with elasticity]
+    slab_weight_shear_with_elasticity[slab weight_shear with elasticity]
     end
 
     %% Edges
@@ -87,7 +87,7 @@ graph LR
     slab_weight_shear --> merge_slab_weight_shear_elasticity
     elastic_modulus --> merge_slab_weight_shear_elasticity
     poissons_ratio --> merge_slab_weight_shear_elasticity
-    merge_slab_weight_shear_elasticity -->|W_s+Eν| slab_weight_with_elasticity
+    merge_slab_weight_shear_elasticity -->|W_s+Eν| slab_weight_shear_with_elasticity
     elastic_modulus --> merge_E_nu
     poissons_ratio --> merge_E_nu
     measured_layer_thickness --> merge_hi_G
@@ -112,8 +112,5 @@ graph LR
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_slope_angle,measured_layer_thickness measuredNode
     class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_elastic_modulus_poissons_ratio,merge_E_nu,merge_hi_G,merge_hi_E_nu,merge_slab_weight_inputs,merge_slab_weight_slope_angle,merge_slab_weight_shear_elasticity mergeNode
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
-    class A11,B11,D11,A55,slab_weight,slab_weight_shear,slab_weight_with_elasticity slabCalc
+    class A11,B11,D11,A55,slab_weight,slab_weight_shear,slab_weight_shear_with_elasticity slabCalc
 ```
-
-
-

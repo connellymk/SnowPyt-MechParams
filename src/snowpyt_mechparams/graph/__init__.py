@@ -80,7 +80,7 @@ from snowpyt_mechparams.graph.parameter_graph import (
     A55,
     slab_weight,
     slab_weight_shear,
-    slab_weight_with_elasticity,
+    slab_weight_shear_with_elasticity,
     # Merge nodes
     merge_slab_weight_inputs,
     merge_slab_weight_slope_angle,
@@ -137,7 +137,7 @@ __all__ = [
     "A55",
     "slab_weight",
     "slab_weight_shear",
-    "slab_weight_with_elasticity",
+    "slab_weight_shear_with_elasticity",
     # Merge nodes
     "merge_slab_weight_inputs",
     "merge_slab_weight_slope_angle",

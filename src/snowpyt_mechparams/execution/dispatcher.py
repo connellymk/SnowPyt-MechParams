@@ -212,7 +212,7 @@ def _calculate_slab_weight_shear(slab: Slab) -> Optional[UncertainValue]:
     return slab_weight * umath.sin(slab.angle * math.pi / 180.0)
 
 
-def _calculate_slab_weight_with_elasticity(slab: Slab) -> Optional[UncertainValue]:
+def _calculate_slab_weight_shear_with_elasticity(slab: Slab) -> Optional[UncertainValue]:
     """
     Return slope-parallel slab weight when all elastic layer inputs are present.
 
@@ -471,10 +471,10 @@ class MethodDispatcher:
         ))
 
         self._register(MethodSpec(
-            parameter="slab_weight_with_elasticity",
+            parameter="slab_weight_shear_with_elasticity",
             method_name="combine_shear_weight_and_elasticity",
             level=ParameterLevel.SLAB,
-            function=lambda slab: _calculate_slab_weight_with_elasticity(slab),
+            function=lambda slab: _calculate_slab_weight_shear_with_elasticity(slab),
             required_inputs=["slab"],
             optional_inputs={}
         ))

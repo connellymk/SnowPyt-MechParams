@@ -29,7 +29,7 @@ graph LR
     subgraph WEIGHT[Slab Weight Pathways]
     slab_weight[slab weight (W)]
     slab_weight_shear[slab weight_shear (W_s)]
-    slab_weight_with_elasticity[slab weight with elasticity]
+    slab_weight_shear_with_elasticity[slab weight_shear with elasticity]
     end
 
     %% Group-level data flow
@@ -48,5 +48,5 @@ graph LR
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_slope_angle,measured_layer_thickness inputGroup
     class density,elastic_modulus,poissons_ratio,shear_modulus layerGroup
     class A11,B11,D11,A55 slabGroup
-    class slab_weight,slab_weight_shear,slab_weight_with_elasticity weightGroup
+    class slab_weight,slab_weight_shear,slab_weight_shear_with_elasticity weightGroup
 ```

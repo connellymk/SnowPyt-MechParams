@@ -21,7 +21,7 @@ from snowpyt_mechparams.graph import (
     A55,
     slab_weight,
     slab_weight_shear,
-    slab_weight_with_elasticity,
+    slab_weight_shear_with_elasticity,
 )
 
 
@@ -250,8 +250,8 @@ class TestExportedNodes:
         assert A55 is graph.get_node("A55")
         assert slab_weight is graph.get_node("slab_weight")
         assert slab_weight_shear is graph.get_node("slab_weight_shear")
-        assert slab_weight_with_elasticity is graph.get_node(
-            "slab_weight_with_elasticity"
+        assert slab_weight_shear_with_elasticity is graph.get_node(
+            "slab_weight_shear_with_elasticity"
         )
 
 
@@ -401,7 +401,7 @@ class TestSlabWeightNodes:
         for param in [
             "slab_weight",
             "slab_weight_shear",
-            "slab_weight_with_elasticity",
+            "slab_weight_shear_with_elasticity",
         ]:
             node = graph.get_node(param)
             assert node is not None, f"Node {param} not found"
@@ -420,9 +420,9 @@ class TestSlabWeightNodes:
         methods = [e.method_name for e in node.incoming_edges if e.method_name]
         assert "slope_parallel_component" in methods
 
-    def test_slab_weight_with_elasticity_uses_combined_method(self):
-        """slab_weight_with_elasticity should require W_s, E, and ν."""
-        node = graph.get_node("slab_weight_with_elasticity")
+    def test_slab_weight_shear_with_elasticity_uses_combined_method(self):
+        """slab_weight_shear_with_elasticity should require W_s, E, and ν."""
+        node = graph.get_node("slab_weight_shear_with_elasticity")
         methods = [e.method_name for e in node.incoming_edges if e.method_name]
         assert "combine_shear_weight_and_elasticity" in methods
 

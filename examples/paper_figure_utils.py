@@ -704,7 +704,7 @@ def build_slab_weight_coverage_comparison_figure(
 
     for ax, title in zip(
         axes,
-        ["(a) Slab weight_shear", "(b) Slab weight with elasticity"],
+        ["(a) Slab weight_shear", "(b) Slab weight_shear with elasticity"],
         strict=True,
     ):
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
@@ -773,12 +773,12 @@ def build_coverage_comparison_figure(
     )
 
 
-def build_slab_weight_attrition_figure(
+def build_slab_weight_shear_with_elasticity_attrition_figure(
     steps: Sequence[tuple[str, int]],
     total_slabs: int,
     pathway_label: str,
 ) -> plt.Figure:
-    """Create a funnel-style slab-weight-with-elasticity attrition figure."""
+    """Create a funnel-style slab-weight-shear-with-elasticity attrition figure."""
     fig, ax = plt.subplots(figsize=(DOUBLE_COL, 2.8))
     ax.axis("off")
 
@@ -845,7 +845,27 @@ def build_weac_attrition_figure(steps: Sequence[tuple[str, int]], total_slabs: i
 
     Kept for backwards compatibility with earlier WEAC notebook names.
     """
-    return build_slab_weight_attrition_figure(steps, total_slabs, pathway_label)
+    return build_slab_weight_shear_with_elasticity_attrition_figure(
+        steps,
+        total_slabs,
+        pathway_label,
+    )
+
+
+def build_slab_weight_attrition_figure(
+    steps: Sequence[tuple[str, int]],
+    total_slabs: int,
+    pathway_label: str,
+) -> plt.Figure:
+    """Create a funnel-style slab-weight-shear-with-elasticity attrition figure.
+
+    Kept as a short compatibility alias for the earlier slab-weight notebook name.
+    """
+    return build_slab_weight_shear_with_elasticity_attrition_figure(
+        steps,
+        total_slabs,
+        pathway_label,
+    )
 
 
 def build_d11_distribution_figure(
@@ -958,13 +978,13 @@ def prepare_roch_table(roch_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame
     return prepare_slab_weight_shear_table(roch_cov, total_slabs)
 
 
-def prepare_slab_weight_elasticity_table(
+def prepare_slab_weight_shear_with_elasticity_table(
     elasticity_cov: pd.DataFrame,
     total_slabs: int,
     *,
     top_n: int = 8,
 ) -> pd.DataFrame:
-    """Create the compact slab-weight-with-elasticity coverage table."""
+    """Create the compact slab-weight-shear-with-elasticity coverage table."""
     table = elasticity_cov.head(top_n).copy()
     table["Successful slabs"] = table["n_all_inputs"].map(lambda value: f"{int(value):,}")
     table["Coverage (%)"] = table["n_all_inputs"].map(lambda value: f"{100.0 * value / total_slabs:.1f}")
@@ -990,7 +1010,24 @@ def prepare_weac_table(weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int =
 
     Kept for backwards compatibility with earlier WEAC notebook names.
     """
-    return prepare_slab_weight_elasticity_table(weac_cov, total_slabs, top_n=top_n)
+    return prepare_slab_weight_shear_with_elasticity_table(weac_cov, total_slabs, top_n=top_n)
+
+
+def prepare_slab_weight_shear_elasticity_table(
+    elasticity_cov: pd.DataFrame,
+    total_slabs: int,
+    *,
+    top_n: int = 8,
+) -> pd.DataFrame:
+    """Create the compact slab-weight-shear-with-elasticity coverage table.
+
+    Kept as a short compatibility alias for the earlier slab-weight notebook name.
+    """
+    return prepare_slab_weight_shear_with_elasticity_table(
+        elasticity_cov,
+        total_slabs,
+        top_n=top_n,
+    )
 
 
 def _scientific_to_latex(value: str) -> str:

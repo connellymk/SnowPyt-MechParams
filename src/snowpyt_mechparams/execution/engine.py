@@ -118,7 +118,7 @@ class ExecutionEngine:
             Pre-filtered list of parameterizations to run. If provided, the
             engine runs exactly these pathways instead of finding all valid
             pathways internally. Useful for running a known subset (e.g. the
-            32 slab-weight-with-elasticity pathways) without executing the full
+            32 slab-weight-shear-with-elasticity pathways) without executing the full
             combinatorial space.
 
         Returns

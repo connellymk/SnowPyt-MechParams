@@ -472,7 +472,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     Generate the slab weight pathway detail figure.
 
     Shows density + thickness → W, W + slope angle → W_s, and
-    W_s + E + ν → slab weight with elasticity. Width = 7.0 in
+    W_s + E + ν → slab weight_shear with elasticity. Width = 7.0 in
     (double column).
 
     Parameters
@@ -511,7 +511,7 @@ def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG00
     outputs: Dict[str, _Box] = {
         "W": _Box("slab weight\n(W)", C3, 0.72, BW, BH*1.25, _COLORS["slab"], _EDGE_COLORS["slab"], bold=True),
         "Ws": _Box("slab weight_shear\n(W_s)", C3, 0.22, BW*1.25, BH*1.25, _COLORS["slab"], _EDGE_COLORS["slab"], fontsize=6.4, bold=True),
-        "Wse": _Box("slab weight\nwith elasticity", C4, 0.44, BW*1.35, BH*1.35, _COLORS["slab"], _EDGE_COLORS["slab"], fontsize=6.4, bold=True),
+        "Wse": _Box("slab weight_shear\nwith elasticity", C4, 0.44, BW*1.35, BH*1.35, _COLORS["slab"], _EDGE_COLORS["slab"], fontsize=6.4, bold=True),
     }
 
     all_boxes = {**inp, **layer_params, **merges, **outputs}
@@ -609,7 +609,7 @@ _FULL_LABELS = {
     "merge_slab_weight_slope_angle":               "W+slope",
     "slab_weight_shear":                           "W_s",
     "merge_slab_weight_shear_elasticity":          "W_s+E+ν",
-    "slab_weight_with_elasticity":                 "W_s\n+E+ν",
+    "slab_weight_shear_with_elasticity":          "W_s\n+E+ν",
 }
 
 # Colour for each node (by parameter name) — matches category colours.
@@ -641,7 +641,7 @@ _FULL_COLORS = {
     "merge_slab_weight_slope_angle":             (_COLORS["merge"],      _EDGE_COLORS["merge"]),
     "slab_weight_shear":                         (_COLORS["slab"],       _EDGE_COLORS["slab"]),
     "merge_slab_weight_shear_elasticity":        (_COLORS["merge"],      _EDGE_COLORS["merge"]),
-    "slab_weight_with_elasticity":               (_COLORS["slab"],       _EDGE_COLORS["slab"]),
+    "slab_weight_shear_with_elasticity":         (_COLORS["slab"],       _EDGE_COLORS["slab"]),
 }
 
 # Manual (x, y) positions for every node.
@@ -661,7 +661,7 @@ _FULL_COLORS = {
 #   0.28  shear_modulus, merge_hi_E_nu, merge_slab_weight_inputs, slab_weight
 #   0.19  merge_hi_G, merge_slab_weight_slope_angle, slab_weight_shear
 #   0.10  D11, A11, B11, A55, merge_slab_weight_shear_elasticity,
-#         slab_weight_with_elasticity
+#         slab_weight_shear_with_elasticity
 _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     # ── Root ──────────────────────────────────────────────────────────────
     "snow_pit":                                  (0.50, 0.91),
@@ -711,7 +711,7 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "A11":                                       (0.18, 0.10),
     "B11":                                       (0.30, 0.10),
     "A55":                                       (0.42, 0.10),
-    "slab_weight_with_elasticity":               (0.93, 0.10),
+    "slab_weight_shear_with_elasticity":          (0.93, 0.10),
 }
 
 

@@ -10,7 +10,7 @@ graph LR
     poissons_ratio[ν (Poisson's ratio)]
     slab_weight[slab weight (W)]
     slab_weight_shear[slab weight_shear (W_s)]
-    slab_weight_with_elasticity[slab weight with elasticity]
+    slab_weight_shear_with_elasticity[slab weight_shear with elasticity]
     merge_slab_weight_inputs{ρ + h_i}
     merge_slab_weight_slope_angle{W + slope angle}
     merge_slab_weight_shear_elasticity{W_s + E + ν}
@@ -25,7 +25,7 @@ graph LR
     slab_weight_shear --> merge_slab_weight_shear_elasticity
     elastic_modulus --> merge_slab_weight_shear_elasticity
     poissons_ratio --> merge_slab_weight_shear_elasticity
-    merge_slab_weight_shear_elasticity -->|combine_shear_weight_and_elasticity| slab_weight_with_elasticity
+    merge_slab_weight_shear_elasticity -->|combine_shear_weight_and_elasticity| slab_weight_shear_with_elasticity
 
     %% Styling
     classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
@@ -39,5 +39,5 @@ graph LR
     class measured_slope_angle,measured_layer_thickness measuredNode
     class merge_slab_weight_inputs,merge_slab_weight_slope_angle,merge_slab_weight_shear_elasticity mergeNode
     class density,elastic_modulus,poissons_ratio layerCalc
-    class slab_weight,slab_weight_shear,slab_weight_with_elasticity slabCalc
+    class slab_weight,slab_weight_shear,slab_weight_shear_with_elasticity slabCalc
 ```

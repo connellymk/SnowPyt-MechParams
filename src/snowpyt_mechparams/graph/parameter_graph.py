@@ -29,7 +29,7 @@ Slab Weight Coverage Targets:
     slab_weight + measured_slope_angle → merge_slab_weight_slope_angle
         → slab_weight_shear
     slab_weight_shear + elastic_modulus + poissons_ratio
-        → merge_slab_weight_shear_elasticity → slab_weight_with_elasticity
+        → merge_slab_weight_shear_elasticity → slab_weight_shear_with_elasticity
 
 Methods Available
 -----------------
@@ -102,7 +102,7 @@ layer-level calculations before attempting slab-level calculations.
 ``density`` is shared, any pathway that uses ``srivastava`` for Poisson's
 ratio must use the *same* density method as elastic modulus — there is no
 independent density choice for Poisson's ratio. This constrains D11,
-``slab_weight_with_elasticity``, ``shear_modulus``, and A55 to
+``slab_weight_shear_with_elasticity``, ``shear_modulus``, and A55 to
 4 density × 4 E × 2 ν = **32 unique pathways**. ``find_parameterizations``
 enforces this through deduplication; see
 ``snowpyt_mechparams.algorithm._method_fingerprint`` for details.
@@ -218,7 +218,7 @@ D11 = build_graph.param("D11", level="slab")  # Bending stiffness
 A55 = build_graph.param("A55", level="slab")  # Shear stiffness
 slab_weight = build_graph.param("slab_weight", level="slab")  # W
 slab_weight_shear = build_graph.param("slab_weight_shear", level="slab")  # W_s
-slab_weight_with_elasticity = build_graph.param("slab_weight_with_elasticity", level="slab")
+slab_weight_shear_with_elasticity = build_graph.param("slab_weight_shear_with_elasticity", level="slab")
 
 # ==============================================================================
 # STEP 2: Create merge nodes for shared input combinations
@@ -345,13 +345,13 @@ build_graph.flow(slab_weight, merge_slab_weight_slope_angle)
 build_graph.flow(measured_slope_angle, merge_slab_weight_slope_angle)
 build_graph.method_edge(merge_slab_weight_slope_angle, slab_weight_shear, "slope_parallel_component")
 
-# Slab weight with elasticity: W_s plus layer-level E and nu availability.
+# Slab weight_shear with elasticity: W_s plus layer-level E and nu availability.
 build_graph.flow(slab_weight_shear, merge_slab_weight_shear_elasticity)
 build_graph.flow(elastic_modulus, merge_slab_weight_shear_elasticity)
 build_graph.flow(poissons_ratio, merge_slab_weight_shear_elasticity)
 build_graph.method_edge(
     merge_slab_weight_shear_elasticity,
-    slab_weight_with_elasticity,
+    slab_weight_shear_with_elasticity,
     "combine_shear_weight_and_elasticity",
 )
 
@@ -431,7 +431,7 @@ __all__ = [
     'A55',
     'slab_weight',
     'slab_weight_shear',
-    'slab_weight_with_elasticity',
+    'slab_weight_shear_with_elasticity',
     # Merge nodes
     'merge_slab_weight_inputs',
     'merge_slab_weight_slope_angle',

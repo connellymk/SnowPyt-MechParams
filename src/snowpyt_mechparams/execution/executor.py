@@ -370,7 +370,7 @@ class PathwayExecutor:
         # Order: layer params first, then slab-level targets.
         order = [
             "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-            "slab_weight", "slab_weight_shear", "slab_weight_with_elasticity",
+            "slab_weight", "slab_weight_shear", "slab_weight_shear_with_elasticity",
         ]
         parts = []
         for param in order:
@@ -743,7 +743,7 @@ class PathwayExecutor:
             traces.append(_trace("slab_weight_shear", "slope_parallel_component", value, was_cached, error_msg))
             return traces
 
-        if target_parameter == "slab_weight_with_elasticity":
+        if target_parameter == "slab_weight_shear_with_elasticity":
             traces = []
             can_compute = (
                 all_layers_have_density and
@@ -754,7 +754,7 @@ class PathwayExecutor:
             )
             if not can_compute:
                 return [_trace(
-                    "slab_weight_with_elasticity",
+                    "slab_weight_shear_with_elasticity",
                     "combine_shear_weight_and_elasticity",
                     None,
                     False,
@@ -768,7 +768,7 @@ class PathwayExecutor:
                 traces.append(_trace("slab_weight", "sum_layer_weight", value, was_cached, error_msg))
                 if value is None:
                     traces.append(_trace(
-                        "slab_weight_with_elasticity",
+                        "slab_weight_shear_with_elasticity",
                         "combine_shear_weight_and_elasticity",
                         None,
                         False,
@@ -783,7 +783,7 @@ class PathwayExecutor:
                 traces.append(_trace("slab_weight_shear", "slope_parallel_component", value, was_cached, error_msg))
                 if value is None:
                     traces.append(_trace(
-                        "slab_weight_with_elasticity",
+                        "slab_weight_shear_with_elasticity",
                         "combine_shear_weight_and_elasticity",
                         None,
                         False,
@@ -793,11 +793,11 @@ class PathwayExecutor:
 
             value, was_cached, error_msg = self._get_or_compute_slab_param(
                 slab,
-                "slab_weight_with_elasticity",
+                "slab_weight_shear_with_elasticity",
                 "combine_shear_weight_and_elasticity",
             )
             traces.append(_trace(
-                "slab_weight_with_elasticity",
+                "slab_weight_shear_with_elasticity",
                 "combine_shear_weight_and_elasticity",
                 value,
                 was_cached,

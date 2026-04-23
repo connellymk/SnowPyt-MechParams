@@ -104,7 +104,7 @@ _NODE_LABELS: Dict[str, str] = {
     "A55": "A55",
     "slab_weight": "slab weight (W)",
     "slab_weight_shear": "slab weight_shear (W_s)",
-    "slab_weight_with_elasticity": "slab weight with elasticity",
+    "slab_weight_shear_with_elasticity": "slab weight_shear with elasticity",
 
     # Merge node labels (short, single line)
     "merge_hand_hardness_grain_form": "HH + grain form",

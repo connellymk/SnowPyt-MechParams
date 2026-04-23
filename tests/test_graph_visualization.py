@@ -179,7 +179,7 @@ def test_generate_mermaid_stability_detail_uses_slab_weight_graph():
     """Slab-weight detail should reflect the canonical graph, not old criteria."""
     diagram = generate_mermaid_stability_detail()
 
-    assert "slab_weight_with_elasticity" in diagram
+    assert "slab_weight_shear_with_elasticity" in diagram
     assert "merge_slab_weight_shear_elasticity" in diagram
     assert "measured_slope_angle" in diagram
     assert "merge_weac_inputs" not in diagram

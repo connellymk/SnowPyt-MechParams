@@ -675,7 +675,7 @@ class PathwayExecutor:
             layer.thickness is not None for layer in slab.layers
         )
         all_layers_have_density = all(
-            layer.density_calculated is not None or layer.density_measured is not None
+            layer.density_calculated is not None
             for layer in slab.layers
         )
         has_slope_angle = slab.angle is not None
@@ -708,7 +708,7 @@ class PathwayExecutor:
                 "sum_layer_weight",
                 None,
                 False,
-                "Missing prerequisites: need density and thickness on all layers",
+                "Missing prerequisites: need computed density and thickness on all layers",
             )]
 
         if target_parameter == "slab_weight_shear":
@@ -719,7 +719,7 @@ class PathwayExecutor:
                     "slope_parallel_component",
                     None,
                     False,
-                    "Missing prerequisites: need density, thickness, and slope angle",
+                    "Missing prerequisites: need computed density, thickness, and slope angle",
                 )]
 
             if getattr(slab, "slab_weight", None) is None:
@@ -758,7 +758,7 @@ class PathwayExecutor:
                     "combine_shear_weight_and_elasticity",
                     None,
                     False,
-                    "Missing prerequisites: need density, thickness, slope angle, E, and ν",
+                    "Missing prerequisites: need computed density, thickness, slope angle, E, and ν",
                 )]
 
             if getattr(slab, "slab_weight", None) is None:

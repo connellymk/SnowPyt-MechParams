@@ -191,10 +191,10 @@ def _get_layer_input(
 
 
 def _calculate_slab_weight(slab: Slab) -> Optional[UncertainValue]:
-    """Return slab weight per unit area from layer densities and thicknesses."""
+    """Return slab weight per unit area from computed layer densities."""
     total = None
     for layer in slab.layers:
-        density = _resolve_density(layer)
+        density = layer.density_calculated
         if density is None or layer.thickness is None:
             return None
         layer_weight = density * (layer.thickness / 100.0) * g

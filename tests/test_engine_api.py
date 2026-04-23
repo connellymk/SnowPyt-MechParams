@@ -140,6 +140,34 @@ class TestExecuteSingle:
 
         assert slab.layers[0].density_calculated == original_density
 
+    def test_slab_weight_does_not_fallback_to_measured_density_after_method_failure(self, engine):
+        """Failed empirical density pathways must not compute W from measured density."""
+        layer = Layer(
+            thickness=ufloat(10, 0.5),
+            density_measured=ufloat(200, 10),
+            grain_form="RG",
+            # Missing hand_hardness: empirical density methods should fail.
+        )
+        slab = Slab(layers=[layer], angle=30)
+
+        results = engine.execute_all(slab, "slab_weight")
+
+        assert results.total_pathways == 4
+        for pathway in results.pathways.values():
+            density_method = pathway.methods_used["density"]
+            density_traces = pathway.get_traces_for_parameter("density")
+            slab_weight_trace = pathway.get_traces_for_parameter("slab_weight")[-1]
+
+            if density_method == "data_flow":
+                assert density_traces[0].success
+                assert pathway.success
+                assert slab_weight_trace.success
+            else:
+                assert not density_traces[0].success
+                assert not pathway.success
+                assert not slab_weight_trace.success
+                assert "computed density" in slab_weight_trace.error
+
 
 # ---------------------------------------------------------------------------
 # list_available_pathways

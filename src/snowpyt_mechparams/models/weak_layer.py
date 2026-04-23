@@ -17,8 +17,8 @@ class WeakLayer(Layer):
     density_calculated, elastic_modulus, poissons_ratio, shear_modulus).
 
     Fracture and strength parameters (G_c, G_Ic, G_IIc, sigma_c, tau_c,
-    sigma_comp) are not stored here — they are currently represented in the
-    graph by the ``weak_layer_info*`` placeholder node.
+    sigma_comp) are not stored here; direct stability-criterion calls must
+    receive them explicitly or rely on criterion-specific defaults.
     """
 
     @classmethod

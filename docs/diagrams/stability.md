@@ -1,44 +1,31 @@
-# SnowPyt-MechParams — Slab Elasticity Coverage & Stability Criteria
+# SnowPyt-MechParams — Slab Weight Pathways
 
 ```mermaid
 graph LR
 
-    snow_pit[snow pit]
-    measured_density[density (measured)]
-    measured_hand_hardness[hand hardness]
-    measured_grain_form[grain form]
-    measured_grain_size[grain size]
+    measured_slope_angle[slope angle]
     measured_layer_thickness[layer thickness]
     density[ρ (density)]
     elastic_modulus[E (elastic modulus)]
     poissons_ratio[ν (Poisson's ratio)]
-    shear_modulus[G (shear modulus)]
-    weak_layer_info*[weak layer info* (placeholder)]
-    slab_elasticity_parameters{slab elasticity (E + ν)}
-    g_delta[g_Δ (WEAC)]
-    s_r[S_r (Roch natural)]
-    merge_weac_inputs{WEAC inputs}
-    merge_roch_inputs{Roch inputs}
+    slab_weight[slab weight (W)]
+    slab_weight_shear[slab weight_shear (W_s)]
+    slab_weight_shear_with_elasticity[slab weight_shear with elasticity]
+    merge_slab_weight_inputs{ρ + h_i}
+    merge_slab_weight_slope_angle{W + slope angle}
+    merge_slab_weight_shear_elasticity{W_s + E + ν}
 
     %% Edges
-    snow_pit --> measured_density
-    snow_pit --> measured_hand_hardness
-    snow_pit --> measured_grain_form
-    snow_pit --> measured_grain_size
-    snow_pit --> measured_layer_thickness
-    measured_density --> density
-    measured_grain_form -->|kochle| poissons_ratio
-    elastic_modulus --> slab_elasticity_parameters
-    poissons_ratio --> slab_elasticity_parameters
-    slab_elasticity_parameters --> merge_weac_inputs
-    density --> merge_weac_inputs
-    measured_layer_thickness --> merge_weac_inputs
-    weak_layer_info* --> merge_weac_inputs
-    merge_weac_inputs -->|weac_skier| g_delta
-    density --> merge_roch_inputs
-    measured_layer_thickness --> merge_roch_inputs
-    weak_layer_info* --> merge_roch_inputs
-    merge_roch_inputs -->|roch_natural| s_r
+    density --> merge_slab_weight_inputs
+    measured_layer_thickness --> merge_slab_weight_inputs
+    merge_slab_weight_inputs -->|sum_layer_weight| slab_weight
+    slab_weight --> merge_slab_weight_slope_angle
+    measured_slope_angle --> merge_slab_weight_slope_angle
+    merge_slab_weight_slope_angle -->|slope_parallel_component| slab_weight_shear
+    slab_weight_shear --> merge_slab_weight_shear_elasticity
+    elastic_modulus --> merge_slab_weight_shear_elasticity
+    poissons_ratio --> merge_slab_weight_shear_elasticity
+    merge_slab_weight_shear_elasticity -->|combine_shear_weight_and_elasticity| slab_weight_shear_with_elasticity
 
     %% Styling
     classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
@@ -49,10 +36,8 @@ graph LR
     classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
     
-    class snow_pit rootNode
-    class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size,measured_layer_thickness measuredNode
-    class slab_elasticity_parameters,merge_weac_inputs,merge_roch_inputs mergeNode
-    class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
-    class weak_layer_info* weakLayerCalc
-    class g_delta,s_r stabilityCalc
+    class measured_slope_angle,measured_layer_thickness measuredNode
+    class merge_slab_weight_inputs,merge_slab_weight_slope_angle,merge_slab_weight_shear_elasticity mergeNode
+    class density,elastic_modulus,poissons_ratio layerCalc
+    class slab_weight,slab_weight_shear,slab_weight_shear_with_elasticity slabCalc
 ```

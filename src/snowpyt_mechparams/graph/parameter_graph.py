@@ -4,8 +4,7 @@ Parameter graph definition for SnowPyt-MechParams.
 This module defines the complete parameter dependency graph, including:
 - Layer-level parameters (density, elastic modulus, Poisson's ratio, shear modulus)
 - Slab-level parameters (A11, B11, D11, A55 plate theory stiffnesses)
-- Slab elasticity merge node (E + ν) as a coverage analysis target
-- Stability criterion nodes (g_delta, s_r) with weak_layer_info* placeholder
+- Slab-weight targets for coverage analysis with and without elastic inputs
 
 Graph Structure
 ---------------
@@ -16,18 +15,21 @@ Layer-Level:
     snow_pit → measured_grain_form ────────────────↗
 
     snow_pit → measured_layer_thickness (thickness)
+    snow_pit → measured_slope_angle (slope angle)
 
 Slab-Level:
     elastic_modulus + poissons_ratio → merge_E_nu
-    elastic_modulus + poissons_ratio → slab_elasticity_parameters  [coverage target]
 
     measured_layer_thickness + merge_E_nu → merge_hi_E_nu → A11, B11, D11
     measured_layer_thickness + shear_modulus → merge_hi_G → A55
 
-Stability Criteria (inputs only — weak-layer info is a placeholder):
-    slab_elasticity_parameters + density
-        + measured_layer_thickness + weak_layer_info* → merge_weac_inputs → g_delta
-    density + measured_layer_thickness + weak_layer_info* → merge_roch_inputs → s_r
+Slab Weight Coverage Targets:
+    density + measured_layer_thickness → merge_slab_weight_inputs
+        → slab_weight
+    slab_weight + measured_slope_angle → merge_slab_weight_slope_angle
+        → slab_weight_shear
+    slab_weight_shear + elastic_modulus + poissons_ratio
+        → merge_slab_weight_shear_elasticity → slab_weight_shear_with_elasticity
 
 Methods Available
 -----------------
@@ -100,17 +102,10 @@ layer-level calculations before attempting slab-level calculations.
 ``density`` is shared, any pathway that uses ``srivastava`` for Poisson's
 ratio must use the *same* density method as elastic modulus — there is no
 independent density choice for Poisson's ratio. This constrains D11,
-``slab_elasticity_parameters``, ``shear_modulus``, and A55 to
+``slab_weight_shear_with_elasticity``, ``shear_modulus``, and A55 to
 4 density × 4 E × 2 ν = **32 unique pathways**. ``find_parameterizations``
 enforces this through deduplication; see
 ``snowpyt_mechparams.algorithm._method_fingerprint`` for details.
-
-**weak_layer_info* Placeholder**: The ``weak_layer_info*`` node represents
-weak-layer measurements (shear strength, fracture energy, etc.) that are not
-currently computable from standard snowpit observations. It has no incoming
-method edges, so ``find_parameterizations`` returns 0 pathways for ``g_delta``
-and ``s_r``. The graph retains these nodes to document the full input
-requirements of the Roch and WEAC criteria.
 
 Adding New Methods
 ------------------
@@ -205,6 +200,7 @@ measured_density = build_graph.param("measured_density")
 measured_hand_hardness = build_graph.param("measured_hand_hardness")
 measured_grain_form = build_graph.param("measured_grain_form")
 measured_grain_size = build_graph.param("measured_grain_size")
+measured_slope_angle = build_graph.param("measured_slope_angle")
 
 # Layer property nodes (measured, data flow from snow_pit)
 measured_layer_thickness = build_graph.param("measured_layer_thickness")  # hi (thickness)
@@ -220,6 +216,9 @@ A11 = build_graph.param("A11", level="slab")  # Extensional stiffness
 B11 = build_graph.param("B11", level="slab")  # Bending-extension coupling
 D11 = build_graph.param("D11", level="slab")  # Bending stiffness
 A55 = build_graph.param("A55", level="slab")  # Shear stiffness
+slab_weight = build_graph.param("slab_weight", level="slab")  # W
+slab_weight_shear = build_graph.param("slab_weight_shear", level="slab")  # W_s
+slab_weight_shear_with_elasticity = build_graph.param("slab_weight_shear_with_elasticity", level="slab")
 
 # ==============================================================================
 # STEP 2: Create merge nodes for shared input combinations
@@ -261,6 +260,15 @@ merge_hi_G = build_graph.merge("merge_hi_G")
 # derives z-coordinates internally from thickness within the slab method.
 merge_hi_E_nu = build_graph.merge("merge_hi_E_nu")
 
+# Merge node for: density + thickness (for slab weight W)
+merge_slab_weight_inputs = build_graph.merge("merge_slab_weight_inputs")
+
+# Merge node for: slab weight + slope angle (for slope-parallel slab weight W_s)
+merge_slab_weight_slope_angle = build_graph.merge("merge_slab_weight_slope_angle")
+
+# Merge node for: slab weight shear + elastic layer properties (for coverage target)
+merge_slab_weight_shear_elasticity = build_graph.merge("merge_slab_weight_shear_elasticity")
+
 # ==============================================================================
 # STEP 3: Build the graph structure - Layer level
 # ==============================================================================
@@ -270,6 +278,7 @@ build_graph.flow(snow_pit, measured_density)
 build_graph.flow(snow_pit, measured_hand_hardness)
 build_graph.flow(snow_pit, measured_grain_form)
 build_graph.flow(snow_pit, measured_grain_size)
+build_graph.flow(snow_pit, measured_slope_angle)
 
 # Snow pit to layer properties (data flow)
 build_graph.flow(snow_pit, measured_layer_thickness)
@@ -323,51 +332,28 @@ build_graph.method_edge(
 )
 
 # ==============================================================================
-# STEP 3b: Stability criterion nodes and placeholder
+# STEP 3b: Slab weight coverage targets
 # ==============================================================================
 
-# Placeholder node for weak-layer information not computable from snowpit observations.
-# Represents inputs such as shear strength (τ_c), fracture energy (G_c, G_Ic, G_IIc),
-# and compressive/tensile strength (σ_comp, σ_c). No method edges are registered,
-# so pathways to g_delta and s_r resolve to 0 (unavailable from current data).
-weak_layer_info = build_graph.param("weak_layer_info*", level="weak_layer")
+# Slab weight W: layer density integrated over layer thickness.
+build_graph.flow(density, merge_slab_weight_inputs)
+build_graph.flow(measured_layer_thickness, merge_slab_weight_inputs)
+build_graph.method_edge(merge_slab_weight_inputs, slab_weight, "sum_layer_weight")
 
-# Slab elasticity merge node: combines E and ν for all slab layers.
-# This is the primary coverage analysis target — it captures whether a slab has
-# sufficient data for the elastic slab parameters needed by WEAC.
-slab_elasticity_parameters = build_graph.merge("slab_elasticity_parameters")
-build_graph.flow(elastic_modulus, slab_elasticity_parameters)
-build_graph.flow(poissons_ratio,  slab_elasticity_parameters)
+# Slope-parallel slab weight W_s: W projected by slope angle.
+build_graph.flow(slab_weight, merge_slab_weight_slope_angle)
+build_graph.flow(measured_slope_angle, merge_slab_weight_slope_angle)
+build_graph.method_edge(merge_slab_weight_slope_angle, slab_weight_shear, "slope_parallel_component")
 
-# Stability model output nodes (level="stability_model")
-g_delta = build_graph.param("g_delta", level="stability_model")  # WEAC coupled criterion (≥1 = unstable)
-s_r     = build_graph.param("s_r",     level="stability_model")  # Roch natural: S_r = τ_c / τ
-
-# Merge node aggregating the slab-side WEAC inputs analysed in this manuscript:
-#   slab_elasticity_parameters: E + ν for all slab layers
-#   density: slab-layer density for loading / geometry context
-#   measured_layer_thickness: layer geometry
-#   weak_layer_info*: placeholder for currently unavailable weak-layer data
-#
-# Full WEAC execution through the direct adapter also requires layer shear modulus,
-# but that executable path is intentionally deferred here until weak-layer methods
-# are added and population-scale criterion execution is brought into scope.
-merge_weac_inputs = build_graph.merge("merge_weac_inputs")
-build_graph.flow(slab_elasticity_parameters, merge_weac_inputs)
-build_graph.flow(density,                    merge_weac_inputs)
-build_graph.flow(measured_layer_thickness,   merge_weac_inputs)
-build_graph.flow(weak_layer_info,            merge_weac_inputs)
-build_graph.method_edge(merge_weac_inputs, g_delta, "weac_skier")
-
-# Merge node aggregating Roch prerequisites:
-#   density: for gravitational shear stress τ = Σ ρᵢhᵢg·sinθ
-#   measured_layer_thickness: layer geometry for shear stress sum
-#   weak_layer_info*: placeholder for τ_c (weak-layer shear strength)
-merge_roch_inputs = build_graph.merge("merge_roch_inputs")
-build_graph.flow(density,                  merge_roch_inputs)
-build_graph.flow(measured_layer_thickness, merge_roch_inputs)
-build_graph.flow(weak_layer_info,          merge_roch_inputs)
-build_graph.method_edge(merge_roch_inputs, s_r, "roch_natural")
+# Slab weight_shear with elasticity: W_s plus layer-level E and nu availability.
+build_graph.flow(slab_weight_shear, merge_slab_weight_shear_elasticity)
+build_graph.flow(elastic_modulus, merge_slab_weight_shear_elasticity)
+build_graph.flow(poissons_ratio, merge_slab_weight_shear_elasticity)
+build_graph.method_edge(
+    merge_slab_weight_shear_elasticity,
+    slab_weight_shear_with_elasticity,
+    "combine_shear_weight_and_elasticity",
+)
 
 # ==============================================================================
 # STEP 4: Build the graph structure - Slab level
@@ -430,6 +416,7 @@ __all__ = [
     'measured_hand_hardness',
     'measured_grain_form',
     'measured_grain_size',
+    'measured_slope_angle',
     # Layer properties (measured)
     'measured_layer_thickness',
     # Layer parameters (calculated)
@@ -442,15 +429,13 @@ __all__ = [
     'B11',
     'D11',
     'A55',
-    # Weak-layer placeholder
-    'weak_layer_info',
-    # Stability criterion targets
-    'slab_elasticity_parameters',
-    'g_delta',
-    's_r',
+    'slab_weight',
+    'slab_weight_shear',
+    'slab_weight_shear_with_elasticity',
     # Merge nodes
-    'merge_weac_inputs',
-    'merge_roch_inputs',
+    'merge_slab_weight_inputs',
+    'merge_slab_weight_slope_angle',
+    'merge_slab_weight_shear_elasticity',
     # Parameter classification sets
     'LAYER_PARAMS',
     'SLAB_PARAMS',

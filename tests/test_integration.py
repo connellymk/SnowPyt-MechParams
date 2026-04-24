@@ -192,84 +192,95 @@ class TestVersioning:
 
 
 class TestUpdatedGraphStructure:
-    """Verify the updated graph structure after removing weak layer parameters."""
+    """Verify the updated slab-weight graph structure."""
 
-    def test_weak_layer_info_placeholder_exists(self):
-        """weak_layer_info* node should exist in the graph."""
+    def test_slab_weight_nodes_exist(self):
+        """Slab-weight target nodes should exist in the graph."""
         from snowpyt_mechparams.graph import graph as g
-        node = g.get_node("weak_layer_info*")
-        assert node is not None
-        assert node.level == "weak_layer"
 
-    def test_weak_layer_info_has_no_incoming_method_edges(self):
-        """weak_layer_info* has no method edges — it is a pure placeholder."""
-        from snowpyt_mechparams.graph import graph as g
-        from snowpyt_mechparams.algorithm import find_parameterizations
-        node = g.get_node("weak_layer_info*")
-        pathways = find_parameterizations(g, node)
-        assert len(pathways) == 0
+        for param in [
+            "slab_weight",
+            "slab_weight_shear",
+            "slab_weight_shear_with_elasticity",
+        ]:
+            node = g.get_node(param)
+            assert node is not None
+            assert node.level == "slab"
 
-    def test_slab_elasticity_parameters_node_exists(self):
-        """slab_elasticity_parameters merge node should exist."""
+    def test_slab_weight_inputs_merge_has_correct_inputs(self):
+        """Slab weight should merge density and layer thickness."""
         from snowpyt_mechparams.graph import graph as g
-        node = g.get_node("slab_elasticity_parameters")
-        assert node is not None
-        assert node.type == "merge"
 
-    def test_slab_elasticity_parameters_inputs(self):
-        """slab_elasticity_parameters should receive E and ν as inputs."""
-        from snowpyt_mechparams.graph import graph as g
-        node = g.get_node("slab_elasticity_parameters")
+        node = g.get_node("merge_slab_weight_inputs")
         input_params = {e.start.parameter for e in node.incoming_edges}
-        assert "elastic_modulus" in input_params
-        assert "poissons_ratio" in input_params
+        assert input_params == {"density", "measured_layer_thickness"}
 
-    def test_slab_elasticity_parameters_has_32_pathways(self):
-        """4 density × 4 E-mod × 2 ν = 32 pathways to slab_elasticity_parameters."""
+    def test_slab_weight_shear_merge_has_correct_inputs(self):
+        """Slab-weight shear should merge W and slope angle."""
+        from snowpyt_mechparams.graph import graph as g
+
+        node = g.get_node("merge_slab_weight_slope_angle")
+        input_params = {e.start.parameter for e in node.incoming_edges}
+        assert input_params == {"slab_weight", "measured_slope_angle"}
+
+    def test_slab_weight_shear_elasticity_merge_has_correct_inputs(self):
+        """Slab weight_shear with elasticity should merge W_s, E, and ν."""
+        from snowpyt_mechparams.graph import graph as g
+
+        node = g.get_node("merge_slab_weight_shear_elasticity")
+        input_params = {e.start.parameter for e in node.incoming_edges}
+        assert input_params == {
+            "slab_weight_shear",
+            "elastic_modulus",
+            "poissons_ratio",
+        }
+
+    def test_slab_weight_has_four_pathways(self):
+        """Four density pathways should produce four slab-weight pathways."""
         from snowpyt_mechparams.graph import graph as g
         from snowpyt_mechparams.algorithm import find_parameterizations
-        node = g.get_node("slab_elasticity_parameters")
+
+        node = g.get_node("slab_weight")
+        pathways = find_parameterizations(g, node)
+        assert len(pathways) == 4
+
+    def test_slab_weight_shear_has_four_pathways(self):
+        """Adding slope angle should preserve the four slab-weight pathways."""
+        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.algorithm import find_parameterizations
+
+        node = g.get_node("slab_weight_shear")
+        pathways = find_parameterizations(g, node)
+        assert len(pathways) == 4
+
+    def test_slab_weight_shear_with_elasticity_has_32_pathways(self):
+        """4 density × 4 E-mod × 2 ν pathways should reach elastic slab weight."""
+        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.algorithm import find_parameterizations
+
+        node = g.get_node("slab_weight_shear_with_elasticity")
         pathways = find_parameterizations(g, node)
         assert len(pathways) == 32
 
-    def test_g_delta_has_zero_pathways(self):
-        """g_delta has 0 pathways because weak_layer_info* is a placeholder."""
+    def test_old_criteria_nodes_not_in_graph(self):
+        """Roch and WEAC graph nodes should not be represented directly."""
         from snowpyt_mechparams.graph import graph as g
-        from snowpyt_mechparams.algorithm import find_parameterizations
-        node = g.get_node("g_delta")
-        pathways = find_parameterizations(g, node)
-        assert len(pathways) == 0
-
-    def test_s_r_has_zero_pathways(self):
-        """s_r has 0 pathways because weak_layer_info* is a placeholder."""
-        from snowpyt_mechparams.graph import graph as g
-        from snowpyt_mechparams.algorithm import find_parameterizations
-        node = g.get_node("s_r")
-        pathways = find_parameterizations(g, node)
-        assert len(pathways) == 0
-
-    def test_old_weak_layer_params_not_in_graph(self):
-        """G_c, G_Ic, G_IIc, sigma_c, tau_c, sigma_comp should not be in graph."""
-        from snowpyt_mechparams.graph import graph as g
-        removed = ["G_c", "G_Ic", "G_IIc", "sigma_c", "tau_c", "sigma_comp"]
+        removed = [
+            "weak_layer_info*",
+            "slab_elasticity_parameters",
+            "merge_weac_inputs",
+            "merge_roch_inputs",
+            "g_delta",
+            "s_r",
+            "G_c",
+            "G_Ic",
+            "G_IIc",
+            "sigma_c",
+            "tau_c",
+            "sigma_comp",
+        ]
         for param in removed:
             assert g.get_node(param) is None, f"Node {param!r} should have been removed"
-
-    def test_weac_inputs_merge_node_has_slab_elasticity_input(self):
-        """merge_weac_inputs should receive slab_elasticity_parameters as an input."""
-        from snowpyt_mechparams.graph import graph as g
-        node = g.get_node("merge_weac_inputs")
-        input_params = {e.start.parameter for e in node.incoming_edges}
-        assert "slab_elasticity_parameters" in input_params
-        assert "weak_layer_info*" in input_params
-
-    def test_roch_inputs_merge_node_has_weak_layer_info(self):
-        """merge_roch_inputs should receive weak_layer_info* (not tau_c)."""
-        from snowpyt_mechparams.graph import graph as g
-        node = g.get_node("merge_roch_inputs")
-        input_params = {e.start.parameter for e in node.incoming_edges}
-        assert "weak_layer_info*" in input_params
-        assert "tau_c" not in input_params
 
 
 if __name__ == "__main__":

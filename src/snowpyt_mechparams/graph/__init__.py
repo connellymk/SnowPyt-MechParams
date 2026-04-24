@@ -37,6 +37,9 @@ layer-level calculations before attempting slab-level calculations.
 - merge_E_nu: Combines E and ν from all layers (for plane-strain modulus)
 - merge_hi_G: Combines thickness with shear modulus (for A55)
 - merge_hi_E_nu: Combines thickness with E/ν (for A11, B11, D11)
+- merge_slab_weight_inputs: Combines density with thickness for slab weight
+- merge_slab_weight_slope_angle: Combines slab weight with slope angle
+- merge_slab_weight_shear_elasticity: Combines slope-parallel slab weight with E and ν
 
 See Also
 --------
@@ -62,6 +65,7 @@ from snowpyt_mechparams.graph.parameter_graph import (
     measured_hand_hardness,
     measured_grain_form,
     measured_grain_size,
+    measured_slope_angle,
     # Layer properties (measured)
     measured_layer_thickness,
     # Layer parameters (calculated)
@@ -74,14 +78,13 @@ from snowpyt_mechparams.graph.parameter_graph import (
     B11,
     D11,
     A55,
-    # Weak-layer placeholder and stability criterion targets
-    weak_layer_info,
-    slab_elasticity_parameters,
-    g_delta,
-    s_r,
+    slab_weight,
+    slab_weight_shear,
+    slab_weight_shear_with_elasticity,
     # Merge nodes
-    merge_weac_inputs,
-    merge_roch_inputs,
+    merge_slab_weight_inputs,
+    merge_slab_weight_slope_angle,
+    merge_slab_weight_shear_elasticity,
     # Parameter classification sets
     WEAK_LAYER_PARAMS,
     STABILITY_PARAMS,
@@ -119,6 +122,7 @@ __all__ = [
     "measured_hand_hardness",
     "measured_grain_form",
     "measured_grain_size",
+    "measured_slope_angle",
     # Layer properties (measured)
     "measured_layer_thickness",
     # Layer parameters (calculated)
@@ -131,14 +135,13 @@ __all__ = [
     "B11",
     "D11",
     "A55",
-    # Weak-layer placeholder and stability criterion targets
-    "weak_layer_info",
-    "slab_elasticity_parameters",
-    "g_delta",
-    "s_r",
+    "slab_weight",
+    "slab_weight_shear",
+    "slab_weight_shear_with_elasticity",
     # Merge nodes
-    "merge_weac_inputs",
-    "merge_roch_inputs",
+    "merge_slab_weight_inputs",
+    "merge_slab_weight_slope_angle",
+    "merge_slab_weight_shear_elasticity",
     # Parameter classification sets
     "WEAK_LAYER_PARAMS",
     "STABILITY_PARAMS",

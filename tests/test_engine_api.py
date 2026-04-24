@@ -140,6 +140,80 @@ class TestExecuteSingle:
 
         assert slab.layers[0].density_calculated == original_density
 
+    def test_slab_weight_does_not_fallback_to_measured_density_after_method_failure(self, engine):
+        """Failed empirical density pathways must not compute W from measured density."""
+        layer = Layer(
+            thickness=ufloat(10, 0.5),
+            density_measured=ufloat(200, 10),
+            grain_form="RG",
+            # Missing hand_hardness: empirical density methods should fail.
+        )
+        slab = Slab(layers=[layer], angle=30)
+
+        results = engine.execute_all(slab, "slab_weight")
+
+        assert results.total_pathways == 4
+        for pathway in results.pathways.values():
+            density_method = pathway.methods_used["density"]
+            density_traces = pathway.get_traces_for_parameter("density")
+            slab_weight_trace = pathway.get_traces_for_parameter("slab_weight")[-1]
+
+            if density_method == "data_flow":
+                assert density_traces[0].success
+                assert pathway.success
+                assert slab_weight_trace.success
+            else:
+                assert not density_traces[0].success
+                assert not pathway.success
+                assert not slab_weight_trace.success
+                assert "computed density" in slab_weight_trace.error
+
+    @pytest.mark.parametrize(
+        "target",
+        [
+            "slab_weight",
+            "slab_weight_shear",
+            "slab_weight_shear_with_elasticity",
+        ],
+    )
+    def test_slab_weight_targets_ignore_stale_computed_values(self, engine, target):
+        """Slab-weight targets must only use values computed in this pathway."""
+        stale_density = ufloat(999, 0)
+        layer = Layer(
+            thickness=ufloat(10, 0.5),
+            density_measured=ufloat(200, 10),
+            density_calculated=stale_density,
+            grain_form="RG",
+            grain_size_avg=ufloat(0.5, 0.05),
+            # Missing hand_hardness: empirical density methods should fail.
+        )
+        slab = Slab(
+            layers=[layer],
+            angle=30,
+            slab_weight=ufloat(9999, 0),
+            slab_weight_shear=ufloat(9999, 0),
+            slab_weight_shear_with_elasticity=ufloat(9999, 0),
+        )
+
+        results = engine.execute_all(slab, target)
+
+        assert slab.layers[0].density_calculated == stale_density
+        assert slab.slab_weight.nominal_value == 9999
+        for pathway in results.pathways.values():
+            density_method = pathway.methods_used["density"]
+            density_traces = pathway.get_traces_for_parameter("density")
+            target_trace = pathway.get_traces_for_parameter(target)[-1]
+
+            if density_method == "data_flow":
+                assert density_traces
+                assert density_traces[0].success
+            else:
+                assert density_traces
+                assert not density_traces[0].success
+                assert not pathway.success
+                assert not target_trace.success
+                assert target_trace.output is None
+
 
 # ---------------------------------------------------------------------------
 # list_available_pathways

@@ -62,6 +62,14 @@ class Slab:
         Bending-extension coupling stiffness in N. Can include uncertainty.
     D11 : Optional[UncertainValue]
         Bending stiffness in N*mm. Can include uncertainty.
+    slab_weight : Optional[UncertainValue]
+        Slab weight per unit area in N/m^2. Can include uncertainty.
+    slab_weight_shear : Optional[UncertainValue]
+        Slope-parallel slab weight per unit area in N/m^2. Can include uncertainty.
+    slab_weight_shear_with_elasticity : Optional[UncertainValue]
+        Coverage target with the same value as ``slab_weight_shear`` when
+        density, thickness, slope angle, elastic modulus, and Poisson's ratio
+        are all available on the pathway.
     """
     # Slab Structure
     layers: List[Layer]  # Ordered list of snow layers from top (surface) to bottom
@@ -81,6 +89,9 @@ class Slab:
     A55: Optional[UncertainValue] = None  # N/mm - Shear stiffness (with shear correction factor kappa)
     B11: Optional[UncertainValue] = None  # N - Bending-extension coupling stiffness
     D11: Optional[UncertainValue] = None  # N*mm - Bending stiffness
+    slab_weight: Optional[UncertainValue] = None  # N/m^2 - Slab weight per unit area
+    slab_weight_shear: Optional[UncertainValue] = None  # N/m^2 - Slope-parallel slab weight
+    slab_weight_shear_with_elasticity: Optional[UncertainValue] = None  # N/m^2 - W_s with E/nu available
 
     # Stability Criterion Results (populated by execution engine)
     weac_result: Optional["WeacSkierResult"] = None        # Full result from WEAC skier criterion

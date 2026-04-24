@@ -197,6 +197,7 @@ class PathwayExecutor:
                 # This layer needs computation - create a shallow copy
                 # (Using dataclass replace is faster than deepcopy)
                 working_layer = replace(original_layer)
+                self._clear_layer_pathway_outputs(working_layer)
                 
                 # Execute computations on this layer
                 for param in execution_order:
@@ -239,6 +240,7 @@ class PathwayExecutor:
         # Use dataclasses.replace to preserve all slab attributes (metadata, weak_layer, etc.)
         # while only updating the layers list
         result_slab = replace(slab, layers=result_layers)
+        self._clear_slab_pathway_outputs(result_slab)
 
         # Execute slab-level calculations only when the target is a slab parameter.
         # A11, B11, D11, A55 are target parameters like any other — compute only
@@ -561,6 +563,19 @@ class PathwayExecutor:
             layer.poissons_ratio = value
         elif parameter == "shear_modulus":
             layer.shear_modulus = value
+
+    def _clear_layer_pathway_outputs(self, layer: Layer) -> None:
+        """Clear computed layer outputs so each pathway starts from measurements."""
+        layer.density_calculated = None
+        layer.elastic_modulus = None
+        layer.poissons_ratio = None
+        layer.shear_modulus = None
+
+    def _clear_slab_pathway_outputs(self, slab: Slab) -> None:
+        """Clear computed slab outputs that are recomputed per pathway."""
+        slab.slab_weight = None
+        slab.slab_weight_shear = None
+        slab.slab_weight_shear_with_elasticity = None
 
     def _get_inputs_summary(
         self,

@@ -47,12 +47,14 @@ Represents a complete snow pit observation. Stores all layers in the profile (or
 
 The key operation of `Pit` is `create_slabs()`, which identifies the weak layer and assembles a `Slab` for each relevant test result. Three strategies are available:
 
-| Strategy | Weak layer source | Slabs produced |
-|---|---|---|
-| `None` | — | Empty list; no slab created |
-| `"layer_of_concern"` | Layer explicitly flagged in the pit record | One slab |
-| `"ECTP_failure_layer"` | ECT result with crack propagation (ECTP) | One per propagating ECTP |
-| `"CT_failure_layer"` | CT result with Q1, SC, or SP fracture character | One per qualifying CT |
+
+| Strategy               | Weak layer source                               | Slabs produced              |
+| ---------------------- | ----------------------------------------------- | --------------------------- |
+| `None`                 | —                                               | Empty list; no slab created |
+| `"layer_of_concern"`   | Layer explicitly flagged in the pit record      | One slab                    |
+| `"ECTP_failure_layer"` | ECT result with crack propagation (ECTP)        | One per propagating ECTP    |
+| `"CT_failure_layer"`   | CT result with Q1, SC, or SP fracture character | One per qualifying CT       |
+
 
 In each case, the slab layers are all layers shallower than the identified weak layer. When multiple test results exist in one pit, the resulting slabs share the same underlying layer data — this should be accounted for in any statistical analysis.
 
@@ -64,13 +66,15 @@ Field data enters the pipeline through `pit_parser.parse_pit()`, also accessible
 
 All numeric values in these structures can be either plain numbers or *uncertain numbers* (from Python's `uncertainties` package), which carry both a nominal value and a standard uncertainty. When data is read from a CAAML file, standard measurement uncertainties are automatically attached to each measurement:
 
-| Quantity | Uncertainty |
-|---|---|
-| Slope angle | ±2° |
-| Layer thickness | ±5% of measured value |
-| Density | ±10% of measured value |
-| Grain size | ±0.5 mm |
-| Hand hardness index | ±0.67 HHI units |
+
+| Quantity            | Uncertainty            |
+| ------------------- | ---------------------- |
+| Slope angle         | ±2°                    |
+| Layer thickness     | ±5% of measured value  |
+| Density             | ±10% of measured value |
+| Grain size          | ±0.5 mm                |
+| Hand hardness index | ±0.67 HHI units        |
+
 
 These uncertainties then propagate automatically through all subsequent arithmetic, so every calculated mechanical parameter carries an uncertainty estimate derived from the original field measurements.
 
@@ -78,9 +82,9 @@ These uncertainties then propagate automatically through all subsequent arithmet
 
 The model objects are consumed — and written back to — by three groups of downstream modules:
 
-- **`layer_parameters/`** — calculates density, elastic modulus, shear modulus, and Poisson's ratio for each `Layer`, storing results in the layer's calculated-parameter fields.
-- **`slab_parameters/`** — integrates layer-level properties through the slab thickness to compute the slab stiffness parameters (*A11*, *A55*, *B11*, *D11*), stored on the `Slab`.
-- **`stability_criteria/`** — uses the complete `Slab` (stiffness parameters, slope angle) together with externally supplied weak-layer properties to evaluate avalanche release potential, storing criterion results back on the `Slab`.
+- `**layer_parameters/`** — calculates density, elastic modulus, shear modulus, and Poisson's ratio for each `Layer`, storing results in the layer's calculated-parameter fields.
+- `**slab_parameters/**` — integrates layer-level properties through the slab thickness to compute the slab stiffness parameters (*A11*, *A55*, *B11*, *D11*), stored on the `Slab`.
+- `**stability_criteria/*`* — uses the complete `Slab` (stiffness parameters, slope angle) together with externally supplied weak-layer properties to evaluate avalanche release potential, storing criterion results back on the `Slab`.
 
 The `algorithm` and `execution` modules orchestrate which calculations are run and in what order, reading from and writing to the same `Layer` and `Slab` objects throughout the pipeline.
 
@@ -96,15 +100,15 @@ All methods accept an `include_method_uncertainty` flag. When `True` (the defaul
 
 Density is used by every downstream calculation that requires a physical layer property, so it is the first parameter calculated. When a layer was not sampled with a density cutter, one of three empirical methods is used to estimate it from hand hardness and grain form (the two observations most consistently recorded in pit profiles).
 
-**`geldsetzer`** (Geldsetzer & Jamieson, 2000)
+`**geldsetzer**` (Geldsetzer & Jamieson, 2000)
 
 Estimates density from hand hardness index and grain form using linear regressions fitted to a Canadian dataset. A separate non-linear regression (ρ = A + B·h³·¹⁵) is used for rounded grains (RG), which do not conform well to a linear relationship. Supported grain forms: PP, PPgp, DF, RG, RGmx, FC, FCmx, DH. Method uncertainty is the regression standard error reported in Table 3 of the source paper.
 
-**`kim_jamieson_table2`** (Kim & Jamieson, 2014)
+`**kim_jamieson_table2**` (Kim & Jamieson, 2014)
 
 An updated version of the Geldsetzer regressions fitted to an expanded dataset. Uses the same inputs (hand hardness index and grain form) but with revised coefficients and an exponential model (ρ = A·eᴮʰ) for rounded grains. Supported grain forms: PP, PPgp, DF, RG, RGxf, FC, FCxr, DH, MFcr. For RG, the method uncertainty is the standard error of the fitted exponent, propagated through the exponential.
 
-**`kim_jamieson_table5`** (Kim & Jamieson, 2014)
+`**kim_jamieson_table5**` (Kim & Jamieson, 2014)
 
 A multi-variable regression that incorporates grain size alongside hand hardness (ρ = A·h + B·gs + C), improving estimates for grain forms where size is an informative predictor. Requires grain size to be recorded in the pit profile. Supported grain forms: FC, FCxr, PP, PPgp, DF, MF. Method uncertainty is the residual standard error of the regression.
 
@@ -112,19 +116,19 @@ A multi-variable regression that incorporates grain size alongside hand hardness
 
 Young's modulus (*E*) controls how much a snow layer deforms under a bending or compressive load. All four methods express *E* as a function of density, scaled relative to the elastic modulus of solid ice.
 
-**`bergfeld`** (Bergfeld et al., 2023)
+`**bergfeld*`* (Bergfeld et al., 2023)
 
 A power-law relationship (E = 6500 · (ρ/ρᵢ꜀ₑ)⁴·⁴ MPa) whose exponent was fitted by optimizing a layered-slab mechanical model against vertical displacement fields measured during flat-field Propagation Saw Tests (PSTs). Because the fitting is dominated by slab bending, this modulus should be interpreted as a flexural-like quantity. Supported grain forms: PP, RG, DF. Valid density range: 110–363 kg/m³.
 
-**`kochle`** (Köchle & Schneebeli, 2014)
+`**kochle**` (Köchle & Schneebeli, 2014)
 
 An exponential relationship derived from finite-element (FE) simulations of snow microstructure imaged by X-ray micro-computed tomography (μ-CT). Two separate fits are used depending on density: a lower-density fit (150–250 kg/m³, R² = 0.68) and a higher-density fit (250–450 kg/m³, R² = 0.92). Because the source paper does not report standard errors for the fitted coefficients, no method uncertainty is added beyond what propagates from the input density. Supported grain forms: RG, FC, DH, MF.
 
-**`wautier`** (Wautier et al., 2015)
+`**wautier**` (Wautier et al., 2015)
 
 A power-law relationship (E/Eᵢ꜀ₑ = 0.78 · (ρ/ρᵢ꜀ₑ)²·³⁴) derived from numerical homogenization of the elastic stiffness tensor computed over 3-D μ-CT images of snow. The fit covers a wide density range (103–544 kg/m³) and achieves R² = 0.97. No method uncertainty is added (standard errors for the coefficients are not reported). Supported grain forms: DF, RG, FC, DH, MF.
 
-**`schottner`** (Schöttner et al., 2026)
+`**schottner**` (Schöttner et al., 2026)
 
 A power-law relationship (E/Eᵢ꜀ₑ = A · (ρ/ρᵢ꜀ₑ)ⁿ) with grain-type-specific scaling constants *A* and *n* fitted to experimental uniaxial compression tests on snow samples. Grain form groups share coefficients: DF/RG use one set, FC/DH another, and SH a third. Method uncertainty is the standard error of the fitted coefficients *A* and *n*, propagated through the power law. Supported grain forms: DF, RG, FC, DH, SH.
 
@@ -132,11 +136,11 @@ A power-law relationship (E/Eᵢ꜀ₑ = A · (ρ/ρᵢ꜀ₑ)ⁿ) with grain-ty
 
 Poisson's ratio (*ν*) describes how much a layer expands sideways when compressed vertically. Both available methods find little dependence on density; the dominant predictor is grain type. The result is a grain-type-specific constant with an associated uncertainty reflecting natural variability among samples.
 
-**`kochle`** (Köchle & Schneebeli, 2014)
+`**kochle*`* (Köchle & Schneebeli, 2014)
 
 Grain-type-specific mean values derived from the same FE simulations of μ-CT images used for the elastic modulus method. Values are RG: 0.171 ± 0.026, FC: 0.130 ± 0.040, DH: 0.087 ± 0.063. The large uncertainty for depth hoar reflects the high variability in that grain type. Supported grain forms: RG, FC, DH.
 
-**`srivastava`** (Srivastava et al., 2016)
+`**srivastava**` (Srivastava et al., 2016)
 
 Grain-type-specific mean values from a separate μ-CT and FE study. Values are RG: 0.191 ± 0.008, PP/DF: 0.132 ± 0.053, FC/DH: 0.17 ± 0.02. Density is not used in the formula (no clear dependence was found in the study) but the method is only valid for densities above 200 kg/m³. Supported grain forms: RG, PP, DF, FC, DH.
 
@@ -144,7 +148,7 @@ Grain-type-specific mean values from a separate μ-CT and FE study. Values are R
 
 The shear modulus (*G*) describes resistance to shear deformation and is used together with Young's modulus and Poisson's ratio in computing the slab-level stiffness parameters. Currently one method is implemented.
 
-**`wautier`** (Wautier et al., 2015)
+`**wautier*`* (Wautier et al., 2015)
 
 A power-law relationship (G/Gᵢ꜀ₑ = 0.92 · (ρ/ρᵢ꜀ₑ)²·⁵¹) derived from the same homogenization study as the Wautier elastic modulus method. The fit achieves R² = 0.97 over the density range 103–544 kg/m³. No method uncertainty is added (standard errors not reported). Supported grain forms: DF, RG, FC, DH, MF.
 
@@ -162,25 +166,25 @@ All four parameters come from a single framework: classical laminate theory from
 
 ### Extensional Stiffness (*A*11)
 
-**`weissgraeber_rosendahl`** (Weißgraeber & Rosendahl, 2023, Eq. 8a)
+`**weissgraeber_rosendahl*`* (Weißgraeber & Rosendahl, 2023, Eq. 8a)
 
 *A*11 is the sum of each layer's plane-strain modulus multiplied by its thickness: A11 = Σ Eᵢ/(1 − νᵢ²) · hᵢ. It relates the in-plane normal force per unit width to the in-plane strain — essentially describing how hard it is to stretch or compress the slab along the slope. Each layer contributes in simple proportion to its thickness and stiffness. The units are N/mm.
 
 ### Bending-Extension Coupling Stiffness (*B*11)
 
-**`weissgraeber_rosendahl`** (Weißgraeber & Rosendahl, 2023, Eq. 8b)
+`**weissgraeber_rosendahl*`* (Weißgraeber & Rosendahl, 2023, Eq. 8b)
 
 *B*11 is the sum of each layer's plane-strain modulus weighted by the first moment of its position about the centroid: B11 = ½ · Σ Eᵢ/(1 − νᵢ²) · (z²ᵢ₊₁ − z²ᵢ). This coupling term is zero whenever the slab is symmetric or homogeneous, because the positive contributions from layers above the centroid cancel the negative contributions from layers below. When the stiffness distribution is asymmetric — for example, a stiff wind crust near the surface above softer faceted layers — *B*11 is nonzero and an in-plane force will induce bending (and vice versa). This is analogous to the bending of a bimetallic strip under thermal loading. The units are N.
 
 ### Bending Stiffness (*D*11)
 
-**`weissgraeber_rosendahl`** (Weißgraeber & Rosendahl, 2023, Eq. 8c)
+`**weissgraeber_rosendahl*`* (Weißgraeber & Rosendahl, 2023, Eq. 8c)
 
 *D*11 is the sum of each layer's plane-strain modulus weighted by the second moment of its position about the centroid: D11 = ⅓ · Σ Eᵢ/(1 − νᵢ²) · (z³ᵢ₊₁ − z³ᵢ). It relates the bending moment per unit width to the curvature of the slab — the snow equivalent of the *EI* flexural rigidity in structural beam theory. Because position enters as the square of the distance from the centroid, a stiff layer far from the centre contributes far more to *D*11 than the same layer near the centre; layering structure therefore has a strong and non-linear influence on bending stiffness. The units are N·mm.
 
 ### Shear Stiffness (κ·*A*55)
 
-**`weissgraeber_rosendahl`** (Weißgraeber & Rosendahl, 2023, Eq. 8d)
+`**weissgraeber_rosendahl*`* (Weißgraeber & Rosendahl, 2023, Eq. 8d)
 
 The shear stiffness is computed as A55 = Σ Gᵢ · hᵢ — the sum of each layer's shear modulus multiplied by its thickness — and then multiplied by the shear correction factor κ = 5/6. This factor corrects for the fact that the shear stress is not uniformly distributed through the thickness of a rectangular beam; 5/6 is the standard approximation for this geometry. The result, κ·A55, relates the transverse shear force per unit width to the shear deformation of the slab. Unlike the other three parameters, this integral uses the shear modulus *G* directly rather than the plane-strain modulus E/(1−ν²). The units are N/mm.
 
@@ -196,7 +200,7 @@ The two criteria handle measurement uncertainty differently. The Roch criterion 
 
 ### Roch Stability Index
 
-**`calculate_roch`** (Roch, 1966; Föhn, 1987)
+`**calculate_roch*`* (Roch, 1966; Föhn, 1987)
 
 Computes the gravitational shear stress on the weak layer and evaluates the ratio of shear strength to that stress. The shear stress is τ = (Σᵢ ρᵢ hᵢ) · g · sin θ, where ρᵢ and hᵢ are the calculated density (kg/m³) and thickness (m) of each slab layer, and θ is the slope angle; this is the component of the slab's weight acting parallel to the slope surface and tending to slide the slab along the weak layer. The weak-layer shear strength τ_c must be supplied by the caller.
 
@@ -208,7 +212,7 @@ Roch is called directly rather than exposed as a parameter graph target. The nat
 
 ### WEAC Skier Criterion
 
-**`calculate_weac_skier`** (Weißgraeber & Rosendahl, 2023)
+`**calculate_weac_skier**` (Weißgraeber & Rosendahl, 2023)
 
 Applies the Weak Layer Anticrack Nucleation (WEAC) coupled fracture criterion to assess whether a skier load triggers the onset of crack propagation in the weak layer. The physical model, described in Weißgraeber & Rosendahl (2023, *The Cryosphere*, 17, 1475–1496), represents the stratified snow slab as a layered beam resting on the weak layer, which is treated as an elastic foundation with independent normal and shear stiffnesses. A skier applies a point load to the slab surface, and the model computes the resulting normal and shear stress distribution in the weak layer and the energy release rate of a potential crack of progressively growing length. Anticrack nucleation is predicted when both a stress criterion (the combined normal and shear stresses at the crack tip reach the weak-layer strength envelope) and an energy criterion (the energy release rate reaches the fracture toughness) are simultaneously satisfied. The coupled nature of the criterion means that neither stress nor energy alone is sufficient: the crack must be able to grow in the sense of both conditions at once.
 
@@ -246,19 +250,19 @@ The graph flows in a single direction from the root toward the target parameters
 
 The `algorithm` module takes the parameter graph and a target parameter node and returns a list of all valid calculation pathways from the measured pit inputs to that target. Each pathway is a complete, self-consistent assignment of one method to every parameter along the route — a recipe that fully specifies how to compute the target from field observations. For the target parameter D11, there are 32 such recipes, arising from the product of 4 density methods, 4 elastic modulus methods, and 2 Poisson's ratio methods.
 
-The central function is **`find_parameterizations`**, which performs a backward traversal of the graph starting from the target node and working toward the root `snow_pit`. The backward direction is natural for this problem: by starting from what needs to be computed and asking "what does this require?", the algorithm naturally gathers all the ingredients for each pathway.
+The central function is `**find_parameterizations*`*, which performs a backward traversal of the graph starting from the target node and working toward the root `snow_pit`. The backward direction is natural for this problem: by starting from what needs to be computed and asking "what does this require?", the algorithm naturally gathers all the ingredients for each pathway.
 
 ### Data structures
 
-A **`PathSegment`** is the smallest unit: it records one step of a calculation pathway as a triple — the source node, the name of the method (or `data_flow` if the edge carries no method), and the destination node. A segment such as `merge_density_grain_form → bergfeld → elastic_modulus` means that the Bergfeld method takes the assembled inputs from `merge_density_grain_form` and produces a value for elastic modulus.
+A `**PathSegment**` is the smallest unit: it records one step of a calculation pathway as a triple — the source node, the name of the method (or `data_flow` if the edge carries no method), and the destination node. A segment such as `merge_density_grain_form → bergfeld → elastic_modulus` means that the Bergfeld method takes the assembled inputs from `merge_density_grain_form` and produces a value for elastic modulus.
 
-A **`Branch`** is an ordered list of `PathSegment` objects forming a single linear thread through the graph. When no merges are needed, the full pathway from `snow_pit` to the target is a single branch. When the traversal encounters a merge node, each input to that merge becomes its own branch, all converging at the merge point.
+A `**Branch**` is an ordered list of `PathSegment` objects forming a single linear thread through the graph. When no merges are needed, the full pathway from `snow_pit` to the target is a single branch. When the traversal encounters a merge node, each input to that merge becomes its own branch, all converging at the merge point.
 
-A **`Parameterization`** assembles the full picture. It holds a list of branches and a list of merge points. Each merge point records which branches converge at it, the name of the merge node, and a continuation path — the sequence of steps that proceeds from the merge onward toward the target. Branches and merge points together fully specify which inputs are required and in what order they must be combined to reach the target.
+A `**Parameterization**` assembles the full picture. It holds a list of branches and a list of merge points. Each merge point records which branches converge at it, the name of the merge node, and a continuation path — the sequence of steps that proceeds from the merge onward toward the target. Branches and merge points together fully specify which inputs are required and in what order they must be combined to reach the target.
 
 ### Finding all pathways
 
-**`find_parameterizations`** applies two rules depending on the type of node it visits during the backward traversal. At a **parameter node**, the algorithm applies OR logic: each incoming edge represents an independent alternative method for computing that parameter, so the traversal forks and pursues each edge separately, generating one sub-pathway per alternative. At a **merge node**, the algorithm applies AND logic: all incoming edges are required simultaneously, so the traversal takes the Cartesian product of the alternatives for each input, combining every possible choice for one input with every possible choice for every other. Dynamic programming caches each node's sub-pathways after they are first computed, so a node that appears in multiple branches of the graph — such as the shared `merge_density_grain_form` node, which feeds both elastic modulus and the Srivastava Poisson's ratio method — is only traversed once.
+`**find_parameterizations**` applies two rules depending on the type of node it visits during the backward traversal. At a **parameter node**, the algorithm applies OR logic: each incoming edge represents an independent alternative method for computing that parameter, so the traversal forks and pursues each edge separately, generating one sub-pathway per alternative. At a **merge node**, the algorithm applies AND logic: all incoming edges are required simultaneously, so the traversal takes the Cartesian product of the alternatives for each input, combining every possible choice for one input with every possible choice for every other. Dynamic programming caches each node's sub-pathways after they are first computed, so a node that appears in multiple branches of the graph — such as the shared `merge_density_grain_form` node, which feeds both elastic modulus and the Srivastava Poisson's ratio method — is only traversed once.
 
 Because `density` is a single shared node feeding both `elastic_modulus` and the Srivastava Poisson's ratio method through the same merge node, the Cartesian-product logic can produce structurally different traversals that resolve to the same combination of methods. Before returning, `find_parameterizations` computes a fingerprint for each traversal — a sorted list of its (parameter, method) pairs — and discards duplicates, so every entry in the final list represents a genuinely distinct recipe. For D11, the four density alternatives combine independently with the four elastic modulus alternatives and the two Poisson's ratio alternatives, yielding 4 × 4 × 2 = 32 unique pathways. `slab_weight` and `slab_weight_shear` each have 4 pathways, one per density method. `slab_weight_shear_with_elasticity` has 32 pathways because it adds elastic modulus and Poisson's ratio availability to the slab-weight branch.
 
@@ -270,7 +274,7 @@ A `Parameterization` object is structurally valid by construction — it was dis
 
 The `execution` module takes parameterizations from the algorithm and runs the actual calculations on real slab data. Where the algorithm works abstractly on the graph structure, the execution module works concretely on `Layer` and `Slab` objects: it reads field measurements from those objects, calls the empirical methods implemented in `layer_parameters`, `slab_parameters`, and `stability_criteria`, and writes the computed values back to the same objects.
 
-The main entry point is **`ExecutionEngine`**. Its `execute_all()` method accepts a slab and a target parameter name, calls `find_parameterizations` internally to obtain the full list of valid pathways, runs each pathway on the slab in turn, and collects the results in a single container. An optional `pathways` argument lets the caller supply a pre-filtered list of `Parameterization` objects; when provided, the engine executes exactly those pathways instead of finding all valid pathways internally. Its `execute_single()` method accepts an explicit (parameter → method) mapping from the caller and runs only the matching pathway, which is useful when a specific combination of methods is required rather than all of them.
+The main entry point is `**ExecutionEngine`**. Its `execute_all()` method accepts a slab and a target parameter name, calls `find_parameterizations` internally to obtain the full list of valid pathways, runs each pathway on the slab in turn, and collects the results in a single container. An optional `pathways` argument lets the caller supply a pre-filtered list of `Parameterization` objects; when provided, the engine executes exactly those pathways instead of finding all valid pathways internally. Its `execute_single()` method accepts an explicit (parameter → method) mapping from the caller and runs only the matching pathway, which is useful when a specific combination of methods is required rather than all of them.
 
 ### Execution order
 
@@ -286,11 +290,11 @@ Failures of this kind are captured without interrupting the execution of other p
 
 ### Result structures
 
-Three nested structures carry the results. A **`ComputationTrace`** records a single method call: the parameter it targeted, the method used, the layer index (or `None` for slab-level and weak-layer calculations), the computed output value, a success flag, and an error message if the call failed. A **`PathwayResult`** collects all the computation traces for one pathway together with the computed slab — which by the end of execution holds all layer-level and slab-level parameter values written by the executor — and a record of which method was used for each parameter in this pathway. A `PathwayResult` is marked successful if at least the target parameter was computed; unsuccessful pathways are retained alongside successful ones so that the pattern of failures across the dataset can be examined. The top-level **`ExecutionResults`** container holds all pathway results indexed by a human-readable description of each pathway, and reports cache statistics recording how many density computations were reused across pathways rather than recalculated.
+Three nested structures carry the results. A `**ComputationTrace*`* records a single method call: the parameter it targeted, the method used, the layer index (or `None` for slab-level and weak-layer calculations), the computed output value, a success flag, and an error message if the call failed. A `**PathwayResult**` collects all the computation traces for one pathway together with the computed slab — which by the end of execution holds all layer-level and slab-level parameter values written by the executor — and a record of which method was used for each parameter in this pathway. A `PathwayResult` is marked successful if at least the target parameter was computed; unsuccessful pathways are retained alongside successful ones so that the pattern of failures across the dataset can be examined. The top-level `**ExecutionResults**` container holds all pathway results indexed by a human-readable description of each pathway, and reports cache statistics recording how many density computations were reused across pathways rather than recalculated.
 
 ### Configuration
 
-Execution behaviour is controlled by an **`ExecutionConfig`** object passed to `execute_all()` or `execute_single()`. When `verbose` is `True`, the engine prints a progress line for each pathway as it begins, which is useful when monitoring large batch runs over many pits. The `include_method_uncertainty` flag (default `True`) controls whether each empirical method contributes its own regression standard error to the output uncertainty; setting it to `False` retains only the uncertainty propagated from the input field measurements, which is useful for isolating the contribution of measurement error independently of model error. The `weac_timeout_seconds` field is retained only as deprecated compatibility surface; current graph execution does not route WEAC criterion targets through the execution engine.
+Execution behaviour is controlled by an `**ExecutionConfig**` object passed to `execute_all()` or `execute_single()`. When `verbose` is `True`, the engine prints a progress line for each pathway as it begins, which is useful when monitoring large batch runs over many pits. The `include_method_uncertainty` flag (default `True`) controls whether each empirical method contributes its own regression standard error to the output uncertainty; setting it to `False` retains only the uncertainty propagated from the input field measurements, which is useful for isolating the contribution of measurement error independently of model error. The `weac_timeout_seconds` field is retained only as deprecated compatibility surface; current graph execution does not route WEAC criterion targets through the execution engine.
 
 ---
 
@@ -298,9 +302,9 @@ Execution behaviour is controlled by an **`ExecutionConfig`** object passed to `
 
 The analysis notebook `slab_weight_inputs.ipynb` characterises slab-weight input coverage across the ECTP slab dataset. It focuses on two computable graph targets rather than executing Roch or WEAC criteria through the graph.
 
-**`slab_weight_shear`** reports which slabs have calculated density, layer thickness, and slope angle available across the 4 density pathways. The direct-measurement `data_flow` pathway is counted only when measured density is present and has been written into `density_calculated` by that pathway.
+`**slab_weight_shear**` reports which slabs have calculated density, layer thickness, and slope angle available across the 4 density pathways. The direct-measurement `data_flow` pathway is counted only when measured density is present and has been written into `density_calculated` by that pathway.
 
-**`slab_weight_shear_with_elasticity`** adds elastic modulus and Poisson's ratio availability on every slab layer, producing the same 32 density × elastic modulus × Poisson's ratio pathway combinations used by D11-style elastic analyses.
+`**slab_weight_shear_with_elasticity**` adds elastic modulus and Poisson's ratio availability on every slab layer, producing the same 32 density × elastic modulus × Poisson's ratio pathway combinations used by D11-style elastic analyses.
 
 The analysis is based on ECTP slabs drawn from the SnowPilot dataset and uses `include_method_uncertainty=False` so that the reported relative uncertainties reflect only propagated field measurement uncertainty, not empirical regression error.
 

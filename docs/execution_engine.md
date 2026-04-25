@@ -1,7 +1,7 @@
 # Execution Engine: Architecture & Implementation
 
 **Version**: 2.1 (Current Implementation)
-**Last Updated**: 2026-02-23
+**Last Updated**: 2026-04-25
 
 ## Overview
 
@@ -15,7 +15,7 @@ The SnowPyt-MechParams execution engine is a dynamic programming system that aut
 
 - **Automatic Pathway Discovery**: Algorithm finds all valid routes from available data to target parameter
 - **Dynamic Programming**: Density values cached across pathways; downstream parameters always computed fresh to preserve correct uncertainty budgets
-- **Copy-on-Write Optimization**: Minimal memory overhead through selective layer copying (3x faster)
+- **Copy-on-Write Optimization**: Minimal memory overhead through selective layer copying
 - **Clean Separation of Concerns**: Independent cache, execution, and dispatch components
 - **Simple API**: One-line execution with automatic dependency resolution
 - **Full Traceability**: Complete computation traces for debugging and validation
@@ -67,7 +67,7 @@ graph TB
     Results -->|aggregates| PathwayResult
     Results -->|includes| CacheStats
     
-    Cache -->|stores| ComputationTrace
+    Cache -->|tracks| CacheStats
     Dispatcher -->|reads| Graph
     
     Config -.->|configures| Engine
@@ -109,6 +109,7 @@ graph TB
 - Optional configuration for execution behavior
 - `verbose`: detailed logging during execution
 - `include_method_uncertainty`: if `True` (default), adds each method's regression standard error to the output uncertainty; if `False`, only input measurement uncertainties propagate
+- `weac_timeout_seconds`: deprecated compatibility field; WEAC is no longer routed through graph execution
 
 ### Class Structure
 
@@ -117,19 +118,21 @@ classDiagram
     class ExecutionEngine {
         +graph: ParameterizationGraph
         +executor: PathwayExecutor
-        +execute_all(slab, target_parameter, config?) ExecutionResults
-        +execute_single(slab, pathway_id, config?) PathwayResult
+        +execute_all(slab, target_parameter, config?, pathways?) ExecutionResults
+        +execute_single(slab, target_parameter, methods, config?) Optional~PathwayResult~
+        +list_available_pathways(target_parameter) list
     }
     
     class ExecutionConfig {
         +verbose: bool = False
         +include_method_uncertainty: bool = True
+        +weac_timeout_seconds: Optional~float~ = None
     }
     
     class PathwayExecutor {
         +dispatcher: MethodDispatcher
         +cache: ComputationCache
-        +execute_parameterization(slab, parameterization, target) PathwayResult
+        +execute_parameterization(parameterization, slab, target_parameter, config) PathwayResult
         +clear_cache() void
         +get_cache_stats() CacheStats
     }
@@ -227,7 +230,7 @@ sequenceDiagram
     
     Note over Engine: For each pit in dataset
     
-    Engine->>Graph: find_all_parameterizations("D11")
+    Engine->>Graph: find_parameterizations(graph, D11_node)
     Graph-->>Engine: List[Parameterization] (32 unique pathways)
     
     Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 unique pathways<br/>(deduplication done by algorithm)
@@ -265,7 +268,7 @@ sequenceDiagram
 
         Executor-->>Engine: PathwayResult (with D11)
 
-        Note over Engine,Cache: Subsequent pathways reuse cached density<br/>values only; E/ν/G/D11 always recomputed
+        Note over Engine,Cache: Subsequent pathways reuse cached density<br/>values only; E/ν/D11 always recomputed<br/>(G only for shear targets)
 
         alt Pathway with same density method
             Executor->>Cache: get_layer_param(idx, "density", method)
@@ -291,7 +294,7 @@ flowchart TD
     ExtractMethods --> BuildID[Build pathway ID and description]
     BuildID --> InitTrace[Initialize computation_trace list]
     
-    InitTrace --> DetermineOrder[Determine execution order<br/>density → E → ν → slab params]
+    InitTrace --> DetermineOrder[Determine execution order<br/>density → E → ν → G if needed]
     
     DetermineOrder --> LayerLoop{For each layer}
     
@@ -319,6 +322,10 @@ flowchart TD
     ParamLoop -->|poissons_ratio| ComputeNu[Compute poissons_ratio<br/>always fresh — depends on<br/>upstream density method]
     ComputeNu --> TraceNu[Add ComputationTrace<br/>cached=False]
     TraceNu --> ParamLoop
+
+    ParamLoop -->|shear_modulus| ComputeG[Compute shear_modulus<br/>always fresh — depends on<br/>E and ν]
+    ComputeG --> TraceG[Add ComputationTrace<br/>cached=False]
+    TraceG --> ParamLoop
     
     ParamLoop -->|Done| AppendLayer[Append layer to result_layers]
     ReuseLayer --> AppendLayer
@@ -329,7 +336,7 @@ flowchart TD
     
     BuildSlab --> SlabCalcs{"target_parameter<br/>in SLAB_PARAMS?"}
     
-    SlabCalcs -->|"Yes (e.g. D11)"| CheckPrereqs["Check prerequisites<br/>for target_parameter only<br/>(D11/A11/B11: need E+ν; A55: need G)"]
+    SlabCalcs -->|"Yes (e.g. D11)"| CheckPrereqs["Check prerequisites<br/>for target_parameter only<br/>(A11/B11/D11: need E+ν;<br/>A55: need G;<br/>slab-weight targets need density/thickness/slope as applicable)"]
     CheckPrereqs --> ComputeTarget["Compute target_parameter<br/>via _execute_slab_calculations"]
     ComputeTarget --> TraceTarget["Add single ComputationTrace<br/>layer_index=None"]
     
@@ -344,8 +351,6 @@ flowchart TD
     style Start fill:#4CAF50
     style End fill:#4CAF50
     style CheckCache1 fill:#FF9800
-    style CheckCache2 fill:#FF9800
-    style CheckCache3 fill:#FF9800
     style ShallowCopy fill:#2196F3
     style ReuseLayer fill:#9C27B0
     style BuildResult fill:#E91E63
@@ -384,11 +389,14 @@ class MethodSpec:
 | | `schottner` | layer | density, grain_form | Scapozza (2004) via Schöttner |
 | **poissons_ratio** | `kochle` | layer | grain_form | Köchle (grain-form dependent) |
 | | `srivastava` | layer | density, grain_form | Srivastava et al. (2016) |
-| **shear_modulus** | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
+| **shear_modulus** | `lame_relationship` | layer | elastic_modulus, poissons_ratio | Isotropic Lamé relationship: G = E / (2(1 + ν)) |
 | **A11** | `weissgraeber_rosendahl` | slab | slab | Requires E, ν on all layers |
 | **B11** | `weissgraeber_rosendahl` | slab | slab | Requires E, ν on all layers |
 | **D11** | `weissgraeber_rosendahl` | slab | slab | Requires E, ν on all layers |
 | **A55** | `weissgraeber_rosendahl` | slab | slab | Requires G on all layers |
+| **slab_weight** | `sum_layer_weight` | slab | slab | Requires density and thickness on all layers |
+| **slab_weight_shear** | `slope_parallel_component` | slab | slab | Requires slab weight and slope angle |
+| **slab_weight_shear_with_elasticity** | `combine_shear_weight_and_elasticity` | slab | slab | Requires slope-parallel slab weight, E, and ν |
 
 **Key Features:**
 
@@ -400,7 +408,7 @@ class MethodSpec:
 
 ### Grain Form Resolution
 
-Grain form resolution is centralized in `snowpilot_constants.py`:
+Grain form resolution is centralized in `constants.py`:
 
 ```python
 GRAIN_FORM_METHODS = {
@@ -465,7 +473,7 @@ cache_key = (layer_index, parameter, method_name)
 
 **Why only density?** Density depends solely on layer-intrinsic data (hand hardness, grain form, grain size) and produces the same result regardless of which downstream methods are used. It is therefore safe to share across pathways for the same slab.
 
-Downstream parameters — `elastic_modulus`, `poissons_ratio`, `shear_modulus` — depend on which density value was computed for each specific pathway, and their uncertainty budgets differ between pathways. Caching them under `(layer_idx, parameter, method)` would miss the upstream density method, causing the first pathway's values to be silently returned for all subsequent pathways that use the same E/ν/G method but a different density method.
+Downstream parameters are pathway-specific: `elastic_modulus` and the Srivastava `poissons_ratio` pathway depend on the selected density value, and `shear_modulus` depends on the selected E and ν values through the Lamé relationship. Caching them under `(layer_idx, parameter, method)` would miss the upstream method context, causing the first pathway's values to be silently returned for subsequent pathways that use the same downstream method name with different upstream inputs.
 
 Slab parameters (`D11`, `A11`, `B11`, `A55`) are never cached for the same reason: they are computed from the pathway-specific layer E/ν/G values, and a cache key of `(parameter, method)` does not encode which upstream pathway produced those inputs.
 
@@ -497,7 +505,7 @@ sequenceDiagram
         end
     end
     
-    Note over Engine,Cache: Density cache persists across pathways<br/>for same slab; E/ν/G/D11 always recomputed
+    Note over Engine,Cache: Density cache persists across pathways<br/>for same slab; downstream layer and slab targets<br/>are recomputed per pathway
     
     Engine->>Cache: get_stats()
     Cache-->>Engine: CacheStats(hits=X, misses=Y)
@@ -521,17 +529,17 @@ This enables:
 
 ### Parameter Classification
 
-Parameter nodes in the graph carry an optional `level` tag that classifies them as layer-level or slab-level. This tag drives execution logic without hardcoded lists.
+Parameter nodes in the graph carry an optional `level` tag that classifies them as layer-level or slab-level. The graph-derived sets are the entry point for execution, and the executor still contains explicit maintenance points for layer ordering and slab-target prerequisite checks.
 
 **`Node.level`** (`graph/structures.py`):
 
 | Value | Meaning | Examples |
 |-------|---------|---------|
 | `"layer"` | Per-layer calculated parameter | `density`, `elastic_modulus`, `poissons_ratio`, `shear_modulus` |
-| `"slab"` | Whole-slab calculated parameter | `A11`, `B11`, `D11`, `A55` |
+| `"slab"` | Whole-slab calculated parameter | `A11`, `B11`, `D11`, `A55`, `slab_weight`, `slab_weight_shear`, `slab_weight_shear_with_elasticity` |
 | `None` | Special/input node | `snow_pit`, `measured_*` (including `measured_layer_thickness`), `merge_*` |
 
-The level is set when registering a node in `definitions.py`:
+The level is set when registering a node in `parameter_graph.py`:
 
 ```python
 density        = build_graph.param("density",        level="layer")
@@ -539,14 +547,18 @@ elastic_modulus = build_graph.param("elastic_modulus", level="layer")
 D11            = build_graph.param("D11",            level="slab")
 ```
 
-**Derived classification sets** (`graph/definitions.py`):
+**Derived classification sets** (`graph/parameter_graph.py`):
 
 ```python
 LAYER_PARAMS = graph.layer_params  # frozenset derived from nodes with level="layer"
 SLAB_PARAMS  = graph.slab_params   # frozenset derived from nodes with level="slab"
 ```
 
-These sets are imported into `executor.py` to decide whether to call `_execute_slab_calculations`. Adding a new parameter to the graph with the appropriate `level` automatically updates both sets — no manual maintenance required.
+These sets are imported into `executor.py` to decide whether to call `_execute_slab_calculations`. Adding a new parameter to the graph with the appropriate `level` automatically updates the derived sets, but the executor must also be taught how to run it:
+
+- Add the layer-level execution order in `_determine_execution_order()` if the new parameter is computed per layer.
+- Add the slab-level target branch and prerequisite checks in `_execute_slab_calculations()` if the new parameter is computed per slab.
+- Register the executable method in `MethodDispatcher._register_all_methods()`.
 
 **In `executor.py`** the gate is:
 
@@ -651,7 +663,7 @@ graph TB
     end
 ```
 
-**Performance**: 3x faster per layer, near-linear scaling with layer count
+**Performance**: Reduces per-pathway copying overhead and scales with layer count.
 
 ---
 
@@ -686,10 +698,10 @@ For a 10-layer slab with 32 D11 pathways:
 **With Density Cache**:
 - There are 4 unique density methods across the 32 pathways
 - Each density method is computed once per layer: 4 × 10 = 40 density computations
-- E/ν/G are always recomputed: 32 × 10 × 2 = 640 computations
+- E/ν are always recomputed: 32 × 10 × 2 = 640 computations
 - **Total**: ~680 computations (~29% reduction)
 
-**Result**: The cache eliminates all redundant density computations while ensuring E/ν/G and D11 values carry the correct pathway-specific uncertainty budget for every pathway.
+**Result**: The cache eliminates all redundant density computations while ensuring downstream layer values and D11 carry the correct pathway-specific uncertainty budget for every pathway.
 
 (Benefit scales with the number of pathways that share the same density method.)
 
@@ -728,8 +740,11 @@ for desc, pathway in results.get_successful_pathways().items():
 ### Batch Processing (All Pits)
 
 ```python
+import glob
+
 from snowpyt_mechparams import ExecutionEngine
 from snowpyt_mechparams.graph import graph
+from snowpyt_mechparams.models import Pit
 from snowpyt_mechparams.snowpilot import parse_caaml_file
 
 # Load dataset
@@ -754,7 +769,7 @@ for pit_file in pit_files:
         
         # Store
         all_results.append({
-            'pit_id': pit.id,
+            'pit_id': pit.pit_id,
             'slab_id': slab.slab_id,
             'results': results,
             'cache_hit_rate': results.cache_stats['hit_rate']
@@ -821,7 +836,7 @@ if result and result.success:
 |-----------|------------|-------|
 | Find pathways | O(V + E) | Graph traversal |
 | Execute single pathway | O(n × m) | n=layers, m=params per pathway |
-| Execute all pathways | O(p × n × m) | p=pathways, with ~40% cache savings |
+| Execute all pathways | O(p × n × m) | p=pathways; density cache reduces repeated density work |
 | Cache lookup | O(1) | Dictionary lookup |
 | Copy layer | O(k) | k=attributes, shallow copy |
 
@@ -829,19 +844,15 @@ if result and result.success:
 
 | Component | Complexity | Notes |
 |-----------|------------|-------|
-| Cache | O(n × p × m) | Stores all computed values |
-| Results | O(p × n) | One slab per pathway (copy-on-write) |
+| Cache | O(n × d) | Stores density values only; d = unique density methods for the target |
+| Results | O(p × n) | One result slab per pathway, with shallow-copied layers when computations run |
 | Single slab | O(n) | n layers |
 
 ### Scaling
 
-For **50,000 pits** with average **10 layers**:
+For large batches, runtime scales with the number of slabs, layers per slab, and pathways requested. Copy-on-write avoids deep-copying the full slab for every pathway, while the density cache removes repeated density calculations within each slab.
 
-- **Without optimization**: ~250 seconds @ 200ms per pit
-- **With optimization**: ~50 seconds @ 1ms per pit
-- **Improvement**: **5x faster**
-
-Cache hit rates typically: **40-50%** for D11 calculations
+For a full 32-pathway D11 run, the density-cache hit rate is high after the first use of each density method (87.5% in the 10-layer example above), while the total computation reduction is about 29% because E, ν, and slab targets are recomputed per pathway.
 
 ---
 
@@ -867,7 +878,7 @@ results = engine.execute_all(slab, "D11")
 **Cache density across pathways; recompute everything else fresh.**
 
 - Density cache is always active — no config option to disable
-- E/ν/G/D11 are always recomputed to preserve correct per-pathway uncertainty budgets
+- Downstream layer values and slab targets are always recomputed to preserve correct per-pathway uncertainty budgets
 - Transparent to the user; ~29% reduction in computations for typical D11 runs
 
 ### 3. Copy-on-Write
@@ -959,13 +970,14 @@ snowpyt_mechparams/
 │   ├── parameter_graph.py     # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
 │   └── visualize.py           # Mermaid diagram generation
 ├── algorithm.py               # Pathway discovery algorithm
-├── data_structures/
+├── models/
 │   ├── layer.py               # Layer dataclass
 │   ├── slab.py                # Slab dataclass
-│   └── uncertain_value.py     # UncertainValue type
-└── snowpilot_utils/
-    ├── snowpilot_convert.py   # CAAML parsing
-    └── snowpilot_constants.py # Grain form constants and resolution
+│   ├── pit.py                 # Pit dataclass and slab creation
+│   ├── weak_layer.py          # WeakLayer dataclass
+│   └── pit_parser.py          # Convert snowpylot SnowPit objects to Pit
+├── snowpilot.py               # CAAML parsing helpers using snowpylot
+└── constants.py               # Physical constants, measurement uncertainties, grain-form resolution
 ```
 
 ---
@@ -1053,8 +1065,8 @@ Pathway success depends on data availability in the snow pit:
 The execution engine provides:
 
 ✅ **Simple API**: One-line execution with automatic dependency resolution
-✅ **Fast Performance**: 3-5x faster through copy-on-write optimization
-✅ **Correct Uncertainty Budgets**: Density cached; E/ν/G/D11 recomputed fresh per pathway to preserve pathway-specific uncertainty propagation
+✅ **Performance-Oriented**: Density caching and copy-on-write reduce redundant work
+✅ **Correct Uncertainty Budgets**: Density cached; downstream layer and slab values recomputed fresh per pathway to preserve pathway-specific uncertainty propagation
 ✅ **Clean Architecture**: Clear separation of concerns, testable components
 ✅ **Immutability**: Original data never modified
 ✅ **Full Traceability**: Complete computation trace for debugging and validation
@@ -1072,4 +1084,4 @@ For implementation details:
 - **Graph structure**: `src/snowpyt_mechparams/graph/README.md`
 - **Algorithm documentation**: `src/snowpyt_mechparams/algorithm.py`
 - **Method implementations**: `src/snowpyt_mechparams/layer_parameters/` and `src/snowpyt_mechparams/slab_parameters/`
-- **Example notebooks**: `examples/execution_engine_demo.ipynb`, `examples/compare_D11_across_pathways_v3.ipynb`
+- **Archived example notebooks**: `examples/archive/execution_engine_demo.ipynb`, `examples/archive/compare_D11_across_pathways.ipynb`

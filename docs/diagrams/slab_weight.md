@@ -28,16 +28,12 @@ graph LR
     merge_slab_weight_shear_elasticity -->|combine_shear_weight_and_elasticity| slab_weight_shear_with_elasticity
 
     %% Styling
-    classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
     classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
-    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
-    
     class measured_slope_angle,measured_layer_thickness measuredNode
+    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     class merge_slab_weight_inputs,merge_slab_weight_slope_angle,merge_slab_weight_shear_elasticity mergeNode
+    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
     class density,elastic_modulus,poissons_ratio layerCalc
+    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
     class slab_weight,slab_weight_shear,slab_weight_shear_with_elasticity slabCalc
 ```

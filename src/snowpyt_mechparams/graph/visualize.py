@@ -22,7 +22,7 @@ generate_mermaid_layer_detail
     Layer parameter pathways with method names on edges
 generate_mermaid_slab_detail
     Slab stiffness assembly with method names on edges
-generate_mermaid_stability_detail
+generate_mermaid_slab_weight_detail
     Slab weight pathways with method names on edges
 generate_mermaid_diagram
     Full single-diagram output (kept for backwards compatibility)
@@ -36,12 +36,12 @@ Examples
 >>> from snowpyt_mechparams.graph import graph
 >>> from snowpyt_mechparams.graph.visualize import (
 ...     save_mermaid_overview, save_mermaid_layer_detail,
-...     save_mermaid_slab_detail, save_mermaid_stability_detail,
+...     save_mermaid_slab_detail, save_mermaid_slab_weight_detail,
 ... )
 >>> save_mermaid_overview(graph, "docs/diagrams/overview.md")
->>> save_mermaid_layer_detail(graph, "docs/diagrams/layer_params.md")
->>> save_mermaid_slab_detail(graph, "docs/diagrams/slab_params.md")
->>> save_mermaid_stability_detail(graph, "docs/diagrams/stability.md")
+>>> save_mermaid_layer_detail(graph, "docs/diagrams/layer.md")
+>>> save_mermaid_slab_detail(graph, "docs/diagrams/slab.md")
+>>> save_mermaid_slab_weight_detail(graph, "docs/diagrams/slab_weight.md")
 """
 
 from typing import Dict, Iterable, List, Optional, Set
@@ -164,29 +164,20 @@ def _edge_line(start: Node, end: Node, method: str | None = None) -> str:
 
 def _style_block(node_categories: Dict[str, List[Node]]) -> List[str]:
     """Return classDef and class-assignment lines."""
-    lines = [
-        "    %% Styling",
-        "    classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px",
-        "    classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px",
-        "    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px",
-        "    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px",
-        "    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px",
-        "    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px",
-        "    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px",
-        "    ",
-    ]
+    lines = ["    %% Styling"]
     mapping = [
-        ("root", "rootNode"),
-        ("measured", "measuredNode"),
-        ("merge", "mergeNode"),
-        ("layer_calc", "layerCalc"),
-        ("slab_calc", "slabCalc"),
-        ("weak_layer_calc", "weakLayerCalc"),
-        ("stability_calc", "stabilityCalc"),
+        ("root", "rootNode", "fill:#e1f5ff,stroke:#0288d1,stroke-width:3px"),
+        ("measured", "measuredNode", "fill:#fff9c4,stroke:#f57f17,stroke-width:2px"),
+        ("merge", "mergeNode", "fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px"),
+        ("layer_calc", "layerCalc", "fill:#c8e6c9,stroke:#388e3c,stroke-width:2px"),
+        ("slab_calc", "slabCalc", "fill:#ffccbc,stroke:#d84315,stroke-width:3px"),
+        ("weak_layer_calc", "weakLayerCalc", "fill:#fff3e0,stroke:#e65100,stroke-width:2px"),
+        ("stability_calc", "stabilityCalc", "fill:#fce4ec,stroke:#880e4f,stroke-width:3px"),
     ]
-    for cat, cls in mapping:
+    for cat, cls, style in mapping:
         nodes = node_categories.get(cat, [])
         if nodes:
+            lines.append(f"    classDef {cls} {style}")
             ids = ",".join(_sanitize_node_id(n.parameter) for n in nodes)
             lines.append(f"    class {ids} {cls}")
     return lines
@@ -545,7 +536,7 @@ def generate_mermaid_slab_detail(graph: Optional[Graph] = None) -> str:
 # Diagram 4 — Slab weight pathways (detail)
 # ==============================================================================
 
-def generate_mermaid_stability_detail(graph: Optional[Graph] = None) -> str:
+def generate_mermaid_slab_weight_detail(graph: Optional[Graph] = None) -> str:
     """
     Generate a detail mermaid diagram for slab weight pathways.
 
@@ -571,12 +562,12 @@ def generate_mermaid_stability_detail(graph: Optional[Graph] = None) -> str:
         "measured_layer_thickness",
         "measured_slope_angle",
     }
-    stability_node_names = _ancestor_names(
+    slab_weight_node_names = _ancestor_names(
         graph,
         _slab_weight_params(graph),
         stop_at=boundary_nodes,
     )
-    return _emit_nodes_and_edges(graph, stability_node_names, direction="LR")
+    return _emit_nodes_and_edges(graph, slab_weight_node_names, direction="LR")
 
 
 # ==============================================================================
@@ -752,13 +743,13 @@ def save_mermaid_slab_detail(
     _save(filepath, title, generate_mermaid_slab_detail(graph))
 
 
-def save_mermaid_stability_detail(
+def save_mermaid_slab_weight_detail(
     graph: Optional[Graph],
     filepath: str,
     title: str = "SnowPyt-MechParams — Slab Weight Pathways",
 ) -> None:
     """Save the slab-weight pathway mermaid diagram to *filepath*."""
-    _save(filepath, title, generate_mermaid_stability_detail(graph))
+    _save(filepath, title, generate_mermaid_slab_weight_detail(graph))
 
 
 def save_mermaid_full_detail(

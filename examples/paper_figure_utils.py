@@ -14,7 +14,10 @@ from notebook_utils import (
     DENSITY_COLORS,
     DOUBLE_COL,
     DPI,
+    EXTERNAL_PAPER_FIGURES_DIR,
     PAPER_FIGURES_DIR,
+    PAPER_FIGURES_DIRS,
+    REPO_PAPER_FIGURES_DIR,
     SINGLE_COL,
 )
 from snowpyt_mechparams.constants import E_ICE_POLYCRYSTALLINE, RHO_ICE
@@ -66,21 +69,30 @@ METHOD_SHORT_LABELS = {
 
 
 def paper_figures_dir() -> Path:
-    """Return the LaTeX paper figures directory."""
+    """Return the repository-local paper figures directory."""
     PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     return PAPER_FIGURES_DIR
 
 
 def save_paper_figure(fig: plt.Figure, stem: str, close: bool = False) -> dict[str, Path]:
-    """Save a figure to the paper figures directory as PDF and PNG."""
-    output_dir = paper_figures_dir()
-    pdf_path = output_dir / f"{stem}.pdf"
-    png_path = output_dir / f"{stem}.png"
-    fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
-    fig.savefig(png_path, dpi=DPI, bbox_inches="tight")
+    """Save a paper figure as PDF and PNG in repo and manuscript directories."""
+    saved_paths: dict[str, Path] = {}
+    for output_dir in PAPER_FIGURES_DIRS:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        prefix = "repo" if output_dir == REPO_PAPER_FIGURES_DIR else "external"
+        pdf_path = output_dir / f"{stem}.pdf"
+        png_path = output_dir / f"{stem}.png"
+        fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
+        fig.savefig(png_path, dpi=DPI, bbox_inches="tight")
+        saved_paths[f"{prefix}_pdf"] = pdf_path
+        saved_paths[f"{prefix}_png"] = png_path
+
+    saved_paths["pdf"] = saved_paths["repo_pdf"]
+    saved_paths["png"] = saved_paths["repo_png"]
+    saved_paths["external_dir"] = EXTERNAL_PAPER_FIGURES_DIR
     if close:
         plt.close(fig)
-    return {"pdf": pdf_path, "png": png_path}
+    return saved_paths
 
 
 def method_label(method: str, short: bool = False) -> str:

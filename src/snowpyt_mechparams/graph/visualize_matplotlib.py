@@ -22,7 +22,7 @@ slab
     Detailed flowchart for slab stiffness assembly:
     layer params → A11 / B11 / D11 / A55, with merge nodes.
 
-stability
+slab_weight
     Detailed flowchart for slab weight pathways:
     density + thickness → W, W + slope → W_s, W_s + E + ν.
 
@@ -31,7 +31,7 @@ Functions
 generate_matplotlib_overview
 generate_matplotlib_layer_detail
 generate_matplotlib_slab_detail
-generate_matplotlib_stability_detail
+generate_matplotlib_slab_weight_detail
 save_matplotlib_diagrams
     Convenience function that saves all four figures to a directory.
 
@@ -73,7 +73,7 @@ _COLORS = {
     "layer":     "#C8E6C9",   # pale green
     "slab":      "#FFCCBC",   # pale orange
     "weak_layer":"#FFF3E0",   # pale amber
-    "stability": "#FCE4EC",   # pale pink
+    "slab_weight": "#FCE4EC", # pale pink
     "merge":     "#F3E5F5",   # pale purple
     "root":      "#E1F5FF",   # pale blue
 }
@@ -83,7 +83,7 @@ _EDGE_COLORS = {
     "layer":     "#388E3C",
     "slab":      "#D84315",
     "weak_layer":"#E65100",
-    "stability": "#880E4F",
+    "slab_weight": "#880E4F",
     "merge":     "#7B1FA2",
     "root":      "#0288D1",
 }
@@ -212,7 +212,7 @@ def generate_matplotlib_overview(graph: Graph) -> Figure:  # noqa: ARG001
         _Box("Snow Pit\nObservations",  0.08, Y, BW, BH, _COLORS["input"],     _EDGE_COLORS["input"],     bold=True),
         _Box("Layer\nParameters",       0.30, Y, BW, BH, _COLORS["layer"],     _EDGE_COLORS["layer"],     bold=True),
         _Box("Slab\nStiffnesses",       0.52, Y, BW, BH, _COLORS["slab"],      _EDGE_COLORS["slab"],      bold=True),
-        _Box("Slab Weight\nPathways",   0.74, Y, BW, BH, _COLORS["stability"], _EDGE_COLORS["stability"], bold=True),
+        _Box("Slab Weight\nPathways",   0.74, Y, BW, BH, _COLORS["slab_weight"], _EDGE_COLORS["slab_weight"], bold=True),
     ]
 
     for box in boxes:
@@ -467,7 +467,7 @@ def generate_matplotlib_slab_detail(graph: Graph) -> Figure:  # noqa: ARG001
 # Figure 4 — Slab weight pathways (detail)
 # ---------------------------------------------------------------------------
 
-def generate_matplotlib_stability_detail(graph: Graph) -> Figure:  # noqa: ARG001
+def generate_matplotlib_slab_weight_detail(graph: Graph) -> Figure:  # noqa: ARG001
     """
     Generate the slab weight pathway detail figure.
 
@@ -688,7 +688,7 @@ _FULL_POSITIONS: Dict[str, Tuple[float, float]] = {
     "elastic_modulus":                           (0.13, 0.46),
     "poissons_ratio":                            (0.25, 0.46),
 
-    # ── Row y=0.37: three merge nodes feeding the slab/stability pipelines ─
+    # ── Row y=0.37: three merge nodes feeding the slab and slab-weight pipelines ─
     # Layer E+ν merge → shear modulus G
     "merge_elastic_modulus_poissons_ratio":      (0.19, 0.37),
     # Slab E+ν merge → merge_hi_E_nu → A11/B11/D11
@@ -937,9 +937,9 @@ def save_matplotlib_diagrams(graph: Graph, output_dir: str, dpi: int = _DPI) -> 
 
     Files written:
     - ``overview.png``
-    - ``layer_params.png``
-    - ``slab_params.png``
-    - ``stability.png``
+    - ``layer.png``
+    - ``slab.png``
+    - ``slab_weight.png``
     - ``full.png``
 
     Parameters
@@ -955,9 +955,9 @@ def save_matplotlib_diagrams(graph: Graph, output_dir: str, dpi: int = _DPI) -> 
 
     tasks = [
         ("overview.png",    generate_matplotlib_overview),
-        ("layer_params.png", generate_matplotlib_layer_detail),
-        ("slab_params.png",  generate_matplotlib_slab_detail),
-        ("stability.png",    generate_matplotlib_stability_detail),
+        ("layer.png",        generate_matplotlib_layer_detail),
+        ("slab.png",         generate_matplotlib_slab_detail),
+        ("slab_weight.png",  generate_matplotlib_slab_weight_detail),
         ("full.png",         generate_matplotlib_full_detail),
     ]
     for filename, generator in tasks:

@@ -14,15 +14,14 @@ Run after installing the package (pip install -e .):
     # Single mermaid overview
     python scripts/generate_diagram.py --type overview --format mermaid --output docs/diagrams/overview.md
 
-    # Matplotlib layer-params figure
-    python scripts/generate_diagram.py --type layer --format matplotlib --output docs/diagrams/layer_params.png
+    # Matplotlib layer-parameter figure
+    python scripts/generate_diagram.py --type layer --format matplotlib --output docs/diagrams/layer.png
 
 Available --type values:
     overview    High-level five-group overview (no method names)
     layer       Layer parameter pathways (density, E, ν, G) with methods
     slab        Slab stiffness assembly (A11, B11, D11, A55) with methods
-    stability   Slab elasticity coverage target, weak-layer placeholder, and
-                g_delta/s_r criterion nodes with methods
+    slab_weight Slab-weight pathways and elastic-input coverage target
     full        Full graph with all merge nodes, all methods, all subsystems
     all         Generate all five diagrams (default)
 
@@ -69,7 +68,7 @@ def main() -> None:
     parser.add_argument(
         "--type",
         dest="diagram_type",
-        choices=["overview", "layer", "slab", "stability", "full", "all"],
+        choices=["overview", "layer", "slab", "slab_weight", "full", "all"],
         default="all",
         help="Which diagram to generate (default: all)",
     )
@@ -101,7 +100,7 @@ def main() -> None:
             save_mermaid_overview,
             save_mermaid_layer_detail,
             save_mermaid_slab_detail,
-            save_mermaid_stability_detail,
+            save_mermaid_slab_weight_detail,
             save_mermaid_full_detail,
         )
 
@@ -111,7 +110,7 @@ def main() -> None:
                 generate_matplotlib_overview,
                 generate_matplotlib_layer_detail,
                 generate_matplotlib_slab_detail,
-                generate_matplotlib_stability_detail,
+                generate_matplotlib_slab_weight_detail,
                 generate_matplotlib_full_detail,
             )
             import matplotlib.pyplot as plt
@@ -127,7 +126,7 @@ def main() -> None:
         ("overview",   "SnowPyt-MechParams — Overview"),
         ("layer",      "SnowPyt-MechParams — Layer Parameters"),
         ("slab",       "SnowPyt-MechParams — Slab Stiffnesses"),
-        ("stability",  "SnowPyt-MechParams — Slab Elasticity Coverage & Stability Criteria"),
+        ("slab_weight", "SnowPyt-MechParams — Slab Weight Pathways"),
         ("full",       "SnowPyt-MechParams — Full Parameter Graph"),
     ]
 
@@ -146,8 +145,8 @@ def main() -> None:
                 save_mermaid_layer_detail(graph, path, title=title)
             elif name == "slab":
                 save_mermaid_slab_detail(graph, path, title=title)
-            elif name == "stability":
-                save_mermaid_stability_detail(graph, path, title=title)
+            elif name == "slab_weight":
+                save_mermaid_slab_weight_detail(graph, path, title=title)
             elif name == "full":
                 save_mermaid_full_detail(graph, path, title=title)
 
@@ -160,8 +159,8 @@ def main() -> None:
                 fig = generate_matplotlib_layer_detail(graph)
             elif name == "slab":
                 fig = generate_matplotlib_slab_detail(graph)
-            elif name == "stability":
-                fig = generate_matplotlib_stability_detail(graph)
+            elif name == "slab_weight":
+                fig = generate_matplotlib_slab_weight_detail(graph)
             elif name == "full":
                 fig = generate_matplotlib_full_detail(graph)
             fig.savefig(path, dpi=300, bbox_inches="tight")

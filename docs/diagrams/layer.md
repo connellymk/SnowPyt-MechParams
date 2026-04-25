@@ -44,15 +44,11 @@ graph TB
 
     %% Styling
     classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
-    classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
-    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
-    
     class snow_pit rootNode
+    classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px
     class measured_density,measured_hand_hardness,measured_grain_form,measured_grain_size measuredNode
+    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     class merge_hand_hardness_grain_form,merge_hand_hardness_grain_form_grain_size,merge_density_grain_form,merge_elastic_modulus_poissons_ratio mergeNode
+    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
     class density,elastic_modulus,poissons_ratio,shear_modulus layerCalc
 ```

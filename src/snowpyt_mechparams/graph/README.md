@@ -231,41 +231,25 @@ def test_new_method():
 
 ## Related Documentation
 
-- **Algorithm README** (`/algorithm/README.md`) - Detailed explanation of pathfinding algorithm
-- **Algorithm Flowchart** (`/algorithm/algorithm_flowchart.md`) - Visual representation of algorithm
-- **Execution Engine** (`/src/snowpyt_mechparams/execution/`) - How pathways are executed
-- **Implementation Plan** (`/docs/implementation_plan_graph_integration_REVISED.md`) - This integration
+- **Execution Engine** (`/docs/execution_engine.md`) - How pathways are executed
+- **Figure Manifest** (`/docs/figures.md`) - Generated figure inventory and export policy
+- **Generated Diagrams** (`/docs/diagrams/`) - Mermaid and PNG graph diagrams
 
 ## Visualization
 
-The graph can be visualized as a mermaid diagram for documentation and understanding:
+The graph can be visualized as Mermaid diagrams and publication-quality PNGs
+for documentation and paper figures:
 
 ```python
-from snowpyt_mechparams.graph import graph, generate_mermaid_diagram
+from snowpyt_mechparams.graph import graph, save_mermaid_full_detail
 
-# Generate mermaid diagram
-diagram = generate_mermaid_diagram(graph)
-print(diagram)
-
-# Or save to file
-from snowpyt_mechparams.graph import save_mermaid_diagram
-save_mermaid_diagram(graph, "docs/parameter_graph.md")
+save_mermaid_full_detail(graph, "docs/diagrams/full.md")
 ```
 
-You can also generate the diagram from the command line:
+Generate all canonical diagrams from the repository root:
 
 ```bash
-# Print to stdout
-python -m snowpyt_mechparams.graph.visualize
-
-# Save to file
-python -m snowpyt_mechparams.graph.visualize docs/parameter_graph.md
-```
-
-Or use the standalone script:
-
-```bash
-python scripts/generate_diagram.py docs/parameter_graph.md
+python scripts/generate_diagram.py --type all --format both --output docs/diagrams/
 ```
 
 ## Module Structure

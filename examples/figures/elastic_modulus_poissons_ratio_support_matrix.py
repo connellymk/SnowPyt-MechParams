@@ -34,7 +34,7 @@ if str(SRC_DIR) not in sys.path:
 if str(EXAMPLES_DIR) not in sys.path:
     sys.path.insert(0, str(EXAMPLES_DIR))
 
-from notebook_utils import PAPER_FIGURES_DIR
+from notebook_utils import PAPER_FIGURES_DIRS
 
 
 METHOD_LANES = {
@@ -283,16 +283,16 @@ def build_elastic_modulus_poissons_ratio_support_figure() -> plt.Figure:
 
 
 def main() -> None:
-    """Save the support figure as PNG and PDF in the paper figures directory."""
-    output_dir = PAPER_FIGURES_DIR
-    output_dir.mkdir(parents=True, exist_ok=True)
+    """Save the support figure as PNG and PDF in both paper figure directories."""
     fig = build_elastic_modulus_poissons_ratio_support_figure()
-    for extension in ("png", "pdf"):
-        fig.savefig(
-            output_dir / f"elastic_modulus_poissons_ratio_density_ranges.{extension}",
-            dpi=300,
-            bbox_inches="tight",
-        )
+    for output_dir in PAPER_FIGURES_DIRS:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for extension in ("png", "pdf"):
+            fig.savefig(
+                output_dir / f"elastic_modulus_poissons_ratio_density_ranges.{extension}",
+                dpi=300,
+                bbox_inches="tight",
+            )
     plt.close(fig)
 
 

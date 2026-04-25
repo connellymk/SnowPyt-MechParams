@@ -7,7 +7,7 @@ from snowpyt_mechparams.graph.structures import GraphBuilder, Node
 from snowpyt_mechparams.graph.visualize import (
     generate_mermaid_diagram,
     generate_mermaid_full_detail,
-    generate_mermaid_stability_detail,
+    generate_mermaid_slab_weight_detail,
     _classify_node,
     _sanitize_node_id,
     _get_node_label,
@@ -175,9 +175,9 @@ def test_generate_mermaid_complete_graph():
     assert "classDef" in diagram
 
 
-def test_generate_mermaid_stability_detail_uses_slab_weight_graph():
+def test_generate_mermaid_slab_weight_detail_uses_slab_weight_graph():
     """Slab-weight detail should reflect the canonical graph, not old criteria."""
-    diagram = generate_mermaid_stability_detail()
+    diagram = generate_mermaid_slab_weight_detail()
 
     assert "slab_weight_shear_with_elasticity" in diagram
     assert "merge_slab_weight_shear_elasticity" in diagram

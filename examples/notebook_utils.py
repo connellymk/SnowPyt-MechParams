@@ -28,7 +28,12 @@ from snowpyt_mechparams.models import Pit, Slab
 SINGLE_COL = 3.35   # inches
 DOUBLE_COL = 7.0    # inches
 DPI = 300
-PAPER_FIGURES_DIR = Path(__file__).resolve().parents[2] / 'mech_params_paper' / 'figures'
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SNOW_ROOT = Path(__file__).resolve().parents[2]
+REPO_PAPER_FIGURES_DIR = REPO_ROOT / 'paper' / 'figures'
+EXTERNAL_PAPER_FIGURES_DIR = SNOW_ROOT / 'mech_params_paper' / 'figures'
+PAPER_FIGURES_DIR = REPO_PAPER_FIGURES_DIR
+PAPER_FIGURES_DIRS = (REPO_PAPER_FIGURES_DIR, EXTERNAL_PAPER_FIGURES_DIR)
 
 
 def hess_rcparams() -> None:

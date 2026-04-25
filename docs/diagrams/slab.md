@@ -28,16 +28,12 @@ graph LR
     merge_hi_E_nu -->|weissgraeber_rosendahl| B11
 
     %% Styling
-    classDef rootNode fill:#e1f5ff,stroke:#0288d1,stroke-width:3px
     classDef measuredNode fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
-    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
-    classDef weakLayerCalc fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef stabilityCalc fill:#fce4ec,stroke:#880e4f,stroke-width:3px
-    
     class measured_layer_thickness measuredNode
+    classDef mergeNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     class merge_E_nu,merge_hi_G,merge_hi_E_nu mergeNode
+    classDef layerCalc fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
     class elastic_modulus,poissons_ratio,shear_modulus layerCalc
+    classDef slabCalc fill:#ffccbc,stroke:#d84315,stroke-width:3px
     class A11,B11,D11,A55 slabCalc
 ```

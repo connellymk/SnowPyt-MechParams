@@ -21,9 +21,6 @@ os.environ.setdefault(
 import matplotlib as mpl
 import numpy as np
 
-from snowpyt_mechparams.snowpilot import parse_caaml_directory
-from snowpyt_mechparams.models import Pit, Slab
-
 # ── HESS figure standards ─────────────────────────────────────────────────────
 SINGLE_COL = 3.35   # inches
 DOUBLE_COL = 7.0    # inches
@@ -42,6 +39,8 @@ def hess_rcparams() -> None:
     mpl.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
     mpl.rcParams['figure.dpi'] = DPI
     mpl.rcParams['savefig.dpi'] = DPI
+    mpl.rcParams['pdf.fonttype'] = 42
+    mpl.rcParams['ps.fonttype'] = 42
 
 
 # ── Wong (2011) colorblind-safe palette — density method colours ─────────────
@@ -66,6 +65,9 @@ def rgba(hex_color: str, alpha: float = 0.75) -> str:
 def load_pits(data_dir: str = 'data') -> list[Pit]:
     """Parse all CAAML files in *data_dir* and return a list of Pit objects."""
     import warnings
+    from snowpyt_mechparams.models import Pit
+    from snowpyt_mechparams.snowpilot import parse_caaml_directory
+
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         snow_pits_raw = parse_caaml_directory(str(Path(data_dir)))

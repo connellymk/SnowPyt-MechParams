@@ -85,9 +85,6 @@ from snowpyt_mechparams.graph.parameter_graph import (
     merge_slab_weight_inputs,
     merge_slab_weight_slope_angle,
     merge_slab_weight_shear_elasticity,
-    # Parameter classification sets
-    WEAK_LAYER_PARAMS,
-    STABILITY_PARAMS,
 )
 
 __all__ = [
@@ -126,7 +123,4 @@ __all__ = [
     "merge_slab_weight_inputs",
     "merge_slab_weight_slope_angle",
     "merge_slab_weight_shear_elasticity",
-    # Parameter classification sets
-    "WEAK_LAYER_PARAMS",
-    "STABILITY_PARAMS",
 ]

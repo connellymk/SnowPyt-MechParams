@@ -28,11 +28,9 @@ from snowpyt_mechparams.constants import g
 
 
 class ParameterLevel(Enum):
-    """Whether a parameter is computed per-layer, per-slab, or by a legacy graph level."""
+    """Whether a parameter is computed per-layer or per-slab."""
     LAYER = "layer"
     SLAB = "slab"
-    WEAK_LAYER = "weak_layer"
-    STABILITY = "stability_model"
 
 
 @dataclass
@@ -560,11 +558,6 @@ class MethodDispatcher:
             if layer is None:
                 return None, "Layer required for layer-level method"
             inputs = self._gather_layer_inputs(layer, spec)
-        elif spec.level == ParameterLevel.WEAK_LAYER:
-            # Legacy hook retained for downstream extensions.
-            if slab is None:
-                return None, "Slab required for weak-layer method"
-            inputs = {"slab": slab}
         else:
             # Slab-level methods receive the full slab.
             if slab is None:

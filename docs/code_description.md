@@ -294,7 +294,7 @@ Three nested structures carry the results. A `**ComputationTrace*`* records a si
 
 ### Configuration
 
-Execution behaviour is controlled by an `**ExecutionConfig**` object passed to `execute_all()` or `execute_single()`. When `verbose` is `True`, the engine prints a progress line for each pathway as it begins, which is useful when monitoring large batch runs over many pits. The `include_method_uncertainty` flag (default `True`) controls whether each empirical method contributes its own regression standard error to the output uncertainty; setting it to `False` retains only the uncertainty propagated from the input field measurements, which is useful for isolating the contribution of measurement error independently of model error. The `weac_timeout_seconds` field is retained only as deprecated compatibility surface; current graph execution does not route WEAC criterion targets through the execution engine.
+Execution behaviour is controlled by an `**ExecutionConfig**` object passed to `execute_all()` or `execute_single()`. When `verbose` is `True`, the engine prints a progress line for each pathway as it begins, which is useful when monitoring large batch runs over many pits. The `include_method_uncertainty` flag (default `True`) controls whether each empirical method contributes its own regression standard error to the output uncertainty; setting it to `False` retains only the uncertainty propagated from the input field measurements, which is useful for isolating the contribution of measurement error independently of model error.
 
 ---
 

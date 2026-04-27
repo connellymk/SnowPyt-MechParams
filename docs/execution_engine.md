@@ -109,7 +109,6 @@ graph TB
 - Optional configuration for execution behavior
 - `verbose`: detailed logging during execution
 - `include_method_uncertainty`: if `True` (default), adds each method's regression standard error to the output uncertainty; if `False`, only input measurement uncertainties propagate
-- `weac_timeout_seconds`: deprecated compatibility field; WEAC is no longer routed through graph execution
 
 ### Class Structure
 
@@ -126,7 +125,6 @@ classDiagram
     class ExecutionConfig {
         +verbose: bool = False
         +include_method_uncertainty: bool = True
-        +weac_timeout_seconds: Optional~float~ = None
     }
     
     class PathwayExecutor {

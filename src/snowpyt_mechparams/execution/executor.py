@@ -185,7 +185,7 @@ class PathwayExecutor:
         warnings: List[str] = []
 
         # Determine execution order once
-        execution_order = self._determine_execution_order(target_parameter, methods_used)
+        execution_order = self._determine_execution_order(methods_used)
 
         # Build result layers using copy-on-write pattern
         # Only copy layers that need modification
@@ -479,7 +479,6 @@ class PathwayExecutor:
 
     def _determine_execution_order(
         self,
-        target_parameter: str,
         methods_used: Dict[str, str]
     ) -> List[str]:
         """
@@ -494,8 +493,6 @@ class PathwayExecutor:
 
         Parameters
         ----------
-        target_parameter : str
-            The ultimate target parameter
         methods_used : Dict[str, str]
             Mapping of parameter to method name
 

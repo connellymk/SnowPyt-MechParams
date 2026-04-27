@@ -182,10 +182,6 @@ def resolve_grain_form_for_method(
 # Reference: Föhn (1987); used as default in WEAC skier variant.
 STANDARD_SKIER_MASS_KG = 80.0
 
-# Standard ski contact area (m²) — reference value; Föhn (1987).
-STANDARD_SKI_CONTACT_AREA_M2 = 0.65
-
-
 # ==========================================
 # Weak Layer Definitions
 # ==========================================

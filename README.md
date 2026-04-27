@@ -3,9 +3,48 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-SnowPyt-MechParams estimates mechanical parameters of snow layers and slabs from snow pit observations. It supports multiple published methods for density, elastic modulus, Poisson's ratio, shear modulus, slab stiffness, and slab-weight coverage targets.
+## Project Info
 
-The framework is registry-driven: each method is described once in a declarative `MethodSpec`, and the graph, pathway search, dispatcher, and execution planner all derive behavior from that registry.
+SnowPyt-MechParams estimates snow mechanical parameters from snow pit
+observations, helping researchers compare how published density, modulus,
+Poisson's-ratio, shear-modulus, slab-weight, and slab-stiffness methods propagate
+field measurements into mechanical outputs. The package is organized around
+domain models, a method registry, a generated parameter graph, pathway search,
+and an execution engine, so adding a method in one place makes it available for
+graph construction, pathway enumeration, and calculation.
+
+The project is intended for snow mechanics and avalanche researchers who want to:
+
+- compare published parameterizations on the same slab
+- test new empirical or mechanics-based methods
+- trace which observations support a target parameter
+- preserve uncertainty through calculation pathways
+- identify how missing measurements limit slab-scale outputs
+
+## Installation
+
+```bash
+git clone https://github.com/connellymk/snowpyt-mechparams.git
+cd snowpyt-mechparams
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+With `uv`:
+
+```bash
+uv sync --extra dev
+uv run --extra dev pytest
+```
+
+Optional extras are available for plotting, columnar I/O, documentation, and
+WEAC-based stability calculations:
+
+```bash
+pip install -e ".[plotting,io,docs]"
+pip install -e ".[weac]"  # requires Python 3.12+
+```
 
 ## Quick Start
 
@@ -25,16 +64,17 @@ slab = Slab(layers=layers, angle=35.0)
 engine = ExecutionEngine()
 results = engine.execute_all(
     slab,
-    "D11",
+    target_parameter="D11",
     config=ExecutionConfig(include_method_uncertainty=False),
 )
 
 print(results.successful_pathways, "successful pathways")
-for description, pathway in results.get_successful_pathways().items():
-    print(description, pathway.slab.D11)
+
+for description, pathway_result in results.get_successful_pathways().items():
+    print(description, pathway_result.slab.D11)
 ```
 
-To inspect pathways without executing them:
+To inspect available pathways without running calculations:
 
 ```python
 from snowpyt_mechparams.graph import default_graph
@@ -42,76 +82,67 @@ from snowpyt_mechparams.pathway import find_parameterizations
 
 target = default_graph.get_node("D11")
 pathways = find_parameterizations(default_graph, target)
-print(len(pathways))  # 32
+
+print(len(pathways))
 ```
 
-## Installation
+## What It Computes
 
-```bash
-git clone https://github.com/connellymk/snowpyt-mechparams.git
-cd snowpyt-mechparams
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
+Layer-level targets:
 
-With `uv`:
+- `density`
+- `elastic_modulus`
+- `poissons_ratio`
+- `shear_modulus`
 
-```bash
-uv sync --extra dev
-uv run --extra dev pytest
-```
+Slab-level targets:
 
-## Architecture
+- `A11`: extensional stiffness
+- `B11`: bending-extension coupling
+- `D11`: bending stiffness
+- `A55`: shear stiffness
+- `slab_weight`
+- `slab_weight_shear`
+- `slab_weight_shear_with_elasticity`
 
-The package is organized around a simple data flow:
+Stability-criteria utilities are also available for Roch and WEAC workflows that
+already provide the required weak-layer or fracture inputs.
 
-```text
-SnowPilot/CAAML -> models -> methods registry -> graph -> pathway search -> execution -> result slabs
-```
+## Project Structure
 
-- `models`: `Layer`, `WeakLayer`, `Slab`, and `Pit` objects store field measurements, metadata, and computed outputs.
-- `methods`: the extensibility center. `MethodSpec` and `MethodRegistry` describe every method, its dependencies, its callable, and its output attribute.
-- `graph`: builds `default_graph` from the registry instead of hand-writing graph edges.
-- `pathway`: finds all valid parameterizations through the graph and deduplicates equivalent method choices.
-- `execution`: plans and runs pathway calculations on slabs, using an `ExecutionContext` so source slabs are not mutated.
-- `stability_criteria`: direct Roch and WEAC APIs for analyses that supply the required weak-layer strength or fracture inputs.
+The source package is organized by research responsibility:
 
-## Supported Targets
+- `snowpyt_mechparams.models`: `Layer`, `WeakLayer`, `Slab`, and `Pit` domain
+  objects.
+- `snowpyt_mechparams.methods`: method specifications, the default registry, and
+  built-in formulas.
+- `snowpyt_mechparams.graph`: graph data structures and the registry-generated
+  `default_graph`.
+- `snowpyt_mechparams.pathway`: pathway objects, graph search, and pathway
+  deduplication.
+- `snowpyt_mechparams.execution`: pathway planning, formula dispatch, caching,
+  tracing, and result objects.
+- `snowpyt_mechparams.stability_criteria`: Roch and WEAC stability criteria.
+- `snowpyt_mechparams.snowpilot`: SnowPilot/CAAML-oriented data helpers.
 
-Layer targets:
+Package-level READMEs in `src/snowpyt_mechparams/` describe each public package
+in more detail.
 
-- `density`: direct measured density, Geldsetzer, Kim/Jamieson Table 2, Kim/Jamieson Table 5.
-- `elastic_modulus`: Bergfeld, Kochle, Wautier, Schottner.
-- `poissons_ratio`: Kochle, Srivastava.
-- `shear_modulus`: Lame relationship from elastic modulus and Poisson's ratio.
+## Adding And Testing A Method
 
-Slab targets:
+Most new methods only need two code changes: add the formula implementation and
+register it with one `MethodSpec`.
 
-- `A11`, `B11`, `D11`, `A55`: Weissgraeber/Rosendahl laminate-theory stiffnesses.
-- `slab_weight`, `slab_weight_shear`, `slab_weight_shear_with_elasticity`: slab-weight input coverage helpers.
+### 1. Place the formula
 
-Current expected pathway counts include 4 density pathways, 16 elastic-modulus pathways, 5 Poisson's-ratio pathways, and 32 pathways for `D11`, `A55`, and `slab_weight_shear_with_elasticity`.
+Add layer formulas under `src/snowpyt_mechparams/methods/layer/` and slab
+formulas under `src/snowpyt_mechparams/methods/slab/`. Keep the function focused
+on the scientific calculation: it should accept physical inputs and return the
+calculated value.
 
-## Adding A Method
+### 2. Register the method
 
-Most framework extensions should start in `src/snowpyt_mechparams/methods/registry.py`.
-
-1. Implement the formula in `methods/layer/` or `methods/slab/`.
-2. Add one `MethodSpec` with:
-   - `target`
-   - `method_name`
-   - `level`
-   - `source_nodes`
-   - `required_inputs`
-   - `function`
-   - `output_attr`
-   - `cache_scope`
-   - short `description` or `citation`
-3. Add or update tests for the formula, registry-to-graph consistency, and pathway counts.
-4. Update the relevant package README if the public workflow changes.
-
-After registration, the graph and dispatcher pick the method up automatically:
+Add one `MethodSpec` in `src/snowpyt_mechparams/methods/registry.py`.
 
 ```python
 from snowpyt_mechparams.methods import MethodSpec, ParameterLevel
@@ -125,28 +156,49 @@ MethodSpec(
     function=new_density_method,
     output_attr="density_calculated",
     cache_scope="layer",
+    citation="Author et al. (Year)",
+    description="Estimate density from hand hardness and grain form.",
 )
 ```
 
-## Examples
+Key fields:
 
-Active notebooks live in `examples/`:
+- `target`: parameter being calculated, such as `density`, `D11`, or
+  `slab_weight_shear`
+- `method_name`: name shown in pathway descriptions
+- `level`: `LAYER` or `SLAB`
+- `source_nodes`: measured inputs or intermediate parameters required by the
+  method
+- `required_inputs`: function arguments pulled from the layer, slab, or
+  execution context
+- `function`: formula implementation
+- `output_attr`: field where the result is stored
+- `cache_scope`: usually `layer` for layer methods and `slab` for slab methods
 
-- `slab_weight_inputs.ipynb`: slab-weight and elasticity input coverage.
-- `all_D11_pathways.ipynb`: all 32 D11 pathways.
-- `all_density_pathways.ipynb`: density method comparison.
-- `all_e_mod_pathways.ipynb`: elastic-modulus method comparison.
-- `all_poissons_ratio_pathways.ipynb`: Poisson's-ratio method comparison.
+After registration, the method is available to graph construction, pathway
+search, dispatch, and execution.
 
-Preferred imports in notebooks:
+### 3. Test the method
 
-```python
-from snowpyt_mechparams.execution import ExecutionEngine
-from snowpyt_mechparams.graph import default_graph
-from snowpyt_mechparams.pathway import find_parameterizations
-```
+Method tests should check expected numerical output, uncertainty behavior,
+invalid or missing inputs, and any publication-specific assumptions about units,
+grain forms, or valid ranges.
 
-## Development Checks
+If the method changes available pathways, update framework tests to verify that
+the method appears once in the registry, the generated graph includes the
+expected edge, pathway counts change only where expected, execution produces the
+target, and the source slab is not mutated.
+
+Useful test files include:
+
+- `tests/test_methods_registry.py`
+- target-specific tests such as `tests/test_density_methods.py`
+- graph and pathway tests such as `tests/test_graph.py` and
+  `tests/test_algorithm.py`
+- execution tests such as `tests/test_engine_api.py` and
+  `tests/test_executor_dynamic_programming.py`
+
+Run the checks:
 
 ```bash
 uv run --extra dev pytest
@@ -155,7 +207,8 @@ uv run --extra dev flake8 src tests
 uv run --extra dev mypy src
 ```
 
-Smoke active notebooks after changing public imports or execution behavior:
+Smoke notebooks when public imports, pathway counts, or scientific outputs
+change:
 
 ```bash
 .venv/bin/jupyter nbconvert --to notebook --execute examples/slab_weight_inputs.ipynb --inplace
@@ -163,11 +216,31 @@ Smoke active notebooks after changing public imports or execution behavior:
 .venv/bin/jupyter nbconvert --to notebook --execute examples/all_density_pathways.ipynb --inplace
 ```
 
-## Documentation
+## Examples And Notebooks
 
-- `docs/code_description.md`: current module responsibilities and data flow.
-- `docs/execution_engine.md`: historical execution-engine design notes.
-- `src/snowpyt_mechparams/*/README.md`: package-level orientation for contributors.
+Active notebooks live in `examples/`:
+
+- `slab_weight_inputs.ipynb`: slab-weight and elasticity input coverage.
+- `all_D11_pathways.ipynb`: all currently available `D11` pathways.
+- `all_density_pathways.ipynb`: density method comparison.
+- `all_e_mod_pathways.ipynb`: elastic-modulus method comparison.
+- `all_poissons_ratio_pathways.ipynb`: Poisson's-ratio method comparison.
+
+Preferred imports for new examples:
+
+```python
+from snowpyt_mechparams.execution import ExecutionEngine
+from snowpyt_mechparams.graph import default_graph
+from snowpyt_mechparams.pathway import find_parameterizations
+```
+
+## Additional Documentation
+
+- `docs/code_description.md`: current architecture, module responsibilities, and
+  data flow.
+- `docs/execution_engine.md`: execution-engine design notes.
+- `src/snowpyt_mechparams/*/README.md`: package-level orientation for
+  contributors.
 
 ## Citation
 
@@ -183,6 +256,7 @@ Smoke active notebooks after changing public imports or execution behavior:
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for
+details.
 
 **Version**: 0.4.0 | **Last Updated**: April 2026 | **Python**: 3.9+

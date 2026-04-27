@@ -73,9 +73,6 @@ class MethodDispatcher:
 
     def __init__(self, registry: Optional[MethodRegistry] = None) -> None:
         self.registry = registry or default_registry()
-        self._registry: Dict[Tuple[str, str], MethodSpec] = {
-            (spec.target, spec.method_name): spec for spec in self.registry.all()
-        }
 
     def get_method(self, parameter: str, method_name: str) -> Optional[MethodSpec]:
         """Retrieve a method specification by target and method name."""

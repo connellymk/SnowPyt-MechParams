@@ -48,8 +48,8 @@ class ExecutionConfig:
     The pathway search automatically determines what needs to be computed based on
     the target parameter and the dependency graph. For example:
     - Asking for "density" computes only density pathways
-    - Asking for "D11" computes density → E → ν → D11 and all plate theory
-      parameters (A11, B11, D11, A55)
+    - Asking for "D11" computes only the parameters needed to reach D11
+      (density → E → ν → D11). A11, B11, and A55 are not computed as side effects.
     """
 
     verbose: bool = False

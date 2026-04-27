@@ -581,78 +581,133 @@ def build_slab_weight_coverage_comparison_figure(
     elasticity_cov: pd.DataFrame,
     total_slabs: int,
     *,
-    top_n: int = 12,
+    top_n: int = 10,
 ) -> plt.Figure:
     """Create the slab-weight shear vs elastic-input coverage comparison figure."""
-    shear_plot = shear_cov.sort_values("n_all_inputs").copy()
-    elasticity_plot = elasticity_cov.head(top_n).copy().sort_values("n_all_inputs")
+    shear_plot = shear_cov.sort_values("n_all_inputs", ascending=False).copy()
+    elasticity_plot = elasticity_cov.head(top_n).copy().sort_values("n_all_inputs", ascending=False)
+    shear_plot["label"] = [
+        f"{method_label(method, short=True)} ({int(count):,})"
+        for method, count in zip(shear_plot["density_method"], shear_plot["n_all_inputs"], strict=True)
+    ]
     elasticity_plot["label"] = [
-        format_method_path(dm, em, nu, short=True)
-        for dm, em, nu in zip(
+        (
+            rf"$\rho$: {method_label(dm, short=True)} | "
+            rf"$E$: {method_label(em, short=True)} | "
+            rf"$\nu$: {method_label(nu, short=True)} ({int(count):,})"
+        )
+        for dm, em, nu, count in zip(
             elasticity_plot["density_method"],
             elasticity_plot["emod_method"],
             elasticity_plot["nu_method"],
+            elasticity_plot["n_all_inputs"],
             strict=True,
         )
     ]
 
     fig, axes = plt.subplots(
-        1,
         2,
-        figsize=(DOUBLE_COL, 4.4),
-        sharex=True,
-        gridspec_kw={"width_ratios": [1.0, 1.8]},
+        1,
+        figsize=(DOUBLE_COL, 5.8),
+        gridspec_kw={"height_ratios": [1.0, 2.15]},
     )
+
+    def _method_color(method: str) -> str:
+        if method in SUPPORT_METHOD_STYLES:
+            return SUPPORT_METHOD_STYLES[method]["color"]
+        if method == "data_flow":
+            return "#8F8F8F"
+        return DENSITY_COLORS.get(method, "#8F8F8F")
+
+    def _draw_lollipop(
+        ax: plt.Axes,
+        labels: Sequence[str],
+        values: Sequence[float],
+        colors: Sequence[str],
+        *,
+        value_offset: float,
+        label_cutoff: float | None = None,
+    ) -> None:
+        y_pos = np.arange(len(labels))
+        ax.hlines(y_pos, 0, values, color=colors, linewidth=2.9, alpha=0.34)
+        ax.scatter(values, y_pos, s=32, color=colors, edgecolor=COLOR_BORDER, linewidth=0.6, zorder=3)
+        for y_idx, value in zip(y_pos, values, strict=True):
+            if label_cutoff is not None and value >= label_cutoff:
+                ax.text(value - value_offset, y_idx, f"{value:.1f}%", va="center", ha="right", fontsize=7.1)
+            else:
+                ax.text(
+                    value + value_offset,
+                    y_idx,
+                    f"{value:.1f}%",
+                    va="center",
+                    ha="left",
+                    fontsize=7.1,
+                    clip_on=False,
+                )
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels)
+        ax.invert_yaxis()
 
     for ax, title in zip(
         axes,
-        ["(a) Shear weight", "(b) Shear weight with elasticity"],
+        [
+            r"Shear Weight ($W_S$) Pathways",
+            r"Shear Weight ($W_S$) with Elasticity Parameters ($E$, $\nu$) Pathways",
+        ],
         strict=True,
     ):
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
-        ax.text(0.02, 0.98, title, ha="left", va="top", fontsize=8, fontweight="bold", transform=ax.transAxes)
+        ax.set_title(title, loc="left", fontsize=8, fontweight="bold", pad=3)
 
     shear_widths = shear_plot["n_all_inputs"] / total_slabs * 100.0
-    axes[0].barh(
-        [method_label(method, short=True) for method in shear_plot["density_method"]],
+    _draw_lollipop(
+        axes[0],
+        shear_plot["label"],
         shear_widths,
-        color=[DENSITY_COLORS[m] for m in shear_plot["density_method"]],
-        edgecolor=COLOR_BORDER,
-        linewidth=0.7,
-        alpha=0.85,
+        [_method_color(m) for m in shear_plot["density_method"]],
+        value_offset=0.7,
     )
-    for y_idx, width in enumerate(shear_widths):
-        axes[0].text(width + 0.6, y_idx, f"{width:.1f}%", va="center", ha="left", fontsize=7.5)
 
     elasticity_widths = elasticity_plot["n_all_inputs"] / total_slabs * 100.0
-    axes[1].barh(
+    _draw_lollipop(
+        axes[1],
         elasticity_plot["label"],
         elasticity_widths,
-        color=[DENSITY_COLORS[m] for m in elasticity_plot["density_method"]],
-        edgecolor=COLOR_BORDER,
-        linewidth=0.7,
-        alpha=0.85,
+        [_method_color(m) for m in elasticity_plot["density_method"]],
+        value_offset=0.08,
     )
-    for y_idx, width in enumerate(elasticity_widths):
-        axes[1].text(width + 0.35, y_idx, f"{width:.1f}%", va="center", ha="left", fontsize=7.0)
 
-    axes[0].set_xlabel("Coverage of ECTP slabs (%)")
-    axes[1].set_xlabel("Coverage of ECTP slabs (%)")
-    axes[0].set_xlim(0, 45)
-    axes[0].tick_params(axis="y", labelsize=8)
-    axes[1].tick_params(axis="y", labelsize=7.5)
-    axes[1].invert_yaxis()
-    axes[0].invert_yaxis()
+    axes[0].set_xlabel("Coverage of ECTP slabs (%)", fontsize=7.5)
+    axes[1].set_xlabel("Coverage of ECTP slabs (%)", fontsize=7.5)
+    axes[0].set_xlim(0, 42)
+    axes[0].set_xticks([0, 10, 20, 30, 40])
+    axes[1].set_xlim(0, max(5.35, float(elasticity_widths.max()) * 1.18))
+    axes[1].set_xticks([0, 1, 2, 3, 4, 5])
+    axes[0].tick_params(axis="y", labelsize=7.4)
+    axes[1].tick_params(axis="y", labelsize=6.9)
+    for ax in axes:
+        ax.tick_params(axis="x", labelsize=7.0)
 
+    legend_handles = [
+        mpatches.Patch(
+            facecolor=_method_color(method),
+            edgecolor=COLOR_BORDER,
+            label=method_label(method),
+            alpha=0.85,
+        )
+        for method in DENSITY_METHOD_ORDER
+    ]
     fig.legend(
-        handles=density_legend_handles(),
-        loc="upper center",
-        bbox_to_anchor=(0.50, 1.02),
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.50, 0.01),
         ncol=2,
         frameon=False,
-        fontsize=7.5,
+        fontsize=7.0,
+        columnspacing=1.2,
+        handlelength=1.5,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.92), pad=0.5)
+    fig.subplots_adjust(left=0.375, right=0.955, top=0.945, bottom=0.14, hspace=0.56)
     return fig
 
 

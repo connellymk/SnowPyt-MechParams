@@ -679,18 +679,35 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
     steps: Sequence[tuple[str, int]],
     total_slabs: int,
     pathway_label: str,
+    method_steps: Sequence[str] | None = None,
 ) -> plt.Figure:
     """Create a funnel-style slab-weight-shear-with-elasticity attrition figure."""
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 2.8))
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.25))
     ax.axis("off")
 
-    y_positions = np.linspace(0.80, 0.20, len(steps))
+    y_positions = np.linspace(0.78, 0.16, len(steps))
     base_color = DENSITY_COLORS["kim_jamieson_table2"]
     alphas = [0.35, 0.50, 0.68, 0.85]
+    bar_center = 0.43
+    max_bar_width = 0.56
+    min_bar_width = 0.12
+    if method_steps is not None and len(method_steps) != len(steps):
+        raise ValueError("method_steps must have one label per attrition step.")
+
+    ax.text(0.05, 0.92, "Requirement", ha="left", va="center", fontsize=7.5, transform=ax.transAxes)
+    ax.text(
+        0.76,
+        0.92,
+        "Method/input applied",
+        ha="left",
+        va="center",
+        fontsize=7.5,
+        transform=ax.transAxes,
+    )
 
     for idx, ((label, count), y_pos) in enumerate(zip(steps, y_positions, strict=True)):
-        width = 0.18 + 0.60 * (count / total_slabs)
-        x0 = 0.50 - width / 2
+        width = min_bar_width + (max_bar_width - min_bar_width) * (count / total_slabs)
+        x0 = bar_center - width / 2
         rect = mpatches.FancyBboxPatch(
             (x0, y_pos - 0.08),
             width,
@@ -705,7 +722,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
         ax.add_patch(rect)
         ax.text(0.05, y_pos - 0.01, label, ha="left", va="center", fontsize=8.2, transform=ax.transAxes)
         ax.text(
-            0.50,
+            bar_center,
             y_pos - 0.01,
             f"{count:,} slabs ({count / total_slabs:.1%})",
             ha="center",
@@ -714,29 +731,19 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             fontweight="bold",
             transform=ax.transAxes,
         )
+        if method_steps is not None:
+            ax.text(
+                0.76,
+                y_pos - 0.01,
+                method_steps[idx],
+                ha="left",
+                va="center",
+                fontsize=7.8,
+                color="#333333",
+                transform=ax.transAxes,
+            )
         if idx < len(steps) - 1:
-            _add_arrow(ax, (0.50, y_pos - 0.09), (0.50, y_positions[idx + 1] + 0.05), color="#6A6A6A")
-
-    info = mpatches.FancyBboxPatch(
-        (0.70, 0.77),
-        0.24,
-        0.15,
-        boxstyle="round,pad=0.01,rounding_size=0.016",
-        facecolor="#F7F7F7",
-        edgecolor="#BDBDBD",
-        linewidth=1.0,
-        transform=ax.transAxes,
-    )
-    ax.add_patch(info)
-    ax.text(
-        0.82,
-        0.845,
-        "Best-coverage path\n" + pathway_label,
-        ha="center",
-        va="center",
-        fontsize=7.8,
-        transform=ax.transAxes,
-    )
+            _add_arrow(ax, (bar_center, y_pos - 0.09), (bar_center, y_positions[idx + 1] + 0.05), color="#6A6A6A")
 
     fig.tight_layout(pad=0.3)
     return fig

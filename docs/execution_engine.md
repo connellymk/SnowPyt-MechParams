@@ -967,8 +967,7 @@ snowpyt_mechparams/
 ├── graph/
 │   ├── __init__.py            # Exports 'graph' instance
 │   ├── structures.py          # Graph data structures (Node with level, Graph with layer_params/slab_params)
-│   ├── parameter_graph.py     # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
-│   └── visualize.py           # Mermaid diagram generation
+│   └── parameter_graph.py     # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
 ├── algorithm.py               # Pathway discovery algorithm
 ├── models/
 │   ├── layer.py               # Layer dataclass

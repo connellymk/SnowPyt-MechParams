@@ -33,15 +33,15 @@ class TestGrainFormResolution:
     def test_method_specific_basic_code(self):
         """Test method-specific grain code resolution with basic code."""
         layer = Layer(grain_form='RG')
-        # The density_method_geldsetzer method accepts specific grain codes
-        result = _resolve_grain_form(layer, method_name='density_method_geldsetzer')
+        # The geldsetzer method accepts specific grain codes
+        result = _resolve_grain_form(layer, method_name='geldsetzer')
         assert result == 'RG'
     
     def test_method_specific_sub_code(self):
         """Test method-specific grain code resolution with sub-grain code."""
         layer = Layer(grain_form='RGxf')
         # Should work with sub-grain codes too if they're in the valid set
-        result = _resolve_grain_form(layer, method_name='density_method_geldsetzer')
+        result = _resolve_grain_form(layer, method_name='geldsetzer')
         assert result == 'RG'
     
     def test_main_grain_form_fallback(self):
@@ -80,7 +80,7 @@ class TestGrainFormResolution:
         
         # Should not raise AttributeError
         try:
-            result = _resolve_grain_form(layer, method_name='density_method_geldsetzer')
+            result = _resolve_grain_form(layer, method_name='geldsetzer')
             # Should get some result (even if None)
             assert result is not None or result is None  # Either is fine, just no error
         except AttributeError as e:

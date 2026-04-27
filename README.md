@@ -346,7 +346,6 @@ Previously these constants were defined inline inside each method function; cent
 
 - **`structures.py`**: Graph data structures (Node, Edge, Graph, GraphBuilder)
 - **`parameter_graph.py`**: Complete parameter dependency graph with all methods
-- **`visualize.py`**: Mermaid diagram generation for graph visualization
 - **`README.md`**: Documentation on graph structure and extending the graph
 
 The graph represents:
@@ -364,13 +363,6 @@ from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
 ```
 
 Adding a new parameter node with `level="layer"` or `level="slab"` automatically updates these sets.
-
-**Visualization**: Generate mermaid diagrams to visualize the graph:
-```python
-from snowpyt_mechparams.graph.visualize import save_mermaid_full_detail
-save_mermaid_full_detail(graph, "docs/diagrams/full.md")
-```
-See [`docs/diagrams/full.md`](docs/diagrams/full.md) for the complete graph visualization.
 
 ### Algorithm (`snowpyt_mechparams.algorithm`)
 
@@ -474,7 +466,6 @@ SnowPyt-MechParams/
 │   ├── graph/                    # Parameterization graph
 │   │   ├── structures.py         # Graph data structures
 │   │   ├── parameter_graph.py    # Complete parameter dependency graph
-│   │   ├── visualize.py          # Mermaid diagram generation
 │   │   └── README.md             # Graph documentation
 │   ├── algorithm.py              # Pathway discovery algorithm
 │   ├── execution/                # Execution engine with dynamic programming

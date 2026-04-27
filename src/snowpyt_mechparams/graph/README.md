@@ -232,25 +232,6 @@ def test_new_method():
 ## Related Documentation
 
 - **Execution Engine** (`/docs/execution_engine.md`) - How pathways are executed
-- **Figure Manifest** (`/docs/figures.md`) - Generated figure inventory and export policy
-- **Generated Diagrams** (`/docs/diagrams/`) - Mermaid and PNG graph diagrams
-
-## Visualization
-
-The graph can be visualized as Mermaid diagrams and publication-quality PNGs
-for documentation and paper figures:
-
-```python
-from snowpyt_mechparams.graph import graph, save_mermaid_full_detail
-
-save_mermaid_full_detail(graph, "docs/diagrams/full.md")
-```
-
-Generate all canonical diagrams from the repository root:
-
-```bash
-python scripts/generate_diagram.py --type all --format both --output docs/diagrams/
-```
 
 ## Module Structure
 
@@ -259,7 +240,6 @@ graph/
 ├── __init__.py          # Module exports
 ├── structures.py        # Node, Edge, Graph, GraphBuilder classes
 ├── parameter_graph.py   # Complete graph definition
-├── visualize.py         # Mermaid diagram generation
 └── README.md           # This file
 ```
 

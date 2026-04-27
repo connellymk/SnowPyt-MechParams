@@ -43,7 +43,7 @@ class ExecutionEngine:
 
     Examples
     --------
-    >>> from snowpyt_mechparams.graph.parameter_graph import graph
+    >>> from snowpyt_mechparams.graph import graph
     >>> from snowpyt_mechparams.execution import ExecutionEngine
     >>>
     >>> engine = ExecutionEngine(graph)

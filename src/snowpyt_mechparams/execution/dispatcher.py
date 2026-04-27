@@ -119,7 +119,7 @@ def _resolve_grain_form(layer: Layer, method_name: Optional[str] = None) -> Opti
     
     The grain_form attribute can contain either:
     - A 2-character basic grain class code (e.g., 'RG', 'FC')
-    - A longer sub-grain class code (e.g., 'RGmx', 'FCxr')
+    - A longer sub-grain class code (e.g., 'RGxf', 'FCxr')
 
     Parameters
     ----------

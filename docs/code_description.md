@@ -102,7 +102,7 @@ Density is used by every downstream calculation that requires a physical layer p
 
 `**geldsetzer**` (Geldsetzer & Jamieson, 2000)
 
-Estimates density from hand hardness index and grain form using linear regressions fitted to a Canadian dataset. A separate non-linear regression (ρ = A + B·h³·¹⁵) is used for rounded grains (RG), which do not conform well to a linear relationship. Supported grain forms: PP, PPgp, DF, RG, RGmx, FC, FCmx, DH. Method uncertainty is the regression standard error reported in Table 3 of the source paper.
+Estimates density from hand hardness index and grain form using linear regressions fitted to a Canadian dataset. A separate non-linear regression (ρ = A + B·h³·¹⁵) is used for rounded grains (RG), which do not conform well to a linear relationship. Supported grain forms: PP, PPgp, DF, RG, FC, DH. Method uncertainty is the regression standard error reported in Table 3 of the source paper.
 
 `**kim_jamieson_table2**` (Kim & Jamieson, 2014)
 

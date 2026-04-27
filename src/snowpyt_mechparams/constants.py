@@ -81,7 +81,7 @@ HARDNESS_MAPPING = {
 # Defines which grain forms are valid for each density calculation method
 GRAIN_FORM_METHODS = {
     "geldsetzer": {
-        "sub_grain_class": {"PPgp", "RGmx", "FCmx"},
+        "sub_grain_class": {"PPgp"},
         "basic_grain_class": {"PP", "DF", "RG", "FC", "DH"},
     },
     "kim_jamieson_table2": {
@@ -103,7 +103,7 @@ def resolve_grain_form_for_method(
     Resolve which grain form code to use for a given density method.
     
     This is the single source of truth for grain form validation logic.
-    It tries the full grain_form first (which could be a sub-grain code like 'RGmx'),
+    It tries the full grain_form first (which could be a sub-grain code like 'FCxr'),
     then falls back to the basic grain class (first 2 characters like 'RG').
     
     Parameters
@@ -111,7 +111,7 @@ def resolve_grain_form_for_method(
     grain_form : Optional[str]
         The grain form code to resolve. Can be either:
         - A 2-character basic grain class code (e.g., 'RG', 'FC', 'PP')
-        - A longer sub-grain class code (e.g., 'RGmx', 'FCxr', 'PPgp')
+        - A longer sub-grain class code (e.g., 'RGxf', 'FCxr', 'PPgp')
         - None
     method : str
         The density estimation method name. Should be one of the keys in
@@ -127,8 +127,8 @@ def resolve_grain_form_for_method(
     
     Examples
     --------
-    >>> resolve_grain_form_for_method('RGmx', 'geldsetzer')
-    'RGmx'  # Sub-grain code is valid for this method
+    >>> resolve_grain_form_for_method('PPgp', 'geldsetzer')
+    'PPgp'  # Sub-grain code is valid for this method
     
     >>> resolve_grain_form_for_method('RGxf', 'geldsetzer')
     'RG'  # Sub-grain code not valid, falls back to basic class

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Sequence
 
@@ -57,6 +60,25 @@ METHOD_SHORT_LABELS = {
     "srivastava": "Srivastava",
 }
 
+FONTTOOLS_LOGGERS = (
+    "fontTools.ttLib.tables._h_e_a_d",
+    "fontTools.ttLib.tables._p_o_s_t",
+)
+
+
+@contextmanager
+def _quiet_fonttools_pdf_metadata_warnings() -> Iterator[None]:
+    """Suppress noisy font metadata warnings emitted during Matplotlib PDF export."""
+    loggers = [logging.getLogger(name) for name in FONTTOOLS_LOGGERS]
+    previous_levels = [logger.level for logger in loggers]
+    try:
+        for logger in loggers:
+            logger.setLevel(logging.ERROR)
+        yield
+    finally:
+        for logger, level in zip(loggers, previous_levels):
+            logger.setLevel(level)
+
 
 def paper_figures_dir() -> Path:
     """Return the repository-local paper figures directory."""
@@ -74,7 +96,8 @@ def save_paper_figure(
         prefix = "repo" if output_dir == REPO_PAPER_FIGURES_DIR else "external"
         pdf_path = output_dir / f"{stem}.pdf"
         png_path = output_dir / f"{stem}.png"
-        fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
+        with _quiet_fonttools_pdf_metadata_warnings():
+            fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
         fig.savefig(png_path, dpi=DPI, bbox_inches="tight")
         saved_paths[f"{prefix}_pdf"] = pdf_path
         saved_paths[f"{prefix}_png"] = png_path

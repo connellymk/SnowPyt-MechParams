@@ -23,19 +23,24 @@ The project is intended for snow mechanics and avalanche researchers who want to
 
 ## Installation
 
+The recommended development setup uses `uv`, which creates and manages the
+project environment in `.venv`:
+
+```bash
+git clone https://github.com/connellymk/snowpyt-mechparams.git
+cd snowpyt-mechparams
+uv sync --extra dev
+uv run --extra dev pytest
+```
+
+Manual editable installs are also supported:
+
 ```bash
 git clone https://github.com/connellymk/snowpyt-mechparams.git
 cd snowpyt-mechparams
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-```
-
-With `uv`:
-
-```bash
-uv sync --extra dev
-uv run --extra dev pytest
 ```
 
 Optional extras are available for plotting, columnar I/O, documentation, and
@@ -173,7 +178,9 @@ Key fields:
   execution context
 - `function`: formula implementation
 - `output_attr`: field where the result is stored
-- `cache_scope`: usually `layer` for layer methods and `slab` for slab methods
+- `cache_scope`: optional cache behavior; valid values are `"none"` and
+  `"layer"`. Slab methods should omit it unless slab-level cache semantics are
+  added later.
 
 After registration, the method is available to graph construction, pathway
 search, dispatch, and execution.
@@ -203,7 +210,7 @@ Run the checks:
 ```bash
 uv run --extra dev pytest
 uv run --extra dev black --check src tests
-uv run --extra dev flake8 src tests
+uv run --extra dev ruff check src tests examples
 uv run --extra dev mypy src
 ```
 
@@ -211,9 +218,9 @@ Smoke notebooks when public imports, pathway counts, or scientific outputs
 change:
 
 ```bash
-.venv/bin/jupyter nbconvert --to notebook --execute examples/slab_weight_inputs.ipynb --inplace
-.venv/bin/jupyter nbconvert --to notebook --execute examples/all_D11_pathways.ipynb --inplace
-.venv/bin/jupyter nbconvert --to notebook --execute examples/all_density_pathways.ipynb --inplace
+uv run --extra dev jupyter nbconvert --to notebook --execute examples/slab_weight_inputs.ipynb --inplace
+uv run --extra dev jupyter nbconvert --to notebook --execute examples/all_D11_pathways.ipynb --inplace
+uv run --extra dev jupyter nbconvert --to notebook --execute examples/all_density_pathways.ipynb --inplace
 ```
 
 ## Examples And Notebooks
@@ -233,6 +240,13 @@ from snowpyt_mechparams.execution import ExecutionEngine
 from snowpyt_mechparams.graph import default_graph
 from snowpyt_mechparams.pathway import find_parameterizations
 ```
+
+## Public API
+
+Top-level imports such as `Layer`, `Slab`, and `ExecutionEngine` remain
+supported for common workflows. For framework internals and advanced extension
+work, prefer explicit subpackage imports such as `snowpyt_mechparams.methods`,
+`snowpyt_mechparams.graph`, and `snowpyt_mechparams.execution`.
 
 ## Additional Documentation
 

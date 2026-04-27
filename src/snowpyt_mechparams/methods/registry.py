@@ -87,8 +87,12 @@ def default_registry() -> MethodRegistry:
 
 def _default_specs() -> List[MethodSpec]:
     """Return all built-in method specifications."""
+    return _layer_specs() + _slab_specs()
+
+
+def _layer_specs() -> List[MethodSpec]:
+    """Return built-in layer-level method specifications."""
     layer = ParameterLevel.LAYER
-    slab = ParameterLevel.SLAB
     return [
         MethodSpec(
             target="density",
@@ -258,6 +262,13 @@ def _default_specs() -> List[MethodSpec]:
             output_attr="shear_modulus",
             description="Isotropic Lame relationship.",
         ),
+    ]
+
+
+def _slab_specs() -> List[MethodSpec]:
+    """Return built-in slab-level method specifications."""
+    slab = ParameterLevel.SLAB
+    return [
         MethodSpec(
             target="slab_weight",
             method_name="sum_layer_weight",

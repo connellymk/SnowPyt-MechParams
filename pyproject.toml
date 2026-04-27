@@ -61,7 +61,7 @@ dev = [
     "pytest>=6.0",
     "pytest-cov>=2.0",
     "black>=21.0",
-    "flake8>=3.8",
+    "ruff>=0.15.0",
     "mypy>=0.800",
     "sphinx>=4.0",
     "sphinx-rtd-theme>=1.0",
@@ -104,6 +104,11 @@ extend-exclude = '''
 )/
 '''
 
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+extend-exclude = ["*.ipynb"]
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --strict-markers --strict-config"
@@ -144,7 +149,7 @@ module = [
 ignore_missing_imports = true
 
 [tool.ruff.lint.per-file-ignores]
-# Notebooks and examples often have imports after setup (E402) and compact syntax (E701)
+# Examples often have imports after environment setup (E402) and compact syntax (E701)
 "examples/**" = ["E402", "E701"]
 
 [tool.coverage.run]

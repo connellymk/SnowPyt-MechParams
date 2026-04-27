@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Sequence
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -19,6 +19,7 @@ from notebook_utils import (
     PAPER_FIGURES_DIRS,
     REPO_PAPER_FIGURES_DIR,
 )
+
 COLOR_BORDER = "#404040"
 GRID_COLOR = "#D8D8D8"
 
@@ -63,7 +64,9 @@ def paper_figures_dir() -> Path:
     return PAPER_FIGURES_DIR
 
 
-def save_paper_figure(fig: plt.Figure, stem: str, close: bool = False) -> dict[str, Path]:
+def save_paper_figure(
+    fig: plt.Figure, stem: str, close: bool = False
+) -> dict[str, Path]:
     """Save a paper figure as PDF and PNG in repo and manuscript directories."""
     saved_paths: dict[str, Path] = {}
     for output_dir in PAPER_FIGURES_DIRS:
@@ -121,7 +124,9 @@ def density_legend_handles() -> list[mpatches.Patch]:
     return handles
 
 
-def _setup_publication_axes(ax: plt.Axes, *, x_grid: bool = True, y_grid: bool = False) -> None:
+def _setup_publication_axes(
+    ax: plt.Axes, *, x_grid: bool = True, y_grid: bool = False
+) -> None:
     """Apply a light publication grid and spine cleanup."""
     if x_grid:
         ax.grid(True, axis="x", color=GRID_COLOR, linewidth=0.6)
@@ -293,32 +298,105 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
 
     fig, axes = plt.subplots(1, 2, figsize=(DOUBLE_COL, 3.25), sharex=True)
     curve_specs = [
-        ("Bergfeld", "#0072B2", "-", _bergfeld_curve(rho[(rho >= 110) & (rho <= 363)]), rho[(rho >= 110) & (rho <= 363)], "PP, DF, RG"),
-        ("Kochle low", "#A12A6A", "-", _kochle_low_curve(rho[(rho >= 150) & (rho < 250)]), rho[(rho >= 150) & (rho < 250)], "RG, FC, DH, MF"),
-        ("Kochle high", "#A12A6A", "--", _kochle_high_curve(rho[(rho >= 250) & (rho <= 450)]), rho[(rho >= 250) & (rho <= 450)], "RG, FC, DH, MF"),
-        ("Wautier", "#E69F00", "-", _wautier_curve(rho[(rho >= 103) & (rho <= 544)]), rho[(rho >= 103) & (rho <= 544)], "DF, RG, FC, DH, MF"),
-        ("Schottner DF/RG", "#009E73", "-", _schottner_curve(rho, 0.40, 4.6), rho, "DF, RG"),
-        ("Schottner FC/DH", "#009E73", "--", _schottner_curve(rho, 1.8, 5.1), rho, "FC, DH"),
+        (
+            "Bergfeld",
+            "#0072B2",
+            "-",
+            _bergfeld_curve(rho[(rho >= 110) & (rho <= 363)]),
+            rho[(rho >= 110) & (rho <= 363)],
+            "PP, DF, RG",
+        ),
+        (
+            "Kochle low",
+            "#A12A6A",
+            "-",
+            _kochle_low_curve(rho[(rho >= 150) & (rho < 250)]),
+            rho[(rho >= 150) & (rho < 250)],
+            "RG, FC, DH, MF",
+        ),
+        (
+            "Kochle high",
+            "#A12A6A",
+            "--",
+            _kochle_high_curve(rho[(rho >= 250) & (rho <= 450)]),
+            rho[(rho >= 250) & (rho <= 450)],
+            "RG, FC, DH, MF",
+        ),
+        (
+            "Wautier",
+            "#E69F00",
+            "-",
+            _wautier_curve(rho[(rho >= 103) & (rho <= 544)]),
+            rho[(rho >= 103) & (rho <= 544)],
+            "DF, RG, FC, DH, MF",
+        ),
+        (
+            "Schottner DF/RG",
+            "#009E73",
+            "-",
+            _schottner_curve(rho, 0.40, 4.6),
+            rho,
+            "DF, RG",
+        ),
+        (
+            "Schottner FC/DH",
+            "#009E73",
+            "--",
+            _schottner_curve(rho, 1.8, 5.1),
+            rho,
+            "FC, DH",
+        ),
         ("Schottner SH", "#009E73", ":", _schottner_curve(rho, 0.011, 1.7), rho, "SH"),
     ]
 
     for ax in axes:
         for label, color, linestyle, y_values, x_values, grain_forms in curve_specs:
-            ax.plot(x_values, y_values, color=color, linestyle=linestyle, linewidth=1.8, label=f"{label} ({grain_forms})")
+            ax.plot(
+                x_values,
+                y_values,
+                color=color,
+                linestyle=linestyle,
+                linewidth=1.8,
+                label=f"{label} ({grain_forms})",
+            )
         ax.set_xlim(100, 550)
         ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
     axes[0].set_ylabel(r"Elastic modulus, $E$ (MPa)")
     axes[0].set_ylim(0, 950)
-    axes[0].text(0.02, 0.96, "(a) Linear scale", transform=axes[0].transAxes, va="top", fontsize=8, fontweight="bold")
+    axes[0].text(
+        0.02,
+        0.96,
+        "(a) Linear scale",
+        transform=axes[0].transAxes,
+        va="top",
+        fontsize=8,
+        fontweight="bold",
+    )
 
     axes[1].set_yscale("log")
     axes[1].set_ylim(0.3, 5000)
-    axes[1].text(0.02, 0.96, "(b) Log scale", transform=axes[1].transAxes, va="top", fontsize=8, fontweight="bold")
+    axes[1].text(
+        0.02,
+        0.96,
+        "(b) Log scale",
+        transform=axes[1].transAxes,
+        va="top",
+        fontsize=8,
+        fontweight="bold",
+    )
 
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.50, 1.02), ncol=2, frameon=False, fontsize=7)
+    fig.legend(
+        handles,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.50, 1.02),
+        ncol=2,
+        frameon=False,
+        fontsize=7,
+    )
     fig.tight_layout(rect=(0, 0, 1, 0.90), pad=0.4)
     return fig
 
@@ -336,14 +414,18 @@ def _density_method_supports(method: str, grain_form: str, hhi: float) -> bool:
     return low <= hhi <= high
 
 
-def _elastic_supported_ranges(method: str, grain_form: str) -> list[tuple[float, float]]:
+def _elastic_supported_ranges(
+    method: str, grain_form: str
+) -> list[tuple[float, float]]:
     support = ELASTIC_SUPPORT[method]
     if _main_grain_form(grain_form) not in support["grain_forms"]:
         return []
     return support["density_ranges"]
 
 
-def _poissons_supported_ranges(method: str, grain_form: str) -> list[tuple[float, float]]:
+def _poissons_supported_ranges(
+    method: str, grain_form: str
+) -> list[tuple[float, float]]:
     main_grain_form = _main_grain_form(grain_form)
 
     if method == "kochle":
@@ -550,9 +632,7 @@ def build_method_support_matrices_figure() -> plt.Figure:
             label=SUPPORT_METHOD_STYLES[method]["label"],
         )
         for method in (
-            DENSITY_SUPPORT_METHODS
-            + ELASTIC_SUPPORT_METHODS
-            + ["srivastava"]
+            DENSITY_SUPPORT_METHODS + ELASTIC_SUPPORT_METHODS + ["srivastava"]
         )
     ]
     handles.append(
@@ -585,10 +665,14 @@ def build_slab_weight_coverage_comparison_figure(
 ) -> plt.Figure:
     """Create the slab-weight shear vs elastic-input coverage comparison figure."""
     shear_plot = shear_cov.sort_values("n_all_inputs", ascending=False).copy()
-    elasticity_plot = elasticity_cov.head(top_n).copy().sort_values("n_all_inputs", ascending=False)
+    elasticity_plot = (
+        elasticity_cov.head(top_n).copy().sort_values("n_all_inputs", ascending=False)
+    )
     shear_plot["label"] = [
         f"{method_label(method, short=True)} ({int(count):,})"
-        for method, count in zip(shear_plot["density_method"], shear_plot["n_all_inputs"], strict=True)
+        for method, count in zip(
+            shear_plot["density_method"], shear_plot["n_all_inputs"], strict=True
+        )
     ]
     elasticity_plot["label"] = [
         (
@@ -752,7 +836,15 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
     if method_steps is not None and len(method_steps) != len(steps):
         raise ValueError("method_steps must have one label per attrition step.")
 
-    ax.text(0.05, 0.92, "Requirement", ha="left", va="center", fontsize=7.5, transform=ax.transAxes)
+    ax.text(
+        0.05,
+        0.92,
+        "Requirement",
+        ha="left",
+        va="center",
+        fontsize=7.5,
+        transform=ax.transAxes,
+    )
     ax.text(
         0.76,
         0.92,
@@ -778,7 +870,15 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             transform=ax.transAxes,
         )
         ax.add_patch(rect)
-        ax.text(0.05, y_pos - 0.01, label, ha="left", va="center", fontsize=8.2, transform=ax.transAxes)
+        ax.text(
+            0.05,
+            y_pos - 0.01,
+            label,
+            ha="left",
+            va="center",
+            fontsize=8.2,
+            transform=ax.transAxes,
+        )
         ax.text(
             bar_center,
             y_pos - 0.01,
@@ -801,13 +901,20 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
                 transform=ax.transAxes,
             )
         if idx < len(steps) - 1:
-            _add_arrow(ax, (bar_center, y_pos - 0.09), (bar_center, y_positions[idx + 1] + 0.05), color="#6A6A6A")
+            _add_arrow(
+                ax,
+                (bar_center, y_pos - 0.09),
+                (bar_center, y_positions[idx + 1] + 0.05),
+                color="#6A6A6A",
+            )
 
     fig.tight_layout(pad=0.3)
     return fig
 
 
-def build_weac_attrition_figure(steps: Sequence[tuple[str, int]], total_slabs: int, pathway_label: str) -> plt.Figure:
+def build_weac_attrition_figure(
+    steps: Sequence[tuple[str, int]], total_slabs: int, pathway_label: str
+) -> plt.Figure:
     """Create a funnel-style attrition figure.
 
     Kept for backwards compatibility with earlier WEAC notebook names.
@@ -871,7 +978,12 @@ def build_d11_distribution_figure(
         showfliers=False,
         showmeans=True,
         whis=(5, 95),
-        meanprops={"marker": "o", "markerfacecolor": "#222222", "markeredgecolor": "white", "markersize": 4.6},
+        meanprops={
+            "marker": "o",
+            "markerfacecolor": "#222222",
+            "markeredgecolor": "white",
+            "markersize": 4.6,
+        },
         medianprops={"color": "#222222", "linewidth": 1.2},
         whiskerprops={"color": "#555555", "linewidth": 1.0},
         capprops={"color": "#555555", "linewidth": 1.0},
@@ -919,18 +1031,26 @@ def select_d11_top_pathways(
     return selected
 
 
-def prepare_slab_weight_shear_table(shear_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame:
+def prepare_slab_weight_shear_table(
+    shear_cov: pd.DataFrame, total_slabs: int
+) -> pd.DataFrame:
     """Create the compact slab-weight-shear coverage table."""
     table = shear_cov.copy()
-    table["Successful slabs"] = table["n_all_inputs"].map(lambda value: f"{int(value):,}")
-    table["Coverage (%)"] = table["n_all_inputs"].map(lambda value: f"{100.0 * value / total_slabs:.1f}")
+    table["Successful slabs"] = table["n_all_inputs"].map(
+        lambda value: f"{int(value):,}"
+    )
+    table["Coverage (%)"] = table["n_all_inputs"].map(
+        lambda value: f"{100.0 * value / total_slabs:.1f}"
+    )
     return table.rename(columns={"density_method": "Density method"})[
         [
             "Density method",
             "Successful slabs",
             "Coverage (%)",
         ]
-    ].assign(**{"Density method": lambda frame: frame["Density method"].map(method_label)})
+    ].assign(
+        **{"Density method": lambda frame: frame["Density method"].map(method_label)}
+    )
 
 
 def prepare_roch_table(roch_cov: pd.DataFrame, total_slabs: int) -> pd.DataFrame:
@@ -949,8 +1069,12 @@ def prepare_slab_weight_shear_with_elasticity_table(
 ) -> pd.DataFrame:
     """Create the compact slab-weight-shear-with-elasticity coverage table."""
     table = elasticity_cov.head(top_n).copy()
-    table["Successful slabs"] = table["n_all_inputs"].map(lambda value: f"{int(value):,}")
-    table["Coverage (%)"] = table["n_all_inputs"].map(lambda value: f"{100.0 * value / total_slabs:.1f}")
+    table["Successful slabs"] = table["n_all_inputs"].map(
+        lambda value: f"{int(value):,}"
+    )
+    table["Coverage (%)"] = table["n_all_inputs"].map(
+        lambda value: f"{100.0 * value / total_slabs:.1f}"
+    )
     return table.rename(
         columns={
             "density_method": "Density method",
@@ -968,12 +1092,16 @@ def prepare_slab_weight_shear_with_elasticity_table(
     )
 
 
-def prepare_weac_table(weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int = 8) -> pd.DataFrame:
+def prepare_weac_table(
+    weac_cov: pd.DataFrame, total_slabs: int, *, top_n: int = 8
+) -> pd.DataFrame:
     """Create the compact elastic-input coverage table.
 
     Kept for backwards compatibility with earlier WEAC notebook names.
     """
-    return prepare_slab_weight_shear_with_elasticity_table(weac_cov, total_slabs, top_n=top_n)
+    return prepare_slab_weight_shear_with_elasticity_table(
+        weac_cov, total_slabs, top_n=top_n
+    )
 
 
 def prepare_slab_weight_shear_elasticity_table(
@@ -1007,7 +1135,9 @@ def prepare_d11_top_pathways_table(
     top_n: int = 12,
 ) -> pd.DataFrame:
     """Create a table for the same top-N D11 pathways shown in the figure."""
-    selected_paths = select_d11_top_pathways(ordered_paths, pathway_nominal, top_n=top_n)
+    selected_paths = select_d11_top_pathways(
+        ordered_paths, pathway_nominal, top_n=top_n
+    )
     table = summary_df.set_index("Pathway").loc[selected_paths].reset_index()
     return pd.DataFrame(
         {
@@ -1018,7 +1148,9 @@ def prepare_d11_top_pathways_table(
             "Successful slabs": table["Slabs"].astype(str),
             "Coverage (%)": table["Coverage (%)"].astype(str),
             "Mean D11 (N m)": table["Mean D11 (N m)"].map(_scientific_to_latex),
-            "Mean relative uncertainty (%)": table["Mean relative uncertainty (%)"].astype(str),
+            "Mean relative uncertainty (%)": table[
+                "Mean relative uncertainty (%)"
+            ].astype(str),
         }
     )
 

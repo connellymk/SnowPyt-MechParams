@@ -297,7 +297,9 @@ class TestGraphDispatcherConsistency:
         from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 
         dispatcher = MethodDispatcher()
-        registered_keys = {(spec.target, spec.method_name) for spec in dispatcher.registry.all()}
+        registered_keys = {
+            (spec.target, spec.method_name) for spec in dispatcher.registry.all()
+        }
 
         # Collect all (parameter, method_name) pairs from the graph's method edges
         missing = []
@@ -322,7 +324,9 @@ class TestGraphDispatcherConsistency:
         from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 
         dispatcher = MethodDispatcher()
-        registered_keys = {(spec.target, spec.method_name) for spec in dispatcher.registry.all()}
+        registered_keys = {
+            (spec.target, spec.method_name) for spec in dispatcher.registry.all()
+        }
 
         # Collect all (parameter, method_name) from graph edges
         graph_keys = set()

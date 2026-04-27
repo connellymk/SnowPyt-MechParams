@@ -1,8 +1,17 @@
 # Examples
 
 This directory contains active notebooks, paper-support utilities, archived
-exploratory notebooks, and the SnowPilot/CAAML example dataset used by the
-research workflows.
+exploratory notebooks, a tiny packaged CAAML sample, and the full repo-local
+SnowPilot/CAAML dataset used by the research workflows.
+
+## Example Tiers
+
+- `sample_data/`: tiny CAAML sample included in source distributions for docs
+  and smoke tests.
+- `data/`: full SnowPilot/CAAML dataset retained in the git repository for
+  notebook and manuscript reproducibility. It is intentionally excluded from
+  source distributions.
+- synthetic snippets: small slabs created directly in documentation and tests.
 
 ## Active Notebooks
 
@@ -28,9 +37,12 @@ uv run --extra dev jupyter nbconvert --to notebook --execute examples/slab_weigh
 
 ## Data
 
-`data/` contains the SnowPilot/CAAML XML files used by the example notebooks and
-paper-support workflows. The dataset is intentionally retained in this
-repository for now so existing research workflows remain reproducible.
+`sample_data/` contains the packaged tutorial and test sample.
+
+`data/` contains the full SnowPilot/CAAML XML files used by the example
+notebooks and paper-support workflows. The dataset is intentionally retained in
+this repository for now so existing research workflows remain reproducible, but
+it is not packaged into source distributions.
 
 ## Archive
 

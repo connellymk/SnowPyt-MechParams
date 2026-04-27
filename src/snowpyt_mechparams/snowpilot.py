@@ -17,7 +17,7 @@ Example
     >>> from snowpyt_mechparams.models import Pit
     >>>
     >>> # Step 1: Parse CAAML file to get snowpylot SnowPit
-    >>> snow_pit = parse_caaml_file("profile.xml")
+    >>> snow_pit = parse_caaml_file("examples/sample_data/snowpits-27829-caaml.xml")
     >>>
     >>> # Step 2: Create Pit from snowpylot SnowPit (extracts layers automatically)
     >>> pit = Pit.from_snow_pit(snow_pit)

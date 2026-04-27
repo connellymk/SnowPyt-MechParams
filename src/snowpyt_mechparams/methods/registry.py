@@ -104,6 +104,7 @@ def _layer_specs() -> List[MethodSpec]:
             output_attr="density_calculated",
             cache_scope="layer",
             description="Use directly measured density.",
+            citation="Direct field measurement",
         ),
         MethodSpec(
             target="density",
@@ -119,7 +120,8 @@ def _layer_specs() -> List[MethodSpec]:
             ),
             output_attr="density_calculated",
             cache_scope="layer",
-            citation="Geldsetzer and Jamieson",
+            description="Estimate density from hand hardness and grain form.",
+            citation="Geldsetzer & Jamieson (2000)",
         ),
         MethodSpec(
             target="density",
@@ -135,7 +137,8 @@ def _layer_specs() -> List[MethodSpec]:
             ),
             output_attr="density_calculated",
             cache_scope="layer",
-            citation="Kim and Jamieson",
+            description="Estimate density from hand hardness and grain form using Table 2.",
+            citation="Kim & Jamieson (2014)",
         ),
         MethodSpec(
             target="density",
@@ -156,7 +159,11 @@ def _layer_specs() -> List[MethodSpec]:
             ),
             output_attr="density_calculated",
             cache_scope="layer",
-            citation="Kim and Jamieson",
+            description=(
+                "Estimate density from hand hardness, grain form, and grain size "
+                "using Table 5."
+            ),
+            citation="Kim & Jamieson (2014)",
         ),
         MethodSpec(
             target="elastic_modulus",
@@ -171,7 +178,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="elastic_modulus",
-            citation="bergfeld",
+            description="Estimate elastic modulus from density and grain form.",
+            citation="Bergfeld et al. (2023)",
         ),
         MethodSpec(
             target="elastic_modulus",
@@ -186,7 +194,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="elastic_modulus",
-            citation="kochle",
+            description="Estimate elastic modulus from density and grain form.",
+            citation="Kochle & Schneebeli (2014)",
         ),
         MethodSpec(
             target="elastic_modulus",
@@ -201,7 +210,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="elastic_modulus",
-            citation="wautier",
+            description="Estimate elastic modulus from density and grain form.",
+            citation="Wautier et al. (2015)",
         ),
         MethodSpec(
             target="elastic_modulus",
@@ -216,7 +226,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="elastic_modulus",
-            citation="schottner",
+            description="Estimate elastic modulus from density and grain form.",
+            citation="Schottner et al. (2026)",
         ),
         MethodSpec(
             target="poissons_ratio",
@@ -230,7 +241,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="poissons_ratio",
-            citation="Kochle and Schneebeli",
+            description="Estimate Poisson's ratio from grain form.",
+            citation="Kochle & Schneebeli (2014)",
         ),
         MethodSpec(
             target="poissons_ratio",
@@ -245,7 +257,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="poissons_ratio",
-            citation="Srivastava",
+            description="Estimate Poisson's ratio from density and grain form.",
+            citation="Srivastava et al. (2016)",
         ),
         MethodSpec(
             target="shear_modulus",
@@ -260,7 +273,8 @@ def _layer_specs() -> List[MethodSpec]:
                 include_method_uncertainty=include_method_uncertainty,
             ),
             output_attr="shear_modulus",
-            description="Isotropic Lame relationship.",
+            description="Calculate shear modulus from elastic modulus and Poisson's ratio.",
+            citation="Isotropic Lame relationship",
         ),
     ]
 
@@ -278,6 +292,7 @@ def _slab_specs() -> List[MethodSpec]:
             function=calculate_slab_weight,
             output_attr="slab_weight",
             description="Integrate computed density through slab thickness.",
+            citation="SnowPyt-MechParams coverage helper",
         ),
         MethodSpec(
             target="slab_weight_shear",
@@ -288,6 +303,7 @@ def _slab_specs() -> List[MethodSpec]:
             function=calculate_slab_weight_shear,
             output_attr="slab_weight_shear",
             description="Project slab weight parallel to slope angle.",
+            citation="SnowPyt-MechParams coverage helper",
         ),
         MethodSpec(
             target="slab_weight_shear_with_elasticity",
@@ -298,6 +314,7 @@ def _slab_specs() -> List[MethodSpec]:
             function=calculate_slab_weight_shear_with_elasticity,
             output_attr="slab_weight_shear_with_elasticity",
             description="Coverage target requiring W_s, E, and nu.",
+            citation="SnowPyt-MechParams coverage helper",
         ),
         MethodSpec(
             target="A11",
@@ -311,7 +328,8 @@ def _slab_specs() -> List[MethodSpec]:
             required_inputs=("slab",),
             function=lambda slab: calculate_A11("weissgraeber_rosendahl", slab=slab),
             output_attr="A11",
-            citation="Weissgraeber and Rosendahl",
+            description="Calculate extensional stiffness from layer thickness, E, and nu.",
+            citation="Weissgraeber & Rosendahl (2023)",
         ),
         MethodSpec(
             target="B11",
@@ -325,7 +343,8 @@ def _slab_specs() -> List[MethodSpec]:
             required_inputs=("slab",),
             function=lambda slab: calculate_B11("weissgraeber_rosendahl", slab=slab),
             output_attr="B11",
-            citation="Weissgraeber and Rosendahl",
+            description="Calculate bending-extension coupling from layer thickness, E, and nu.",
+            citation="Weissgraeber & Rosendahl (2023)",
         ),
         MethodSpec(
             target="D11",
@@ -339,7 +358,8 @@ def _slab_specs() -> List[MethodSpec]:
             required_inputs=("slab",),
             function=lambda slab: calculate_D11("weissgraeber_rosendahl", slab=slab),
             output_attr="D11",
-            citation="Weissgraeber and Rosendahl",
+            description="Calculate bending stiffness from layer thickness, E, and nu.",
+            citation="Weissgraeber & Rosendahl (2023)",
         ),
         MethodSpec(
             target="A55",
@@ -349,6 +369,7 @@ def _slab_specs() -> List[MethodSpec]:
             required_inputs=("slab",),
             function=lambda slab: calculate_A55("weissgraeber_rosendahl", slab=slab),
             output_attr="A55",
-            citation="Weissgraeber and Rosendahl",
+            description="Calculate shear stiffness from layer thickness and shear modulus.",
+            citation="Weissgraeber & Rosendahl (2023)",
         ),
     ]

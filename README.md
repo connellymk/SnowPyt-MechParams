@@ -51,6 +51,17 @@ pip install -e ".[plotting,io,docs]"
 pip install -e ".[weac]"  # requires Python 3.12+
 ```
 
+## Documentation
+
+The full documentation is built with Sphinx and MyST from `docs/`:
+
+```bash
+uv run --extra dev sphinx-build -W -b html docs /tmp/snowpyt_docs_html
+```
+
+Start with `docs/getting_started.md` for research workflows and
+`docs/methods.md` for the registry-generated methods and provenance catalog.
+
 ## Quick Start
 
 ```python
@@ -225,6 +236,13 @@ uv run --extra dev jupyter nbconvert --to notebook --execute examples/all_densit
 
 ## Examples And Notebooks
 
+Examples are organized in three tiers:
+
+- tiny synthetic snippets in the documentation and tests
+- `examples/sample_data/`, a packaged CAAML sample for smoke checks
+- `examples/data/`, the full repo-local SnowPilot/CAAML dataset for notebooks
+  and manuscript workflows
+
 Active notebooks live in `examples/`:
 
 - `slab_weight_inputs.ipynb`: slab-weight and elasticity input coverage.
@@ -240,6 +258,10 @@ from snowpyt_mechparams.execution import ExecutionEngine
 from snowpyt_mechparams.graph import default_graph
 from snowpyt_mechparams.pathway import find_parameterizations
 ```
+
+The full `examples/data/` XML dataset is retained in the git repository for
+research reproducibility but is not included in source distributions. Source
+distributions include only the small `examples/sample_data/` XML sample.
 
 ## Public API
 

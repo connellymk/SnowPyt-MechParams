@@ -16,7 +16,10 @@ Example
 >>> from snowpyt_mechparams.models import Slab, Layer
 >>>
 >>> # Create slab
->>> slab = Slab(layers=[Layer(thickness=30, hand_hardness="4F", grain_form="RG")])
+>>> slab = Slab(
+...     layers=[Layer(thickness=30, hand_hardness="4F", grain_form="RG")],
+...     angle=35,
+... )
 >>>
 >>> # Execute (config is optional)
 >>> engine = ExecutionEngine()

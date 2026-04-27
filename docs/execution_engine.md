@@ -28,7 +28,7 @@ The SnowPyt-MechParams execution engine is a dynamic programming system that aut
 
 ### Component Diagram
 
-```mermaid
+```text
 graph TB
     subgraph "Public API"
         Engine[ExecutionEngine]
@@ -112,7 +112,7 @@ graph TB
 
 ### Class Structure
 
-```mermaid
+```text
 classDiagram
     class ExecutionEngine {
         +graph: ParameterizationGraph
@@ -214,7 +214,7 @@ classDiagram
 
 ### High-Level Flow: Calculate D11 for All Pits
 
-```mermaid
+```text
 sequenceDiagram
     participant User
     participant Engine as ExecutionEngine
@@ -286,7 +286,7 @@ sequenceDiagram
 
 ### Detailed Single-Pathway Execution
 
-```mermaid
+```text
 flowchart TD
     Start([execute_parameterization]) --> ExtractMethods[Extract methods from parameterization]
     ExtractMethods --> BuildID[Build pathway ID and description]
@@ -366,11 +366,16 @@ The `MethodDispatcher` maintains a central registry of all calculation methods. 
 @dataclass
 class MethodSpec:
     """Specification for a calculation method."""
-    parameter: str           # Target parameter (e.g., "density")
-    method_name: str        # Method identifier (e.g., "geldsetzer")
-    level: ParameterLevel   # LAYER or SLAB
-    function: Callable      # Implementation function
-    required_inputs: List[str]  # Input parameters needed
+    target: str                  # Target parameter (e.g., "density")
+    method_name: str             # Method identifier (e.g., "geldsetzer")
+    level: ParameterLevel        # LAYER or SLAB
+    source_nodes: Tuple[str, ...]  # Graph dependencies
+    required_inputs: Tuple[str, ...]  # Runtime inputs read by dispatcher
+    function: Callable           # Implementation function
+    output_attr: str             # Model attribute receiving the result
+    cache_scope: CacheScope = "none"
+    description: str = ""
+    citation: Optional[str] = None
 ```
 
 **Registered Methods:**
@@ -378,9 +383,9 @@ class MethodSpec:
 | Parameter | Method | Level | Required Inputs | Notes |
 |-----------|--------|-------|-----------------|-------|
 | **density** | `data_flow` | layer | density_measured | Direct measurement |
-| | `geldsetzer` | layer | hand_hardness_index, grain_form | Geldsetzer et al. (2009) |
-| | `kim_jamieson_table2` | layer | hand_hardness_index, grain_form | Kim & Jamieson (2010) Table 2 |
-| | `kim_jamieson_table5` | layer | hand_hardness_index, grain_form, grain_size | Kim & Jamieson (2010) Table 5 |
+| | `geldsetzer` | layer | hand_hardness_index, grain_form | Geldsetzer & Jamieson (2000) |
+| | `kim_jamieson_table2` | layer | hand_hardness_index, grain_form | Kim & Jamieson (2014) Table 2 |
+| | `kim_jamieson_table5` | layer | hand_hardness_index, grain_form, grain_size | Kim & Jamieson (2014) Table 5 |
 | **elastic_modulus** | `bergfeld` | layer | density, grain_form | Bergfeld et al. (2023) |
 | | `kochle` | layer | density, grain_form | Köchle & Schneebeli (2014) |
 | | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
@@ -477,7 +482,7 @@ Slab parameters (`D11`, `A11`, `B11`, `A55`) are never cached for the same reaso
 
 **Cache Lifecycle:**
 
-```mermaid
+```text
 sequenceDiagram
     participant Engine
     participant Executor
@@ -580,7 +585,7 @@ if target_parameter in self.planner.slab_targets:
 
 **Key Principle**: Only copy layers that need modification. Each pathway creates new layer objects only when computing on them.
 
-```mermaid
+```text
 graph TD
     subgraph "Original Slab (Input)"
         OS[Original Slab]
@@ -628,7 +633,7 @@ graph TD
 
 **Before vs After:**
 
-```mermaid
+```text
 graph TB
     subgraph "Before: Deep Copy (SLOW)"
         B1[Start execution]

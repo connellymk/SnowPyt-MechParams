@@ -126,6 +126,9 @@ class PathwayResult:
 
     Examples
     --------
+    >>> from snowpyt_mechparams.models import Layer, Slab
+    >>> computed_slab = Slab(layers=[Layer(thickness=30)], angle=35)
+    >>> traces = []
     >>> result = PathwayResult(
     ...     pathway_id="density:geldsetzer->elastic_modulus:bergfeld",
     ...     pathway_description="density=geldsetzer | elastic_modulus=bergfeld",

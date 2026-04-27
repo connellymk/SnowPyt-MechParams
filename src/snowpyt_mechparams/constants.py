@@ -137,13 +137,13 @@ def resolve_grain_form_for_method(
     Examples
     --------
     >>> resolve_grain_form_for_method('PPgp', 'geldsetzer')
-    'PPgp'  # Sub-grain code is valid for this method
+    'PPgp'
 
     >>> resolve_grain_form_for_method('RGxf', 'geldsetzer')
-    'RG'  # Sub-grain code not valid, falls back to basic class
+    'RG'
 
     >>> resolve_grain_form_for_method('FC', 'kim_jamieson_table5')
-    'FC'  # Basic code is valid
+    'FC'
 
     >>> resolve_grain_form_for_method('DH', 'kim_jamieson_table5')
     None  # DH not valid for this method

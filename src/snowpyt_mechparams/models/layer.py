@@ -156,6 +156,7 @@ class Layer:
 
         Examples
         --------
+        >>> layer = Layer()
         >>> layer.grain_form = "FCxr"
         >>> layer.main_grain_form
         'FC'

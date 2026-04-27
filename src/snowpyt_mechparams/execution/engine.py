@@ -50,7 +50,7 @@ class ExecutionEngine:
     >>> engine = ExecutionEngine()
     >>> results = engine.execute_all(slab, "elastic_modulus")
     >>>
-    >>> for pathway_desc, result in results.results.items():
+    >>> for pathway_desc, result in results.pathways.items():
     ...     print(f"{pathway_desc}: {result.success}")
     """
 

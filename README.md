@@ -1,6 +1,6 @@
 # SnowPyt-MechParams
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A collaborative Python library for estimating mechanical parameters of snow layers and snow slabs from snow pit measurements. This package provides scientifically-validated methods to calculate layer-level mechanical properties (density, elastic modulus, Poisson's ratio, shear modulus) and slab-level plate theory parameters (A11, B11, D11, A55) from standard snowpit observations.
@@ -78,7 +78,7 @@ The graph automatically finds all valid combinations: 4 × 4 × 2 = **32 pathway
 
 ### Prerequisites
 
-- **Python 3.8 or higher** (Python 3.9+ recommended)
+- **Python 3.9 or higher**
 - **pip** (usually comes with Python)
 - **git** (for cloning the repository)
 
@@ -346,7 +346,6 @@ Previously these constants were defined inline inside each method function; cent
 
 - **`structures.py`**: Graph data structures (Node, Edge, Graph, GraphBuilder)
 - **`parameter_graph.py`**: Complete parameter dependency graph with all methods
-- **`visualize.py`**: Mermaid diagram generation for graph visualization
 - **`README.md`**: Documentation on graph structure and extending the graph
 
 The graph represents:
@@ -364,13 +363,6 @@ from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
 ```
 
 Adding a new parameter node with `level="layer"` or `level="slab"` automatically updates these sets.
-
-**Visualization**: Generate mermaid diagrams to visualize the graph:
-```python
-from snowpyt_mechparams.graph import graph, save_mermaid_diagram
-save_mermaid_diagram(graph, "docs/parameter_graph.md")
-```
-See [`docs/parameter_graph.md`](docs/parameter_graph.md) for the complete graph visualization.
 
 ### Algorithm (`snowpyt_mechparams.algorithm`)
 
@@ -474,7 +466,6 @@ SnowPyt-MechParams/
 │   ├── graph/                    # Parameterization graph
 │   │   ├── structures.py         # Graph data structures
 │   │   ├── parameter_graph.py    # Complete parameter dependency graph
-│   │   ├── visualize.py          # Mermaid diagram generation
 │   │   └── README.md             # Graph documentation
 │   ├── algorithm.py              # Pathway discovery algorithm
 │   ├── execution/                # Execution engine with dynamic programming
@@ -500,7 +491,10 @@ SnowPyt-MechParams/
 │   └── ...                       # Additional test modules
 ├── docs/                         # Documentation
 │   ├── execution_engine.md       # Architecture and implementation details
-│   └── parameter_graph.md        # Complete graph visualization
+│   ├── figures.md                # Figure manifest and export policy
+│   └── diagrams/                 # Generated graph diagrams
+├── paper/
+│   └── figures/                  # Repo-local paper figure exports
 └── README.md                     # This file
 ```
 
@@ -508,25 +502,23 @@ SnowPyt-MechParams/
 
 ### API Documentation
 
-Full API documentation is available at: [https://snowpyt-mechparams.readthedocs.io/](https://snowpyt-mechparams.readthedocs.io/)
-
-For local documentation:
-```bash
-cd docs
-make html
-```
+The current documentation is maintained as Markdown in `docs/` and in module
+README files. A generated ReadTheDocs/Sphinx site can be added later when the
+API surface is ready for publication.
 
 ### Key Documentation Files
 
 - **`README.md`** (this file): Project overview and quick start
 - **`docs/execution_engine.md`**: Complete architecture and implementation with Mermaid diagrams
-- **`docs/parameter_graph.md`**: Full graph visualization
+- **`docs/figures.md`**: Figure manifest, export paths, and format policy
+- **`docs/diagrams/full.md`**: Full graph visualization
 - **`src/snowpyt_mechparams/graph/README.md`**: Graph structure and extension guide
 - **`src/snowpyt_mechparams/graph/parameter_graph.py`**: Comprehensive inline documentation of all methods
 
 ### 📊 Dataset Status
 
 - **SnowPilot dataset**: 50,278 CAAML files parsed successfully
+- **Dataset storage**: the full CAAML dataset is intentionally tracked under `examples/data/` for reproducible notebook outputs
 - **ECTP slabs**: 14,951 slabs from ~12,347 pits (24.6% ECTP rate)
 - **D11 pathways**: 32 unique pathways (4 density × 4 E × 2 ν)
 - **Analysis**: Comprehensive pathway comparison in `all_D11_pathways.ipynb`

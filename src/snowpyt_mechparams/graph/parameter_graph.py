@@ -394,14 +394,11 @@ graph = build_graph.build()
 # ==============================================================================
 # Parameter classification sets — derived from node-level tags
 # ==============================================================================
-# Adding a new parameter to the graph with level="layer", level="slab",
-# level="weak_layer", or level="stability_model" automatically makes it
-# appear in the corresponding set here.
+# Adding a new parameter to the graph with level="layer" or level="slab"
+# automatically makes it appear in the corresponding set here.
 
 LAYER_PARAMS: frozenset = graph.layer_params
 SLAB_PARAMS: frozenset = graph.slab_params
-WEAK_LAYER_PARAMS: frozenset = graph.weak_layer_params
-STABILITY_PARAMS: frozenset = graph.stability_params
 
 # ==============================================================================
 # Export all nodes for convenient access
@@ -439,6 +436,4 @@ __all__ = [
     # Parameter classification sets
     'LAYER_PARAMS',
     'SLAB_PARAMS',
-    'WEAK_LAYER_PARAMS',
-    'STABILITY_PARAMS',
 ]

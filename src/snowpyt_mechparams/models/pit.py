@@ -291,18 +291,13 @@ class Pit:
         Optional[Slab]
             Slab object with metadata, or None if slab cannot be created
         """
-        from snowpyt_mechparams.models.pit_parser import extract_test_properties
+        from snowpyt_mechparams.models.pit_parser import (
+            _get_value_safe,
+            extract_test_properties,
+        )
 
         # Extract scalar failure depth from value that may be None, scalar, or array-like
-        raw = test_result.depth_top
-        if raw is None:
-            return None
-        if isinstance(raw, (list, tuple)):
-            failure_depth = raw[0] if len(raw) > 0 else None
-        elif hasattr(raw, "__len__") and hasattr(raw, "shape"):
-            failure_depth = raw[0] if len(raw) > 0 else None
-        else:
-            failure_depth = raw
+        failure_depth = _get_value_safe(test_result.depth_top)
         failure_depth = self._nominal_depth(failure_depth)
         if failure_depth is None:
             return None

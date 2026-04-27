@@ -19,6 +19,13 @@ from snowpyt_mechparams.models import UncertainValue
 logger = logging.getLogger(__name__)
 
 
+def _nominal_value(value: UncertainValue) -> float:
+    """Return the nominal float for a plain or uncertain value."""
+    if isinstance(value, UFloat):
+        return float(value.nominal_value)
+    return float(value)
+
+
 def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
     """
     Calculate elastic modulus of a slab layer based on specified method and
@@ -139,6 +146,7 @@ def _calculate_elastic_modulus_bergfeld(
     communications, 14(1), 293.
     """
     rho_snow = density  # kg/m³, input
+    rho_nominal = _nominal_value(rho_snow)
 
     # Check grain form validity (only PP, RG, DF are supported)
     main_grain_shape = grain_form[:2].upper()
@@ -147,8 +155,8 @@ def _calculate_elastic_modulus_bergfeld(
         return ufloat(np.nan, np.nan)
 
     # Check density is within the valid range of the fit (110-363 kg/m³)
-    if rho_snow.nominal_value < 110 or rho_snow.nominal_value > 363:
-        logger.debug("bergfeld: density %.1f kg/m³ outside valid range 110-363 kg/m³; returning NaN", rho_snow.nominal_value)
+    if rho_nominal < 110 or rho_nominal > 363:
+        logger.debug("bergfeld: density %.1f kg/m³ outside valid range 110-363 kg/m³; returning NaN", rho_nominal)
         return ufloat(np.nan, np.nan)
 
     # C0 is 6.5e3 MPa, (Eq. 6, Gerling et al. (2017), Eq. 4, Bergfeld et al. (2023)).
@@ -260,6 +268,7 @@ def _calculate_elastic_modulus_kochle(
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³
+    rho_nominal = _nominal_value(rho_snow)
 
     # NOTE: include_method_uncertainty is accepted for API consistency but has
     # no effect for this method. Köchle & Schneebeli (2014) report R² values
@@ -269,19 +278,19 @@ def _calculate_elastic_modulus_kochle(
     # parameterization.
 
     # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
-    if 150 <= rho_snow.nominal_value < 250:
+    if 150 <= rho_nominal < 250:
         # Low Density Fit (R² = 0.68)
         # E = 0.0061 * exp(0.0396 * ρ)
         C_0 = 0.0061
         C_1 = 0.0396
-    elif 250 <= rho_snow.nominal_value <= 450:
+    elif 250 <= rho_nominal <= 450:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
         C_0 = 6.0457
         C_1 = 0.011
     else:
         # Densities outside 150-450 kg/m³ return NaN
-        logger.debug("kochle: density %.1f kg/m³ outside valid range 150-450 kg/m³; returning NaN", rho_snow.nominal_value)
+        logger.debug("kochle: density %.1f kg/m³ outside valid range 150-450 kg/m³; returning NaN", rho_nominal)
         return ufloat(np.nan, np.nan)
 
     C_2 = C_0 / E_ice
@@ -378,10 +387,11 @@ def _calculate_elastic_modulus_wautier(
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
+    rho_nominal = _nominal_value(rho_snow)
 
     # Check for nominal density in range of fit
-    if rho_snow.nominal_value < 103 or rho_snow.nominal_value > 544:
-        logger.debug("wautier: density %.1f kg/m³ outside valid range 103-544 kg/m³; returning NaN", rho_snow.nominal_value)
+    if rho_nominal < 103 or rho_nominal > 544:
+        logger.debug("wautier: density %.1f kg/m³ outside valid range 103-544 kg/m³; returning NaN", rho_nominal)
         return ufloat(np.nan, np.nan)
 
     # Wautier et al. (2015) power law coefficients (Eq. 5).

@@ -14,24 +14,16 @@ from notebook_utils import (
     DENSITY_COLORS,
     DOUBLE_COL,
     DPI,
+    EXTERNAL_PAPER_FIGURES_DIR,
     PAPER_FIGURES_DIR,
-    SINGLE_COL,
+    PAPER_FIGURES_DIRS,
+    REPO_PAPER_FIGURES_DIR,
 )
-from snowpyt_mechparams.constants import E_ICE_POLYCRYSTALLINE, RHO_ICE
-from snowpyt_mechparams.graph.visualize_matplotlib import generate_matplotlib_full_detail
-
-
-COLOR_INPUT = "#F8E59A"
-COLOR_LAYER = "#BFDDB7"
-COLOR_SLAB = "#F5C0A8"
-COLOR_MERGE = "#E8D4EF"
-COLOR_TARGET = "#EBD8E6"
-COLOR_ALERT = "#F8E6BF"
 COLOR_BORDER = "#404040"
 GRID_COLOR = "#D8D8D8"
 
-RHO_ICE_VALUE = float(getattr(RHO_ICE, "nominal_value", RHO_ICE))
-E_ICE_VALUE = float(getattr(E_ICE_POLYCRYSTALLINE, "nominal_value", E_ICE_POLYCRYSTALLINE))
+RHO_ICE_VALUE = 917.0
+E_ICE_VALUE = 10000.0
 
 DENSITY_METHOD_ORDER = [
     "kim_jamieson_table2",
@@ -66,21 +58,30 @@ METHOD_SHORT_LABELS = {
 
 
 def paper_figures_dir() -> Path:
-    """Return the LaTeX paper figures directory."""
+    """Return the repository-local paper figures directory."""
     PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     return PAPER_FIGURES_DIR
 
 
 def save_paper_figure(fig: plt.Figure, stem: str, close: bool = False) -> dict[str, Path]:
-    """Save a figure to the paper figures directory as PDF and PNG."""
-    output_dir = paper_figures_dir()
-    pdf_path = output_dir / f"{stem}.pdf"
-    png_path = output_dir / f"{stem}.png"
-    fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
-    fig.savefig(png_path, dpi=DPI, bbox_inches="tight")
+    """Save a paper figure as PDF and PNG in repo and manuscript directories."""
+    saved_paths: dict[str, Path] = {}
+    for output_dir in PAPER_FIGURES_DIRS:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        prefix = "repo" if output_dir == REPO_PAPER_FIGURES_DIR else "external"
+        pdf_path = output_dir / f"{stem}.pdf"
+        png_path = output_dir / f"{stem}.png"
+        fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
+        fig.savefig(png_path, dpi=DPI, bbox_inches="tight")
+        saved_paths[f"{prefix}_pdf"] = pdf_path
+        saved_paths[f"{prefix}_png"] = png_path
+
+    saved_paths["pdf"] = saved_paths["repo_pdf"]
+    saved_paths["png"] = saved_paths["repo_png"]
+    saved_paths["external_dir"] = EXTERNAL_PAPER_FIGURES_DIR
     if close:
         plt.close(fig)
-    return {"pdf": pdf_path, "png": png_path}
+    return saved_paths
 
 
 def method_label(method: str, short: bool = False) -> str:
@@ -131,82 +132,6 @@ def _setup_publication_axes(ax: plt.Axes, *, x_grid: bool = True, y_grid: bool =
         ax.spines[spine].set_visible(False)
 
 
-def _add_box(
-    ax: plt.Axes,
-    x: float,
-    y: float,
-    w: float,
-    h: float,
-    label: str,
-    *,
-    facecolor: str,
-    edgecolor: str,
-    linewidth: float = 1.5,
-    fontsize: float = 9,
-    fontweight: str = "normal",
-    linestyle: str = "-",
-    zorder: int = 2,
-) -> None:
-    """Add a rounded rectangle with centered text in axes coordinates."""
-    rect = mpatches.FancyBboxPatch(
-        (x - w / 2, y - h / 2),
-        w,
-        h,
-        boxstyle="round,pad=0.012,rounding_size=0.018",
-        facecolor=facecolor,
-        edgecolor=edgecolor,
-        linewidth=linewidth,
-        linestyle=linestyle,
-        transform=ax.transAxes,
-        zorder=zorder,
-    )
-    ax.add_patch(rect)
-    ax.text(
-        x,
-        y,
-        label,
-        ha="center",
-        va="center",
-        fontsize=fontsize,
-        fontweight=fontweight,
-        transform=ax.transAxes,
-        zorder=zorder + 1,
-    )
-
-
-def _add_diamond(
-    ax: plt.Axes,
-    x: float,
-    y: float,
-    size: float,
-    label: str,
-    *,
-    facecolor: str = COLOR_MERGE,
-    edgecolor: str = COLOR_BORDER,
-    fontsize: float = 8,
-) -> None:
-    """Add a merge diamond."""
-    verts = np.array(
-        [
-            [x, y + size / 2],
-            [x + size / 2, y],
-            [x, y - size / 2],
-            [x - size / 2, y],
-        ]
-    )
-    poly = mpatches.Polygon(
-        verts,
-        closed=True,
-        facecolor=facecolor,
-        edgecolor=edgecolor,
-        linewidth=1.4,
-        transform=ax.transAxes,
-        zorder=2,
-    )
-    ax.add_patch(poly)
-    ax.text(x, y, label, ha="center", va="center", fontsize=fontsize, transform=ax.transAxes, zorder=3)
-
-
 def _add_arrow(
     ax: plt.Axes,
     start: tuple[float, float],
@@ -234,241 +159,6 @@ def _add_arrow(
     ax.add_patch(arrow)
 
 
-def build_intro_workflow_figure() -> plt.Figure:
-    """Create the introduction workflow figure."""
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 2.75))
-    ax.axis("off")
-
-    scope = mpatches.FancyBboxPatch(
-        (0.22, 0.17),
-        0.62,
-        0.63,
-        boxstyle="round,pad=0.015,rounding_size=0.025",
-        facecolor="#FBF5F6",
-        edgecolor="#B34F7B",
-        linewidth=2.0,
-        transform=ax.transAxes,
-        zorder=0,
-    )
-    ax.add_patch(scope)
-    ax.text(
-        0.23,
-        0.82,
-        "Scope of this paper: slab-side input assembly",
-        ha="left",
-        va="bottom",
-        fontsize=9,
-        fontweight="bold",
-        color="#8C3158",
-        transform=ax.transAxes,
-    )
-
-    _add_box(
-        ax,
-        0.10,
-        0.50,
-        0.18,
-        0.28,
-        "Snowpit\nobservations\n\n density\n hardness\n grain form\n grain size\n thickness",
-        facecolor=COLOR_INPUT,
-        edgecolor="#C78B00",
-        fontsize=8,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.34,
-        0.50,
-        0.18,
-        0.28,
-        "Layer\nparameterizations\n\n density\n E\n nu\n G",
-        facecolor=COLOR_LAYER,
-        edgecolor="#4E8A53",
-        fontsize=8,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.56,
-        0.50,
-        0.18,
-        0.28,
-        "Slab properties\nand inputs\n\n thickness\n A11, B11\n D11, A55",
-        facecolor=COLOR_SLAB,
-        edgecolor="#BC6B52",
-        fontsize=8,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.80,
-        0.62,
-        0.16,
-        0.18,
-        "Roch\nslab-side\ninputs",
-        facecolor=COLOR_TARGET,
-        edgecolor="#8C3158",
-        fontsize=9,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.80,
-        0.38,
-        0.16,
-        0.18,
-        "WEAC\nslab-side\ninputs",
-        facecolor=COLOR_TARGET,
-        edgecolor="#8C3158",
-        fontsize=9,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.56,
-        0.16,
-        0.18,
-        0.12,
-        "Weak-layer inputs\nkept unresolved here",
-        facecolor=COLOR_ALERT,
-        edgecolor="#B78423",
-        linestyle="--",
-        fontsize=8,
-    )
-
-    _add_arrow(ax, (0.19, 0.50), (0.25, 0.50))
-    _add_arrow(ax, (0.43, 0.50), (0.47, 0.50))
-    _add_arrow(ax, (0.65, 0.54), (0.72, 0.60))
-    _add_arrow(ax, (0.65, 0.46), (0.72, 0.40))
-    _add_arrow(ax, (0.65, 0.18), (0.72, 0.57), linestyle="--", color="#8B8B8B", connectionstyle="arc3,rad=0.25")
-    _add_arrow(ax, (0.65, 0.14), (0.72, 0.41), linestyle="--", color="#8B8B8B", connectionstyle="arc3,rad=-0.10")
-
-    ax.text(0.68, 0.70, "full stability models also require", fontsize=7.5, color="#666666", transform=ax.transAxes)
-
-    fig.tight_layout(pad=0.3)
-    return fig
-
-
-def build_snowpylot_data_model_figure() -> plt.Figure:
-    """Create a simplified SnowPylot data model figure."""
-    fig, ax = plt.subplots(figsize=(SINGLE_COL, 4.0))
-    ax.axis("off")
-
-    _add_box(
-        ax,
-        0.50,
-        0.85,
-        0.34,
-        0.14,
-        "SnowPit\n1 CAAML file -> 1 parsed object",
-        facecolor="#E7EFFA",
-        edgecolor="#3B6AA0",
-        fontsize=9,
-        fontweight="bold",
-    )
-
-    children = [
-        (0.20, 0.56, "Metadata\n pit_id\n location\n slope angle"),
-        (0.50, 0.56, "Layers\n thickness\n hand hardness\n grain form\n grain size"),
-        (0.80, 0.56, "Matched density\n observations\n direct layer density\n aligned depth + thickness"),
-        (0.50, 0.22, "Stability tests\n ECT\n CT\n PST"),
-    ]
-    for x, y, label in children:
-        _add_box(
-            ax,
-            x,
-            y,
-            0.24,
-            0.18 if y > 0.30 else 0.16,
-            label,
-            facecolor=COLOR_INPUT,
-            edgecolor="#C78B00",
-            fontsize=8,
-        )
-
-    for x, y, _label in children[:3]:
-        _add_arrow(ax, (0.50, 0.78), (x, y + 0.10))
-    _add_arrow(ax, (0.50, 0.78), (0.50, 0.30))
-
-    note = mpatches.FancyBboxPatch(
-        (0.08, 0.02),
-        0.84,
-        0.10,
-        boxstyle="round,pad=0.01,rounding_size=0.018",
-        facecolor="#F7F7F7",
-        edgecolor="#BDBDBD",
-        linewidth=1.0,
-        transform=ax.transAxes,
-    )
-    ax.add_patch(note)
-    ax.text(
-        0.50,
-        0.07,
-        "This study uses the SnowPit fields needed to build layer objects,\nmatch direct density to layers, and extract propagating ECT slabs.",
-        ha="center",
-        va="center",
-        fontsize=7.2,
-        color="#555555",
-        transform=ax.transAxes,
-    )
-
-    fig.tight_layout(pad=0.3)
-    return fig
-
-
-def build_mechparams_data_model_figure() -> plt.Figure:
-    """Create a simplified Pit-Slab-Layer data model figure."""
-    fig, ax = plt.subplots(figsize=(SINGLE_COL, 5.6))
-    ax.axis("off")
-
-    _add_box(
-        ax,
-        0.27,
-        0.82,
-        0.34,
-        0.16,
-        "Pit\n\n measured:\n pit_id, slope_angle\n layers, ECT_results\n\n action:\n from_snow_pit(...)",
-        facecolor="#E7EFFA",
-        edgecolor="#3B6AA0",
-        fontsize=8,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.73,
-        0.82,
-        0.34,
-        0.20,
-        "Slab\n\n measured:\n angle, weak_layer, layers\n\n calculated:\n A11, B11, D11, A55\n\n action:\n create_slabs(...)",
-        facecolor=COLOR_SLAB,
-        edgecolor="#BC6B52",
-        fontsize=8,
-        fontweight="bold",
-    )
-    _add_box(
-        ax,
-        0.50,
-        0.34,
-        0.46,
-        0.34,
-        "Layer\n\n measured:\n depth_top, thickness, density_measured\n hand_hardness, grain_form, grain_size_avg\n\n calculated:\n density_calculated, elastic_modulus\n poissons_ratio, shear_modulus",
-        facecolor=COLOR_LAYER,
-        edgecolor="#4E8A53",
-        fontsize=8,
-        fontweight="bold",
-    )
-
-    _add_arrow(ax, (0.44, 0.82), (0.56, 0.82))
-    _add_arrow(ax, (0.30, 0.72), (0.43, 0.50), connectionstyle="arc3,rad=-0.12")
-    _add_arrow(ax, (0.70, 0.72), (0.57, 0.50), connectionstyle="arc3,rad=0.12")
-
-    ax.text(0.50, 0.86, "Pit.from_snow_pit(...) then Pit.create_slabs(...)", ha="center", fontsize=7.2, color="#555555", transform=ax.transAxes)
-    ax.text(0.50, 0.58, "all slab pathways execute through the layer fields above", ha="center", fontsize=7.2, color="#555555", transform=ax.transAxes)
-
-    fig.tight_layout(pad=0.3)
-    return fig
-
-
 HARDNESS_MAPPING = {
     "F-": 0.67,
     "F": 1.0,
@@ -487,83 +177,94 @@ HARDNESS_MAPPING = {
     "K+": 5.33,
 }
 
-GRAIN_FORM_RANGES = [
-    ("PP", "Precipitation particles", "F- to P", "F- to P"),
-    ("PPgp", "Precipitation particles, graupel", "F- to P", "F- to P"),
-    ("DF", "Decomposing and fragmented particles", "F- to P+", "F- to K-"),
-    ("RG", "Rounded grains", "F to K+", "F- to K+"),
-    ("RGmx", "Rounded grains, mixed forms", "F- to P+", "F- to P+"),
-    ("FC", "Faceted crystals", "F- to K-", "F- to K"),
-    ("FCmx", "Faceted crystals, mixed forms", "F to K+", "F- to K+"),
-    ("DH", "Depth hoar", "F to K", "F to K"),
-    ("MFcr", "Melt-freeze crust", "None", "4F to K+"),
+SUPPORT_GRAIN_FORM_ORDER = [
+    "PP",
+    "PPgp",
+    "MM",
+    "DF",
+    "RG",
+    "RGxf",
+    "FC",
+    "FCxr",
+    "DH",
+    "SH",
+    "MF",
+    "MFcr",
+    "IF",
 ]
 
+DENSITY_SUPPORT_METHODS = [
+    "geldsetzer",
+    "kim_jamieson_table2",
+    "kim_jamieson_table5",
+]
 
-def _parse_hardness_range(value: str) -> tuple[float | None, float | None]:
-    if value.strip().lower() == "none":
-        return (None, None)
-    low, high = [item.strip() for item in value.split(" to ")]
-    return HARDNESS_MAPPING[low], HARDNESS_MAPPING[high]
+ELASTIC_SUPPORT_METHODS = ["bergfeld", "kochle", "wautier", "schottner"]
+POISSONS_SUPPORT_METHODS = ["kochle", "srivastava"]
 
+SUPPORT_METHOD_STYLES = {
+    "geldsetzer": {"color": "#0072B2", "label": "Geldsetzer"},
+    "kim_jamieson_table2": {"color": "#009E73", "label": "Kim T2"},
+    "kim_jamieson_table5": {"color": "#E69F00", "label": "Kim T5"},
+    "bergfeld": {"color": "#56B4E9", "label": "Bergfeld"},
+    "kochle": {"color": "#CC79A7", "label": "Kochle"},
+    "wautier": {"color": "#F0E442", "label": "Wautier"},
+    "schottner": {"color": "#D55E00", "label": "Schottner"},
+    "srivastava": {"color": "#4D4D4D", "label": "Srivastava"},
+}
 
-def build_grain_form_hardness_ranges_figure() -> plt.Figure:
-    """Create the grain-form hand-hardness applicability figure."""
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.6))
+DENSITY_SUPPORT_RANGES = {
+    "geldsetzer": {
+        "PP": (0.67, 4.00),
+        "PPgp": (0.67, 4.00),
+        "DF": (0.67, 4.33),
+        "RG": (1.00, 5.33),
+        "FC": (0.67, 4.67),
+        "DH": (1.00, 5.00),
+    },
+    "kim_jamieson_table2": {
+        "PP": (0.67, 4.00),
+        "PPgp": (0.67, 4.00),
+        "DF": (0.67, 4.67),
+        "RG": (0.67, 5.33),
+        "RGxf": (0.67, 4.33),
+        "FC": (0.67, 5.00),
+        "FCxr": (0.67, 5.33),
+        "DH": (1.00, 5.00),
+        "MFcr": (2.00, 5.33),
+    },
+    "kim_jamieson_table5": {
+        "FC": (1.67, 4.00),
+        "FCxr": (2.33, 4.33),
+        "PP": (0.67, 2.00),
+        "PPgp": (1.00, 3.33),
+        "DF": (1.00, 3.00),
+        "MF": (2.33, 4.33),
+    },
+}
 
-    gj_color = "#3B78A6"
-    kj_color = "#D87745"
-    y_positions = np.arange(len(GRAIN_FORM_RANGES))
-    half_height = 0.16
+DENSITY_BOUNDARIES = [103, 110, 150, 200, 363, 450, 544, 580]
+DENSITY_X_MIN = 0.0
+DENSITY_X_MAX = 600.0
 
-    for y, (code, name, gj_range, kj_range) in zip(y_positions, GRAIN_FORM_RANGES, strict=True):
-        gj_low, gj_high = _parse_hardness_range(gj_range)
-        kj_low, kj_high = _parse_hardness_range(kj_range)
-
-        if gj_low is not None and gj_high is not None:
-            ax.barh(
-                y - half_height,
-                gj_high - gj_low,
-                left=gj_low,
-                height=0.28,
-                color=gj_color,
-                alpha=0.85,
-                edgecolor="#1F4460",
-                linewidth=0.8,
-            )
-        if kj_low is not None and kj_high is not None:
-            ax.barh(
-                y + half_height,
-                kj_high - kj_low,
-                left=kj_low,
-                height=0.28,
-                color=kj_color,
-                alpha=0.80,
-                edgecolor="#8B4622",
-                linewidth=0.8,
-            )
-
-        if gj_low is None and kj_low is not None:
-            ax.text(kj_high + 0.06, y + half_height, "Kim only", va="center", ha="left", fontsize=8, color="#8B4622")
-        elif gj_low is not None and kj_low is not None and (kj_low < gj_low or kj_high > gj_high):
-            ax.text(kj_high + 0.06, y + half_height, "Kim wider", va="center", ha="left", fontsize=8, color="#8B4622")
-
-    ax.set_yticks(y_positions)
-    ax.set_yticklabels([f"{code}  {name}" for code, name, _gj, _kj in GRAIN_FORM_RANGES], fontsize=8)
-    ax.invert_yaxis()
-    ax.set_xlim(0.45, 5.70)
-    ax.set_xticks([1.0, 2.0, 3.0, 4.0, 5.0])
-    ax.set_xticklabels(["F", "4F", "1F", "P", "K"])
-    ax.set_xlabel("Hand hardness index")
-    _setup_publication_axes(ax, x_grid=True, y_grid=False)
-
-    handles = [
-        mpatches.Patch(facecolor=gj_color, edgecolor="#1F4460", label="Geldsetzer and Jamieson (2000)", alpha=0.85),
-        mpatches.Patch(facecolor=kj_color, edgecolor="#8B4622", label="Kim and Jamieson (2014)", alpha=0.80),
-    ]
-    ax.legend(handles=handles, loc="lower right", frameon=False, fontsize=8)
-    fig.tight_layout(pad=0.3)
-    return fig
+ELASTIC_SUPPORT = {
+    "bergfeld": {
+        "grain_forms": {"PP", "RG", "DF"},
+        "density_ranges": [(110.0, 363.0)],
+    },
+    "kochle": {
+        "grain_forms": {"RG", "FC", "DH", "MF"},
+        "density_ranges": [(150.0, 450.0)],
+    },
+    "wautier": {
+        "grain_forms": {"DF", "RG", "FC", "DH", "MF"},
+        "density_ranges": [(103.0, 544.0)],
+    },
+    "schottner": {
+        "grain_forms": {"DF", "RG", "FC", "DH", "SH"},
+        "density_ranges": [(DENSITY_X_MIN, DENSITY_X_MAX)],
+    },
+}
 
 
 def _bergfeld_curve(rho: np.ndarray) -> np.ndarray:
@@ -622,55 +323,256 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
     return fig
 
 
-def build_params_graph_figure(graph) -> plt.Figure:
-    """Create the full parameter graph figure."""
-    fig = generate_matplotlib_full_detail(graph)
-    return fig
+def _main_grain_form(grain_form: str) -> str:
+    """Return the two-character grain class used by the implementations."""
+    return grain_form[:2].upper()
 
 
-def build_density_pathways_figure() -> plt.Figure:
-    """Create a clean four-path density schematic."""
-    fig, axes = plt.subplots(1, 4, figsize=(DOUBLE_COL, 2.25))
-    panel_specs = [
-        ("Direct matched\ndensity", [("Snow pit", COLOR_INPUT), ("Measured\ndensity", COLOR_INPUT), ("Density", COLOR_LAYER)], []),
-        ("Geldsetzer", [("Hand\nhardness", COLOR_INPUT), ("Grain\nform", COLOR_INPUT), ("Density", COLOR_LAYER)], ["merge"]),
-        ("Kim and Jamieson\nTable 2", [("Hand\nhardness", COLOR_INPUT), ("Grain\nform", COLOR_INPUT), ("Density", COLOR_LAYER)], ["merge"]),
-        ("Kim and Jamieson\nTable 5", [("Hand\nhardness", COLOR_INPUT), ("Grain\nform", COLOR_INPUT), ("Grain\nsize", COLOR_INPUT), ("Density", COLOR_LAYER)], ["merge"]),
+def _density_method_supports(method: str, grain_form: str, hhi: float) -> bool:
+    method_ranges = DENSITY_SUPPORT_RANGES[method]
+    if grain_form not in method_ranges:
+        return False
+    low, high = method_ranges[grain_form]
+    return low <= hhi <= high
+
+
+def _elastic_supported_ranges(method: str, grain_form: str) -> list[tuple[float, float]]:
+    support = ELASTIC_SUPPORT[method]
+    if _main_grain_form(grain_form) not in support["grain_forms"]:
+        return []
+    return support["density_ranges"]
+
+
+def _poissons_supported_ranges(method: str, grain_form: str) -> list[tuple[float, float]]:
+    main_grain_form = _main_grain_form(grain_form)
+
+    if method == "kochle":
+        if main_grain_form in {"RG", "FC", "DH"}:
+            return [(DENSITY_X_MIN, DENSITY_X_MAX)]
+        return []
+
+    if method == "srivastava":
+        if main_grain_form == "RG":
+            return [(200.0, 580.0)]
+        if main_grain_form in {"PP", "DF", "FC", "DH"}:
+            return [(200.0, DENSITY_X_MAX)]
+        return []
+
+    raise ValueError(f"Unknown Poisson's-ratio method: {method}")
+
+
+def _parameter_supported_ranges(
+    method: str,
+    grain_form: str,
+    parameter: str,
+) -> list[tuple[float, float]]:
+    if parameter == "elastic_modulus":
+        return _elastic_supported_ranges(method, grain_form)
+    if parameter == "poissons_ratio":
+        return _poissons_supported_ranges(method, grain_form)
+    raise ValueError(f"Unknown parameter: {parameter}")
+
+
+def _draw_lane_cell(
+    ax: plt.Axes,
+    x: float,
+    y: float,
+    width: float,
+    supported_methods: set[str],
+    method_lanes: Sequence[str],
+) -> None:
+    lane_height = 0.88 / len(method_lanes)
+    row_bottom = y - 0.44
+    for lane_idx, method in enumerate(method_lanes):
+        style = SUPPORT_METHOD_STYLES[method]
+        facecolor = style["color"] if method in supported_methods else "white"
+        ax.add_patch(
+            mpatches.Rectangle(
+                (x, row_bottom + lane_idx * lane_height),
+                width,
+                lane_height,
+                facecolor=facecolor,
+                edgecolor="#D8D8D8",
+                linewidth=0.35,
+            )
+        )
+
+
+def _draw_density_support_panel(ax: plt.Axes) -> None:
+    hardness_items = list(HARDNESS_MAPPING.items())
+    for y, grain_form in enumerate(SUPPORT_GRAIN_FORM_ORDER):
+        for x_idx, (_hardness_code, hhi) in enumerate(hardness_items):
+            supported_methods = {
+                method
+                for method in DENSITY_SUPPORT_METHODS
+                if _density_method_supports(method, grain_form, hhi)
+            }
+            _draw_lane_cell(
+                ax,
+                x_idx - 0.5,
+                y,
+                1.0,
+                supported_methods,
+                DENSITY_SUPPORT_METHODS,
+            )
+
+    ax.vlines(
+        np.arange(-0.5, len(hardness_items) + 0.5, 1.0),
+        -0.5,
+        len(SUPPORT_GRAIN_FORM_ORDER) - 0.5,
+        colors="#8F8F8F",
+        linewidth=0.45,
+        zorder=10,
+    )
+    ax.hlines(
+        np.arange(-0.5, len(SUPPORT_GRAIN_FORM_ORDER) + 0.5, 1.0),
+        -0.5,
+        len(hardness_items) - 0.5,
+        colors="#BDBDBD",
+        linewidth=0.45,
+        zorder=10,
+    )
+    ax.set_xlim(-0.5, len(hardness_items) - 0.5)
+    ax.set_ylim(len(SUPPORT_GRAIN_FORM_ORDER) - 0.5, -0.5)
+    ax.set_xticks(np.arange(len(hardness_items)))
+    ax.set_xticklabels(
+        [code for code, _hhi in hardness_items],
+        rotation=45,
+        ha="right",
+        rotation_mode="anchor",
+    )
+    ax.set_xlabel("Hand hardness")
+
+
+def _draw_density_range_support_panel(ax: plt.Axes, parameter: str) -> None:
+    method_lanes = (
+        ELASTIC_SUPPORT_METHODS
+        if parameter == "elastic_modulus"
+        else POISSONS_SUPPORT_METHODS
+    )
+    for y, grain_form in enumerate(SUPPORT_GRAIN_FORM_ORDER):
+        lane_height = 0.88 / len(method_lanes)
+        row_bottom = y - 0.44
+        for lane_idx, method in enumerate(method_lanes):
+            y_bottom = row_bottom + lane_idx * lane_height
+            for x_start, x_end in _parameter_supported_ranges(
+                method,
+                grain_form,
+                parameter,
+            ):
+                ax.add_patch(
+                    mpatches.Rectangle(
+                        (max(x_start, DENSITY_X_MIN), y_bottom),
+                        min(x_end, DENSITY_X_MAX) - max(x_start, DENSITY_X_MIN),
+                        lane_height,
+                        facecolor=SUPPORT_METHOD_STYLES[method]["color"],
+                        edgecolor="#D8D8D8",
+                        linewidth=0.35,
+                    )
+                )
+
+    ax.vlines(
+        DENSITY_BOUNDARIES,
+        -0.5,
+        len(SUPPORT_GRAIN_FORM_ORDER) - 0.5,
+        colors="#8F8F8F",
+        linewidth=0.45,
+        zorder=10,
+    )
+    ax.hlines(
+        np.arange(-0.5, len(SUPPORT_GRAIN_FORM_ORDER) + 0.5, 1.0),
+        DENSITY_X_MIN,
+        DENSITY_X_MAX,
+        colors="#BDBDBD",
+        linewidth=0.45,
+        zorder=10,
+    )
+    ax.set_xlim(DENSITY_X_MIN, DENSITY_X_MAX)
+    ax.set_ylim(len(SUPPORT_GRAIN_FORM_ORDER) - 0.5, -0.5)
+    ax.set_xticks(np.arange(DENSITY_X_MIN, DENSITY_X_MAX + 1, 100))
+    ax.set_xticks(DENSITY_BOUNDARIES, minor=True)
+    ax.tick_params(axis="x", which="minor", length=2, color="#6F6F6F")
+    ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
+
+
+def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
+    ax.set_yticks(np.arange(len(SUPPORT_GRAIN_FORM_ORDER)))
+    ax.set_yticklabels(SUPPORT_GRAIN_FORM_ORDER)
+    ax.tick_params(axis="both", length=0, labelsize=6.8)
+    ax.tick_params(axis="x", labelsize=6.5)
+    ax.set_ylabel("Grain form")
+    ax.text(
+        0.0,
+        1.035,
+        f"{panel_label} {title}",
+        transform=ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=8.1,
+        fontweight="bold",
+    )
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+
+def build_method_support_matrices_figure() -> plt.Figure:
+    """Create stacked support matrices for density, elastic modulus, and nu."""
+    fig, axes = plt.subplots(
+        nrows=3,
+        figsize=(DOUBLE_COL, 8.35),
+        gridspec_kw={"height_ratios": [1.08, 1.0, 1.0], "hspace": 0.42},
+    )
+
+    _draw_density_support_panel(axes[0])
+    _draw_density_range_support_panel(axes[1], "elastic_modulus")
+    _draw_density_range_support_panel(axes[2], "poissons_ratio")
+
+    _style_support_panel(
+        axes[0],
+        "(a)",
+        "Density methods: support depends on grain form and hand hardness",
+    )
+    _style_support_panel(
+        axes[1],
+        "(b)",
+        "Elastic modulus methods: support narrows by density and grain form",
+    )
+    _style_support_panel(
+        axes[2],
+        "(c)",
+        "Poisson's ratio methods: support is most restrictive",
+    )
+
+    handles = [
+        mpatches.Patch(
+            facecolor=SUPPORT_METHOD_STYLES[method]["color"],
+            edgecolor=COLOR_BORDER,
+            label=SUPPORT_METHOD_STYLES[method]["label"],
+        )
+        for method in (
+            DENSITY_SUPPORT_METHODS
+            + ELASTIC_SUPPORT_METHODS
+            + ["srivastava"]
+        )
     ]
-
-    for ax, (title, boxes, merges) in zip(axes, panel_specs, strict=True):
-        ax.axis("off")
-        ax.text(0.50, 0.98, title, ha="center", va="top", fontsize=8.2, fontweight="bold", transform=ax.transAxes)
-
-        if title.startswith("Direct"):
-            _add_box(ax, 0.18, 0.45, 0.26, 0.16, boxes[0][0], facecolor=boxes[0][1], edgecolor="#C78B00", fontsize=8)
-            _add_box(ax, 0.52, 0.45, 0.30, 0.16, boxes[1][0], facecolor=boxes[1][1], edgecolor="#C78B00", fontsize=8)
-            _add_box(ax, 0.85, 0.45, 0.22, 0.16, boxes[2][0], facecolor=boxes[2][1], edgecolor="#4E8A53", fontsize=8, fontweight="bold")
-            _add_arrow(ax, (0.31, 0.45), (0.37, 0.45))
-            _add_arrow(ax, (0.67, 0.45), (0.73, 0.45))
-            continue
-
-        x_positions = [0.18, 0.18, 0.18]
-        y_positions = [0.62, 0.38, 0.15]
-        if len(boxes) == 3:
-            for (label, color), y in zip(boxes[:2], y_positions[:2], strict=True):
-                _add_box(ax, x_positions[0], y, 0.28, 0.15, label, facecolor=color, edgecolor="#C78B00", fontsize=8)
-            _add_diamond(ax, 0.52, 0.50, 0.16, "+", fontsize=10)
-            _add_box(ax, 0.84, 0.50, 0.22, 0.16, boxes[2][0], facecolor=boxes[2][1], edgecolor="#4E8A53", fontsize=8, fontweight="bold")
-            _add_arrow(ax, (0.32, 0.62), (0.45, 0.54))
-            _add_arrow(ax, (0.32, 0.38), (0.45, 0.46))
-            _add_arrow(ax, (0.60, 0.50), (0.72, 0.50))
-        else:
-            for (label, color), y in zip(boxes[:3], y_positions, strict=True):
-                _add_box(ax, x_positions[0], y, 0.28, 0.15, label, facecolor=color, edgecolor="#C78B00", fontsize=8)
-            _add_diamond(ax, 0.52, 0.39, 0.16, "+", fontsize=10)
-            _add_box(ax, 0.84, 0.39, 0.22, 0.16, boxes[3][0], facecolor=boxes[3][1], edgecolor="#4E8A53", fontsize=8, fontweight="bold")
-            _add_arrow(ax, (0.32, 0.62), (0.45, 0.45))
-            _add_arrow(ax, (0.32, 0.38), (0.45, 0.39))
-            _add_arrow(ax, (0.32, 0.15), (0.45, 0.33))
-            _add_arrow(ax, (0.60, 0.39), (0.72, 0.39))
-
-    fig.tight_layout(pad=0.4, w_pad=0.7)
+    handles.append(
+        mpatches.Patch(
+            facecolor="white",
+            edgecolor="#8F8F8F",
+            label="Unsupported",
+        )
+    )
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        ncol=5,
+        frameon=False,
+        bbox_to_anchor=(0.55, 0.006),
+        fontsize=6.8,
+        columnspacing=0.95,
+        handlelength=1.4,
+    )
+    fig.subplots_adjust(left=0.075, right=0.99, top=0.965, bottom=0.095)
     return fig
 
 
@@ -679,17 +581,26 @@ def build_slab_weight_coverage_comparison_figure(
     elasticity_cov: pd.DataFrame,
     total_slabs: int,
     *,
-    top_n: int = 12,
+    top_n: int = 10,
 ) -> plt.Figure:
     """Create the slab-weight shear vs elastic-input coverage comparison figure."""
-    shear_plot = shear_cov.sort_values("n_all_inputs").copy()
-    elasticity_plot = elasticity_cov.head(top_n).copy().sort_values("n_all_inputs")
+    shear_plot = shear_cov.sort_values("n_all_inputs", ascending=False).copy()
+    elasticity_plot = elasticity_cov.head(top_n).copy().sort_values("n_all_inputs", ascending=False)
+    shear_plot["label"] = [
+        f"{method_label(method, short=True)} ({int(count):,})"
+        for method, count in zip(shear_plot["density_method"], shear_plot["n_all_inputs"], strict=True)
+    ]
     elasticity_plot["label"] = [
-        format_method_path(dm, em, nu, short=True)
-        for dm, em, nu in zip(
+        (
+            rf"$\rho$: {method_label(dm, short=True)} | "
+            rf"$E$: {method_label(em, short=True)} | "
+            rf"$\nu$: {method_label(nu, short=True)} ({int(count):,})"
+        )
+        for dm, em, nu, count in zip(
             elasticity_plot["density_method"],
             elasticity_plot["emod_method"],
             elasticity_plot["nu_method"],
+            elasticity_plot["n_all_inputs"],
             strict=True,
         )
     ]
@@ -697,60 +608,109 @@ def build_slab_weight_coverage_comparison_figure(
     fig, axes = plt.subplots(
         1,
         2,
-        figsize=(DOUBLE_COL, 4.4),
-        sharex=True,
-        gridspec_kw={"width_ratios": [1.0, 1.8]},
+        figsize=(DOUBLE_COL, 5.25),
+        sharey=True,
+        gridspec_kw={"width_ratios": [4, 10]},
     )
+
+    def _method_color(method: str) -> str:
+        if method in SUPPORT_METHOD_STYLES:
+            return SUPPORT_METHOD_STYLES[method]["color"]
+        if method == "data_flow":
+            return "#8F8F8F"
+        return DENSITY_COLORS.get(method, "#8F8F8F")
+
+    def _draw_bar_chart(
+        ax: plt.Axes,
+        labels: Sequence[str],
+        values: Sequence[float],
+        colors: Sequence[str],
+        *,
+        value_offset: float,
+    ) -> None:
+        x_pos = np.arange(len(labels))
+        ax.bar(
+            x_pos,
+            values,
+            width=0.58,
+            color=colors,
+            edgecolor=COLOR_BORDER,
+            linewidth=0.7,
+            alpha=0.85,
+        )
+        for x_idx, value in zip(x_pos, values, strict=True):
+            ax.text(
+                x_idx,
+                value + value_offset,
+                f"{value:.1f}%",
+                va="bottom",
+                ha="center",
+                fontsize=6.8,
+                clip_on=False,
+            )
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels, rotation=45, ha="right", rotation_mode="anchor")
 
     for ax, title in zip(
         axes,
-        ["(a) Slab weight_shear", "(b) Slab weight_shear with elasticity"],
+        [
+            r"Shear Weight ($W_S$) Pathways",
+            r"Shear Weight ($W_S$) with Elasticity Parameters ($E$, $\nu$) Pathways",
+        ],
         strict=True,
     ):
-        _setup_publication_axes(ax, x_grid=True, y_grid=False)
-        ax.text(0.02, 0.98, title, ha="left", va="top", fontsize=8, fontweight="bold", transform=ax.transAxes)
+        _setup_publication_axes(ax, x_grid=False, y_grid=True)
+        ax.set_title(title, loc="left", fontsize=8, fontweight="bold", pad=3)
+        ax.set_ylim(0, 42)
+        ax.set_yticks([0, 10, 20, 30, 40])
+        ax.set_ylabel("Coverage of ECTP slabs (%)", fontsize=7.5)
 
     shear_widths = shear_plot["n_all_inputs"] / total_slabs * 100.0
-    axes[0].barh(
-        [method_label(method, short=True) for method in shear_plot["density_method"]],
+    _draw_bar_chart(
+        axes[0],
+        shear_plot["label"],
         shear_widths,
-        color=[DENSITY_COLORS[m] for m in shear_plot["density_method"]],
-        edgecolor=COLOR_BORDER,
-        linewidth=0.7,
-        alpha=0.85,
+        [_method_color(m) for m in shear_plot["density_method"]],
+        value_offset=0.7,
     )
-    for y_idx, width in enumerate(shear_widths):
-        axes[0].text(width + 0.6, y_idx, f"{width:.1f}%", va="center", ha="left", fontsize=7.5)
 
     elasticity_widths = elasticity_plot["n_all_inputs"] / total_slabs * 100.0
-    axes[1].barh(
+    _draw_bar_chart(
+        axes[1],
         elasticity_plot["label"],
         elasticity_widths,
-        color=[DENSITY_COLORS[m] for m in elasticity_plot["density_method"]],
-        edgecolor=COLOR_BORDER,
-        linewidth=0.7,
-        alpha=0.85,
+        [_method_color(m) for m in elasticity_plot["density_method"]],
+        value_offset=0.35,
     )
-    for y_idx, width in enumerate(elasticity_widths):
-        axes[1].text(width + 0.35, y_idx, f"{width:.1f}%", va="center", ha="left", fontsize=7.0)
 
-    axes[0].set_xlabel("Coverage of ECTP slabs (%)")
-    axes[1].set_xlabel("Coverage of ECTP slabs (%)")
-    axes[0].set_xlim(0, 45)
-    axes[0].tick_params(axis="y", labelsize=8)
-    axes[1].tick_params(axis="y", labelsize=7.5)
-    axes[1].invert_yaxis()
-    axes[0].invert_yaxis()
+    axes[0].set_xlabel("Pathway (successful slabs)", fontsize=7.5)
+    axes[1].set_xlabel("Pathway (successful slabs)", fontsize=7.5)
+    for ax in axes:
+        ax.tick_params(axis="x", labelsize=6.1)
+        ax.tick_params(axis="y", labelsize=7.0, labelleft=True)
 
+    legend_handles = [
+        mpatches.Patch(
+            facecolor=_method_color(method),
+            edgecolor=COLOR_BORDER,
+            label=method_label(method),
+            alpha=0.85,
+        )
+        for method in DENSITY_METHOD_ORDER
+    ]
     fig.legend(
-        handles=density_legend_handles(),
-        loc="upper center",
-        bbox_to_anchor=(0.50, 1.02),
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.50, 0.055),
         ncol=2,
         frameon=False,
-        fontsize=7.5,
+        fontsize=7.0,
+        title="Density Method",
+        title_fontsize=7.2,
+        columnspacing=1.2,
+        handlelength=1.5,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.92), pad=0.5)
+    fig.subplots_adjust(left=0.09, right=0.985, top=0.92, bottom=0.48, wspace=0.24)
     return fig
 
 
@@ -777,18 +737,35 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
     steps: Sequence[tuple[str, int]],
     total_slabs: int,
     pathway_label: str,
+    method_steps: Sequence[str] | None = None,
 ) -> plt.Figure:
     """Create a funnel-style slab-weight-shear-with-elasticity attrition figure."""
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 2.8))
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.25))
     ax.axis("off")
 
-    y_positions = np.linspace(0.80, 0.20, len(steps))
+    y_positions = np.linspace(0.78, 0.16, len(steps))
     base_color = DENSITY_COLORS["kim_jamieson_table2"]
     alphas = [0.35, 0.50, 0.68, 0.85]
+    bar_center = 0.43
+    max_bar_width = 0.56
+    min_bar_width = 0.12
+    if method_steps is not None and len(method_steps) != len(steps):
+        raise ValueError("method_steps must have one label per attrition step.")
+
+    ax.text(0.05, 0.92, "Requirement", ha="left", va="center", fontsize=7.5, transform=ax.transAxes)
+    ax.text(
+        0.76,
+        0.92,
+        "Method/input applied",
+        ha="left",
+        va="center",
+        fontsize=7.5,
+        transform=ax.transAxes,
+    )
 
     for idx, ((label, count), y_pos) in enumerate(zip(steps, y_positions, strict=True)):
-        width = 0.18 + 0.60 * (count / total_slabs)
-        x0 = 0.50 - width / 2
+        width = min_bar_width + (max_bar_width - min_bar_width) * (count / total_slabs)
+        x0 = bar_center - width / 2
         rect = mpatches.FancyBboxPatch(
             (x0, y_pos - 0.08),
             width,
@@ -803,7 +780,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
         ax.add_patch(rect)
         ax.text(0.05, y_pos - 0.01, label, ha="left", va="center", fontsize=8.2, transform=ax.transAxes)
         ax.text(
-            0.50,
+            bar_center,
             y_pos - 0.01,
             f"{count:,} slabs ({count / total_slabs:.1%})",
             ha="center",
@@ -812,29 +789,19 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             fontweight="bold",
             transform=ax.transAxes,
         )
+        if method_steps is not None:
+            ax.text(
+                0.76,
+                y_pos - 0.01,
+                method_steps[idx],
+                ha="left",
+                va="center",
+                fontsize=7.8,
+                color="#333333",
+                transform=ax.transAxes,
+            )
         if idx < len(steps) - 1:
-            _add_arrow(ax, (0.50, y_pos - 0.09), (0.50, y_positions[idx + 1] + 0.05), color="#6A6A6A")
-
-    info = mpatches.FancyBboxPatch(
-        (0.70, 0.77),
-        0.24,
-        0.15,
-        boxstyle="round,pad=0.01,rounding_size=0.016",
-        facecolor="#F7F7F7",
-        edgecolor="#BDBDBD",
-        linewidth=1.0,
-        transform=ax.transAxes,
-    )
-    ax.add_patch(info)
-    ax.text(
-        0.82,
-        0.845,
-        "Best-coverage path\n" + pathway_label,
-        ha="center",
-        va="center",
-        fontsize=7.8,
-        transform=ax.transAxes,
-    )
+            _add_arrow(ax, (bar_center, y_pos - 0.09), (bar_center, y_positions[idx + 1] + 0.05), color="#6A6A6A")
 
     fig.tight_layout(pad=0.3)
     return fig

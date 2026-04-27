@@ -20,9 +20,9 @@ class TestGrainFormResolution:
     
     def test_sub_grain_form(self):
         """Test longer sub-grain form codes."""
-        layer = Layer(grain_form='RGmx')
+        layer = Layer(grain_form='RGxf')
         result = _resolve_grain_form(layer)
-        assert result == 'RGmx'
+        assert result == 'RGxf'
     
     def test_none_grain_form(self):
         """Test handling of None grain_form."""
@@ -33,17 +33,16 @@ class TestGrainFormResolution:
     def test_method_specific_basic_code(self):
         """Test method-specific grain code resolution with basic code."""
         layer = Layer(grain_form='RG')
-        # The density_method_geldsetzer method accepts specific grain codes
-        result = _resolve_grain_form(layer, method_name='density_method_geldsetzer')
+        # The geldsetzer method accepts specific grain codes
+        result = _resolve_grain_form(layer, method_name='geldsetzer')
         assert result == 'RG'
     
     def test_method_specific_sub_code(self):
         """Test method-specific grain code resolution with sub-grain code."""
-        layer = Layer(grain_form='RGmx')
+        layer = Layer(grain_form='RGxf')
         # Should work with sub-grain codes too if they're in the valid set
-        result = _resolve_grain_form(layer, method_name='density_method_geldsetzer')
-        # RGmx might not be in valid codes, but function should return it anyway
-        assert result is not None
+        result = _resolve_grain_form(layer, method_name='geldsetzer')
+        assert result == 'RG'
     
     def test_main_grain_form_fallback(self):
         """Test that main_grain_form property is used as fallback."""
@@ -77,11 +76,11 @@ class TestGrainFormResolution:
         
         This tests that the fix prevents the AttributeError that was occurring.
         """
-        layer = Layer(grain_form='RGmx', density_measured=250, hand_hardness='4F')
+        layer = Layer(grain_form='RGxf', density_measured=250, hand_hardness='4F')
         
         # Should not raise AttributeError
         try:
-            result = _resolve_grain_form(layer, method_name='density_method_geldsetzer')
+            result = _resolve_grain_form(layer, method_name='geldsetzer')
             # Should get some result (even if None)
             assert result is not None or result is None  # Either is fine, just no error
         except AttributeError as e:

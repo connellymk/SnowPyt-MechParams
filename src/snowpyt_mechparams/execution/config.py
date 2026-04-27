@@ -1,7 +1,6 @@
 """Configuration objects for execution engine."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -25,10 +24,6 @@ class ExecutionConfig:
         error in the output uncertainty. If False, only input measurement
         uncertainties propagate; the method's own standard error is suppressed.
         Default: True
-    weac_timeout_seconds : Optional[float]
-        Deprecated compatibility field. The parameter graph no longer exposes
-        WEAC criterion execution targets, so this value is currently unused.
-
     Examples
     --------
     Basic usage with defaults (silent execution):
@@ -58,4 +53,3 @@ class ExecutionConfig:
     """
     verbose: bool = False
     include_method_uncertainty: bool = True
-    weac_timeout_seconds: Optional[float] = None

@@ -28,8 +28,8 @@ Example
 """
 
 import logging
-import os
-from typing import Any, List
+from pathlib import Path
+from typing import Any
 
 from snowpylot import caaml_parser
 
@@ -58,7 +58,7 @@ def parse_caaml_file(filepath: str) -> Any:
     return caaml_parser(filepath)
 
 
-def parse_caaml_directory(directory: str, pattern: str = "*.xml") -> List[Any]:
+def parse_caaml_directory(directory: str, pattern: str = "*.xml") -> list[Any]:
     """
     Parse all CAAML XML files in a directory.
 
@@ -78,19 +78,18 @@ def parse_caaml_directory(directory: str, pattern: str = "*.xml") -> List[Any]:
     -----
     Files that fail to parse are logged as warnings and skipped.
     """
-    all_profiles = []
-    failed_files = []
+    all_profiles: list[Any] = []
+    failed_files: list[tuple[str, str]] = []
 
-    xml_files = [f for f in os.listdir(directory) if f.endswith(".xml")]
+    xml_files = sorted(Path(directory).glob(pattern))
 
-    for file in xml_files:
+    for file_path in xml_files:
         try:
-            file_path = os.path.join(directory, file)
-            profile = caaml_parser(file_path)
+            profile = caaml_parser(str(file_path))
             all_profiles.append(profile)
         except Exception as e:
-            failed_files.append((file, str(e)))
-            logger.warning(f"Failed to parse {file}: {e}")
+            failed_files.append((file_path.name, str(e)))
+            logger.warning(f"Failed to parse {file_path.name}: {e}")
 
     logger.info(
         f"Successfully parsed {len(all_profiles)} of {len(xml_files)} files "

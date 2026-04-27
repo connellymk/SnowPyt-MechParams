@@ -21,9 +21,9 @@ class TestResolveGrainFormForMethod:
     
     def test_valid_sub_grain_code(self):
         """Test sub-grain code that is valid for the method."""
-        # RGmx is in geldsetzer's sub_grain_class set
-        result = resolve_grain_form_for_method("RGmx", "geldsetzer")
-        assert result == "RGmx"
+        # PPgp is in geldsetzer's sub_grain_class set
+        result = resolve_grain_form_for_method("PPgp", "geldsetzer")
+        assert result == "PPgp"
     
     def test_valid_basic_grain_code(self):
         """Test basic grain code that is valid for the method."""
@@ -67,8 +67,6 @@ class TestResolveGrainFormForMethod:
         """Test geldsetzer-specific grain form codes."""
         # Valid sub-grain codes
         assert resolve_grain_form_for_method("PPgp", "geldsetzer") == "PPgp"
-        assert resolve_grain_form_for_method("RGmx", "geldsetzer") == "RGmx"
-        assert resolve_grain_form_for_method("FCmx", "geldsetzer") == "FCmx"
         
         # Valid basic codes
         assert resolve_grain_form_for_method("PP", "geldsetzer") == "PP"

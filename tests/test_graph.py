@@ -368,12 +368,6 @@ class TestRemovedStabilityCriteriaNodes:
             node = graph.get_node(param)
             assert node is None, f"Node {param!r} should have been removed"
 
-    def test_weak_layer_params_empty(self):
-        """WEAK_LAYER_PARAMS should be empty after removing the placeholder."""
-        from snowpyt_mechparams.graph.parameter_graph import WEAK_LAYER_PARAMS
-
-        assert WEAK_LAYER_PARAMS == set()
-
     def test_old_criteria_nodes_removed(self):
         """Roch and WEAC nodes should no longer be represented directly."""
         for param in [
@@ -386,11 +380,25 @@ class TestRemovedStabilityCriteriaNodes:
             node = graph.get_node(param)
             assert node is None, f"Node {param!r} should have been removed"
 
-    def test_stability_params_empty(self):
-        """STABILITY_PARAMS should be empty after removing criteria outputs."""
-        from snowpyt_mechparams.graph.parameter_graph import STABILITY_PARAMS
+    def test_classification_sets_cover_current_parameters(self):
+        """Classification exports should contain current layer and slab targets only."""
+        from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
 
-        assert STABILITY_PARAMS == set()
+        assert LAYER_PARAMS == {
+            "density",
+            "elastic_modulus",
+            "poissons_ratio",
+            "shear_modulus",
+        }
+        assert SLAB_PARAMS == {
+            "A11",
+            "B11",
+            "D11",
+            "A55",
+            "slab_weight",
+            "slab_weight_shear",
+            "slab_weight_shear_with_elasticity",
+        }
 
 
 class TestSlabWeightNodes:

@@ -65,16 +65,6 @@ class TestGeldsetzerNumerical:
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-4)
 
-    def test_RGmx_linear(self):
-        """RGmx: rho = 91 + 42*h.  h=2.0 => rho=175."""
-        result = calculate_density(
-            "geldsetzer",
-            hand_hardness_index=ufloat(2.0, 0.0),
-            grain_form="RGmx",
-            include_method_uncertainty=False,
-        )
-        assert result.nominal_value == pytest.approx(175.0, abs=0.01)
-
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_density(
             "geldsetzer",
@@ -233,26 +223,6 @@ class TestKimJamiesonTable2Numerical:
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(41.3 + 40.3 * 4.0, abs=0.01)
-
-    def test_RGmx_linear(self):
-        """RGmx uses the Kim & Jamieson mixed rounded-grain coefficients."""
-        result = calculate_density(
-            "kim_jamieson_table2",
-            hand_hardness_index=ufloat(4.33, 0.0),
-            grain_form="RGmx",
-            include_method_uncertainty=False,
-        )
-        assert result.nominal_value == pytest.approx(85.0 + 46.3 * 4.33, abs=0.01)
-
-    def test_FCmx_linear(self):
-        """FCmx uses the Kim & Jamieson mixed faceted-crystal coefficients."""
-        result = calculate_density(
-            "kim_jamieson_table2",
-            hand_hardness_index=ufloat(5.33, 0.0),
-            grain_form="FCmx",
-            include_method_uncertainty=False,
-        )
-        assert result.nominal_value == pytest.approx(68.8 + 58.6 * 5.33, abs=0.01)
 
 
 # ---------------------------------------------------------------------------

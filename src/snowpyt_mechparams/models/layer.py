@@ -33,7 +33,7 @@ class Layer:
     hand_hardness: str
         Layer hand hardness
     grain_form: str
-        Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available,
+        Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGxf') if available,
         otherwise basic class (e.g., 'FC', 'PP', 'RG')
     grain_size_avg: Union[float, uncertainties.UFloat]
         Average grain size in millimeters (mm). Can include uncertainty.
@@ -71,7 +71,7 @@ class Layer:
     thickness: Optional[UncertainValue] = None  # cm - Layer thickness
     density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
     hand_hardness: Optional[str] = None  # Layer hand hardness
-    grain_form: Optional[str] = None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGmx') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
+    grain_form: Optional[str] = None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGxf') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
     grain_size_avg: Optional[UncertainValue] = None  # mm - Average grain size
     layer_of_concern: bool = False  # Whether this layer is marked as layer of concern
 
@@ -134,7 +134,7 @@ class Layer:
 
         Returns the first two characters of grain_form, which extracts the basic
         grain class code:
-        - For sub-grain codes (e.g., 'FCxr', 'PPgp', 'RGmx'): returns basic form ('FC', 'PP', 'RG')
+        - For sub-grain codes (e.g., 'FCxr', 'PPgp', 'RGxf'): returns basic form ('FC', 'PP', 'RG')
         - For basic codes (e.g., 'FC', 'PP', 'RG'): returns same value (already basic)
 
         This property is useful when you need the basic grain class regardless of

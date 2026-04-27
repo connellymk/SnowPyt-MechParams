@@ -16,6 +16,13 @@ from snowpyt_mechparams.models import UncertainValue
 logger = logging.getLogger(__name__)
 
 
+def _nominal_value(value: UncertainValue) -> float:
+    """Return the nominal float for a plain or uncertain value."""
+    if isinstance(value, UFloat):
+        return float(value.nominal_value)
+    return float(value)
+
+
 def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
     """
     Calculate Poisson's ratio of a slab layer based on specified method and
@@ -200,7 +207,7 @@ def _calculate_poissons_ratio_srivastava(
     doi:10.3189/2016AoG71A562
     """
     # Extract nominal density value for validation
-    density_nominal = density.nominal_value
+    density_nominal = _nominal_value(density)
 
     # Check if density is within valid range (> 200 kg/m³)
     if density_nominal <= 200.0:

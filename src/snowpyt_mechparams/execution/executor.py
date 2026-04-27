@@ -184,7 +184,7 @@ class PathwayExecutor:
         warnings: List[str] = []
 
         # Determine execution order once
-        execution_order = self._determine_execution_order(methods_used)
+        execution_order = self.planner.layer_order(methods_used)
 
         # Build result layers using copy-on-write pattern
         # Only copy layers that need modification
@@ -463,29 +463,6 @@ class PathwayExecutor:
 
         return value, False, error
 
-    def _determine_execution_order(self, methods_used: Dict[str, str]) -> List[str]:
-        """
-        Determine the order in which parameters should be computed.
-
-        Based on the dependency graph:
-        - density has no dependencies (measured or calculated from hardness/grain)
-        - elastic_modulus depends on density
-        - poissons_ratio depends on density when using srivastava, not when
-          using kochle; density always comes first so either case is covered
-        - shear_modulus depends on elastic_modulus and poissons_ratio
-
-        Parameters
-        ----------
-        methods_used : Dict[str, str]
-            Mapping of parameter to method name
-
-        Returns
-        -------
-        List[str]
-            Ordered list of parameters to compute
-        """
-        return self.planner.layer_order(methods_used)
-
     def _set_layer_parameter(
         self, layer: Layer, parameter: str, method: str, value: UncertainValue
     ) -> None:
@@ -505,7 +482,14 @@ class PathwayExecutor:
         setattr(layer, spec.output_attr, value)
 
     def _clear_layer_pathway_outputs(self, layer: Layer) -> None:
-        """Clear computed layer outputs so each pathway starts from measurements."""
+        """Reset computed layer outputs before executing a pathway.
+
+        Although ExecutionContext copies each source layer via dataclasses.replace,
+        the copy inherits any pre-computed values (density_calculated, elastic_modulus,
+        etc.) that were already set on the source layer. Clearing them here ensures
+        each pathway computes all outputs from scratch and cannot silently reuse a
+        stale value left over from a prior run stored on the input slab.
+        """
         for spec in self.registry.all():
             if spec.target in self.planner.layer_targets:
                 setattr(layer, spec.output_attr, None)

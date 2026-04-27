@@ -37,8 +37,8 @@ def test_original_slab_not_modified():
         assert first_result.slab.layers[0].poissons_ratio is not None
 
 
-def test_copy_on_write_reuses_unchanged_layers():
-    """Verify that unchanged layers are reused (not copied)."""
+def test_executed_layers_are_independent_copies():
+    """Verify that result layers are independent copies of source layers."""
     # Create slab with multiple layers
     layer1 = Layer(
         depth_top=0, thickness=ufloat(20, 1), hand_hardness="4F", grain_form="RG"
@@ -58,8 +58,8 @@ def test_copy_on_write_reuses_unchanged_layers():
         first_result = list(successful.values())[0]
         result_slab = first_result.slab
 
-        # Result layers should be different objects (they were computed on)
-        # Note: They WILL be different because we computed values on them
+        # Result layers are independent copies — computation writes to them
+        # while the source layers remain unmodified
         assert result_slab.layers[0] is not slab.layers[0]
         assert result_slab.layers[1] is not slab.layers[1]
 

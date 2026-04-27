@@ -606,10 +606,11 @@ def build_slab_weight_coverage_comparison_figure(
     ]
 
     fig, axes = plt.subplots(
-        2,
         1,
-        figsize=(DOUBLE_COL, 5.8),
-        gridspec_kw={"height_ratios": [1.0, 2.15]},
+        2,
+        figsize=(DOUBLE_COL, 5.25),
+        sharey=True,
+        gridspec_kw={"width_ratios": [4, 10]},
     )
 
     def _method_color(method: str) -> str:
@@ -619,34 +620,36 @@ def build_slab_weight_coverage_comparison_figure(
             return "#8F8F8F"
         return DENSITY_COLORS.get(method, "#8F8F8F")
 
-    def _draw_lollipop(
+    def _draw_bar_chart(
         ax: plt.Axes,
         labels: Sequence[str],
         values: Sequence[float],
         colors: Sequence[str],
         *,
         value_offset: float,
-        label_cutoff: float | None = None,
     ) -> None:
-        y_pos = np.arange(len(labels))
-        ax.hlines(y_pos, 0, values, color=colors, linewidth=2.9, alpha=0.34)
-        ax.scatter(values, y_pos, s=32, color=colors, edgecolor=COLOR_BORDER, linewidth=0.6, zorder=3)
-        for y_idx, value in zip(y_pos, values, strict=True):
-            if label_cutoff is not None and value >= label_cutoff:
-                ax.text(value - value_offset, y_idx, f"{value:.1f}%", va="center", ha="right", fontsize=7.1)
-            else:
-                ax.text(
-                    value + value_offset,
-                    y_idx,
-                    f"{value:.1f}%",
-                    va="center",
-                    ha="left",
-                    fontsize=7.1,
-                    clip_on=False,
-                )
-        ax.set_yticks(y_pos)
-        ax.set_yticklabels(labels)
-        ax.invert_yaxis()
+        x_pos = np.arange(len(labels))
+        ax.bar(
+            x_pos,
+            values,
+            width=0.58,
+            color=colors,
+            edgecolor=COLOR_BORDER,
+            linewidth=0.7,
+            alpha=0.85,
+        )
+        for x_idx, value in zip(x_pos, values, strict=True):
+            ax.text(
+                x_idx,
+                value + value_offset,
+                f"{value:.1f}%",
+                va="bottom",
+                ha="center",
+                fontsize=6.8,
+                clip_on=False,
+            )
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels, rotation=45, ha="right", rotation_mode="anchor")
 
     for ax, title in zip(
         axes,
@@ -656,11 +659,14 @@ def build_slab_weight_coverage_comparison_figure(
         ],
         strict=True,
     ):
-        _setup_publication_axes(ax, x_grid=True, y_grid=False)
+        _setup_publication_axes(ax, x_grid=False, y_grid=True)
         ax.set_title(title, loc="left", fontsize=8, fontweight="bold", pad=3)
+        ax.set_ylim(0, 42)
+        ax.set_yticks([0, 10, 20, 30, 40])
+        ax.set_ylabel("Coverage of ECTP slabs (%)", fontsize=7.5)
 
     shear_widths = shear_plot["n_all_inputs"] / total_slabs * 100.0
-    _draw_lollipop(
+    _draw_bar_chart(
         axes[0],
         shear_plot["label"],
         shear_widths,
@@ -669,24 +675,19 @@ def build_slab_weight_coverage_comparison_figure(
     )
 
     elasticity_widths = elasticity_plot["n_all_inputs"] / total_slabs * 100.0
-    _draw_lollipop(
+    _draw_bar_chart(
         axes[1],
         elasticity_plot["label"],
         elasticity_widths,
         [_method_color(m) for m in elasticity_plot["density_method"]],
-        value_offset=0.08,
+        value_offset=0.35,
     )
 
-    axes[0].set_xlabel("Coverage of ECTP slabs (%)", fontsize=7.5)
-    axes[1].set_xlabel("Coverage of ECTP slabs (%)", fontsize=7.5)
-    axes[0].set_xlim(0, 42)
-    axes[0].set_xticks([0, 10, 20, 30, 40])
-    axes[1].set_xlim(0, max(5.35, float(elasticity_widths.max()) * 1.18))
-    axes[1].set_xticks([0, 1, 2, 3, 4, 5])
-    axes[0].tick_params(axis="y", labelsize=7.4)
-    axes[1].tick_params(axis="y", labelsize=6.9)
+    axes[0].set_xlabel("Pathway (successful slabs)", fontsize=7.5)
+    axes[1].set_xlabel("Pathway (successful slabs)", fontsize=7.5)
     for ax in axes:
-        ax.tick_params(axis="x", labelsize=7.0)
+        ax.tick_params(axis="x", labelsize=6.1)
+        ax.tick_params(axis="y", labelsize=7.0, labelleft=True)
 
     legend_handles = [
         mpatches.Patch(
@@ -700,14 +701,16 @@ def build_slab_weight_coverage_comparison_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.50, 0.01),
+        bbox_to_anchor=(0.50, 0.055),
         ncol=2,
         frameon=False,
         fontsize=7.0,
+        title="Density Method",
+        title_fontsize=7.2,
         columnspacing=1.2,
         handlelength=1.5,
     )
-    fig.subplots_adjust(left=0.375, right=0.955, top=0.945, bottom=0.14, hspace=0.56)
+    fig.subplots_adjust(left=0.09, right=0.985, top=0.92, bottom=0.48, wspace=0.24)
     return fig
 
 

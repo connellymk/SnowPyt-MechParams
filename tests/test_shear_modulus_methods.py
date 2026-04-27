@@ -3,7 +3,7 @@
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
+from snowpyt_mechparams.methods.layer.shear_modulus import calculate_shear_modulus
 
 
 class TestLameRelationshipShearModulusNumerical:

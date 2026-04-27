@@ -228,7 +228,7 @@ sequenceDiagram
     
     Note over Engine: For each pit in dataset
     
-    Engine->>Graph: find_parameterizations(graph, D11_node)
+    Engine->>Graph: find_parameterizations(default_graph, D11_node)
     Graph-->>Engine: List[Parameterization] (32 unique pathways)
     
     Note over Engine: D11 requires:<br/>4 density methods ×<br/>4 elastic_modulus methods ×<br/>2 poissons_ratio methods<br/>= 32 unique pathways<br/>(deduplication done by algorithm)
@@ -441,7 +441,7 @@ The `Layer.grain_form` field can store either basic codes (e.g., 'PP', 'RG') or 
 
 A11, B11, and D11 share the same computation structure — validate the slab, iterate layers, compute the plane-strain modulus `E_i / (1 - ν_i²)`, build z-coordinates relative to the centroid, and accumulate a weighted sum. They differ only in the power of z used in the weighting.
 
-This shared logic is extracted into `slab_parameters/_laminate_integration.py`:
+This shared logic is extracted into `methods/slab/_laminate_integration.py`:
 
 ```python
 def integrate_plane_strain_over_layers(
@@ -527,7 +527,7 @@ This enables:
 
 ### Parameter Classification
 
-Parameter nodes in the graph carry an optional `level` tag that classifies them as layer-level or slab-level. The graph-derived sets are the entry point for execution, and the executor still contains explicit maintenance points for layer ordering and slab-target prerequisite checks.
+Parameter classification is registry-derived. Each `MethodSpec` declares `level=ParameterLevel.LAYER` or `level=ParameterLevel.SLAB`; graph construction copies that level onto target nodes, and `ExecutionPlanner` uses the same registry metadata to derive execution order and slab-target prerequisites.
 
 **`Node.level`** (`graph/structures.py`):
 
@@ -537,34 +537,42 @@ Parameter nodes in the graph carry an optional `level` tag that classifies them 
 | `"slab"` | Whole-slab calculated parameter | `A11`, `B11`, `D11`, `A55`, `slab_weight`, `slab_weight_shear`, `slab_weight_shear_with_elasticity` |
 | `None` | Special/input node | `snow_pit`, `measured_*` (including `measured_layer_thickness`), `merge_*` |
 
-The level is set when registering a node in `parameter_graph.py`:
+The level is set when registering a method spec:
 
 ```python
-density        = build_graph.param("density",        level="layer")
-elastic_modulus = build_graph.param("elastic_modulus", level="layer")
-D11            = build_graph.param("D11",            level="slab")
+MethodSpec(
+    target="D11",
+    method_name="weissgraeber_rosendahl",
+    level=ParameterLevel.SLAB,
+    source_nodes=("measured_layer_thickness", "elastic_modulus", "poissons_ratio"),
+    required_inputs=("slab",),
+    function=lambda slab: calculate_D11("weissgraeber_rosendahl", slab=slab),
+    output_attr="D11",
+)
 ```
 
 **Derived classification sets** (`graph/parameter_graph.py`):
 
 ```python
-LAYER_PARAMS = graph.layer_params  # frozenset derived from nodes with level="layer"
-SLAB_PARAMS  = graph.slab_params   # frozenset derived from nodes with level="slab"
+LAYER_PARAMS = default_graph.layer_params
+SLAB_PARAMS = default_graph.slab_params
 ```
 
-These sets are imported into `executor.py` to decide whether to call `_execute_slab_calculations`. Adding a new parameter to the graph with the appropriate `level` automatically updates the derived sets, but the executor must also be taught how to run it:
+Adding a new method spec updates the default graph, dispatcher, and planner. Normal extensions should not require hand-editing executor branches:
 
-- Add the layer-level execution order in `_determine_execution_order()` if the new parameter is computed per layer.
-- Add the slab-level target branch and prerequisite checks in `_execute_slab_calculations()` if the new parameter is computed per slab.
-- Register the executable method in `MethodDispatcher._register_all_methods()`.
+- `ExecutionPlanner.layer_order()` topologically orders selected layer targets from `source_nodes`.
+- `ExecutionPlanner.slab_order()` computes slab prerequisites before the requested slab target.
+- `MethodDispatcher` reads the same spec to call the registered function and write the declared `output_attr`.
 
 **In `executor.py`** the gate is:
 
 ```python
-from snowpyt_mechparams.graph.parameter_graph import LAYER_PARAMS, SLAB_PARAMS
-
-if target_parameter in SLAB_PARAMS:
-    slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
+if target_parameter in self.planner.slab_targets:
+    slab_traces = self._execute_slab_calculations(
+        result_slab,
+        target_parameter,
+        methods_used,
+    )
     computation_trace.extend(slab_traces)
 ```
 
@@ -711,7 +719,7 @@ For a 10-layer slab with 32 D11 pathways:
 
 ```python
 from snowpyt_mechparams import ExecutionEngine, Slab, Layer
-from snowpyt_mechparams.graph import graph
+from snowpyt_mechparams.graph import default_graph
 
 # Create slab
 # Note: grain_form can contain either basic codes (e.g., 'PP', 'RG')
@@ -725,7 +733,7 @@ layer = Layer(
 slab = Slab(layers=[layer], angle=35)
 
 # Execute
-engine = ExecutionEngine(graph)
+engine = ExecutionEngine()
 results = engine.execute_all(slab, "D11")
 
 # Access results
@@ -741,7 +749,7 @@ for desc, pathway in results.get_successful_pathways().items():
 import glob
 
 from snowpyt_mechparams import ExecutionEngine
-from snowpyt_mechparams.graph import graph
+from snowpyt_mechparams.graph import default_graph
 from snowpyt_mechparams.models import Pit
 from snowpyt_mechparams.snowpilot import parse_caaml_file
 
@@ -749,7 +757,7 @@ from snowpyt_mechparams.snowpilot import parse_caaml_file
 pit_files = glob.glob("data/snowpits-*.xml")
 
 # Setup engine once
-engine = ExecutionEngine(graph)
+engine = ExecutionEngine()
 
 # Process all pits
 all_results = []
@@ -805,9 +813,9 @@ for desc, pathway in results.pathways.items():
 
 ```python
 from snowpyt_mechparams import ExecutionEngine
-from snowpyt_mechparams.graph import graph
+from snowpyt_mechparams.graph import default_graph
 
-engine = ExecutionEngine(graph)
+engine = ExecutionEngine()
 
 # Execute specific method combination
 result = engine.execute_single(
@@ -946,27 +954,36 @@ snowpyt_mechparams/
 │   ├── __init__.py           # Public exports
 │   ├── engine.py              # ExecutionEngine (high-level API)
 │   ├── executor.py            # PathwayExecutor (single pathway)
-│   ├── dispatcher.py          # MethodDispatcher (method registry)
+│   ├── planner.py             # Registry-derived execution order
+│   ├── context.py             # Copy-on-write execution context
+│   ├── dispatcher.py          # MethodDispatcher (registry-backed)
 │   ├── cache.py               # ComputationCache, CacheStats
 │   ├── config.py              # ExecutionConfig
 │   └── results.py             # Result classes (ComputationTrace, PathwayResult, ExecutionResults)
-├── layer_parameters/
+├── methods/
+│   ├── specs.py               # MethodSpec, ParameterLevel
+│   ├── registry.py            # MethodRegistry and default_registry()
+├── methods/layer/
 │   ├── __init__.py            # Public exports (calculate_density, calculate_elastic_modulus, etc.)
 │   ├── density.py             # 4 density calculation methods
 │   ├── elastic_modulus.py     # 4 elastic modulus methods
 │   ├── poissons_ratio.py      # 2 poisson's ratio methods
 │   └── shear_modulus.py       # Shear modulus methods
-├── slab_parameters/
+├── methods/slab/
 │   ├── _laminate_integration.py        # Shared helper: integrate_plane_strain_over_layers()
 │   ├── extensional_stiffness.py        # A11 calculation (extensional stiffness)
 │   ├── bending_extension_coupling.py   # B11 calculation (bending-extension coupling)
 │   ├── bending_stiffness.py            # D11 calculation (bending stiffness)
 │   └── shear_stiffness.py              # A55 calculation (shear stiffness)
 ├── graph/
-│   ├── __init__.py            # Exports 'graph' instance
+│   ├── __init__.py            # Exports default_graph
+│   ├── build.py               # Registry-to-graph construction
 │   ├── structures.py          # Graph data structures (Node with level, Graph with layer_params/slab_params)
-│   └── parameter_graph.py     # Complete parameter dependency graph; exports LAYER_PARAMS, SLAB_PARAMS
-├── algorithm.py               # Pathway discovery algorithm
+│   └── parameter_graph.py     # Default graph exports; LAYER_PARAMS, SLAB_PARAMS
+├── pathway/
+│   ├── types.py               # Pathway dataclasses
+│   ├── search.py              # find_parameterizations()
+│   └── fingerprint.py         # Pathway deduplication
 ├── models/
 │   ├── layer.py               # Layer dataclass
 │   ├── slab.py                # Slab dataclass
@@ -1079,6 +1096,6 @@ The architecture balances simplicity, performance, and maintainability while pro
 
 For implementation details:
 - **Graph structure**: `src/snowpyt_mechparams/graph/README.md`
-- **Algorithm documentation**: `src/snowpyt_mechparams/algorithm.py`
-- **Method implementations**: `src/snowpyt_mechparams/layer_parameters/` and `src/snowpyt_mechparams/slab_parameters/`
+- **Algorithm documentation**: `src/snowpyt_mechparams/pathway/search.py`
+- **Method implementations**: `src/snowpyt_mechparams/methods/layer/` and `src/snowpyt_mechparams/methods/slab/`
 - **Archived example notebooks**: `examples/archive/execution_engine_demo.ipynb`, `examples/archive/compare_D11_across_pathways.ipynb`

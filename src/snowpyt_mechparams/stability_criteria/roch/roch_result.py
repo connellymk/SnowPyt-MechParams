@@ -31,6 +31,7 @@ class RochResult:
         Additional skier shear stress τ_sk [Pa = N/m²]. ``None`` for the
         natural variant.
     """
+
     stability_index: UncertainValue
     shear_stress: UncertainValue
     tau_c: UncertainValue

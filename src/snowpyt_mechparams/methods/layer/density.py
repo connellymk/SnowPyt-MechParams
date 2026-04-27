@@ -24,7 +24,9 @@ def _to_ufloat(val: UncertainValue) -> UFloat:
     return cast(UFloat, val)
 
 
-def calculate_density(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
+def calculate_density(
+    method: str, include_method_uncertainty: bool = True, **kwargs: Any
+) -> UncertainValue:
     """
     Calculate density of a snow layer based on specified method and input parameters.
 
@@ -63,20 +65,30 @@ def calculate_density(method: str, include_method_uncertainty: bool = True, **kw
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'geldsetzer':
-        return _calculate_density_geldsetzer(include_method_uncertainty=include_method_uncertainty, **kwargs)
-    elif method.lower() == 'kim_jamieson_table2':
-        return _calculate_density_kim_jamieson_table2(include_method_uncertainty=include_method_uncertainty, **kwargs)
-    elif method.lower() == 'kim_jamieson_table5':
-        return _calculate_density_kim_jamieson_table5(include_method_uncertainty=include_method_uncertainty, **kwargs)
+    if method.lower() == "geldsetzer":
+        return _calculate_density_geldsetzer(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
+    elif method.lower() == "kim_jamieson_table2":
+        return _calculate_density_kim_jamieson_table2(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
+    elif method.lower() == "kim_jamieson_table5":
+        return _calculate_density_kim_jamieson_table5(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
     else:
-        available_methods = ['geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table5']
+        available_methods = ["geldsetzer", "kim_jamieson_table2", "kim_jamieson_table5"]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
 
-def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True) -> UncertainValue:
+def _calculate_density_geldsetzer(
+    hand_hardness_index: UncertainValue,
+    grain_form: str,
+    include_method_uncertainty: bool = True,
+) -> UncertainValue:
     """
     Calculate density using Geldsetzer et al. empirical formulas.
 
@@ -130,9 +142,11 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     Workshop, Big Sky, Montana, USA, 1-6 October 2000, 121-127.
     """
     # Validate grain form
-    valid_grain_forms = ['PP', 'PPgp', 'DF', 'RG', 'FC', 'DH']
+    valid_grain_forms = ["PP", "PPgp", "DF", "RG", "FC", "DH"]
     if grain_form not in valid_grain_forms:
-        logger.debug("_calculate_density_geldsetzer: unsupported grain_form=%r", grain_form)
+        logger.debug(
+            "_calculate_density_geldsetzer: unsupported grain_form=%r", grain_form
+        )
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
@@ -143,12 +157,12 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     # Supported hand-hardness ranges are based on the non-blank calculated
     # density values in Geldsetzer and Jamieson (2000) Table 4.
     hardness_ranges = {
-        'PP': (0.67, 4.00),    # F- to P
-        'PPgp': (0.67, 4.00),  # F- to P
-        'DF': (0.67, 4.33),    # F- to P+
-        'RG': (1.00, 5.33),    # F to K+
-        'FC': (0.67, 4.67),    # F- to K-
-        'DH': (1.00, 5.00),    # F to K
+        "PP": (0.67, 4.00),  # F- to P
+        "PPgp": (0.67, 4.00),  # F- to P
+        "DF": (0.67, 4.33),  # F- to P+
+        "RG": (1.00, 5.33),  # F to K+
+        "FC": (0.67, 4.67),  # F- to K-
+        "DH": (1.00, 5.00),  # F to K
     }
     min_hhi, max_hhi = hardness_ranges[grain_form]
     if not min_hhi <= h.nominal_value <= max_hhi:
@@ -159,41 +173,43 @@ def _calculate_density_geldsetzer(hand_hardness_index: UncertainValue, grain_for
     # Parameters for rho = A + B*h (linear) or rho = A + B*h^3.15 (non-linear for RG).
     # SE for RG is taken from the linear regression (see Limitations in docstring).
     regression_parameters = {
-        'PP': {'A': 45.0, 'B': 36.0, 'SE': 27.0, 'formula': 'linear'},
-        'PPgp': {'A': 83.0, 'B': 37.0, 'SE': 42.0, 'formula': 'linear'},
-        'DF': {'A': 65.0, 'B': 36.0, 'SE': 30.0, 'formula': 'linear'},
-        'RG': {'A': 154.0, 'B': 1.51, 'SE': 46.0, 'formula': 'nonlinear'},
-        'FC': {'A': 112.0, 'B': 46.0, 'SE': 43.0, 'formula': 'linear'},
-        'DH': {'A': 185.0, 'B': 25.0, 'SE': 41.0, 'formula': 'linear'}
+        "PP": {"A": 45.0, "B": 36.0, "SE": 27.0, "formula": "linear"},
+        "PPgp": {"A": 83.0, "B": 37.0, "SE": 42.0, "formula": "linear"},
+        "DF": {"A": 65.0, "B": 36.0, "SE": 30.0, "formula": "linear"},
+        "RG": {"A": 154.0, "B": 1.51, "SE": 46.0, "formula": "nonlinear"},
+        "FC": {"A": 112.0, "B": 46.0, "SE": 43.0, "formula": "linear"},
+        "DH": {"A": 185.0, "B": 25.0, "SE": 41.0, "formula": "linear"},
     }
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = cast(float, params['A'])
-    b = cast(float, params['B'])
-    se = cast(float, params['SE'])
+    a = cast(float, params["A"])
+    b = cast(float, params["B"])
+    se = cast(float, params["SE"])
 
     # Calculate density using appropriate formula
-    if params['formula'] == 'linear':
+    if params["formula"] == "linear":
         # Linear regression: rho = A + B*h (Equation 4)
         rho = a + b * h
-    elif params['formula'] == 'nonlinear':
+    elif params["formula"] == "nonlinear":
         # Non-linear regression for rounded grains: rho = A + B*h^3.15 (Equation 5)
         x = 3.15
-        rho = a + b * (h ** x)
+        rho = a + b * (h**x)
     else:
         raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
     # Combine propagated input uncertainty with method SE in quadrature
     if include_method_uncertainty:
-        total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+        total_std = sqrt(rho.std_dev**2 + se**2)
     else:
         total_std = rho.std_dev
     return ufloat(rho.nominal_value, total_std)
 
 
 def _calculate_density_kim_jamieson_table2(
-    hand_hardness_index: UncertainValue, grain_form: str, include_method_uncertainty: bool = True
+    hand_hardness_index: UncertainValue,
+    grain_form: str,
+    include_method_uncertainty: bool = True,
 ) -> UncertainValue:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -246,30 +262,42 @@ def _calculate_density_kim_jamieson_table2(
     """
     # Validate grain form
     valid_grain_forms = [
-        'PP', 'PPgp', 'DF', 'RG', 'RGxf', 'FC', 'FCxr',
-        'DH', 'MFcr',
+        "PP",
+        "PPgp",
+        "DF",
+        "RG",
+        "RGxf",
+        "FC",
+        "FCxr",
+        "DH",
+        "MFcr",
     ]
     if grain_form not in valid_grain_forms:
-        logger.debug("_calculate_density_kim_jamieson_table2: unsupported grain_form=%r", grain_form)
+        logger.debug(
+            "_calculate_density_kim_jamieson_table2: unsupported grain_form=%r",
+            grain_form,
+        )
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
-        logger.debug("_calculate_density_kim_jamieson_table2: hand_hardness_index is None")
+        logger.debug(
+            "_calculate_density_kim_jamieson_table2: hand_hardness_index is None"
+        )
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)
 
     # Supported hand-hardness ranges are based on the non-blank calculated
     # density values in Kim and Jamieson (2014) Table 3.
     hardness_ranges = {
-        'PP': (0.67, 4.00),    # F- to P
-        'PPgp': (0.67, 4.00),  # F- to P
-        'DF': (0.67, 4.67),    # F- to K-
-        'RG': (0.67, 5.33),    # F- to K+
-        'RGxf': (0.67, 4.33),  # F- to P+
-        'FC': (0.67, 5.00),    # F- to K
-        'FCxr': (0.67, 5.33),  # F- to K+
-        'DH': (1.00, 5.00),    # F to K
-        'MFcr': (2.00, 5.33),  # 4F to K+
+        "PP": (0.67, 4.00),  # F- to P
+        "PPgp": (0.67, 4.00),  # F- to P
+        "DF": (0.67, 4.67),  # F- to K-
+        "RG": (0.67, 5.33),  # F- to K+
+        "RGxf": (0.67, 4.33),  # F- to P+
+        "FC": (0.67, 5.00),  # F- to K
+        "FCxr": (0.67, 5.33),  # F- to K+
+        "DH": (1.00, 5.00),  # F to K
+        "MFcr": (2.00, 5.33),  # 4F to K+
     }
     min_hhi, max_hhi = hardness_ranges[grain_form]
     if not min_hhi <= h.nominal_value <= max_hhi:
@@ -289,38 +317,38 @@ def _calculate_density_kim_jamieson_table2(
     # library by encoding B as a ufloat, rather than being added in
     # quadrature as a density SE. See Kim & Jamieson (2014) Table 2.
     regression_parameters = {
-        'PP': {'A': 41.3, 'B': 40.3, 'SE': 27.0, 'formula': 'linear'},
-        'PPgp': {'A': 61.8, 'B': 46.4, 'SE': 43.0, 'formula': 'linear'},
-        'DF': {'A': 62.5, 'B': 37.4, 'SE': 31.0, 'formula': 'linear'},
-        'RGxf': {'A': 85.0, 'B': 46.3, 'SE': 40.0, 'formula': 'linear'},
-        'FC': {'A': 103, 'B': 50.6, 'SE': 47.0, 'formula': 'linear'},
-        'FCxr': {'A': 68.8, 'B': 58.6, 'SE': 46.0, 'formula': 'linear'},
-        'DH': {'A': 214.0, 'B': 19.0, 'SE': 48.0, 'formula': 'linear'},
-        'MFcr': {'A': 235, 'B': 15.1, 'SE': 58.0, 'formula': 'linear'},
-        'RG': {'A': 91.8, 'B': 0.270, 'B_SE': 0.2, 'formula': 'nonlinear'}
+        "PP": {"A": 41.3, "B": 40.3, "SE": 27.0, "formula": "linear"},
+        "PPgp": {"A": 61.8, "B": 46.4, "SE": 43.0, "formula": "linear"},
+        "DF": {"A": 62.5, "B": 37.4, "SE": 31.0, "formula": "linear"},
+        "RGxf": {"A": 85.0, "B": 46.3, "SE": 40.0, "formula": "linear"},
+        "FC": {"A": 103, "B": 50.6, "SE": 47.0, "formula": "linear"},
+        "FCxr": {"A": 68.8, "B": 58.6, "SE": 46.0, "formula": "linear"},
+        "DH": {"A": 214.0, "B": 19.0, "SE": 48.0, "formula": "linear"},
+        "MFcr": {"A": 235, "B": 15.1, "SE": 58.0, "formula": "linear"},
+        "RG": {"A": 91.8, "B": 0.270, "B_SE": 0.2, "formula": "nonlinear"},
     }
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = cast(float, params['A'])
+    a = cast(float, params["A"])
 
     # Calculate density using appropriate formula
-    if params['formula'] == 'linear':
-        b = cast(float, params['B'])
-        se = cast(float, params['SE'])
+    if params["formula"] == "linear":
+        b = cast(float, params["B"])
+        se = cast(float, params["SE"])
         # Linear regression: rho = A + B*h (Equation 1)
         rho = a + b * h
         # Combine propagated input uncertainty with residual density SE in quadrature
         if include_method_uncertainty:
-            total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+            total_std = sqrt(rho.std_dev**2 + se**2)
         else:
             total_std = rho.std_dev
-    elif params['formula'] == 'nonlinear':
+    elif params["formula"] == "nonlinear":
         # Non-linear regression for rounded grains: rho = A*e^(B*h) (Equation 2)
         # B_SE is the standard error of coefficient B, propagated through the
         # exponential automatically by encoding B as a ufloat.
-        b_se = params['B_SE'] if include_method_uncertainty else 0.0
-        b = ufloat(params['B'], b_se)
+        b_se = params["B_SE"] if include_method_uncertainty else 0.0
+        b = ufloat(params["B"], b_se)
         rho = a * umath.exp(b * h)
         total_std = rho.std_dev
     else:
@@ -330,7 +358,10 @@ def _calculate_density_kim_jamieson_table2(
 
 
 def _calculate_density_kim_jamieson_table5(
-    hand_hardness_index: UncertainValue, grain_form: str, grain_size: UncertainValue, include_method_uncertainty: bool = True
+    hand_hardness_index: UncertainValue,
+    grain_form: str,
+    grain_size: UncertainValue,
+    include_method_uncertainty: bool = True,
 ) -> UncertainValue:
     """
     Calculate density using Kim & Jamieson (2014) empirical formulas based
@@ -378,25 +409,30 @@ def _calculate_density_kim_jamieson_table5(
     2014 Proceedings, Banff, Canada, 2014 pp.540-547.
     """
     # Validate grain form
-    valid_grain_forms = ['FC', 'FCxr', 'PP', 'PPgp', 'DF', 'MF']
+    valid_grain_forms = ["FC", "FCxr", "PP", "PPgp", "DF", "MF"]
     if grain_form not in valid_grain_forms:
-        logger.debug("_calculate_density_kim_jamieson_table5: unsupported grain_form=%r", grain_form)
+        logger.debug(
+            "_calculate_density_kim_jamieson_table5: unsupported grain_form=%r",
+            grain_form,
+        )
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
-        logger.debug("_calculate_density_kim_jamieson_table5: hand_hardness_index is None")
+        logger.debug(
+            "_calculate_density_kim_jamieson_table5: hand_hardness_index is None"
+        )
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)
 
     # Supported hand-hardness ranges are the 10th-90th percentile ranges
     # reported in Kim and Jamieson (2014) Table 6 for Equation 5.
     hardness_ranges = {
-        'FC': (1.67, 4.00),    # 4F- to P
-        'FCxr': (2.33, 4.33),  # 4F+ to P+
-        'PP': (0.67, 2.00),    # F- to 4F
-        'PPgp': (1.00, 3.33),  # F to 1F+
-        'DF': (1.00, 3.00),    # F to 1F
-        'MF': (2.33, 4.33),    # 4F+ to P+
+        "FC": (1.67, 4.00),  # 4F- to P
+        "FCxr": (2.33, 4.33),  # 4F+ to P+
+        "PP": (0.67, 2.00),  # F- to 4F
+        "PPgp": (1.00, 3.33),  # F to 1F+
+        "DF": (1.00, 3.00),  # F to 1F
+        "MF": (2.33, 4.33),  # 4F+ to P+
     }
     min_hhi, max_hhi = hardness_ranges[grain_form]
     if not min_hhi <= h.nominal_value <= max_hhi:
@@ -408,27 +444,27 @@ def _calculate_density_kim_jamieson_table5(
     # and grain size by different groups of grain types
     # From Kim and Jamieson (2014)
     regression_parameters = {
-        'FC': {'A': 51.9, 'B': 19.7, 'C': 82.8, 'SE': 46.0},
-        'FCxr': {'A': 60.4, 'B': 27.7, 'C': 36.7, 'SE': 45.0},
-        'PP': {'A': 40.0, 'B': -7.33, 'C': 52.8, 'SE': 25.0},
-        'PPgp': {'A': 38.8, 'B': 18.8, 'C': 35.7, 'SE': 33.0},
-        'DF': {'A': 37.9, 'B': -8.87, 'C': 71.4, 'SE': 31.0},
-        'MF': {'A': 34.9, 'B': 11.2, 'C': 124.5, 'SE': 63.0}
+        "FC": {"A": 51.9, "B": 19.7, "C": 82.8, "SE": 46.0},
+        "FCxr": {"A": 60.4, "B": 27.7, "C": 36.7, "SE": 45.0},
+        "PP": {"A": 40.0, "B": -7.33, "C": 52.8, "SE": 25.0},
+        "PPgp": {"A": 38.8, "B": 18.8, "C": 35.7, "SE": 33.0},
+        "DF": {"A": 37.9, "B": -8.87, "C": 71.4, "SE": 31.0},
+        "MF": {"A": 34.9, "B": 11.2, "C": 124.5, "SE": 63.0},
     }
 
     # Get regression parameters for the grain form
     params = regression_parameters[grain_form]
-    a = params['A']
-    b = params['B']
-    c = params['C']
-    se = params['SE']
+    a = params["A"]
+    b = params["B"]
+    c = params["C"]
+    se = params["SE"]
 
     # Calculate density using equation 5
     rho = a * h + b * gs + c
 
     # Combine propagated input uncertainty with method SE in quadrature
     if include_method_uncertainty:
-        total_std = sqrt(rho.std_dev ** 2 + se ** 2)
+        total_std = sqrt(rho.std_dev**2 + se**2)
     else:
         total_std = rho.std_dev
     return ufloat(rho.nominal_value, total_std)

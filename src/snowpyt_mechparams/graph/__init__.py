@@ -9,17 +9,18 @@ The graph represents:
 - **Merge nodes**: Combinations of inputs required for methods
 - **Edges**: Calculation methods or data flow connections
 
-The graph is used by the execution engine to find all possible calculation
-pathways from measured inputs to target parameters.
+The default graph is generated from the method registry so method metadata,
+dependencies, dispatcher registrations, and graph edges share one source of
+truth.
 
 Quick Start
 -----------
->>> from snowpyt_mechparams.graph import graph
->>> from snowpyt_mechparams.algorithm import find_parameterizations
+>>> from snowpyt_mechparams.graph import default_graph
+>>> from snowpyt_mechparams.pathway import find_parameterizations
 >>>
 >>> # Find all ways to calculate D11
->>> D11_node = graph.get_node("D11")
->>> parameterizations = find_parameterizations(graph, D11_node)
+>>> D11_node = default_graph.get_node("D11")
+>>> parameterizations = find_parameterizations(default_graph, D11_node)
 >>> print(f"Found {len(parameterizations)} pathways to calculate D11")
 
 Key Concepts
@@ -34,20 +35,21 @@ layer-level calculations before attempting slab-level calculations.
 
 **Merge Nodes**: Special nodes that combine multiple inputs:
 - merge_elastic_modulus_poissons_ratio: Combines layer-level E and ν for G
-- merge_E_nu: Combines E and ν from all layers (for plane-strain modulus)
-- merge_hi_G: Combines thickness with shear modulus (for A55)
-- merge_hi_E_nu: Combines thickness with E/ν (for A11, B11, D11)
-- merge_slab_weight_inputs: Combines density with thickness for slab weight
+- merge_layer_thickness_elastic_modulus_poissons_ratio: Combines thickness, E, and ν
+- merge_layer_thickness_shear_modulus: Combines thickness with shear modulus
+- merge_density_layer_thickness: Combines density with thickness for slab weight
 - merge_slab_weight_slope_angle: Combines slab weight with slope angle
-- merge_slab_weight_shear_elasticity: Combines slope-parallel slab weight with E and ν
+- merge_slab_weight_shear_elastic_modulus_poissons_ratio: Combines slope-parallel slab weight with E and ν
 
 See Also
 --------
-graph.parameter_graph : The complete graph definition
+graph.build : Registry-to-graph construction
+graph.parameter_graph : Default graph exports
 graph.structures : Graph data structures (Node, Edge, Graph)
-algorithm : Functions to find calculation pathways
+pathway : Functions to find calculation pathways
 """
 
+from snowpyt_mechparams.graph.build import build_graph
 from snowpyt_mechparams.graph.structures import (
     Node,
     Edge,
@@ -57,7 +59,9 @@ from snowpyt_mechparams.graph.structures import (
 )
 
 from snowpyt_mechparams.graph.parameter_graph import (
+    default_graph,
     graph,
+    registry,
     # Root
     snow_pit,
     # Measured parameters
@@ -89,13 +93,16 @@ from snowpyt_mechparams.graph.parameter_graph import (
 
 __all__ = [
     # Classes
+    "build_graph",
     "Node",
     "Edge",
     "Graph",
     "GraphBuilder",
     "NodeType",
     # Graph instance
+    "default_graph",
     "graph",
+    "registry",
     # Root
     "snow_pit",
     # Measured parameters

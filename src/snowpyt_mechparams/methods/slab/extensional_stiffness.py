@@ -5,7 +5,9 @@ from typing import Any
 from uncertainties.core import AffineScalarFunc
 
 from snowpyt_mechparams.models import Slab, UncertainValue
-from snowpyt_mechparams.slab_parameters._laminate_integration import integrate_plane_strain_over_layers
+from snowpyt_mechparams.methods.slab._laminate_integration import (
+    integrate_plane_strain_over_layers,
+)
 
 
 def calculate_A11(method: str, **kwargs: Any) -> UncertainValue:
@@ -38,10 +40,10 @@ def calculate_A11(method: str, **kwargs: Any) -> UncertainValue:
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'weissgraeber_rosendahl':
+    if method.lower() == "weissgraeber_rosendahl":
         return _calculate_A11_weissgraeber_rosendahl(**kwargs)
     else:
-        available_methods = ['weissgraeber_rosendahl']
+        available_methods = ["weissgraeber_rosendahl"]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -131,6 +133,7 @@ def _calculate_A11_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     Theory and Analysis (2nd ed.). CRC Press.
     https://doi.org/10.1201/b12409
     """
+
     def _accumulate_A11(
         plane_strain_modulus: AffineScalarFunc,
         z_top: AffineScalarFunc,

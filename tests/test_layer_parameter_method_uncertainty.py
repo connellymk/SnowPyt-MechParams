@@ -20,11 +20,10 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.layer_parameters.density import calculate_density
-from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
-from snowpyt_mechparams.layer_parameters.poissons_ratio import calculate_poissons_ratio
-from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_modulus
-
+from snowpyt_mechparams.methods.layer.density import calculate_density
+from snowpyt_mechparams.methods.layer.elastic_modulus import calculate_elastic_modulus
+from snowpyt_mechparams.methods.layer.poissons_ratio import calculate_poissons_ratio
+from snowpyt_mechparams.methods.layer.shear_modulus import calculate_shear_modulus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -32,9 +31,9 @@ from snowpyt_mechparams.layer_parameters.shear_modulus import calculate_shear_mo
 
 # Hand hardness index values (from HARDNESS_MAPPING in constants.py)
 # "F" -> 1.0, "1F" -> 3.0, with standard uncertainty ±0.67
-HHI_F = ufloat(1.0, 0.67)    # Fist
-HHI_4F = ufloat(2.0, 0.67)   # Four Fingers
-HHI_1F = ufloat(3.0, 0.67)   # One Finger
+HHI_F = ufloat(1.0, 0.67)  # Fist
+HHI_4F = ufloat(2.0, 0.67)  # Four Fingers
+HHI_1F = ufloat(3.0, 0.67)  # One Finger
 # Exact (zero uncertainty) variants for isolating method uncertainty
 HHI_F_EXACT = ufloat(1.0, 0.0)
 HHI_4F_EXACT = ufloat(2.0, 0.0)
@@ -59,6 +58,7 @@ def _std(x):
 # Density
 # ---------------------------------------------------------------------------
 
+
 class TestDensityMethodUncertainty:
     """Tests for include_method_uncertainty in calculate_density."""
 
@@ -66,7 +66,9 @@ class TestDensityMethodUncertainty:
 
     def test_geldsetzer_default_includes_method_uncertainty(self):
         """Default call should include the regression SE as uncertainty."""
-        result = calculate_density("geldsetzer", hand_hardness_index=HHI_F, grain_form="RG")
+        result = calculate_density(
+            "geldsetzer", hand_hardness_index=HHI_F, grain_form="RG"
+        )
         assert _std(result) > 0
 
     def test_geldsetzer_false_gives_zero_method_uncertainty(self):
@@ -92,7 +94,9 @@ class TestDensityMethodUncertainty:
 
     def test_geldsetzer_true_explicit_matches_default(self):
         """Passing True explicitly should give the same result as the default."""
-        default = calculate_density("geldsetzer", hand_hardness_index=HHI_1F, grain_form="FC")
+        default = calculate_density(
+            "geldsetzer", hand_hardness_index=HHI_1F, grain_form="FC"
+        )
         explicit = calculate_density(
             "geldsetzer",
             include_method_uncertainty=True,
@@ -172,6 +176,7 @@ class TestDensityMethodUncertainty:
 # ---------------------------------------------------------------------------
 # Elastic modulus
 # ---------------------------------------------------------------------------
+
 
 class TestElasticModulusMethodUncertainty:
     """Tests for include_method_uncertainty in calculate_elastic_modulus."""
@@ -263,9 +268,7 @@ class TestElasticModulusMethodUncertainty:
 
     def test_wautier_nominal_value_unchanged(self):
         """wautier A/n have zero uncertainty; nominal must match."""
-        on = calculate_elastic_modulus(
-            "wautier", density=self._rho, grain_form="RG"
-        )
+        on = calculate_elastic_modulus("wautier", density=self._rho, grain_form="RG")
         off = calculate_elastic_modulus(
             "wautier",
             include_method_uncertainty=False,
@@ -296,9 +299,7 @@ class TestElasticModulusMethodUncertainty:
 
     def test_schottner_false_reduces_uncertainty(self):
         """Removing A/n coefficient uncertainties should reduce total std_dev."""
-        on = calculate_elastic_modulus(
-            "schottner", density=self._rho, grain_form="RG"
-        )
+        on = calculate_elastic_modulus("schottner", density=self._rho, grain_form="RG")
         off = calculate_elastic_modulus(
             "schottner",
             include_method_uncertainty=False,
@@ -308,9 +309,7 @@ class TestElasticModulusMethodUncertainty:
         assert _std(on) > _std(off)
 
     def test_schottner_nominal_value_unchanged(self):
-        on = calculate_elastic_modulus(
-            "schottner", density=self._rho, grain_form="RG"
-        )
+        on = calculate_elastic_modulus("schottner", density=self._rho, grain_form="RG")
         off = calculate_elastic_modulus(
             "schottner",
             include_method_uncertainty=False,
@@ -355,6 +354,7 @@ class TestElasticModulusMethodUncertainty:
 # ---------------------------------------------------------------------------
 # Poisson's ratio
 # ---------------------------------------------------------------------------
+
 
 class TestPoissonsRatioMethodUncertainty:
     """Tests for include_method_uncertainty in calculate_poissons_ratio."""
@@ -407,9 +407,7 @@ class TestPoissonsRatioMethodUncertainty:
 
     def test_srivastava_true_has_nonzero_uncertainty(self):
         rho = ufloat(300.0, 10.0)
-        result = calculate_poissons_ratio(
-            "srivastava", density=rho, grain_form="RG"
-        )
+        result = calculate_poissons_ratio("srivastava", density=rho, grain_form="RG")
         assert _std(result) > 0
 
     def test_srivastava_nominal_value_unchanged(self):
@@ -451,6 +449,7 @@ class TestPoissonsRatioMethodUncertainty:
 # ---------------------------------------------------------------------------
 # Shear modulus
 # ---------------------------------------------------------------------------
+
 
 class TestShearModulusMethodUncertainty:
     """Tests for include_method_uncertainty in calculate_shear_modulus."""

@@ -71,6 +71,7 @@ class Slab:
         density, thickness, slope angle, elastic modulus, and Poisson's ratio
         are all available on the pathway.
     """
+
     # Slab Structure
     layers: List[Layer]  # Ordered list of snow layers from top (surface) to bottom
     angle: UncertainValue  # Slope angle of the slab in degrees
@@ -80,22 +81,34 @@ class Slab:
     pit_id: Optional[str] = None  # Source pit identifier
     slab_id: Optional[str] = None  # Unique slab identifier
     weak_layer_source: Optional[str] = None  # Method used to identify weak layer
-    test_result_index: Optional[int] = None  # Index of specific test result used (0-indexed)
-    test_result_properties: Optional[dict] = None  # Properties of the specific test result
+    test_result_index: Optional[int] = (
+        None  # Index of specific test result used (0-indexed)
+    )
+    test_result_properties: Optional[dict] = (
+        None  # Properties of the specific test result
+    )
     n_test_results_in_pit: Optional[int] = None  # Total test results available in pit
 
     # Calculated Parameters - From Method Implementations
     A11: Optional[UncertainValue] = None  # N/mm - Extensional stiffness
-    A55: Optional[UncertainValue] = None  # N/mm - Shear stiffness (with shear correction factor kappa)
+    A55: Optional[UncertainValue] = (
+        None  # N/mm - Shear stiffness (with shear correction factor kappa)
+    )
     B11: Optional[UncertainValue] = None  # N - Bending-extension coupling stiffness
     D11: Optional[UncertainValue] = None  # N*mm - Bending stiffness
     slab_weight: Optional[UncertainValue] = None  # N/m^2 - Slab weight per unit area
-    slab_weight_shear: Optional[UncertainValue] = None  # N/m^2 - Slope-parallel slab weight
-    slab_weight_shear_with_elasticity: Optional[UncertainValue] = None  # N/m^2 - W_s with E/nu available
+    slab_weight_shear: Optional[UncertainValue] = (
+        None  # N/m^2 - Slope-parallel slab weight
+    )
+    slab_weight_shear_with_elasticity: Optional[UncertainValue] = (
+        None  # N/m^2 - W_s with E/nu available
+    )
 
     # Stability Criterion Results (populated by execution engine)
-    weac_result: Optional["WeacSkierResult"] = None        # Full result from WEAC skier criterion
-    roch_result: Optional["RochResult"] = None             # Roch natural criterion (S_r = τ_c / τ)
+    weac_result: Optional["WeacSkierResult"] = (
+        None  # Full result from WEAC skier criterion
+    )
+    roch_result: Optional["RochResult"] = None  # Roch natural criterion (S_r = τ_c / τ)
 
     def __post_init__(self) -> None:
         """Validate that the slab contains at least one layer."""
@@ -121,5 +134,7 @@ class Slab:
         Optional[UncertainValue]
             Total thickness in centimeters (cm), with uncertainty if applicable, or None
         """
-        thicknesses = [layer.thickness for layer in self.layers if layer.thickness is not None]
+        thicknesses = [
+            layer.thickness for layer in self.layers if layer.thickness is not None
+        ]
         return sum(thicknesses) if thicknesses else None

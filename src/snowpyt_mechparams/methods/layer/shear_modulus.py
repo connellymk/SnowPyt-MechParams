@@ -5,7 +5,9 @@ from typing import Any
 from snowpyt_mechparams.models import UncertainValue
 
 
-def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
+def calculate_shear_modulus(
+    method: str, include_method_uncertainty: bool = True, **kwargs: Any
+) -> UncertainValue:
     """
     Calculate shear modulus of a slab layer based on specified method and
     input parameters.
@@ -33,13 +35,13 @@ def calculate_shear_modulus(method: str, include_method_uncertainty: bool = True
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'lame_relationship':
+    if method.lower() == "lame_relationship":
         return _calculate_shear_modulus_lame_relationship(
             include_method_uncertainty=include_method_uncertainty,
             **kwargs,
         )
     else:
-        available_methods = ['lame_relationship']
+        available_methods = ["lame_relationship"]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )

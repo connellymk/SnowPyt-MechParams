@@ -25,7 +25,7 @@ def calculate_A55(method: str, **kwargs: Any) -> UncertainValue:
     ----------
     method : str
         Method to use for A55 calculation. Available methods:
-        - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023) 
+        - 'weissgraeber_rosendahl': Uses Weißgraeber & Rosendahl (2023)
           formulation based on classical laminate theory with first-order
           shear deformation theory (Timoshenko beam assumptions)
 
@@ -42,10 +42,10 @@ def calculate_A55(method: str, **kwargs: Any) -> UncertainValue:
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'weissgraeber_rosendahl':
+    if method.lower() == "weissgraeber_rosendahl":
         return _calculate_A55_weissgraeber_rosendahl(**kwargs)
     else:
-        available_methods = ['weissgraeber_rosendahl']
+        available_methods = ["weissgraeber_rosendahl"]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -132,7 +132,7 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
 
     References
     ----------
-    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for 
+    Weißgraeber, P., & Rosendahl, P. L. (2023). A closed-form model for
     layered snow slabs. The Cryosphere, 17(4), 1475-1496.
     https://doi.org/10.5194/tc-17-1475-2023
 
@@ -141,7 +141,7 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     Archive of Applied Mechanics, 63, 73-85.
     https://doi.org/10.1007/BF00788914
 
-    Reddy, J. N. (2003). Mechanics of Laminated Composite Plates and Shells: 
+    Reddy, J. N. (2003). Mechanics of Laminated Composite Plates and Shells:
     Theory and Analysis (2nd ed.). CRC Press.
     https://doi.org/10.1201/b12409
 
@@ -165,10 +165,15 @@ def _calculate_A55_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
         # Check that required properties are present
         # Shear modulus is required (Equation 8d uses G_i directly)
         if layer.shear_modulus is None:
-            logger.debug("_calculate_A55_weissgraeber_rosendahl: layer %d missing shear_modulus", i)
+            logger.debug(
+                "_calculate_A55_weissgraeber_rosendahl: layer %d missing shear_modulus",
+                i,
+            )
             return ufloat(np.nan, np.nan)
         if layer.thickness is None:
-            logger.debug("_calculate_A55_weissgraeber_rosendahl: layer %d missing thickness", i)
+            logger.debug(
+                "_calculate_A55_weissgraeber_rosendahl: layer %d missing thickness", i
+            )
             return ufloat(np.nan, np.nan)
 
         # Extract layer properties

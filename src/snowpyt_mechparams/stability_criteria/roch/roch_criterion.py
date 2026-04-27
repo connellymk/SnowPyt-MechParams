@@ -21,7 +21,9 @@ from typing import Literal, Optional
 from snowpyt_mechparams.models import Slab, UncertainValue
 from snowpyt_mechparams.stability_criteria._utils import _nominal
 from snowpyt_mechparams.stability_criteria.roch.roch_result import RochResult
-from snowpyt_mechparams.stability_criteria.roch.shear_stress import calculate_shear_stress
+from snowpyt_mechparams.stability_criteria.roch.shear_stress import (
+    calculate_shear_stress,
+)
 
 
 def calculate_roch(

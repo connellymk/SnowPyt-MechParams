@@ -12,7 +12,6 @@ pathways on snow pit data. It includes:
 
 Example
 -------
->>> from snowpyt_mechparams.graph import graph
 >>> from snowpyt_mechparams.execution import ExecutionEngine, ExecutionConfig
 >>> from snowpyt_mechparams.models import Slab, Layer
 >>>
@@ -20,7 +19,7 @@ Example
 >>> slab = Slab(layers=[Layer(thickness=30, hand_hardness="4F", grain_form="RG")])
 >>>
 >>> # Execute (config is optional)
->>> engine = ExecutionEngine(graph)
+>>> engine = ExecutionEngine()
 >>> results = engine.execute_all(slab, "density")
 >>>
 >>> # Iterate results
@@ -30,18 +29,17 @@ Example
 
 from snowpyt_mechparams.execution.cache import ComputationCache, CacheStats
 from snowpyt_mechparams.execution.config import ExecutionConfig
+from snowpyt_mechparams.execution.context import ExecutionContext
+from snowpyt_mechparams.execution.planner import ExecutionPlanner
 from snowpyt_mechparams.execution.results import (
     ComputationTrace,
     PathwayResult,
-    ExecutionResults
+    ExecutionResults,
 )
-from snowpyt_mechparams.execution.dispatcher import (
-    MethodDispatcher,
-    MethodSpec,
-    ParameterLevel
-)
+from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.execution.engine import ExecutionEngine
+from snowpyt_mechparams.methods import MethodSpec, ParameterLevel
 
 __all__ = [
     # Cache
@@ -49,6 +47,8 @@ __all__ = [
     "CacheStats",
     # Configuration
     "ExecutionConfig",
+    "ExecutionContext",
+    "ExecutionPlanner",
     # Result classes (v2 - simplified)
     "ComputationTrace",
     "PathwayResult",

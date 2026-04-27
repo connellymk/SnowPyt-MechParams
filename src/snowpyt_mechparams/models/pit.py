@@ -44,9 +44,12 @@ class Pit:
        convenience classmethod Pit.from_snow_pit()
 
     """
+
     # Extracted metadata
     pit_id: Optional[str] = None
-    slope_angle: Union[float, UncertainValue] = field(default_factory=lambda: float("nan"))
+    slope_angle: Union[float, UncertainValue] = field(
+        default_factory=lambda: float("nan")
+    )
 
     # Layers and test results
     layers: List[Layer] = field(default_factory=list)
@@ -157,12 +160,17 @@ class Pit:
 
         if weak_layer_def == "layer_of_concern":
             weak_layer = self.layer_of_concern
-            weak_layer_depth_top = None if weak_layer is None else self._nominal_depth(weak_layer.depth_top)
+            weak_layer_depth_top = (
+                None
+                if weak_layer is None
+                else self._nominal_depth(weak_layer.depth_top)
+            )
             if weak_layer is None or weak_layer_depth_top is None:
                 return slabs
 
             slab_layers = [
-                layer for layer in self.layers
+                layer
+                for layer in self.layers
                 if (layer_depth_top := self._nominal_depth(layer.depth_top)) is not None
                 and layer_depth_top < weak_layer_depth_top
             ]
@@ -229,7 +237,8 @@ class Pit:
             return []
 
         return [
-            ect for ect in self.ECT_results
+            ect
+            for ect in self.ECT_results
             # Two conditions cover different snowpylot/CAAML versions:
             # some versions expose a boolean `propagation` field; others encode
             # propagation in the test score string (e.g., "ECTP21").
@@ -254,7 +263,8 @@ class Pit:
             return []
 
         return [
-            ct for ct in self.CT_results
+            ct
+            for ct in self.CT_results
             if hasattr(ct, "fracture_character")
             and ct.fracture_character in ["Q1", "SC", "SP"]
         ]
@@ -310,12 +320,15 @@ class Pit:
                 weak_layer = layer
                 break
 
-        weak_layer_depth_top = None if weak_layer is None else self._nominal_depth(weak_layer.depth_top)
+        weak_layer_depth_top = (
+            None if weak_layer is None else self._nominal_depth(weak_layer.depth_top)
+        )
         if weak_layer is None or weak_layer_depth_top is None:
             return None
 
         slab_layers = [
-            layer for layer in self.layers
+            layer
+            for layer in self.layers
             if (layer_depth_top := self._nominal_depth(layer.depth_top)) is not None
             and layer_depth_top < weak_layer_depth_top
         ]
@@ -324,7 +337,9 @@ class Pit:
             return None
 
         test_props = extract_test_properties(test_result, test_type)
-        slab_id = f"{self.pit_id}_slab_{test_idx}" if self.pit_id else f"slab_{test_idx}"
+        slab_id = (
+            f"{self.pit_id}_slab_{test_idx}" if self.pit_id else f"slab_{test_idx}"
+        )
 
         return Slab(
             layers=slab_layers,

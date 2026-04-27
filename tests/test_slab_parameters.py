@@ -13,10 +13,10 @@ import pytest
 from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Slab
-from snowpyt_mechparams.slab_parameters.extensional_stiffness import calculate_A11
-from snowpyt_mechparams.slab_parameters.bending_extension_coupling import calculate_B11
-from snowpyt_mechparams.slab_parameters.bending_stiffness import calculate_D11
-from snowpyt_mechparams.slab_parameters.shear_stiffness import calculate_A55
+from snowpyt_mechparams.methods.slab.extensional_stiffness import calculate_A11
+from snowpyt_mechparams.methods.slab.bending_extension_coupling import calculate_B11
+from snowpyt_mechparams.methods.slab.bending_stiffness import calculate_D11
+from snowpyt_mechparams.methods.slab.shear_stiffness import calculate_A55
 
 
 def _make_layer(thickness_cm, E_MPa, nu):
@@ -40,6 +40,7 @@ def _make_shear_layer(thickness_cm, G_MPa):
 # ---------------------------------------------------------------------------
 # A11 = Sum_i [E_i / (1 - nu_i^2)] * h_i
 # ---------------------------------------------------------------------------
+
 
 class TestA11Numerical:
     """A11 = sum of plane-strain modulus * layer thickness."""
@@ -90,6 +91,7 @@ class TestA11Numerical:
 # D11 = (1/3) * Sum_i [E_i / (1 - nu_i^2)] * (z_{i+1}^3 - z_i^3)
 # ---------------------------------------------------------------------------
 
+
 class TestD11Numerical:
     """D11: bending stiffness with z^2 weighting from centroid."""
 
@@ -108,7 +110,7 @@ class TestD11Numerical:
         slab = Slab(layers=[layer], angle=0.0)
         result = calculate_D11("weissgraeber_rosendahl", slab=slab)
         ps = 100.0 / (1.0 - 0.2**2)
-        expected = (1.0 / 3.0) * ps * (50.0**3 - (-50.0)**3)
+        expected = (1.0 / 3.0) * ps * (50.0**3 - (-50.0) ** 3)
         assert result.nominal_value == pytest.approx(expected, rel=1e-6)
 
     def test_two_equal_layers(self):
@@ -126,7 +128,7 @@ class TestD11Numerical:
         slab = Slab(layers=[layer1, layer2], angle=0.0)
         result = calculate_D11("weissgraeber_rosendahl", slab=slab)
         ps = 80.0 / (1.0 - 0.25**2)
-        expected = (1.0 / 3.0) * ps * (50.0**3 - (-50.0)**3)
+        expected = (1.0 / 3.0) * ps * (50.0**3 - (-50.0) ** 3)
         assert result.nominal_value == pytest.approx(expected, rel=1e-6)
 
     def test_two_different_layers(self):
@@ -147,7 +149,7 @@ class TestD11Numerical:
         ps1 = 200.0 / (1.0 - 0.2**2)
         ps2 = 50.0 / (1.0 - 0.3**2)
         term1 = (1.0 / 3.0) * ps1 * (50.0**3 - 20.0**3)
-        term2 = (1.0 / 3.0) * ps2 * (20.0**3 - (-50.0)**3)
+        term2 = (1.0 / 3.0) * ps2 * (20.0**3 - (-50.0) ** 3)
         expected = term1 + term2
         assert result.nominal_value == pytest.approx(expected, rel=1e-6)
 
@@ -155,6 +157,7 @@ class TestD11Numerical:
 # ---------------------------------------------------------------------------
 # B11 = (1/2) * Sum_i [E_i / (1 - nu_i^2)] * (z_{i+1}^2 - z_i^2)
 # ---------------------------------------------------------------------------
+
 
 class TestB11Numerical:
     """B11: coupling stiffness with z weighting from centroid."""
@@ -196,7 +199,7 @@ class TestB11Numerical:
         ps1 = 200.0 / (1.0 - 0.2**2)
         ps2 = 50.0 / (1.0 - 0.3**2)
         term1 = (1.0 / 2.0) * ps1 * (50.0**2 - 20.0**2)
-        term2 = (1.0 / 2.0) * ps2 * (20.0**2 - (-50.0)**2)
+        term2 = (1.0 / 2.0) * ps2 * (20.0**2 - (-50.0) ** 2)
         expected = term1 + term2
         assert result.nominal_value == pytest.approx(expected, rel=1e-6)
         # Stiffer layer on top should make B11 positive
@@ -206,6 +209,7 @@ class TestB11Numerical:
 # ---------------------------------------------------------------------------
 # A55 = κ * Sum_i G_i * h_i,  κ = 5/6
 # ---------------------------------------------------------------------------
+
 
 class TestA55Numerical:
     """A55: shear stiffness with κ = 5/6 correction factor."""
@@ -254,6 +258,7 @@ class TestA55Numerical:
 # ---------------------------------------------------------------------------
 # Unknown method
 # ---------------------------------------------------------------------------
+
 
 class TestUnknownSlabMethod:
     def test_unknown_A11_raises(self):

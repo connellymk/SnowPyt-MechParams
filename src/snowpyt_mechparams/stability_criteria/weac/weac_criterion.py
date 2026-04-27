@@ -206,11 +206,11 @@ def calculate_weac_skier(
 
     if slab.weak_layer is not None:
         for attr, weac_field in [
-            ("G_c",        "G_c"),
-            ("G_Ic",       "G_Ic"),
-            ("G_IIc",      "G_IIc"),
-            ("sigma_c",    "sigma_c"),
-            ("tau_c",      "tau_c"),
+            ("G_c", "G_c"),
+            ("G_Ic", "G_Ic"),
+            ("G_IIc", "G_IIc"),
+            ("sigma_c", "sigma_c"),
+            ("tau_c", "tau_c"),
             ("sigma_comp", "sigma_comp"),
         ]:
             val = _nominal(getattr(slab.weak_layer, attr, None))

@@ -10,12 +10,12 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.layer_parameters.poissons_ratio import calculate_poissons_ratio
-
+from snowpyt_mechparams.methods.layer.poissons_ratio import calculate_poissons_ratio
 
 # ---------------------------------------------------------------------------
 # Kochle
 # ---------------------------------------------------------------------------
+
 
 class TestKochleNumerical:
     """Kochle Poisson's ratio: lookup by grain form.
@@ -67,7 +67,9 @@ class TestKochleNumerical:
 
     def test_no_method_uncertainty(self):
         result = calculate_poissons_ratio(
-            "kochle", grain_form="RG", include_method_uncertainty=False,
+            "kochle",
+            grain_form="RG",
+            include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(0.171, abs=1e-6)
         assert result.std_dev == 0.0
@@ -76,6 +78,7 @@ class TestKochleNumerical:
 # ---------------------------------------------------------------------------
 # Srivastava
 # ---------------------------------------------------------------------------
+
 
 class TestSrivastavaNumerical:
     """Srivastava Poisson's ratio: lookup by grain form, requires density > 200.
@@ -87,54 +90,72 @@ class TestSrivastavaNumerical:
 
     def test_RG_nominal(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(300.0, 0.0), grain_form="RG",
+            "srivastava",
+            density=ufloat(300.0, 0.0),
+            grain_form="RG",
         )
         assert result.nominal_value == pytest.approx(0.191, abs=1e-6)
 
     def test_PP_nominal(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(250.0, 0.0), grain_form="PP",
+            "srivastava",
+            density=ufloat(250.0, 0.0),
+            grain_form="PP",
         )
         assert result.nominal_value == pytest.approx(0.132, abs=1e-6)
 
     def test_FC_nominal(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(300.0, 0.0), grain_form="FC",
+            "srivastava",
+            density=ufloat(300.0, 0.0),
+            grain_form="FC",
         )
         assert result.nominal_value == pytest.approx(0.17, abs=1e-6)
 
     def test_DH_nominal(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(300.0, 0.0), grain_form="DH",
+            "srivastava",
+            density=ufloat(300.0, 0.0),
+            grain_form="DH",
         )
         assert result.nominal_value == pytest.approx(0.17, abs=1e-6)
 
     def test_density_below_200_returns_nan(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(150.0, 0.0), grain_form="RG",
+            "srivastava",
+            density=ufloat(150.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_RG_density_above_580_returns_nan(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(600.0, 0.0), grain_form="RG",
+            "srivastava",
+            density=ufloat(600.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_poissons_ratio(
-            "srivastava", density=ufloat(300.0, 0.0), grain_form="MF",
+            "srivastava",
+            density=ufloat(300.0, 0.0),
+            grain_form="MF",
         )
         assert math.isnan(result.nominal_value)
 
     def test_lowercase_grain_form_normalized(self):
         """'pp' and 'rg' should be normalized to PP, RG via .upper()."""
         result_pp = calculate_poissons_ratio(
-            "srivastava", density=ufloat(250.0, 0.0), grain_form="pp",
+            "srivastava",
+            density=ufloat(250.0, 0.0),
+            grain_form="pp",
         )
         assert result_pp.nominal_value == pytest.approx(0.132, abs=1e-6)
         result_rg = calculate_poissons_ratio(
-            "srivastava", density=ufloat(300.0, 0.0), grain_form="rg",
+            "srivastava",
+            density=ufloat(300.0, 0.0),
+            grain_form="rg",
         )
         assert result_rg.nominal_value == pytest.approx(0.191, abs=1e-6)
 
@@ -142,6 +163,7 @@ class TestSrivastavaNumerical:
 # ---------------------------------------------------------------------------
 # Unknown method
 # ---------------------------------------------------------------------------
+
 
 class TestUnknownPoissonsRatioMethod:
     def test_unknown_raises(self):

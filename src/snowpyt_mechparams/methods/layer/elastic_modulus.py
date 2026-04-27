@@ -26,7 +26,9 @@ def _nominal_value(value: UncertainValue) -> float:
     return float(value)
 
 
-def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
+def calculate_elastic_modulus(
+    method: str, include_method_uncertainty: bool = True, **kwargs: Any
+) -> UncertainValue:
     """
     Calculate elastic modulus of a slab layer based on specified method and
     input parameters.
@@ -59,16 +61,24 @@ def calculate_elastic_modulus(method: str, include_method_uncertainty: bool = Tr
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'bergfeld':
-        return _calculate_elastic_modulus_bergfeld(include_method_uncertainty=include_method_uncertainty, **kwargs)
-    elif method.lower() == 'kochle':
-        return _calculate_elastic_modulus_kochle(include_method_uncertainty=include_method_uncertainty, **kwargs)
-    elif method.lower() == 'wautier':
-        return _calculate_elastic_modulus_wautier(include_method_uncertainty=include_method_uncertainty, **kwargs)
-    elif method.lower() == 'schottner':
-        return _calculate_elastic_modulus_schottner(include_method_uncertainty=include_method_uncertainty, **kwargs)
+    if method.lower() == "bergfeld":
+        return _calculate_elastic_modulus_bergfeld(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
+    elif method.lower() == "kochle":
+        return _calculate_elastic_modulus_kochle(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
+    elif method.lower() == "wautier":
+        return _calculate_elastic_modulus_wautier(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
+    elif method.lower() == "schottner":
+        return _calculate_elastic_modulus_schottner(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
     else:
-        available_methods = ['bergfeld', 'kochle', 'wautier', 'schottner']
+        available_methods = ["bergfeld", "kochle", "wautier", "schottner"]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -150,13 +160,20 @@ def _calculate_elastic_modulus_bergfeld(
 
     # Check grain form validity (only PP, RG, DF are supported)
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ['PP', 'RG', 'DF']:
-        logger.debug("bergfeld: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
+    if main_grain_shape not in ["PP", "RG", "DF"]:
+        logger.debug(
+            "bergfeld: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     # Check density is within the valid range of the fit (110-363 kg/m³)
     if rho_nominal < 110 or rho_nominal > 363:
-        logger.debug("bergfeld: density %.1f kg/m³ outside valid range 110-363 kg/m³; returning NaN", rho_nominal)
+        logger.debug(
+            "bergfeld: density %.1f kg/m³ outside valid range 110-363 kg/m³; returning NaN",
+            rho_nominal,
+        )
         return ufloat(np.nan, np.nan)
 
     # C0 is 6.5e3 MPa, (Eq. 6, Gerling et al. (2017), Eq. 4, Bergfeld et al. (2023)).
@@ -263,8 +280,12 @@ def _calculate_elastic_modulus_kochle(
     weak layers. Journal of Glaciology, 60(220), 304-315.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ['RG', 'FC', 'DH', 'MF']:
-        logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
+    if main_grain_shape not in ["RG", "FC", "DH", "MF"]:
+        logger.debug(
+            "kochle: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³
@@ -290,7 +311,10 @@ def _calculate_elastic_modulus_kochle(
         C_1 = 0.011
     else:
         # Densities outside 150-450 kg/m³ return NaN
-        logger.debug("kochle: density %.1f kg/m³ outside valid range 150-450 kg/m³; returning NaN", rho_nominal)
+        logger.debug(
+            "kochle: density %.1f kg/m³ outside valid range 150-450 kg/m³; returning NaN",
+            rho_nominal,
+        )
         return ufloat(np.nan, np.nan)
 
     C_2 = C_0 / E_ice
@@ -382,8 +406,12 @@ def _calculate_elastic_modulus_wautier(
     Geophysical Research Letters, 42, 8031–8041.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ['DF', 'RG', 'FC', 'DH', 'MF']:
-        logger.debug("wautier: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
+    if main_grain_shape not in ["DF", "RG", "FC", "DH", "MF"]:
+        logger.debug(
+            "wautier: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
@@ -391,7 +419,10 @@ def _calculate_elastic_modulus_wautier(
 
     # Check for nominal density in range of fit
     if rho_nominal < 103 or rho_nominal > 544:
-        logger.debug("wautier: density %.1f kg/m³ outside valid range 103-544 kg/m³; returning NaN", rho_nominal)
+        logger.debug(
+            "wautier: density %.1f kg/m³ outside valid range 103-544 kg/m³; returning NaN",
+            rho_nominal,
+        )
         return ufloat(np.nan, np.nan)
 
     # Wautier et al. (2015) power law coefficients (Eq. 5).
@@ -455,8 +486,12 @@ def _calculate_elastic_modulus_schottner(
       to snow's time-dependent behavior.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ['DF', 'RG', 'FC', 'DH', 'SH']:
-        logger.debug("schottner: unsupported grain_form=%r (main_grain_shape=%r); returning NaN", grain_form, main_grain_shape)
+    if main_grain_shape not in ["DF", "RG", "FC", "DH", "SH"]:
+        logger.debug(
+            "schottner: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
@@ -464,17 +499,21 @@ def _calculate_elastic_modulus_schottner(
     def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
-    if main_grain_shape in ['DF', 'RG']:
+    if main_grain_shape in ["DF", "RG"]:
         A = _u(0.40, 0.3)
         n = _u(4.6, 0.6)
-    elif main_grain_shape in ['FC', 'DH']:
+    elif main_grain_shape in ["FC", "DH"]:
         A = _u(1.8, 0.7)
         n = _u(5.1, 0.3)
-    elif main_grain_shape in ['SH']:
+    elif main_grain_shape in ["SH"]:
         A = _u(0.011, 0.009)
         n = _u(1.7, 0.4)
     else:
-        logger.debug("schottner: grain_form=%r (main_grain_shape=%r) not matched in parameter table; returning NaN", grain_form, main_grain_shape)
+        logger.debug(
+            "schottner: grain_form=%r (main_grain_shape=%r) not matched in parameter table; returning NaN",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     E_snow = E_ice * A * (rho_snow / RHO_ICE) ** n

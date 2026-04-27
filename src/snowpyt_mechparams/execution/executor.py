@@ -55,23 +55,19 @@ The density cache persists across pathway executions for the same slab but is
 cleared when moving to a new slab via clear_cache().
 """
 
-from dataclasses import replace
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from snowpyt_mechparams.algorithm import Parameterization
+from snowpyt_mechparams.pathway import Parameterization
 from snowpyt_mechparams.models import Layer, Slab, UncertainValue
 from snowpyt_mechparams.execution.cache import ComputationCache
+from snowpyt_mechparams.execution.context import ExecutionContext
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher, _get_layer_input
-from snowpyt_mechparams.execution.results import (
-    ComputationTrace, PathwayResult
-)
-from snowpyt_mechparams.graph.parameter_graph import (
-    SLAB_PARAMS,
-)
+from snowpyt_mechparams.execution.planner import ExecutionPlanner
+from snowpyt_mechparams.execution.results import ComputationTrace, PathwayResult
+from snowpyt_mechparams.methods import MethodRegistry
 
 if TYPE_CHECKING:
     from snowpyt_mechparams.execution.config import ExecutionConfig
-
 
 
 class PathwayExecutor:
@@ -99,7 +95,8 @@ class PathwayExecutor:
     def __init__(
         self,
         dispatcher: Optional[MethodDispatcher] = None,
-        cache: Optional[ComputationCache] = None
+        cache: Optional[ComputationCache] = None,
+        registry: Optional[MethodRegistry] = None,
     ):
         """
         Initialize the PathwayExecutor.
@@ -111,22 +108,24 @@ class PathwayExecutor:
         cache : Optional[ComputationCache]
             Computation cache to use. If None, creates a new one.
         """
-        self.dispatcher = dispatcher or MethodDispatcher()
+        self.dispatcher = dispatcher or MethodDispatcher(registry)
+        self.registry = self.dispatcher.registry
+        self.planner = ExecutionPlanner(self.registry)
         self.cache = cache or ComputationCache()
-    
+
     def clear_cache(self) -> None:
         """
         Clear the computation cache.
-        
+
         Call this when switching to a new slab to ensure cached values
         don't carry over between different slabs.
         """
         self.cache.clear()
-    
+
     def get_cache_stats(self) -> Dict[str, float]:
         """
         Get cache performance statistics.
-        
+
         Returns
         -------
         Dict[str, float]
@@ -139,7 +138,7 @@ class PathwayExecutor:
         parameterization: Parameterization,
         slab: Slab,
         target_parameter: str,
-        config: 'ExecutionConfig'
+        config: "ExecutionConfig",
     ) -> PathwayResult:
         """
         Execute a single parameterization pathway on a slab.
@@ -189,35 +188,34 @@ class PathwayExecutor:
 
         # Build result layers using copy-on-write pattern
         # Only copy layers that need modification
-        result_layers: List[Layer] = []
         needs_computation = bool(execution_order)
+        context = ExecutionContext(slab, copy_layers=needs_computation)
 
-        for layer_idx, original_layer in enumerate(slab.layers):
+        for layer_idx, working_layer in context.iter_layers():
             if needs_computation:
-                # This layer needs computation - create a shallow copy
-                # (Using dataclass replace is faster than deepcopy)
-                working_layer = replace(original_layer)
                 self._clear_layer_pathway_outputs(working_layer)
-                
+
                 # Execute computations on this layer
                 for param in execution_order:
                     if param not in methods_used:
                         continue
-                    
+
                     method_name = methods_used[param]
-                    
+
                     # Get or compute (with caching)
                     value, was_cached, error_msg = self._get_or_compute_layer_param(
                         working_layer, layer_idx, param, method_name, config
                     )
-                    
+
                     # Get inputs for tracing
                     inputs_summary = {}
                     if not was_cached:
-                        inputs_summary = self._get_inputs_summary(working_layer, param, method_name)
+                        inputs_summary = self._get_inputs_summary(
+                            working_layer, param, method_name
+                        )
                     else:
                         inputs_summary = {"cached": True}
-                    
+
                     # Create trace
                     trace = ComputationTrace(
                         parameter=param,
@@ -227,26 +225,25 @@ class PathwayExecutor:
                         success=value is not None,
                         cached=was_cached,
                         error=error_msg,  # Use actual error message from dispatcher
-                        inputs_summary=inputs_summary
+                        inputs_summary=inputs_summary,
                     )
                     computation_trace.append(trace)
-                
-                result_layers.append(working_layer)
-            else:
-                # No computation needed - reuse original layer
-                result_layers.append(original_layer)
 
         # Create result slab with computed layers
         # Use dataclasses.replace to preserve all slab attributes (metadata, weak_layer, etc.)
         # while only updating the layers list
-        result_slab = replace(slab, layers=result_layers)
-        self._clear_slab_pathway_outputs(result_slab)
+        result_slab = context.materialize()
 
         # Execute slab-level calculations only when the target is a slab parameter.
         # A11, B11, D11, A55 are target parameters like any other — compute only
         # the one that was requested.
-        if target_parameter in SLAB_PARAMS:
-            slab_traces = self._execute_slab_calculations(result_slab, target_parameter)
+        if target_parameter in self.planner.slab_targets:
+            self._clear_slab_pathway_outputs(result_slab)
+            slab_traces = self._execute_slab_calculations(
+                result_slab,
+                target_parameter,
+                methods_used,
+            )
             computation_trace.extend(slab_traces)
 
         # Determine overall success.
@@ -264,14 +261,14 @@ class PathwayExecutor:
         # others) is therefore treated as pathway failure: if the method cannot
         # produce a value for every layer, the pathway as a whole has failed.
 
-        if target_parameter in SLAB_PARAMS:
+        if target_parameter in self.planner.slab_targets:
             success = any(
-                t.success and t.parameter == target_parameter
-                for t in computation_trace
+                t.success and t.parameter == target_parameter for t in computation_trace
             )
         else:
             layer_target_traces = [
-                t for t in computation_trace
+                t
+                for t in computation_trace
                 if t.parameter == target_parameter and t.layer_index is not None
             ]
             success = bool(layer_target_traces) and all(
@@ -285,12 +282,11 @@ class PathwayExecutor:
             slab=result_slab,
             computation_trace=computation_trace,
             success=success,
-            warnings=warnings
+            warnings=warnings,
         )
 
     def extract_methods_from_parameterization(
-        self,
-        parameterization: Parameterization
+        self, parameterization: Parameterization
     ) -> Dict[str, str]:
         """
         Extract parameter -> method mapping from a Parameterization.
@@ -369,11 +365,8 @@ class PathwayExecutor:
         str
             Human-readable pathway description
         """
-        # Order: layer params first, then slab-level targets.
-        order = [
-            "density", "elastic_modulus", "poissons_ratio", "shear_modulus",
-            "slab_weight", "slab_weight_shear", "slab_weight_shear_with_elasticity",
-        ]
+        # Preserve registry order while keeping each target only once.
+        order = list(dict.fromkeys(spec.target for spec in self.registry.all()))
         parts = []
         for param in order:
             if param in methods_used:
@@ -397,18 +390,13 @@ class PathwayExecutor:
         sorted_items = sorted(methods_used.items())
         return "->".join(f"{p}:{m}" for p, m in sorted_items)
 
-    # Parameters whose result is the same regardless of upstream density method.
-    # Density depends only on layer-intrinsic data (hand hardness, grain form, grain size),
-    # so the same density method always produces the same result for the same layer.
-    _CACHEABLE_LAYER_PARAMS = frozenset({"density"})
-
     def _get_or_compute_layer_param(
         self,
         layer: Layer,
         layer_index: int,
         parameter: str,
         method: str,
-        config: Optional['ExecutionConfig'] = None
+        config: Optional["ExecutionConfig"] = None,
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Get parameter from cache or compute it.
@@ -442,23 +430,23 @@ class PathwayExecutor:
             (value, was_cached, error_message) - The computed/cached value, whether it came from cache,
             and error message if computation failed (None if successful or cached)
         """
-        # Special handling for layer properties (direct data flow)
-        if parameter == "measured_layer_thickness":
-            # Direct from layer.thickness - no calculation needed
+        if parameter == "measured_layer_thickness" and method == "data_flow":
             return layer.thickness, False, None
 
-        # Only cache density. Downstream parameters (E, ν, G) depend on which
-        # density method was used for this pathway and must always be computed fresh.
-        if parameter in self._CACHEABLE_LAYER_PARAMS:
+        spec = self.registry.require(parameter, method)
+        is_cacheable = spec.cache_scope == "layer"
+
+        if is_cacheable:
             cached_value = self.cache.get_layer_param(layer_index, parameter, method)
             if cached_value is not None:
-                # Update the layer with cached value
-                self._set_layer_parameter(layer, parameter, cached_value)
+                self._set_layer_parameter(layer, parameter, method, cached_value)
                 return cached_value, True, None
 
         # Compute
         extra = {}
-        if config is not None and self.dispatcher.supports_method_uncertainty(parameter, method):
+        if config is not None and self.dispatcher.supports_method_uncertainty(
+            parameter, method
+        ):
             extra["include_method_uncertainty"] = config.include_method_uncertainty
         value, error = self.dispatcher.execute(
             parameter=parameter,
@@ -469,18 +457,13 @@ class PathwayExecutor:
         )
 
         if value is not None:
-            # Only persist density values in the cache
-            if parameter in self._CACHEABLE_LAYER_PARAMS:
+            if is_cacheable:
                 self.cache.set_layer_param(layer_index, parameter, method, value)
-            # Update the layer
-            self._set_layer_parameter(layer, parameter, value)
+            self._set_layer_parameter(layer, parameter, method, value)
 
         return value, False, error
 
-    def _determine_execution_order(
-        self,
-        methods_used: Dict[str, str]
-    ) -> List[str]:
+    def _determine_execution_order(self, methods_used: Dict[str, str]) -> List[str]:
         """
         Determine the order in which parameters should be computed.
 
@@ -501,44 +484,10 @@ class PathwayExecutor:
         List[str]
             Ordered list of parameters to compute
         """
-        # Always compute in dependency order.
-        #
-        # This list is intentionally hardcoded to avoid per-pathway graph
-        # traversal overhead (significant when processing 14,951 slabs × 32
-        # pathways).  The ordering encodes two constraints:
-        #
-        #   1. ``density`` must come first — it is the upstream input for
-        #      ``elastic_modulus`` (all methods) and ``poissons_ratio``
-        #      (srivastava).
-        #
-        #   2. ``shear_modulus`` must come after ``elastic_modulus`` and
-        #      ``poissons_ratio`` because ``lame_relationship`` consumes both.
-        #
-        #   3. ``elastic_modulus`` and ``poissons_ratio`` are independent of
-        #      each other once density is available, so their relative order is
-        #      arbitrary.
-        #
-        # MAINTENANCE NOTE: If a new layer-level parameter is added to the
-        # dispatcher and graph, it MUST be appended here in the correct
-        # dependency order, or it will be silently skipped during execution.
-        order = []
-
-        # Density first (if in pathway)
-        if "density" in methods_used:
-            order.append("density")
-
-        # Then the downstream layer parameters in dependency order
-        for param in ["elastic_modulus", "poissons_ratio", "shear_modulus"]:
-            if param in methods_used:
-                order.append(param)
-
-        return order
+        return self.planner.layer_order(methods_used)
 
     def _set_layer_parameter(
-        self,
-        layer: Layer,
-        parameter: str,
-        value: UncertainValue
+        self, layer: Layer, parameter: str, method: str, value: UncertainValue
     ) -> None:
         """
         Set a computed parameter value on a layer.
@@ -552,33 +501,23 @@ class PathwayExecutor:
         value : UncertainValue
             The computed value
         """
-        if parameter == "density":
-            layer.density_calculated = value
-        elif parameter == "elastic_modulus":
-            layer.elastic_modulus = value
-        elif parameter == "poissons_ratio":
-            layer.poissons_ratio = value
-        elif parameter == "shear_modulus":
-            layer.shear_modulus = value
+        spec = self.registry.require(parameter, method)
+        setattr(layer, spec.output_attr, value)
 
     def _clear_layer_pathway_outputs(self, layer: Layer) -> None:
         """Clear computed layer outputs so each pathway starts from measurements."""
-        layer.density_calculated = None
-        layer.elastic_modulus = None
-        layer.poissons_ratio = None
-        layer.shear_modulus = None
+        for spec in self.registry.all():
+            if spec.target in self.planner.layer_targets:
+                setattr(layer, spec.output_attr, None)
 
     def _clear_slab_pathway_outputs(self, slab: Slab) -> None:
         """Clear computed slab outputs that are recomputed per pathway."""
-        slab.slab_weight = None
-        slab.slab_weight_shear = None
-        slab.slab_weight_shear_with_elasticity = None
+        for spec in self.registry.all():
+            if spec.target in self.planner.slab_targets:
+                setattr(slab, spec.output_attr, None)
 
     def _get_inputs_summary(
-        self,
-        layer: Layer,
-        parameter: str,
-        method_name: str
+        self, layer: Layer, parameter: str, method_name: str
     ) -> Dict[str, Any]:
         """
         Get a summary of inputs used for a calculation (for tracing).
@@ -606,17 +545,16 @@ class PathwayExecutor:
             value = _get_layer_input(layer, input_name, method_name=method_name)
             if value is not None:
                 # Simplify ufloat for display
-                if hasattr(value, 'nominal_value'):
-                    inputs[input_name] = f"{value.nominal_value:.2f} +/- {value.std_dev:.2f}"
+                if hasattr(value, "nominal_value"):
+                    inputs[input_name] = (
+                        f"{value.nominal_value:.2f} +/- {value.std_dev:.2f}"
+                    )
                 else:
                     inputs[input_name] = str(value)
         return inputs
 
     def _get_or_compute_slab_param(
-        self,
-        slab: Slab,
-        parameter: str,
-        method: str
+        self, slab: Slab, parameter: str, method: str
     ) -> Tuple[Optional[UncertainValue], bool, Optional[str]]:
         """
         Compute a slab parameter (never cached).
@@ -653,20 +591,20 @@ class PathwayExecutor:
         # layer-level E/ν/G values, and the slab cache key does not encode
         # which upstream methods were used. Always compute fresh.
         value, error = self.dispatcher.execute(
-            parameter=parameter,
-            method_name=method,
-            slab=slab
+            parameter=parameter, method_name=method, slab=slab
         )
 
         if value is not None:
-            setattr(slab, parameter, value)
+            spec = self.registry.require(parameter, method)
+            setattr(slab, spec.output_attr, value)
 
         return value, False, error
 
     def _execute_slab_calculations(
         self,
         slab: Slab,
-        target_parameter: str
+        target_parameter: str,
+        methods_used: Optional[Dict[str, str]] = None,
     ) -> List[ComputationTrace]:
         """
         Execute the slab-level calculation for a single target parameter.
@@ -683,197 +621,102 @@ class PathwayExecutor:
         List[ComputationTrace]
             Single-item list with the trace for the requested parameter
         """
-        all_layers_have_thickness = all(
-            layer.thickness is not None for layer in slab.layers
-        )
-        all_layers_have_density = all(
-            layer.density_calculated is not None
-            for layer in slab.layers
-        )
-        has_slope_angle = slab.angle is not None
+        if methods_used is None:
+            methods_used = self._default_slab_methods_for(target_parameter)
+            if not methods_used:
+                return []
 
-        def _trace(
-            parameter: str,
-            method_name: str,
-            value: Optional[UncertainValue],
-            was_cached: bool,
-            error_msg: Optional[str],
-        ) -> ComputationTrace:
-            return ComputationTrace(
-                parameter=parameter,
-                method_name=method_name,
-                layer_index=None,
-                output=value,
-                success=value is not None,
-                cached=was_cached,
-                error=error_msg,
-            )
-
-        if target_parameter == "slab_weight":
-            if all_layers_have_density and all_layers_have_thickness:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "slab_weight", "sum_layer_weight"
+        traces: List[ComputationTrace] = []
+        for parameter in self.planner.slab_order(target_parameter, methods_used):
+            method_name = methods_used[parameter]
+            spec = self.registry.require(parameter, method_name)
+            missing = self._missing_slab_prerequisites(slab, spec.source_nodes)
+            if missing:
+                traces.append(
+                    ComputationTrace(
+                        parameter=parameter,
+                        method_name=method_name,
+                        layer_index=None,
+                        output=None,
+                        success=False,
+                        cached=False,
+                        error=f"Missing prerequisites: need {', '.join(missing)}",
+                    )
                 )
-                return [_trace("slab_weight", "sum_layer_weight", value, was_cached, error_msg)]
-            return [_trace(
-                "slab_weight",
-                "sum_layer_weight",
-                None,
-                False,
-                "Missing prerequisites: need computed density and thickness on all layers",
-            )]
-
-        if target_parameter == "slab_weight_shear":
-            traces: List[ComputationTrace] = []
-            if not (all_layers_have_density and all_layers_have_thickness and has_slope_angle):
-                return [_trace(
-                    "slab_weight_shear",
-                    "slope_parallel_component",
-                    None,
-                    False,
-                    "Missing prerequisites: need computed density, thickness, and slope angle",
-                )]
-
-            if getattr(slab, "slab_weight", None) is None:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "slab_weight", "sum_layer_weight"
-                )
-                traces.append(_trace("slab_weight", "sum_layer_weight", value, was_cached, error_msg))
-                if value is None:
-                    traces.append(_trace(
-                        "slab_weight_shear",
-                        "slope_parallel_component",
-                        None,
-                        False,
-                        "Missing prerequisite: slab_weight failed",
-                    ))
+                if parameter == target_parameter:
                     return traces
-
-            value, was_cached, error_msg = self._get_or_compute_slab_param(
-                slab, "slab_weight_shear", "slope_parallel_component"
-            )
-            traces.append(_trace("slab_weight_shear", "slope_parallel_component", value, was_cached, error_msg))
-            return traces
-
-        if target_parameter == "slab_weight_shear_with_elasticity":
-            traces = []
-            can_compute = (
-                all_layers_have_density and
-                all_layers_have_thickness and
-                has_slope_angle and
-                all(layer.elastic_modulus is not None for layer in slab.layers) and
-                all(layer.poissons_ratio is not None for layer in slab.layers)
-            )
-            if not can_compute:
-                return [_trace(
-                    "slab_weight_shear_with_elasticity",
-                    "combine_shear_weight_and_elasticity",
-                    None,
-                    False,
-                    "Missing prerequisites: need computed density, thickness, slope angle, E, and ν",
-                )]
-
-            if getattr(slab, "slab_weight", None) is None:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "slab_weight", "sum_layer_weight"
-                )
-                traces.append(_trace("slab_weight", "sum_layer_weight", value, was_cached, error_msg))
-                if value is None:
-                    traces.append(_trace(
-                        "slab_weight_shear_with_elasticity",
-                        "combine_shear_weight_and_elasticity",
-                        None,
-                        False,
-                        "Missing prerequisite: slab_weight failed",
-                    ))
-                    return traces
-
-            if getattr(slab, "slab_weight_shear", None) is None:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "slab_weight_shear", "slope_parallel_component"
-                )
-                traces.append(_trace("slab_weight_shear", "slope_parallel_component", value, was_cached, error_msg))
-                if value is None:
-                    traces.append(_trace(
-                        "slab_weight_shear_with_elasticity",
-                        "combine_shear_weight_and_elasticity",
-                        None,
-                        False,
-                        "Missing prerequisite: slab_weight_shear failed",
-                    ))
-                    return traces
+                continue
 
             value, was_cached, error_msg = self._get_or_compute_slab_param(
                 slab,
-                "slab_weight_shear_with_elasticity",
-                "combine_shear_weight_and_elasticity",
+                parameter,
+                method_name,
             )
-            traces.append(_trace(
-                "slab_weight_shear_with_elasticity",
-                "combine_shear_weight_and_elasticity",
-                value,
-                was_cached,
-                error_msg,
-            ))
-            return traces
-
-        if target_parameter == "A55":
-            can_compute = (
-                all_layers_have_thickness and
-                all(layer.shear_modulus is not None for layer in slab.layers)
-            )
-            if can_compute:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, "A55", "weissgraeber_rosendahl"
-                )
-                return [ComputationTrace(
-                    parameter="A55",
-                    method_name="weissgraeber_rosendahl",
+            traces.append(
+                ComputationTrace(
+                    parameter=parameter,
+                    method_name=method_name,
                     layer_index=None,
                     output=value,
                     success=value is not None,
                     cached=was_cached,
-                    error=error_msg
-                )]
-            else:
-                return [ComputationTrace(
-                    parameter="A55",
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=None,
-                    success=False,
-                    cached=False,
-                    error="Missing prerequisites: need G and thickness on all layers"
-                )]
-
-        elif target_parameter in SLAB_PARAMS:
-            can_compute = (
-                all_layers_have_thickness and
-                all(layer.elastic_modulus is not None for layer in slab.layers) and
-                all(layer.poissons_ratio is not None for layer in slab.layers)
-            )
-            if can_compute:
-                value, was_cached, error_msg = self._get_or_compute_slab_param(
-                    slab, target_parameter, "weissgraeber_rosendahl"
+                    error=error_msg,
                 )
-                return [ComputationTrace(
-                    parameter=target_parameter,
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=value,
-                    success=value is not None,
-                    cached=was_cached,
-                    error=error_msg
-                )]
-            else:
-                return [ComputationTrace(
-                    parameter=target_parameter,
-                    method_name="weissgraeber_rosendahl",
-                    layer_index=None,
-                    output=None,
-                    success=False,
-                    cached=False,
-                    error="Missing prerequisites: need E, ν, and thickness on all layers"
-                )]
+            )
+            if value is None and parameter == target_parameter:
+                return traces
 
-        return []
+        return traces
+
+    def _default_slab_methods_for(self, target_parameter: str) -> Dict[str, str]:
+        """Return default slab methods for a target and its slab prerequisites."""
+        methods: Dict[str, str] = {}
+
+        def add(parameter: str) -> None:
+            if parameter in methods:
+                return
+            spec = self.registry.default_method_for(parameter)
+            if spec is None:
+                return
+            for source in spec.source_nodes:
+                if source in self.planner.slab_targets:
+                    add(source)
+            methods[parameter] = spec.method_name
+
+        add(target_parameter)
+        return methods
+
+    def _missing_slab_prerequisites(
+        self,
+        slab: Slab,
+        source_nodes: Tuple[str, ...],
+    ) -> List[str]:
+        """Return human-readable missing prerequisites for a slab method."""
+        missing: List[str] = []
+        for source in source_nodes:
+            if source == "measured_layer_thickness":
+                if not all(layer.thickness is not None for layer in slab.layers):
+                    missing.append("thickness on all layers")
+            elif source == "measured_slope_angle":
+                if slab.angle is None:
+                    missing.append("slope angle")
+            elif source == "density":
+                if not all(
+                    layer.density_calculated is not None for layer in slab.layers
+                ):
+                    missing.append("computed density on all layers")
+            elif source == "elastic_modulus":
+                if not all(layer.elastic_modulus is not None for layer in slab.layers):
+                    missing.append("E on all layers")
+            elif source == "poissons_ratio":
+                if not all(layer.poissons_ratio is not None for layer in slab.layers):
+                    missing.append("nu on all layers")
+            elif source == "shear_modulus":
+                if not all(layer.shear_modulus is not None for layer in slab.layers):
+                    missing.append("G on all layers")
+            elif source in self.planner.slab_targets:
+                spec = self.registry.default_method_for(source)
+                attr = spec.output_attr if spec is not None else source
+                if getattr(slab, attr, None) is None:
+                    missing.append(source)
+        return missing

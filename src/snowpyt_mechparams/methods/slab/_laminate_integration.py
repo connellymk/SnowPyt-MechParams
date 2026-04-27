@@ -82,21 +82,28 @@ def integrate_plane_strain_over_layers(
     for i, layer in enumerate(slab.layers):
         # --- Validate required properties ---
         if layer.elastic_modulus is None:
-            logger.debug("integrate_plane_strain_over_layers: layer %d missing elastic_modulus", i)
+            logger.debug(
+                "integrate_plane_strain_over_layers: layer %d missing elastic_modulus",
+                i,
+            )
             return ufloat(np.nan, np.nan)
         if layer.poissons_ratio is None:
-            logger.debug("integrate_plane_strain_over_layers: layer %d missing poissons_ratio", i)
+            logger.debug(
+                "integrate_plane_strain_over_layers: layer %d missing poissons_ratio", i
+            )
             return ufloat(np.nan, np.nan)
         if layer.thickness is None:
-            logger.debug("integrate_plane_strain_over_layers: layer %d missing thickness", i)
+            logger.debug(
+                "integrate_plane_strain_over_layers: layer %d missing thickness", i
+            )
             return ufloat(np.nan, np.nan)
 
-        E_i = layer.elastic_modulus       # MPa = N/mm²
-        nu_i = layer.poissons_ratio       # dimensionless
-        h_i = layer.thickness * 10.0      # cm → mm
+        E_i = layer.elastic_modulus  # MPa = N/mm²
+        nu_i = layer.poissons_ratio  # dimensionless
+        h_i = layer.thickness * 10.0  # cm → mm
 
         # --- Validate Poisson's ratio ---
-        nu_val = nu_i.nominal_value if hasattr(nu_i, 'nominal_value') else nu_i
+        nu_val = nu_i.nominal_value if hasattr(nu_i, "nominal_value") else nu_i
         if nu_val >= 1.0 or nu_val < -1.0:
             logger.debug(
                 "integrate_plane_strain_over_layers: layer %d Poisson's ratio %.3f outside valid range (-1, 1)",
@@ -106,7 +113,7 @@ def integrate_plane_strain_over_layers(
             return ufloat(np.nan, np.nan)
 
         # --- Plane-strain modulus ---
-        plane_strain_modulus = E_i / (1.0 - nu_i ** 2)
+        plane_strain_modulus = E_i / (1.0 - nu_i**2)
 
         # --- z-coordinates relative to slab centroid ---
         z_top = z_top_surface - depth_from_top

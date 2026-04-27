@@ -23,7 +23,9 @@ def _nominal_value(value: UncertainValue) -> float:
     return float(value)
 
 
-def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = True, **kwargs: Any) -> UncertainValue:
+def calculate_poissons_ratio(
+    method: str, include_method_uncertainty: bool = True, **kwargs: Any
+) -> UncertainValue:
     """
     Calculate Poisson's ratio of a slab layer based on specified method and
     input parameters.
@@ -52,18 +54,24 @@ def calculate_poissons_ratio(method: str, include_method_uncertainty: bool = Tru
     ValueError
         If method is not recognized or required parameters are missing
     """
-    if method.lower() == 'kochle':
-        return _calculate_poissons_ratio_kochle(include_method_uncertainty=include_method_uncertainty, **kwargs)
-    elif method.lower() == 'srivastava':
-        return _calculate_poissons_ratio_srivastava(include_method_uncertainty=include_method_uncertainty, **kwargs)
+    if method.lower() == "kochle":
+        return _calculate_poissons_ratio_kochle(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
+    elif method.lower() == "srivastava":
+        return _calculate_poissons_ratio_srivastava(
+            include_method_uncertainty=include_method_uncertainty, **kwargs
+        )
     else:
-        available_methods = ['kochle', 'srivastava']
+        available_methods = ["kochle", "srivastava"]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
 
 
-def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty: bool = True) -> UncertainValue:
+def _calculate_poissons_ratio_kochle(
+    grain_form: str, include_method_uncertainty: bool = True
+) -> UncertainValue:
     """
     Calculate Poisson's ratio using Köchle and Schneebeli (2014) grain-type-
     specific mean values.
@@ -127,18 +135,22 @@ def _calculate_poissons_ratio_kochle(grain_form: str, include_method_uncertainty
     weak layers. Journal of Glaciology, 60(220), 304-315.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ['RG', 'FC', 'DH']:
-        logger.debug("kochle: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
+    if main_grain_shape not in ["RG", "FC", "DH"]:
+        logger.debug(
+            "kochle: unsupported grain_form=%r (main_grain_shape=%r)",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
-    if main_grain_shape == 'RG':
+    if main_grain_shape == "RG":
         nu_snow = _u(0.171, 0.026)
-    elif main_grain_shape == 'FC':
+    elif main_grain_shape == "FC":
         nu_snow = _u(0.130, 0.040)
-    elif main_grain_shape == 'DH':
+    elif main_grain_shape == "DH":
         nu_snow = _u(0.087, 0.063)
 
     return nu_snow
@@ -211,14 +223,21 @@ def _calculate_poissons_ratio_srivastava(
 
     # Check if density is within valid range (> 200 kg/m³)
     if density_nominal <= 200.0:
-        logger.debug("srivastava: density %.1f kg/m³ outside valid range (must be > 200 kg/m³)", density_nominal)
+        logger.debug(
+            "srivastava: density %.1f kg/m³ outside valid range (must be > 200 kg/m³)",
+            density_nominal,
+        )
         return ufloat(np.nan, np.nan)
 
     main_grain_shape = grain_form[:2].upper()
 
     # Check if grain form is valid
-    if main_grain_shape not in ['RG', 'PP', 'DF', 'FC', 'DH']:
-        logger.debug("srivastava: unsupported grain_form=%r (main_grain_shape=%r)", grain_form, main_grain_shape)
+    if main_grain_shape not in ["RG", "PP", "DF", "FC", "DH"]:
+        logger.debug(
+            "srivastava: unsupported grain_form=%r (main_grain_shape=%r)",
+            grain_form,
+            main_grain_shape,
+        )
         return ufloat(np.nan, np.nan)
 
     # Assign Poisson's ratio based on grain form.
@@ -227,16 +246,19 @@ def _calculate_poissons_ratio_srivastava(
     def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)
 
-    if main_grain_shape == 'RG':
+    if main_grain_shape == "RG":
         # Rounded grains: constant value over density range 200-580 kg/m³
         if density_nominal > 580.0:
-            logger.debug("srivastava: density %.1f kg/m³ outside valid range for RG (must be <= 580 kg/m³)", density_nominal)
+            logger.debug(
+                "srivastava: density %.1f kg/m³ outside valid range for RG (must be <= 580 kg/m³)",
+                density_nominal,
+            )
             return ufloat(np.nan, np.nan)
         nu_snow = _u(0.191, 0.008)
-    elif main_grain_shape in ['PP', 'DF']:
+    elif main_grain_shape in ["PP", "DF"]:
         # Precipitation particles and decomposing/fragmented: largest scatter
         nu_snow = _u(0.132, 0.053)
-    elif main_grain_shape in ['FC', 'DH']:
+    elif main_grain_shape in ["FC", "DH"]:
         # Faceted crystals and depth hoar: intermediate scatter
         nu_snow = _u(0.17, 0.02)
 

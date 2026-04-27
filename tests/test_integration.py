@@ -4,7 +4,7 @@ Integration tests for Phase 4 - Package structure and imports.
 This module tests that all components work together correctly with the
 new production module structure, including:
 - Package-level imports
-- Graph and algorithm integration
+- Graph and pathway integration
 - Execution engine with dynamic programming
 - Cache statistics
 - Slab parameter calculation
@@ -18,156 +18,140 @@ from snowpyt_mechparams import (
     Slab,
     ExecutionEngine,
     graph,
-    algorithm,
+    pathway,
 )
 
 
 class TestPackageImports:
     """Test that package-level imports work correctly."""
-    
+
     def test_import_models(self):
         """Should be able to import domain models from package root."""
         from snowpyt_mechparams import Layer, Slab
-        
+
         layer = Layer(thickness=30)
         assert layer.thickness == 30
-        
+
         slab = Slab(layers=[layer], angle=35)
         assert slab.angle == 35
-    
+
     def test_import_graph_module(self):
         """Should be able to import graph as a module."""
-        
-        assert hasattr(graph, 'graph')
-        assert hasattr(graph, 'D11')
-        assert hasattr(graph, 'A11')
-        
+
+        assert hasattr(graph, "graph")
+        assert hasattr(graph, "D11")
+        assert hasattr(graph, "A11")
+
         # Test graph functionality
-        D11_node = graph.graph.get_node('D11')
+        D11_node = graph.graph.get_node("D11")
         assert D11_node is not None
-        assert D11_node.parameter == 'D11'
-    
-    def test_import_algorithm_module(self):
-        """Should be able to import algorithm as a module."""
-        
-        assert hasattr(algorithm, 'find_parameterizations')
-        assert hasattr(algorithm, 'Parameterization')
-        assert hasattr(algorithm, 'Branch')
-    
+        assert D11_node.parameter == "D11"
+
+    def test_import_pathway_module(self):
+        """Should be able to import pathway as a module."""
+
+        assert hasattr(pathway, "find_parameterizations")
+        assert hasattr(pathway, "Parameterization")
+        assert hasattr(pathway, "Branch")
+
     def test_import_execution_engine(self):
         """Should be able to import execution engine."""
-        
-        # Can instantiate with graph
-        from snowpyt_mechparams.graph import graph
-        engine = ExecutionEngine(graph)
+
+        engine = ExecutionEngine()
         assert engine is not None
 
 
 class TestEndToEndExecution:
     """Test complete execution workflow with new structure."""
-    
+
     def test_execute_layer_parameter(self):
         """Should execute layer parameter calculations end-to-end."""
-        from snowpyt_mechparams.graph import graph
-        
         # Create slab with measured data
-        layer = Layer(
-            thickness=ufloat(30, 1),
-            grain_form="RG"
-        )
+        layer = Layer(thickness=ufloat(30, 1), grain_form="RG")
         slab = Slab(layers=[layer], angle=35)
-        
+
         # Create engine and execute
-        # For poissons_ratio (layer-level parameter), algorithm only computes
+        # For poissons_ratio (layer-level parameter), execution only computes
         # what's needed - no slab parameters
-        engine = ExecutionEngine(graph)
-        results = engine.execute_all(slab, 'poissons_ratio')
-        
+        engine = ExecutionEngine()
+        results = engine.execute_all(slab, "poissons_ratio")
+
         # Verify results structure
-        assert results.target_parameter == 'poissons_ratio'
+        assert results.target_parameter == "poissons_ratio"
         assert results.total_pathways > 0
         assert results.successful_pathways > 0
-        
+
         # Verify cache stats are present
-        assert 'hits' in results.cache_stats
-        assert 'misses' in results.cache_stats
-        assert 'hit_rate' in results.cache_stats
-    
+        assert "hits" in results.cache_stats
+        assert "misses" in results.cache_stats
+        assert "hit_rate" in results.cache_stats
+
     def test_execute_slab_parameter(self):
         """Should execute slab parameter calculations end-to-end."""
-        from snowpyt_mechparams.graph import graph
-        
         # Create slab with full layer properties
         layer = Layer(
             thickness=ufloat(30, 1),
             elastic_modulus=ufloat(2.0, 0.2),
             poissons_ratio=ufloat(0.3, 0.02),
-            shear_modulus=ufloat(0.7, 0.1)
+            shear_modulus=ufloat(0.7, 0.1),
         )
         slab = Slab(layers=[layer], angle=35)
-        
-        # Execute - when asking for poissons_ratio with layer already having
-        # E and ν, the algorithm will compute plate theory parameters
-        engine = ExecutionEngine(graph)
-        results = engine.execute_all(slab, 'poissons_ratio')
-        
+
+        # Execute a slab-level target. The registry-derived planner computes
+        # only the requested slab target and its prerequisites.
+        engine = ExecutionEngine()
+        results = engine.execute_all(slab, "D11")
+
         # Check that slab parameters were computed
         successful = results.get_successful_pathways()
         if successful:
             first_result = list(successful.values())[0]
-            # Check slab-level traces were created
             slab_traces = first_result.get_slab_traces()
             assert len(slab_traces) > 0
-            
-            # Check that slab parameters were set
+
             computed_slab = first_result.slab
-            assert computed_slab.A11 is not None
-            assert computed_slab.B11 is not None
             assert computed_slab.D11 is not None
-            assert computed_slab.A55 is not None
 
 
 class TestDynamicProgramming:
     """Test that dynamic programming works with new structure."""
-    
+
     def test_cache_improves_performance(self):
         """Cache should reduce redundant calculations for multi-layer slabs."""
-        from snowpyt_mechparams.graph import graph
-        
         # Create slab with multiple layers (cache benefits more apparent)
         layer1 = Layer(thickness=ufloat(20, 1), grain_form="RG")
         layer2 = Layer(thickness=ufloat(30, 1), grain_form="FC")
         slab = Slab(layers=[layer1, layer2], angle=35)
-        
+
         # Execute multiple pathways - caching is always enabled
-        engine = ExecutionEngine(graph)
-        results = engine.execute_all(slab, 'poissons_ratio')
-        
+        engine = ExecutionEngine()
+        results = engine.execute_all(slab, "poissons_ratio")
+
         # With multiple pathways and multiple layers, expect some cache activity
         # Cache stats should be present (even if hit rate is 0 for simple cases)
-        assert 'hits' in results.cache_stats
-        assert 'misses' in results.cache_stats
-        assert 'hit_rate' in results.cache_stats
-        assert results.cache_stats['misses'] > 0  # Should have computed something
+        assert "hits" in results.cache_stats
+        assert "misses" in results.cache_stats
+        assert "hit_rate" in results.cache_stats
+        assert results.cache_stats["misses"] > 0  # Should have computed something
 
 
 class TestGraphAlgorithmIntegration:
-    """Test integration between graph and algorithm modules."""
-    
+    """Test integration between graph and pathway modules."""
+
     def test_find_pathways_for_all_slab_params(self):
         """Should find pathways for all slab parameters."""
-        from snowpyt_mechparams.graph import graph
-        from snowpyt_mechparams.algorithm import find_parameterizations
-        
-        slab_params = ['A11', 'B11', 'D11', 'A55']
-        
+        from snowpyt_mechparams.graph import default_graph as g
+        from snowpyt_mechparams.pathway import find_parameterizations
+
+        slab_params = ["A11", "B11", "D11", "A55"]
+
         for param in slab_params:
-            node = graph.get_node(param)
+            node = g.get_node(param)
             assert node is not None, f"Node {param} not found"
-            
-            pathways = find_parameterizations(graph, node)
+
+            pathways = find_parameterizations(g, node)
             assert len(pathways) > 0, f"No pathways for {param}"
-            
+
             # Check that pathway uses weissgraeber_rosendahl
             first_pathway = pathways[0]
             methods = {}
@@ -175,9 +159,9 @@ class TestGraphAlgorithmIntegration:
                 for seg in continuation:
                     if seg.to_node == param:
                         methods[param] = seg.edge_name
-            
+
             if param in methods:
-                assert methods[param] == 'weissgraeber_rosendahl'
+                assert methods[param] == "weissgraeber_rosendahl"
 
 
 class TestVersioning:
@@ -196,7 +180,7 @@ class TestUpdatedGraphStructure:
 
     def test_slab_weight_nodes_exist(self):
         """Slab-weight target nodes should exist in the graph."""
-        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.graph import default_graph as g
 
         for param in [
             "slab_weight",
@@ -209,15 +193,15 @@ class TestUpdatedGraphStructure:
 
     def test_slab_weight_inputs_merge_has_correct_inputs(self):
         """Slab weight should merge density and layer thickness."""
-        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.graph import default_graph as g
 
-        node = g.get_node("merge_slab_weight_inputs")
+        node = g.get_node("merge_density_layer_thickness")
         input_params = {e.start.parameter for e in node.incoming_edges}
         assert input_params == {"density", "measured_layer_thickness"}
 
     def test_slab_weight_shear_merge_has_correct_inputs(self):
         """Slab-weight shear should merge W and slope angle."""
-        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.graph import default_graph as g
 
         node = g.get_node("merge_slab_weight_slope_angle")
         input_params = {e.start.parameter for e in node.incoming_edges}
@@ -225,9 +209,9 @@ class TestUpdatedGraphStructure:
 
     def test_slab_weight_shear_elasticity_merge_has_correct_inputs(self):
         """Slab weight_shear with elasticity should merge W_s, E, and ν."""
-        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.graph import default_graph as g
 
-        node = g.get_node("merge_slab_weight_shear_elasticity")
+        node = g.get_node("merge_slab_weight_shear_elastic_modulus_poissons_ratio")
         input_params = {e.start.parameter for e in node.incoming_edges}
         assert input_params == {
             "slab_weight_shear",
@@ -237,8 +221,8 @@ class TestUpdatedGraphStructure:
 
     def test_slab_weight_has_four_pathways(self):
         """Four density pathways should produce four slab-weight pathways."""
-        from snowpyt_mechparams.graph import graph as g
-        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph import default_graph as g
+        from snowpyt_mechparams.pathway import find_parameterizations
 
         node = g.get_node("slab_weight")
         pathways = find_parameterizations(g, node)
@@ -246,8 +230,8 @@ class TestUpdatedGraphStructure:
 
     def test_slab_weight_shear_has_four_pathways(self):
         """Adding slope angle should preserve the four slab-weight pathways."""
-        from snowpyt_mechparams.graph import graph as g
-        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph import default_graph as g
+        from snowpyt_mechparams.pathway import find_parameterizations
 
         node = g.get_node("slab_weight_shear")
         pathways = find_parameterizations(g, node)
@@ -255,8 +239,8 @@ class TestUpdatedGraphStructure:
 
     def test_slab_weight_shear_with_elasticity_has_32_pathways(self):
         """4 density × 4 E-mod × 2 ν pathways should reach elastic slab weight."""
-        from snowpyt_mechparams.graph import graph as g
-        from snowpyt_mechparams.algorithm import find_parameterizations
+        from snowpyt_mechparams.graph import default_graph as g
+        from snowpyt_mechparams.pathway import find_parameterizations
 
         node = g.get_node("slab_weight_shear_with_elasticity")
         pathways = find_parameterizations(g, node)
@@ -264,7 +248,8 @@ class TestUpdatedGraphStructure:
 
     def test_old_criteria_nodes_not_in_graph(self):
         """Roch and WEAC graph nodes should not be represented directly."""
-        from snowpyt_mechparams.graph import graph as g
+        from snowpyt_mechparams.graph import default_graph as g
+
         removed = [
             "weak_layer_info*",
             "slab_elasticity_parameters",

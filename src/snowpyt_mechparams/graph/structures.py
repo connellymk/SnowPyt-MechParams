@@ -5,10 +5,10 @@ This module provides the core data structures for representing parameter
 calculation dependencies as a directed graph. The graph consists of:
 
 - **Parameter nodes**: Represent measured or calculated parameters
-- **Merge nodes**: Represent combinations of parameters used as method inputs  
+- **Merge nodes**: Represent combinations of parameters used as method inputs
 - **Edges**: Represent data flow or calculation methods connecting nodes
 
-These structures are used by the parameterization algorithm to find all
+These structures are used by the pathway search to find all
 possible calculation pathways from measured inputs to target parameters.
 
 Classes
@@ -43,7 +43,7 @@ density
 See Also
 --------
 snowpyt_mechparams.graph.parameter_graph : Complete parameter graph definition
-snowpyt_mechparams.algorithm : Pathfinding algorithms for the graph
+snowpyt_mechparams.pathway : Pathfinding functions for the graph
 """
 
 from __future__ import annotations
@@ -65,11 +65,11 @@ NodeLevel = Optional[Literal["layer", "slab"]]
 class Node:
     """
     Represents a node in the parameter dependency graph.
-    
+
     A node can be either a 'parameter' node (representing a measured or
     calculated parameter) or a 'merge' node (representing a combination
     of parameters that serve as inputs to a calculation method).
-    
+
     Attributes
     ----------
     type : NodeType
@@ -80,12 +80,12 @@ class Node:
         Classification for calculated parameter nodes:
         - ``"layer"`` — per-layer parameter (density, elastic_modulus, …)
         - ``"slab"``  — whole-slab parameter (A11, B11, D11, A55, …)
-        - ``None``    
+        - ``None``
     incoming_edges : List[Edge]
         List of edges pointing to this node (defaults to empty list)
     outgoing_edges : List[Edge]
         List of edges pointing from this node (defaults to empty list)
-    
+
     Examples
     --------
     >>> node = Node(type="parameter", parameter="density", level="layer")
@@ -95,13 +95,14 @@ class Node:
     layer
     >>> print(len(node.incoming_edges))
     0
-    
+
     Notes
     -----
     Nodes are hashable and can be used in sets and dictionaries.
     Edges automatically update the incoming_edges and outgoing_edges
     lists when created.
     """
+
     type: NodeType
     parameter: str
     level: NodeLevel = None
@@ -120,7 +121,7 @@ class Node:
             raise ValueError(
                 f"Node level must be 'layer', 'slab', or None, got '{self.level}'"
             )
-    
+
     def __eq__(self, other: object) -> bool:
         """
         Equality keyed on ``(type, parameter)`` — consistent with ``__hash__``.
@@ -144,14 +145,14 @@ class Node:
 class Edge:
     """
     Represents a directed edge in the parameter dependency graph.
-    
+
     Edges connect nodes in a directed manner. Some edges represent
     calculation methods (transformations), while others represent
     simple data flow (no transformation).
-    
+
     When an edge is created, it automatically updates the incoming_edges
     and outgoing_edges lists of the connected nodes.
-    
+
     Attributes
     ----------
     start : Node
@@ -161,7 +162,7 @@ class Edge:
     method_name : Optional[str]
         If this edge represents a calculation method, this contains
         the method name. None if the edge is just a data flow connection.
-    
+
     Examples
     --------
     >>> snow_pit = Node(type="parameter", parameter="snow_pit")
@@ -171,13 +172,14 @@ class Edge:
     None
     >>> print(len(snow_pit.outgoing_edges))
     1
-    
+
     Notes
     -----
     The __post_init__ method automatically updates the edge lists of
     both connected nodes, so you don't need to manually manage these
     relationships.
     """
+
     start: Node
     end: Node
     method_name: Optional[str] = None
@@ -187,7 +189,7 @@ class Edge:
         # Add this edge to start node's outgoing edges
         if self not in self.start.outgoing_edges:
             self.start.outgoing_edges.append(self)
-        
+
         # Add this edge to end node's incoming edges
         if self not in self.end.incoming_edges:
             self.end.incoming_edges.append(self)
@@ -197,18 +199,18 @@ class Edge:
 class Graph:
     """
     Represents a directed graph of parameter dependencies.
-    
+
     The graph holds all nodes and edges, allowing for computation
     of various graph properties and traversals. Used by the
-    parameterization algorithm to find calculation pathways.
-    
+    pathway search to find calculation pathways.
+
     Attributes
     ----------
     nodes : List[Node]
         List of all nodes in the graph
     edges : List[Edge]
         List of all edges in the graph
-    
+
     Examples
     --------
     >>> graph = Graph(nodes=[node1, node2], edges=[edge1])
@@ -216,15 +218,18 @@ class Graph:
     >>> if density_node:
     ...     print(f"Found {density_node.parameter}")
     Found density
-    
+
     Notes
     -----
     The graph validates consistency on initialization, ensuring all
     edges reference nodes that exist in the graph.
     """
+
     nodes: List[Node] = field(default_factory=list)
     edges: List[Edge] = field(default_factory=list)
-    _node_index: Dict[str, Node] = field(default_factory=dict, init=False, repr=False, compare=False)
+    _node_index: Dict[str, Node] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         """Validate graph consistency and build node index."""
@@ -232,17 +237,13 @@ class Graph:
         node_ids = {id(node) for node in self.nodes}
         for edge in self.edges:
             if id(edge.start) not in node_ids:
-                raise ValueError(
-                    f"Edge references node not in graph: {edge.start}"
-                )
+                raise ValueError(f"Edge references node not in graph: {edge.start}")
             if id(edge.end) not in node_ids:
-                raise ValueError(
-                    f"Edge references node not in graph: {edge.end}"
-                )
+                raise ValueError(f"Edge references node not in graph: {edge.end}")
         # Build O(1) lookup index
         for node in self.nodes:
             self._node_index[node.parameter] = node
-    
+
     @property
     def layer_params(self) -> FrozenSet[str]:
         """
@@ -270,17 +271,17 @@ class Graph:
     def get_node(self, parameter: str) -> Optional[Node]:
         """
         Get a node by its parameter name.
-        
+
         Parameters
         ----------
         parameter : str
             The parameter name to search for
-        
+
         Returns
         -------
         Optional[Node]
             The node with matching parameter name, or None if not found
-        
+
         Examples
         --------
         >>> node = graph.get_node("density")
@@ -289,16 +290,16 @@ class Graph:
         Found parameter node
         """
         return self._node_index.get(parameter)
-    
+
     def add_node(self, node: Node) -> None:
         """
         Add a node to the graph.
-        
+
         Parameters
         ----------
         node : Node
             The node to add
-        
+
         Notes
         -----
         If the node is already in the graph, this is a no-op.
@@ -306,16 +307,16 @@ class Graph:
         if node not in self.nodes:
             self.nodes.append(node)
             self._node_index[node.parameter] = node
-    
+
     def add_edge(self, edge: Edge) -> None:
         """
         Add an edge to the graph.
-        
+
         Parameters
         ----------
         edge : Edge
             The edge to add
-        
+
         Notes
         -----
         If the edge is already in the graph, this is a no-op.
@@ -331,12 +332,12 @@ class Graph:
 class GraphBuilder:
     """
     Builder class for constructing parameter dependency graphs.
-    
+
     This provides a fluent API for building graphs that is more concise
     than manually creating all nodes and edges. Use the builder to
     create nodes and define connections, then call build() to get the
     final Graph object.
-    
+
     Methods
     -------
     param(name)
@@ -349,39 +350,40 @@ class GraphBuilder:
         Create a method edge with a method name
     build()
         Build and return the final Graph object
-    
+
     Examples
     --------
     >>> builder = GraphBuilder()
     >>> snow_pit = builder.param("snow_pit")
     >>> density = builder.param("density")
     >>> elastic_modulus = builder.param("elastic_modulus")
-    >>> 
+    >>>
     >>> # Create merge node for density + grain_form
     >>> merge_d_gf = builder.merge("merge_density_grain_form")
-    >>> 
+    >>>
     >>> # Connect them
     >>> builder.flow(snow_pit, density)
     >>> builder.flow(density, merge_d_gf)
     >>> builder.method_edge(merge_d_gf, elastic_modulus, "bergfeld")
-    >>> 
+    >>>
     >>> graph = builder.build()
     >>> print(len(graph.nodes))
     4
     >>> print(len(graph.edges))
     3
-    
+
     Notes
     -----
     Calling param() or merge() with the same name multiple times
     returns the same node instance, ensuring nodes are unique by name.
     """
-    
+
     def __init__(self) -> None:
         """Initialize an empty builder."""
         self._nodes: Dict[str, Node] = {}
         self._edges: List[Edge] = []
-    
+        self._edge_index: Dict[tuple[str, str, Optional[str]], Edge] = {}
+
     def param(self, name: str, level: NodeLevel = None) -> Node:
         """
         Create or get a parameter node.
@@ -416,21 +418,21 @@ class GraphBuilder:
         if name not in self._nodes:
             self._nodes[name] = Node(type="parameter", parameter=name, level=level)
         return self._nodes[name]
-    
+
     def merge(self, name: str) -> Node:
         """
         Create or get a merge node.
-        
+
         Parameters
         ----------
         name : str
             The merge node name
-        
+
         Returns
         -------
         Node
             The merge node (created if new, existing if already created)
-        
+
         Examples
         --------
         >>> builder = GraphBuilder()
@@ -441,11 +443,11 @@ class GraphBuilder:
         if name not in self._nodes:
             self._nodes[name] = Node(type="merge", parameter=name)
         return self._nodes[name]
-    
+
     def edge(self, start: Node, end: Node, method: Optional[str] = None) -> Edge:
         """
         Create an edge between two nodes.
-        
+
         Parameters
         ----------
         start : Node
@@ -454,32 +456,38 @@ class GraphBuilder:
             The destination node
         method : Optional[str]
             The method name if this is a method edge
-        
+
         Returns
         -------
         Edge
             The created edge
         """
+        key = (start.parameter, end.parameter, method)
+        existing = self._edge_index.get(key)
+        if existing is not None:
+            return existing
+
         edge = Edge(start=start, end=end, method_name=method)
         self._edges.append(edge)
+        self._edge_index[key] = edge
         return edge
-    
+
     def flow(self, start: Node, end: Node) -> Edge:
         """
         Create a data flow edge (no method) between two nodes.
-        
+
         Parameters
         ----------
         start : Node
             The source node
         end : Node
             The destination node
-        
+
         Returns
         -------
         Edge
             The created edge with method_name=None
-        
+
         Examples
         --------
         >>> builder = GraphBuilder()
@@ -489,11 +497,11 @@ class GraphBuilder:
         Edge(...)
         """
         return self.edge(start, end, method=None)
-    
+
     def method_edge(self, start: Node, end: Node, method: str) -> Edge:
         """
         Create a method edge between two nodes.
-        
+
         Parameters
         ----------
         start : Node
@@ -502,12 +510,12 @@ class GraphBuilder:
             The destination node (output of the method)
         method : str
             The method name
-        
+
         Returns
         -------
         Edge
             The created edge with the specified method_name
-        
+
         Examples
         --------
         >>> builder = GraphBuilder()
@@ -517,16 +525,16 @@ class GraphBuilder:
         Edge(...)
         """
         return self.edge(start, end, method=method)
-    
+
     def build(self) -> Graph:
         """
         Build and return the final Graph object.
-        
+
         Returns
         -------
         Graph
             The constructed graph containing all nodes and edges
-        
+
         Examples
         --------
         >>> builder = GraphBuilder()

@@ -11,12 +11,11 @@ from uncertainties import ufloat
 from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.execution import ExecutionEngine, ExecutionConfig
 from snowpyt_mechparams.execution.results import PathwayResult
-from snowpyt_mechparams.graph import graph
-
 
 # ---------------------------------------------------------------------------
 # Shared fixture
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def slab():
@@ -33,12 +32,13 @@ def slab():
 
 @pytest.fixture
 def engine():
-    return ExecutionEngine(graph)
+    return ExecutionEngine()
 
 
 # ---------------------------------------------------------------------------
 # execute_single
 # ---------------------------------------------------------------------------
+
 
 class TestExecuteSingle:
     """Tests for ExecutionEngine.execute_single."""
@@ -96,7 +96,9 @@ class TestExecuteSingle:
     def test_raises_for_unknown_target_parameter(self, engine, slab):
         """execute_single should raise ValueError for an unknown target."""
         with pytest.raises(ValueError, match="Unknown target parameter"):
-            engine.execute_single(slab, "not_a_real_parameter", {"density": "geldsetzer"})
+            engine.execute_single(
+                slab, "not_a_real_parameter", {"density": "geldsetzer"}
+            )
 
     def test_executes_correct_method_not_others(self, engine, slab):
         """Only the requested method should be recorded, not alternatives."""
@@ -140,7 +142,9 @@ class TestExecuteSingle:
 
         assert slab.layers[0].density_calculated == original_density
 
-    def test_slab_weight_does_not_fallback_to_measured_density_after_method_failure(self, engine):
+    def test_slab_weight_does_not_fallback_to_measured_density_after_method_failure(
+        self, engine
+    ):
         """Failed empirical density pathways must not compute W from measured density."""
         layer = Layer(
             thickness=ufloat(10, 0.5),
@@ -218,6 +222,7 @@ class TestExecuteSingle:
 # ---------------------------------------------------------------------------
 # list_available_pathways
 # ---------------------------------------------------------------------------
+
 
 class TestListAvailablePathways:
     """Tests for ExecutionEngine.list_available_pathways."""

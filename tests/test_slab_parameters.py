@@ -37,6 +37,44 @@ def _make_shear_layer(thickness_cm, G_MPa):
     )
 
 
+class TestSlabTotalThickness:
+    """Tests for total slab thickness completeness semantics."""
+
+    def test_complete_layers_sum_thickness(self):
+        """Total thickness is defined when every layer has thickness."""
+        slab = Slab(
+            layers=[
+                Layer(thickness=ufloat(10.0, 1.0)),
+                Layer(thickness=ufloat(5.0, 0.5)),
+            ],
+            angle=0.0,
+        )
+
+        result = slab.total_thickness
+
+        assert result is not None
+        assert result.nominal_value == pytest.approx(15.0)
+        assert result.std_dev > 0.0
+
+    def test_one_missing_layer_thickness_returns_none(self):
+        """A partial slab thickness should not be reported as total thickness."""
+        slab = Slab(
+            layers=[
+                Layer(thickness=ufloat(10.0, 1.0)),
+                Layer(thickness=None),
+            ],
+            angle=0.0,
+        )
+
+        assert slab.total_thickness is None
+
+    def test_all_missing_layer_thickness_returns_none(self):
+        """A slab with no layer thicknesses has no total thickness."""
+        slab = Slab(layers=[Layer(thickness=None), Layer(thickness=None)], angle=0.0)
+
+        assert slab.total_thickness is None
+
+
 # ---------------------------------------------------------------------------
 # A11 = Sum_i [E_i / (1 - nu_i^2)] * h_i
 # ---------------------------------------------------------------------------

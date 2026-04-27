@@ -126,15 +126,19 @@ class Slab:
         Calculate the total thickness of the slab.
 
         If any layers have uncertain thickness values, the result will
-        automatically include propagated uncertainties.
-        Returns None if no layers have thickness values.
+        automatically include propagated uncertainties. Returns None if any
+        layer is missing thickness, because an incomplete slab has no well-defined
+        total thickness.
 
         Returns
         -------
         Optional[UncertainValue]
-            Total thickness in centimeters (cm), with uncertainty if applicable, or None
+            Total thickness in centimeters (cm), with uncertainty if applicable,
+            or None when any layer thickness is missing.
         """
-        thicknesses = [
-            layer.thickness for layer in self.layers if layer.thickness is not None
-        ]
-        return sum(thicknesses) if thicknesses else None
+        total: UncertainValue = 0.0
+        for layer in self.layers:
+            if layer.thickness is None:
+                return None
+            total = total + layer.thickness
+        return total

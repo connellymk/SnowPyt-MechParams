@@ -23,7 +23,7 @@ from snowpyt_mechparams.execution.config import ExecutionConfig
 from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.executor import PathwayExecutor
 from snowpyt_mechparams.execution.results import ExecutionResults, PathwayResult
-from snowpyt_mechparams.graph import default_graph
+from snowpyt_mechparams.graph import build_graph, default_graph
 from snowpyt_mechparams.graph.structures import Graph, Node
 from snowpyt_mechparams.methods import MethodRegistry
 
@@ -67,7 +67,9 @@ class ExecutionEngine:
         Parameters
         ----------
         graph : Optional[Graph]
-            The parameter dependency graph. If None, uses the default graph.
+            The parameter dependency graph. If None, uses the default graph for
+            the default registry, or builds a graph from a supplied custom
+            registry/dispatcher.
         dispatcher : Optional[MethodDispatcher]
             Method dispatcher to use. If None, creates a new one.
         cache : Optional[ComputationCache]
@@ -77,10 +79,30 @@ class ExecutionEngine:
         -----
         The cache is shared across all execute_all() calls, but is cleared
         at the start of each execute_all() to ensure fresh execution per slab.
+
+        If both ``graph`` and a custom ``registry`` or ``dispatcher`` are passed,
+        callers are responsible for keeping their method metadata consistent.
         """
-        self.graph = graph or default_graph
+        if dispatcher is not None and registry is not None:
+            if dispatcher.registry is not registry:
+                msg = "dispatcher and registry must reference the same MethodRegistry"
+                raise ValueError(msg)
+
+        effective_registry = dispatcher.registry if dispatcher is not None else registry
+
+        if graph is not None:
+            self.graph = graph
+        elif effective_registry is not None:
+            self.graph = build_graph(effective_registry)
+        else:
+            self.graph = default_graph
+
         self.cache = cache or ComputationCache()
-        self.executor = PathwayExecutor(dispatcher, self.cache, registry=registry)
+        self.executor = PathwayExecutor(
+            dispatcher,
+            self.cache,
+            registry=effective_registry,
+        )
         # Cache parameterizations by target parameter name.
         # Pathway structure depends only on the graph (not on slab data), so
         # the result of find_parameterizations is identical for every slab.

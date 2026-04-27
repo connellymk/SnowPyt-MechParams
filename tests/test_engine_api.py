@@ -10,7 +10,11 @@ from uncertainties import ufloat
 
 from snowpyt_mechparams.models import Layer, Slab
 from snowpyt_mechparams.execution import ExecutionEngine, ExecutionConfig
+from snowpyt_mechparams.execution.dispatcher import MethodDispatcher
 from snowpyt_mechparams.execution.results import PathwayResult
+from snowpyt_mechparams.methods import MethodRegistry, MethodSpec, ParameterLevel
+
+CUSTOM_DENSITY_METHOD = "custom_data_flow_plus_one"
 
 # ---------------------------------------------------------------------------
 # Shared fixture
@@ -33,6 +37,24 @@ def slab():
 @pytest.fixture
 def engine():
     return ExecutionEngine()
+
+
+def _custom_density_registry():
+    """Build a minimal registry with one custom density method."""
+    return MethodRegistry(
+        [
+            MethodSpec(
+                target="density",
+                method_name=CUSTOM_DENSITY_METHOD,
+                level=ParameterLevel.LAYER,
+                source_nodes=("measured_density",),
+                required_inputs=("density_measured",),
+                function=lambda density_measured: density_measured + 1,
+                output_attr="density_calculated",
+                cache_scope="layer",
+            )
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -283,3 +305,50 @@ class TestListAvailablePathways:
         pathways = engine.list_available_pathways("elastic_modulus")
         for entry in pathways:
             assert entry["methods"].get("elastic_modulus") in known_e_methods
+
+
+class TestCustomRegistry:
+    """Tests for custom registry and dispatcher wiring."""
+
+    def test_registry_only_engine_builds_graph_from_registry(self, slab):
+        """A custom registry should drive pathway discovery without a graph arg."""
+        engine = ExecutionEngine(registry=_custom_density_registry())
+
+        pathways = engine.list_available_pathways("density")
+
+        assert len(pathways) == 1
+        assert pathways[0]["methods"]["density"] == CUSTOM_DENSITY_METHOD
+
+    def test_registry_only_engine_executes_custom_method(self, slab):
+        """A custom registry method should be discoverable and executable."""
+        engine = ExecutionEngine(registry=_custom_density_registry())
+
+        result = engine.execute_single(
+            slab,
+            "density",
+            {"density": CUSTOM_DENSITY_METHOD},
+        )
+
+        assert result is not None
+        assert result.success
+        density = result.slab.layers[0].density_calculated
+        assert density is not None
+        assert density.nominal_value == pytest.approx(251.0)
+
+    def test_dispatcher_only_engine_builds_graph_from_dispatcher_registry(self):
+        """A custom dispatcher should also provide the graph registry."""
+        registry = _custom_density_registry()
+        engine = ExecutionEngine(dispatcher=MethodDispatcher(registry))
+
+        pathways = engine.list_available_pathways("density")
+
+        assert len(pathways) == 1
+        assert pathways[0]["methods"]["density"] == CUSTOM_DENSITY_METHOD
+
+    def test_mismatched_dispatcher_and_registry_raise(self):
+        """Separate dispatcher/registry objects are rejected to avoid mismatch."""
+        dispatcher = MethodDispatcher(_custom_density_registry())
+        other_registry = _custom_density_registry()
+
+        with pytest.raises(ValueError, match="dispatcher and registry"):
+            ExecutionEngine(dispatcher=dispatcher, registry=other_registry)

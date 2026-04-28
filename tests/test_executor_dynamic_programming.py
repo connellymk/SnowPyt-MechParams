@@ -189,12 +189,14 @@ class TestSlabParameterExecution:
 
         # Create a slab with all necessary layer properties
         layer1 = Layer(
+            depth_top=ufloat(0, 0.2),
             thickness=ufloat(20, 1),
             elastic_modulus=ufloat(1.5, 0.2),
             poissons_ratio=ufloat(0.3, 0.02),
             shear_modulus=ufloat(0.5, 0.1),
         )
         layer2 = Layer(
+            depth_top=ufloat(20, 0.2),
             thickness=ufloat(30, 1),
             elastic_modulus=ufloat(2.0, 0.3),
             poissons_ratio=ufloat(0.3, 0.02),
@@ -277,6 +279,7 @@ class TestSlabCaching:
 
         # Create a slab with all necessary properties
         layer = Layer(
+            depth_top=ufloat(0, 0.2),
             thickness=ufloat(30, 1),
             elastic_modulus=ufloat(2.0, 0.2),
             poissons_ratio=ufloat(0.3, 0.02),

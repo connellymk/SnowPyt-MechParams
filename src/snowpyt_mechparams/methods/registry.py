@@ -336,6 +336,7 @@ def _slab_specs() -> List[MethodSpec]:
             method_name="weissgraeber_rosendahl",
             level=slab,
             source_nodes=(
+                "measured_layer_location",
                 "measured_layer_thickness",
                 "elastic_modulus",
                 "poissons_ratio",
@@ -343,7 +344,7 @@ def _slab_specs() -> List[MethodSpec]:
             required_inputs=("slab",),
             function=lambda slab: calculate_B11("weissgraeber_rosendahl", slab=slab),
             output_attr="B11",
-            description="Calculate bending-extension coupling from layer thickness, E, and nu.",
+            description="Calculate bending-extension coupling from layer location, thickness, E, and nu.",
             citation="Weissgraeber & Rosendahl (2023)",
         ),
         MethodSpec(
@@ -351,6 +352,7 @@ def _slab_specs() -> List[MethodSpec]:
             method_name="weissgraeber_rosendahl",
             level=slab,
             source_nodes=(
+                "measured_layer_location",
                 "measured_layer_thickness",
                 "elastic_modulus",
                 "poissons_ratio",
@@ -358,7 +360,7 @@ def _slab_specs() -> List[MethodSpec]:
             required_inputs=("slab",),
             function=lambda slab: calculate_D11("weissgraeber_rosendahl", slab=slab),
             output_attr="D11",
-            description="Calculate bending stiffness from layer thickness, E, and nu.",
+            description="Calculate bending stiffness from layer location, thickness, E, and nu.",
             citation="Weissgraeber & Rosendahl (2023)",
         ),
         MethodSpec(

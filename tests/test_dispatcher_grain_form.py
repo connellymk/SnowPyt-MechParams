@@ -120,7 +120,7 @@ class TestGrainFormInExecution:
 
         # Create a simple slab
         layer = Layer(
-            thickness=30, density_measured=250, grain_form="RG", hand_hardness="4F"
+            depth_top=0, thickness=30, density_measured=250, grain_form="RG", hand_hardness="4F"
         )
         slab = Slab(layers=[layer], angle=35)
 

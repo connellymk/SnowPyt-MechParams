@@ -19,9 +19,10 @@ from snowpyt_mechparams.methods.slab.bending_stiffness import calculate_D11
 from snowpyt_mechparams.methods.slab.shear_stiffness import calculate_A55
 
 
-def _make_layer(thickness_cm, E_MPa, nu):
-    """Helper to create a Layer with elastic_modulus, poissons_ratio, and thickness set."""
+def _make_layer(thickness_cm, E_MPa, nu, depth_top_cm=None):
+    """Helper to create a Layer with elastic_modulus, poissons_ratio, thickness, and optionally depth_top set."""
     layer = Layer(
+        depth_top=ufloat(depth_top_cm, 0.0) if depth_top_cm is not None else None,
         thickness=ufloat(thickness_cm, 0.0),
         elastic_modulus=ufloat(E_MPa, 0.0),
         poissons_ratio=ufloat(nu, 0.0),
@@ -144,7 +145,7 @@ class TestD11Numerical:
              = (1/3) * 104.1667 * 250000
              = 8680556
         """
-        layer = _make_layer(10.0, 100.0, 0.2)
+        layer = _make_layer(10.0, 100.0, 0.2, depth_top_cm=0.0)
         slab = Slab(layers=[layer], angle=0.0)
         result = calculate_D11("weissgraeber_rosendahl", slab=slab)
         ps = 100.0 / (1.0 - 0.2**2)
@@ -161,8 +162,8 @@ class TestD11Numerical:
         D11 = (1/3) * 85.333 * (50^3 - 0^3) + (1/3) * 85.333 * (0^3 - (-50)^3)
             = (1/3) * 85.333 * 250000
         """
-        layer1 = _make_layer(5.0, 80.0, 0.25)
-        layer2 = _make_layer(5.0, 80.0, 0.25)
+        layer1 = _make_layer(5.0, 80.0, 0.25, depth_top_cm=0.0)
+        layer2 = _make_layer(5.0, 80.0, 0.25, depth_top_cm=5.0)
         slab = Slab(layers=[layer1, layer2], angle=0.0)
         result = calculate_D11("weissgraeber_rosendahl", slab=slab)
         ps = 80.0 / (1.0 - 0.25**2)
@@ -179,8 +180,8 @@ class TestD11Numerical:
         Layer 0: z_top=+50, z_bottom=+20
         Layer 1: z_top=+20, z_bottom=-50
         """
-        layer1 = _make_layer(3.0, 200.0, 0.2)
-        layer2 = _make_layer(7.0, 50.0, 0.3)
+        layer1 = _make_layer(3.0, 200.0, 0.2, depth_top_cm=0.0)
+        layer2 = _make_layer(7.0, 50.0, 0.3, depth_top_cm=3.0)
         slab = Slab(layers=[layer1, layer2], angle=0.0)
         result = calculate_D11("weissgraeber_rosendahl", slab=slab)
 
@@ -190,6 +191,36 @@ class TestD11Numerical:
         term2 = (1.0 / 3.0) * ps2 * (20.0**3 - (-50.0) ** 3)
         expected = term1 + term2
         assert result.nominal_value == pytest.approx(expected, rel=1e-6)
+
+    def test_missing_depth_top_returns_nan(self):
+        """D11 returns NaN when depth_top is not set — layer location is required."""
+        layer = _make_layer(10.0, 100.0, 0.2, depth_top_cm=None)
+        slab = Slab(layers=[layer], angle=0.0)
+        result = calculate_D11("weissgraeber_rosendahl", slab=slab)
+        assert math.isnan(result.nominal_value)
+
+    def test_gap_between_layers_shifts_result(self):
+        """When layer2.depth_top does not follow immediately from layer1, the gap
+        shifts z-coordinates and changes D11 relative to perfectly-stacked layers.
+
+        Layer 0 (top): E=200 MPa, nu=0.2, thickness=3 cm, depth_top=0 cm
+        Layer 1 (bottom): E=50 MPa, nu=0.3, thickness=7 cm, depth_top=5 cm (2 cm gap)
+
+        With the gap, layer 1 starts 2 cm lower than it would in a perfect stack,
+        so z-coordinates shift and D11 differs from the no-gap case.
+        """
+        layer1 = _make_layer(3.0, 200.0, 0.2, depth_top_cm=0.0)
+        layer2_gap = _make_layer(7.0, 50.0, 0.3, depth_top_cm=5.0)  # gap: 5 > 3
+        layer2_no_gap = _make_layer(7.0, 50.0, 0.3, depth_top_cm=3.0)
+
+        slab_gap = Slab(layers=[layer1, layer2_gap], angle=0.0)
+        slab_no_gap = Slab(layers=[layer1, layer2_no_gap], angle=0.0)
+
+        result_gap = calculate_D11("weissgraeber_rosendahl", slab=slab_gap)
+        result_no_gap = calculate_D11("weissgraeber_rosendahl", slab=slab_no_gap)
+
+        assert not math.isnan(result_gap.nominal_value)
+        assert result_gap.nominal_value != pytest.approx(result_no_gap.nominal_value, rel=1e-6)
 
 
 # ---------------------------------------------------------------------------
@@ -206,15 +237,15 @@ class TestB11Numerical:
         z_top=+50, z_bottom=-50
         z_top^2 - z_bottom^2 = 2500 - 2500 = 0
         """
-        layer = _make_layer(10.0, 100.0, 0.2)
+        layer = _make_layer(10.0, 100.0, 0.2, depth_top_cm=0.0)
         slab = Slab(layers=[layer], angle=0.0)
         result = calculate_B11("weissgraeber_rosendahl", slab=slab)
         assert result.nominal_value == pytest.approx(0.0, abs=1e-10)
 
     def test_two_equal_layers_is_zero(self):
         """Two identical layers symmetric about centroid: B11 = 0."""
-        layer1 = _make_layer(5.0, 80.0, 0.25)
-        layer2 = _make_layer(5.0, 80.0, 0.25)
+        layer1 = _make_layer(5.0, 80.0, 0.25, depth_top_cm=0.0)
+        layer2 = _make_layer(5.0, 80.0, 0.25, depth_top_cm=5.0)
         slab = Slab(layers=[layer1, layer2], angle=0.0)
         result = calculate_B11("weissgraeber_rosendahl", slab=slab)
         assert result.nominal_value == pytest.approx(0.0, abs=1e-10)
@@ -229,8 +260,8 @@ class TestB11Numerical:
         Layer 0: z_top=+50, z_bottom=+20
         Layer 1: z_top=+20, z_bottom=-50
         """
-        layer1 = _make_layer(3.0, 200.0, 0.2)
-        layer2 = _make_layer(7.0, 50.0, 0.3)
+        layer1 = _make_layer(3.0, 200.0, 0.2, depth_top_cm=0.0)
+        layer2 = _make_layer(7.0, 50.0, 0.3, depth_top_cm=3.0)
         slab = Slab(layers=[layer1, layer2], angle=0.0)
         result = calculate_B11("weissgraeber_rosendahl", slab=slab)
 
@@ -242,6 +273,30 @@ class TestB11Numerical:
         assert result.nominal_value == pytest.approx(expected, rel=1e-6)
         # Stiffer layer on top should make B11 positive
         assert result.nominal_value > 0
+
+    def test_missing_depth_top_returns_nan(self):
+        """B11 returns NaN when depth_top is not set — layer location is required."""
+        layer = _make_layer(10.0, 100.0, 0.2, depth_top_cm=None)
+        slab = Slab(layers=[layer], angle=0.0)
+        result = calculate_B11("weissgraeber_rosendahl", slab=slab)
+        assert math.isnan(result.nominal_value)
+
+    def test_gap_between_layers_shifts_result(self):
+        """When layer2.depth_top does not follow immediately from layer1, the gap
+        shifts z-coordinates and changes B11 relative to perfectly-stacked layers.
+        """
+        layer1 = _make_layer(3.0, 200.0, 0.2, depth_top_cm=0.0)
+        layer2_gap = _make_layer(7.0, 50.0, 0.3, depth_top_cm=5.0)  # gap: 5 > 3
+        layer2_no_gap = _make_layer(7.0, 50.0, 0.3, depth_top_cm=3.0)
+
+        slab_gap = Slab(layers=[layer1, layer2_gap], angle=0.0)
+        slab_no_gap = Slab(layers=[layer1, layer2_no_gap], angle=0.0)
+
+        result_gap = calculate_B11("weissgraeber_rosendahl", slab=slab_gap)
+        result_no_gap = calculate_B11("weissgraeber_rosendahl", slab=slab_no_gap)
+
+        assert not math.isnan(result_gap.nominal_value)
+        assert result_gap.nominal_value != pytest.approx(result_no_gap.nominal_value, rel=1e-6)
 
 
 # ---------------------------------------------------------------------------

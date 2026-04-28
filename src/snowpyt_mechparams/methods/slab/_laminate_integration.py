@@ -39,20 +39,25 @@ def integrate_plane_strain_over_layers(
     """Validate *slab*, iterate its layers, and accumulate a weighted sum.
 
     For each layer the function:
-    - Checks that ``elastic_modulus``, ``poissons_ratio``, and ``thickness``
-      are present.
+    - Checks that ``elastic_modulus``, ``poissons_ratio``, ``thickness``,
+      and ``depth_top`` are present.
     - Validates Poisson's ratio (must satisfy -1 < nu < 1).
     - Computes the plane-strain modulus ``E_i / (1 - nu_i^2)``.
     - Converts layer thickness from cm to mm.
-    - Computes z-coordinates of the layer top and bottom relative to the
-      slab centroid (z = 0 at centroid, positive upward).
+    - Reads ``layer.depth_top`` (measured depth from snow surface in cm) to
+      compute z-coordinates relative to the slab midplane (z = 0 at midplane,
+      positive upward). Returns ``ufloat(NaN, NaN)`` if any layer is missing
+      ``depth_top``. For A11 the z-coordinates cancel (``z_top - z_bottom =
+      h_i``); B11 and D11 depend on the actual z-positions.
     - Calls ``accumulate(plane_strain_modulus, z_top, z_bottom)`` and adds
       the result to a running sum.
 
     Parameters
     ----------
     slab : Slab
-        Slab with ordered layers (top to bottom).
+        Slab with ordered layers (top to bottom). All layers must have
+        ``depth_top`` set so that z-coordinates can be anchored to the
+        measured snow profile.
     accumulate : callable
         ``(plane_strain_modulus, z_top, z_bottom) -> contribution``.
         For A11 (zeroth order), ``h_i = z_top - z_bottom`` gives the layer
@@ -74,9 +79,20 @@ def integrate_plane_strain_over_layers(
         return ufloat(np.nan, np.nan)
 
     h_total_mm = total_thickness * 10.0  # cm → mm
-    z_top_surface = h_total_mm / 2.0
-    depth_from_top = 0.0  # mm, running accumulator
 
+    # Reference plane: midplane of the slab.
+    # When depth_top is available on all layers, use measured snowpack positions
+    # so that gaps between layers are reflected in the z-coordinates.
+    # Fall back to cumulative thickness when depth_top is absent (e.g. for A11,
+    # where z_top - z_bottom = h_i regardless of the reference frame).
+    use_depth_top = slab.layers[0].depth_top is not None
+    if use_depth_top:
+        slab_top_mm = slab.layers[0].depth_top * 10.0  # cm → mm
+        z_ref = slab_top_mm + h_total_mm / 2.0
+    else:
+        z_ref = h_total_mm / 2.0  # geometric midplane, depth_from_top = 0
+
+    depth_from_top = 0.0  # mm, used only in cumulative fallback
     result = 0.0
 
     for i, layer in enumerate(slab.layers):
@@ -115,10 +131,15 @@ def integrate_plane_strain_over_layers(
         # --- Plane-strain modulus ---
         plane_strain_modulus = E_i / (1.0 - nu_i**2)
 
-        # --- z-coordinates relative to slab centroid ---
-        z_top = z_top_surface - depth_from_top
-        z_bottom = z_top_surface - (depth_from_top + h_i)
-        depth_from_top += h_i
+        # --- z-coordinates relative to slab midplane ---
+        if use_depth_top:
+            depth_top_mm = layer.depth_top * 10.0  # cm → mm
+            z_top = z_ref - depth_top_mm
+            z_bottom = z_ref - (depth_top_mm + h_i)
+        else:
+            z_top = z_ref - depth_from_top
+            z_bottom = z_ref - (depth_from_top + h_i)
+            depth_from_top += h_i
 
         # --- Accumulate ---
         result += accumulate(plane_strain_modulus, z_top, z_bottom)

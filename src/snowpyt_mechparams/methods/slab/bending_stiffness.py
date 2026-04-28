@@ -1,13 +1,18 @@
 # Methods to calculate bending stiffness (D11) of a layered slab
 
+import logging
 from typing import Any
 
+import numpy as np
+from uncertainties import ufloat
 from uncertainties.core import AffineScalarFunc
 
 from snowpyt_mechparams.models import Slab, UncertainValue
 from snowpyt_mechparams.methods.slab._laminate_integration import (
     integrate_plane_strain_over_layers,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_D11(method: str, **kwargs: Any) -> UncertainValue:
@@ -147,6 +152,11 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     Theory and Analysis (2nd ed.). CRC Press.
     https://doi.org/10.1201/b12409
     """
+
+    for i, layer in enumerate(slab.layers):
+        if layer.depth_top is None:
+            logger.debug("_calculate_D11: layer %d missing depth_top", i)
+            return ufloat(np.nan, np.nan)
 
     def _accumulate_D11(
         plane_strain_modulus: AffineScalarFunc,

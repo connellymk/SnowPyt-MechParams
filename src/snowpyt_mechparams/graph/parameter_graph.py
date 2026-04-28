@@ -21,6 +21,7 @@ measured_grain_form = default_graph.get_node("measured_grain_form")
 measured_grain_size = default_graph.get_node("measured_grain_size")
 measured_slope_angle = default_graph.get_node("measured_slope_angle")
 measured_layer_thickness = default_graph.get_node("measured_layer_thickness")
+measured_layer_location = default_graph.get_node("measured_layer_location")
 
 density = default_graph.get_node("density")
 elastic_modulus = default_graph.get_node("elastic_modulus")
@@ -56,6 +57,7 @@ __all__ = [
     "measured_grain_size",
     "measured_slope_angle",
     "measured_layer_thickness",
+    "measured_layer_location",
     "density",
     "elastic_modulus",
     "poissons_ratio",

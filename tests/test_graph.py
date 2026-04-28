@@ -59,6 +59,7 @@ class TestLayerParameterNodes:
             "measured_hand_hardness",
             "measured_grain_form",
             "measured_grain_size",
+            "measured_layer_location",
             "measured_slope_angle",
         ]
         for param in measured_params:
@@ -177,6 +178,7 @@ class TestMergeNodes:
         """Slab-level merge nodes should exist."""
         merge_nodes = [
             "merge_layer_thickness_elastic_modulus_poissons_ratio",
+            "merge_layer_location_layer_thickness_elastic_modulus_poissons_ratio",
             "merge_layer_thickness_shear_modulus",
             "merge_density_layer_thickness",
             "merge_slab_weight_slope_angle",
@@ -188,7 +190,7 @@ class TestMergeNodes:
             assert node.type == "merge"
 
     def test_plate_merge_has_correct_inputs(self):
-        """Plate stiffness merge should combine thickness, E, and nu."""
+        """A11 merge combines thickness, E, and nu (no layer location)."""
         node = graph.get_node("merge_layer_thickness_elastic_modulus_poissons_ratio")
         assert node is not None
 
@@ -196,6 +198,34 @@ class TestMergeNodes:
         assert "measured_layer_thickness" in input_params
         assert "elastic_modulus" in input_params
         assert "poissons_ratio" in input_params
+        assert "measured_layer_location" not in input_params
+
+    def test_b11_d11_merge_has_correct_inputs(self):
+        """B11/D11 merge combines layer location, thickness, E, and nu."""
+        node = graph.get_node(
+            "merge_layer_location_layer_thickness_elastic_modulus_poissons_ratio"
+        )
+        assert node is not None
+
+        input_params = {edge.start.parameter for edge in node.incoming_edges}
+        assert "measured_layer_location" in input_params
+        assert "measured_layer_thickness" in input_params
+        assert "elastic_modulus" in input_params
+        assert "poissons_ratio" in input_params
+
+    def test_a11_and_b11_d11_use_distinct_merge_nodes(self):
+        """A11 must use a different merge node than B11 and D11."""
+        a11_merge = next(
+            e.start for e in graph.get_node("A11").incoming_edges if e.start.type == "merge"
+        )
+        b11_merge = next(
+            e.start for e in graph.get_node("B11").incoming_edges if e.start.type == "merge"
+        )
+        d11_merge = next(
+            e.start for e in graph.get_node("D11").incoming_edges if e.start.type == "merge"
+        )
+        assert a11_merge is not b11_merge
+        assert b11_merge is d11_merge
 
     def test_merge_elastic_modulus_poissons_ratio_has_correct_inputs(self):
         """Layer-level E/ν merge should combine elastic_modulus and poissons_ratio."""

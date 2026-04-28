@@ -14,6 +14,7 @@ MEASURED_NODES = (
     "measured_grain_form",
     "measured_grain_size",
     "measured_layer_thickness",
+    "measured_layer_location",
     "measured_slope_angle",
 )
 

@@ -29,8 +29,8 @@ scope, citation labels, and short descriptions for every built-in method.
 | `slab_weight_shear` | `slope_parallel_component` | `slab` | `slab_weight`, `measured_slope_angle` | `slab` | `slab_weight_shear` | `none` | SnowPyt-MechParams coverage helper | Project slab weight parallel to slope angle. |
 | `slab_weight_shear_with_elasticity` | `combine_shear_weight_and_elasticity` | `slab` | `slab_weight_shear`, `elastic_modulus`, `poissons_ratio` | `slab` | `slab_weight_shear_with_elasticity` | `none` | SnowPyt-MechParams coverage helper | Coverage target requiring W_s, E, and nu. |
 | `A11` | `weissgraeber_rosendahl` | `slab` | `measured_layer_thickness`, `elastic_modulus`, `poissons_ratio` | `slab` | `A11` | `none` | Weissgraeber & Rosendahl (2023) | Calculate extensional stiffness from layer thickness, E, and nu. |
-| `B11` | `weissgraeber_rosendahl` | `slab` | `measured_layer_thickness`, `elastic_modulus`, `poissons_ratio` | `slab` | `B11` | `none` | Weissgraeber & Rosendahl (2023) | Calculate bending-extension coupling from layer thickness, E, and nu. |
-| `D11` | `weissgraeber_rosendahl` | `slab` | `measured_layer_thickness`, `elastic_modulus`, `poissons_ratio` | `slab` | `D11` | `none` | Weissgraeber & Rosendahl (2023) | Calculate bending stiffness from layer thickness, E, and nu. |
+| `B11` | `weissgraeber_rosendahl` | `slab` | `measured_layer_location`, `measured_layer_thickness`, `elastic_modulus`, `poissons_ratio` | `slab` | `B11` | `none` | Weissgraeber & Rosendahl (2023) | Calculate bending-extension coupling from layer location, thickness, E, and nu. |
+| `D11` | `weissgraeber_rosendahl` | `slab` | `measured_layer_location`, `measured_layer_thickness`, `elastic_modulus`, `poissons_ratio` | `slab` | `D11` | `none` | Weissgraeber & Rosendahl (2023) | Calculate bending stiffness from layer location, thickness, E, and nu. |
 | `A55` | `weissgraeber_rosendahl` | `slab` | `measured_layer_thickness`, `shear_modulus` | `slab` | `A55` | `none` | Weissgraeber & Rosendahl (2023) | Calculate shear stiffness from layer thickness and shear modulus. |
 
 ## Source Materials

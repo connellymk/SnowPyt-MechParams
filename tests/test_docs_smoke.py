@@ -13,8 +13,9 @@ from snowpyt_mechparams.snowpilot import parse_caaml_file
 def test_documented_quick_start_runs():
     """The synthetic quick-start slab should execute at least one D11 pathway."""
     layers = [
-        Layer(thickness=ufloat(20, 1), hand_hardness="1F", grain_form="RG"),
+        Layer(depth_top=ufloat(0, 0.2), thickness=ufloat(20, 1), hand_hardness="1F", grain_form="RG"),
         Layer(
+            depth_top=ufloat(20, 0.2),
             thickness=ufloat(25, 1),
             density_measured=ufloat(220, 20),
             grain_form="DF",

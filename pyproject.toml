@@ -49,7 +49,7 @@ io = [
     "fastparquet>=2024.0.0",
 ]
 weac = [
-    "weac>=3.1.4",
+    "weac>=3.1.4; python_version >= '3.12'",
 ]
 docs = [
     "sphinx>=4.0",
@@ -61,10 +61,12 @@ dev = [
     "pytest>=6.0",
     "pytest-cov>=2.0",
     "black>=21.0",
-    "flake8>=3.8",
+    "ruff>=0.15.0",
     "mypy>=0.800",
     "sphinx>=4.0",
     "sphinx-rtd-theme>=1.0",
+    "sphinx-autodoc-typehints>=1.10",
+    "myst-parser>=0.15",
     "jupyter>=1.0",
     "tqdm>=4.0.0",
     "matplotlib>=3.3.0",
@@ -104,6 +106,11 @@ extend-exclude = '''
 )/
 '''
 
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+extend-exclude = ["*.ipynb"]
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --strict-markers --strict-config"
@@ -113,6 +120,7 @@ testpaths = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
+    "performance: marks slow performance benchmarks (deselect with '-m \"not performance\"')",
 ]
 
 [tool.mypy]
@@ -143,7 +151,7 @@ module = [
 ignore_missing_imports = true
 
 [tool.ruff.lint.per-file-ignores]
-# Notebooks and examples often have imports after setup (E402) and compact syntax (E701)
+# Examples often have imports after environment setup (E402) and compact syntax (E701)
 "examples/**" = ["E402", "E701"]
 
 [tool.coverage.run]

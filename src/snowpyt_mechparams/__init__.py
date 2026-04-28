@@ -13,13 +13,12 @@ Data Structures
     Layer, Slab, Pit - Core data structures for snow profiles
 
 Parameter Calculation
-    layer_parameters - Methods for layer-level properties (density, E, ν, G)
-    slab_parameters - Methods for slab-level plate theory parameters (A11, B11, D11, A55)
+    methods - Registry and implementations for layer and slab methods
     stability_criteria - Roch and WEAC stability criterion implementations
 
 Parameterization Graph
-    graph - Directed graph of all available calculation methods
-    algorithm - Functions to find all calculation pathways
+    graph - Registry-generated directed graph of all available methods
+    pathway - Functions and dataclasses for finding calculation pathways
 
 Execution Engine
     ExecutionEngine - Execute calculations across all pathways with dynamic programming
@@ -28,7 +27,7 @@ Execution Engine
 Quick Start
 -----------
 >>> from snowpyt_mechparams import ExecutionEngine
->>> from snowpyt_mechparams.graph import graph
+>>> from snowpyt_mechparams.graph import default_graph
 >>> from snowpyt_mechparams.models import Slab, Layer
 >>>
 >>> # Create slab with measured data
@@ -36,7 +35,7 @@ Quick Start
 >>> slab = Slab(layers=layers, angle=35)
 >>>
 >>> # Execute all pathways to calculate D11
->>> engine = ExecutionEngine(graph)
+>>> engine = ExecutionEngine()
 >>> results = engine.execute_all(slab, target_parameter='D11')
 >>> print(f"Computed D11 via {results.successful_pathways} pathways")
 >>> print(f"Cache hit rate: {results.cache_stats['hit_rate']:.1%}")
@@ -46,17 +45,27 @@ Quick Start
 from snowpyt_mechparams.models import Layer, Slab
 
 # Constants
-from snowpyt_mechparams.constants import HARDNESS_MAPPING, RHO_ICE, WEAK_LAYER_DEFINITIONS
+from snowpyt_mechparams.constants import (
+    HARDNESS_MAPPING,
+    RHO_ICE,
+    WEAK_LAYER_DEFINITIONS,
+)
 
 # SnowPilot parsing (import module, not individual functions)
 from snowpyt_mechparams import snowpilot
 
-# Layer parameter calculations
-from snowpyt_mechparams.layer_parameters import (
+# Method calculations
+from snowpyt_mechparams.methods.layer import (
     calculate_density,
     calculate_elastic_modulus,
     calculate_poissons_ratio,
     calculate_shear_modulus,
+)
+from snowpyt_mechparams.methods import (
+    MethodRegistry,
+    MethodSpec,
+    ParameterLevel,
+    default_registry,
 )
 
 # Execution engine
@@ -81,9 +90,9 @@ from snowpyt_mechparams.stability_criteria import (
     calculate_weac_skier,
 )
 
-# Graph and algorithm modules (imported as modules, not individual items)
+# Graph and pathway modules (imported as modules, not individual items)
 from snowpyt_mechparams import graph
-from snowpyt_mechparams import algorithm
+from snowpyt_mechparams import pathway
 
 __version__ = "0.4.0"
 __author__ = "Mary Connelly and SnowPyt-MechParams Contributors"
@@ -106,6 +115,10 @@ __all__ = [
     "calculate_elastic_modulus",
     "calculate_poissons_ratio",
     "calculate_shear_modulus",
+    "MethodRegistry",
+    "MethodSpec",
+    "ParameterLevel",
+    "default_registry",
     # Execution engine
     "ExecutionEngine",
     "ExecutionConfig",
@@ -122,8 +135,7 @@ __all__ = [
     "calculate_shear_stress",
     "WeacSkierResult",
     "calculate_weac_skier",
-    # Graph and algorithm (as modules)
+    # Graph and pathway (as modules)
     "graph",
-    "algorithm",
+    "pathway",
 ]
-

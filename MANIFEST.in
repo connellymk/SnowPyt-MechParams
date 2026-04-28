@@ -4,12 +4,17 @@ include LICENSE
 include pyproject.toml
 
 # Include documentation
+include .readthedocs.yaml
 recursive-include docs *.rst *.md *.py *.bat *.txt
 recursive-include docs *.png *.jpg *.jpeg *.gif *.svg
 
 # Include examples and tests
 recursive-include examples *.py *.ipynb *.md *.txt *.csv *.json
+recursive-include examples/sample_data *.xml
 recursive-include tests *.py *.txt *.csv *.json
+
+# Keep the full research dataset repo-local; package only examples/sample_data.
+prune examples/data
 
 # Exclude compiled files and caches
 global-exclude *.pyc

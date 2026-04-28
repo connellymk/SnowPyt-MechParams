@@ -13,12 +13,12 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.layer_parameters.density import calculate_density
-
+from snowpyt_mechparams.methods.layer.density import calculate_density
 
 # ---------------------------------------------------------------------------
 # Geldsetzer
 # ---------------------------------------------------------------------------
+
 
 class TestGeldsetzerNumerical:
     """Verify geldsetzer density against hand-computed values from Table 3."""
@@ -56,7 +56,7 @@ class TestGeldsetzerNumerical:
     def test_RG_nonlinear(self):
         """RG: rho = 154 + 1.51*h^3.15.  h=3.0 => 154 + 1.51 * 3.0^3.15."""
         h = 3.0
-        expected = 154.0 + 1.51 * (h ** 3.15)
+        expected = 154.0 + 1.51 * (h**3.15)
         result = calculate_density(
             "geldsetzer",
             hand_hardness_index=ufloat(h, 0.0),
@@ -106,6 +106,7 @@ class TestGeldsetzerNumerical:
 # ---------------------------------------------------------------------------
 # Kim & Jamieson Table 2
 # ---------------------------------------------------------------------------
+
 
 class TestKimJamiesonTable2Numerical:
     """Verify kim_jamieson_table2 density against Table 2 coefficients.
@@ -229,6 +230,7 @@ class TestKimJamiesonTable2Numerical:
 # Kim & Jamieson Table 5
 # ---------------------------------------------------------------------------
 
+
 class TestKimJamiesonTable5Numerical:
     """Verify kim_jamieson_table5 density against Table 5 (Table 6 in code) coefficients.
 
@@ -296,7 +298,10 @@ class TestKimJamiesonTable5Numerical:
 # Unknown method
 # ---------------------------------------------------------------------------
 
+
 class TestUnknownMethod:
     def test_unknown_raises(self):
         with pytest.raises(ValueError, match="Unknown method"):
-            calculate_density("nonexistent_method", hand_hardness_index=ufloat(1.0, 0.0))
+            calculate_density(
+                "nonexistent_method", hand_hardness_index=ufloat(1.0, 0.0)
+            )

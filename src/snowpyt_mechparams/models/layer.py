@@ -64,14 +64,21 @@ class Layer:
         Layer elastic modulus. Can include uncertainty.
 
     """
+
     # ==========================================
     # Field Measurements
     # ==========================================
-    depth_top: Optional[UncertainValue] = None  # cm - Layer depth from the top of the snowpack
+    depth_top: Optional[UncertainValue] = (
+        None  # cm - Layer depth from the top of the snowpack
+    )
     thickness: Optional[UncertainValue] = None  # cm - Layer thickness
-    density_measured: Optional[UncertainValue] = None  # kg/m³ - Layer density measured directly
+    density_measured: Optional[UncertainValue] = (
+        None  # kg/m³ - Layer density measured directly
+    )
     hand_hardness: Optional[str] = None  # Layer hand hardness
-    grain_form: Optional[str] = None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGxf') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
+    grain_form: Optional[str] = (
+        None  # Grain form code: sub-grain class (e.g., 'FCxr', 'PPgp', 'RGxf') if available, otherwise basic class (e.g., 'FC', 'PP', 'RG')
+    )
     grain_size_avg: Optional[UncertainValue] = None  # mm - Average grain size
     layer_of_concern: bool = False  # Whether this layer is marked as layer of concern
 
@@ -149,6 +156,7 @@ class Layer:
 
         Examples
         --------
+        >>> layer = Layer()
         >>> layer.grain_form = "FCxr"
         >>> layer.main_grain_form
         'FC'

@@ -36,19 +36,33 @@ def process_pits_with_multiple_slabs(caaml_directory):
             effective_pit_id = slab.pit_id if slab.pit_id else f"pit_{pit_idx:05d}"
 
             slab_info = {
-                'pit_id': effective_pit_id,
-                'slab_id': slab.slab_id,
-                'weak_layer_source': slab.weak_layer_source,
-                'test_result_index': slab.test_result_index,
-                'n_test_results_in_pit': slab.n_test_results_in_pit,
-                'weak_layer_depth': slab.weak_layer.depth_top if slab.weak_layer else None,
-                'n_layers': len(slab.layers),
-                'slab_thickness': slab.total_thickness,
-                'slope_angle': slab.angle,
+                "pit_id": effective_pit_id,
+                "slab_id": slab.slab_id,
+                "weak_layer_source": slab.weak_layer_source,
+                "test_result_index": slab.test_result_index,
+                "n_test_results_in_pit": slab.n_test_results_in_pit,
+                "weak_layer_depth": (
+                    slab.weak_layer.depth_top if slab.weak_layer else None
+                ),
+                "n_layers": len(slab.layers),
+                "slab_thickness": slab.total_thickness,
+                "slope_angle": slab.angle,
                 # Test properties
-                'test_score': slab.test_result_properties.get('score') if slab.test_result_properties else None,
-                'test_propagation': slab.test_result_properties.get('propagation') if slab.test_result_properties else None,
-                'test_depth': slab.test_result_properties.get('depth_top') if slab.test_result_properties else None,
+                "test_score": (
+                    slab.test_result_properties.get("score")
+                    if slab.test_result_properties
+                    else None
+                ),
+                "test_propagation": (
+                    slab.test_result_properties.get("propagation")
+                    if slab.test_result_properties
+                    else None
+                ),
+                "test_depth": (
+                    slab.test_result_properties.get("depth_top")
+                    if slab.test_result_properties
+                    else None
+                ),
             }
             slab_data.append(slab_info)
 
@@ -59,7 +73,7 @@ def process_pits_with_multiple_slabs(caaml_directory):
 
 def summarize_slabs_per_pit(df):
     """Summarize the distribution of slabs per pit."""
-    slabs_per_pit = df.groupby('pit_id').size()
+    slabs_per_pit = df.groupby("pit_id").size()
 
     print("\nSlabs per Pit Distribution:")
     print(f"Total pits: {len(slabs_per_pit)}")
@@ -71,7 +85,7 @@ def summarize_slabs_per_pit(df):
     return slabs_per_pit
 
 
-def compare_parameter_across_slabs(df, parameter='D11'):
+def compare_parameter_across_slabs(df, parameter="D11"):
     """
     Example: Compare a mechanical parameter across slabs.
 
@@ -79,10 +93,10 @@ def compare_parameter_across_slabs(df, parameter='D11'):
     across all slabs, accounting for multiple slabs per pit.
     """
     # Group by pit to see variation within pits
-    within_pit_variation = df.groupby('pit_id')[parameter].agg(['mean', 'std', 'count'])
+    within_pit_variation = df.groupby("pit_id")[parameter].agg(["mean", "std", "count"])
 
     # Filter to pits with multiple slabs
-    multiple_slabs = within_pit_variation[within_pit_variation['count'] > 1]
+    multiple_slabs = within_pit_variation[within_pit_variation["count"] > 1]
 
     print(f"\nWithin-Pit Variation of {parameter}:")
     print(f"Pits with multiple slabs: {len(multiple_slabs)}")
@@ -112,22 +126,22 @@ if __name__ == "__main__":
     print(f"\nSaved slab data to: {output_file}")
 
     # Print summary statistics
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("SUMMARY STATISTICS")
-    print("="*60)
+    print("=" * 60)
 
     summarize_slabs_per_pit(df)
 
     # Print sample of the data
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("SAMPLE DATA (first 10 slabs)")
-    print("="*60)
+    print("=" * 60)
     print(df.head(10).to_string())
 
     # Note about statistical analysis
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("IMPORTANT: Statistical Considerations")
-    print("="*60)
+    print("=" * 60)
     print("""
 When analyzing mechanical parameters (like D11) across slabs:
 

@@ -13,6 +13,7 @@ from uncertainties import umath
 
 from snowpyt_mechparams.constants import g
 from snowpyt_mechparams.models import Slab, UncertainValue
+from snowpyt_mechparams.stability_criteria._utils import _nominal
 
 
 def calculate_shear_stress(slab: Slab) -> Optional[UncertainValue]:
@@ -35,10 +36,14 @@ def calculate_shear_stress(slab: Slab) -> Optional[UncertainValue]:
     Returns
     -------
     Optional[UncertainValue]
-        Shear stress in N/m², or ``None`` if any layer is missing
-        ``thickness`` or ``density_calculated``.
+        Shear stress in N/m², or ``None`` if the slope angle is missing/NaN or
+        any layer is missing ``thickness`` or ``density_calculated``.
     """
-    slope_rad = slab.angle * math.pi / 180  # UFloat-compatible radians
+    angle = slab.angle
+    if _nominal(angle) is None:
+        return None
+
+    slope_rad = angle * math.pi / 180  # UFloat-compatible radians
     total = 0.0
     for layer in slab.layers:
         if layer.thickness is None or layer.density_calculated is None:

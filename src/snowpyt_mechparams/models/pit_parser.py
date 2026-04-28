@@ -39,9 +39,7 @@ def parse_pit(snow_pit: Any) -> "Pit":
 
     slope_angle: Any = float("nan")
     try:
-        slope_angle = _ufloat(
-            snow_pit.core_info.location.slope_angle[0], U_SLOPE_ANGLE
-        )
+        slope_angle = _ufloat(snow_pit.core_info.location.slope_angle[0], U_SLOPE_ANGLE)
     except (AttributeError, IndexError, TypeError, ValueError):
         pass
 

@@ -7,7 +7,9 @@ stability index for both natural terrain and skier-loaded variants.
 
 from snowpyt_mechparams.stability_criteria.roch.roch_result import RochResult
 from snowpyt_mechparams.stability_criteria.roch.roch_criterion import calculate_roch
-from snowpyt_mechparams.stability_criteria.roch.shear_stress import calculate_shear_stress
+from snowpyt_mechparams.stability_criteria.roch.shear_stress import (
+    calculate_shear_stress,
+)
 
 __all__ = [
     "RochResult",

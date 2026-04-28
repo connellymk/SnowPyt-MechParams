@@ -15,13 +15,13 @@ import math
 import pytest
 from uncertainties import ufloat
 
-from snowpyt_mechparams.layer_parameters.elastic_modulus import calculate_elastic_modulus
+from snowpyt_mechparams.methods.layer.elastic_modulus import calculate_elastic_modulus
 from snowpyt_mechparams.constants import RHO_ICE, E_ICE_POLYCRYSTALLINE
-
 
 # ---------------------------------------------------------------------------
 # Bergfeld
 # ---------------------------------------------------------------------------
+
 
 class TestBergfeldNumerical:
     """E = C0 * (rho/rho_ice)^C1 where C0=6500 MPa, C1=4.4."""
@@ -31,7 +31,9 @@ class TestBergfeldNumerical:
         rho = ufloat(250.0, 0.0)
         expected = 6500.0 * (250.0 / RHO_ICE) ** 4.4
         result = calculate_elastic_modulus(
-            "bergfeld", density=rho, grain_form="RG",
+            "bergfeld",
+            density=rho,
+            grain_form="RG",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -41,7 +43,9 @@ class TestBergfeldNumerical:
         rho = ufloat(200.0, 0.0)
         expected = 6500.0 * (200.0 / RHO_ICE) ** 4.4
         result = calculate_elastic_modulus(
-            "bergfeld", density=rho, grain_form="DF",
+            "bergfeld",
+            density=rho,
+            grain_form="DF",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -49,20 +53,26 @@ class TestBergfeldNumerical:
     def test_below_range_returns_nan(self):
         """Density < 110 kg/m³ is out of range."""
         result = calculate_elastic_modulus(
-            "bergfeld", density=ufloat(100.0, 0.0), grain_form="RG",
+            "bergfeld",
+            density=ufloat(100.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_above_range_returns_nan(self):
         """Density > 363 kg/m³ is out of range."""
         result = calculate_elastic_modulus(
-            "bergfeld", density=ufloat(400.0, 0.0), grain_form="RG",
+            "bergfeld",
+            density=ufloat(400.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_elastic_modulus(
-            "bergfeld", density=ufloat(250.0, 0.0), grain_form="FC",
+            "bergfeld",
+            density=ufloat(250.0, 0.0),
+            grain_form="FC",
         )
         assert math.isnan(result.nominal_value)
 
@@ -70,6 +80,7 @@ class TestBergfeldNumerical:
 # ---------------------------------------------------------------------------
 # Kochle
 # ---------------------------------------------------------------------------
+
 
 class TestKochleNumerical:
     """E = E_ice * C2 * exp(C3 * rho/rho_ice).
@@ -86,7 +97,9 @@ class TestKochleNumerical:
         C3 = 0.0396 * RHO_ICE
         expected = 10000.0 * C2 * math.exp(C3 * 200.0 / RHO_ICE)
         result = calculate_elastic_modulus(
-            "kochle", density=rho, grain_form="RG",
+            "kochle",
+            density=rho,
+            grain_form="RG",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -98,27 +111,35 @@ class TestKochleNumerical:
         C3 = 0.011 * RHO_ICE
         expected = 10000.0 * C2 * math.exp(C3 * 350.0 / RHO_ICE)
         result = calculate_elastic_modulus(
-            "kochle", density=rho, grain_form="RG",
+            "kochle",
+            density=rho,
+            grain_form="RG",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
 
     def test_below_range_returns_nan(self):
         result = calculate_elastic_modulus(
-            "kochle", density=ufloat(100.0, 0.0), grain_form="RG",
+            "kochle",
+            density=ufloat(100.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_above_range_returns_nan(self):
         result = calculate_elastic_modulus(
-            "kochle", density=ufloat(500.0, 0.0), grain_form="RG",
+            "kochle",
+            density=ufloat(500.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_unsupported_grain_form_returns_nan(self):
         """Kochle only supports RG, FC, DH, MF."""
         result = calculate_elastic_modulus(
-            "kochle", density=ufloat(300.0, 0.0), grain_form="PP",
+            "kochle",
+            density=ufloat(300.0, 0.0),
+            grain_form="PP",
         )
         assert math.isnan(result.nominal_value)
 
@@ -129,7 +150,9 @@ class TestKochleNumerical:
         C3 = 0.011 * RHO_ICE
         expected = 10000.0 * C2 * math.exp(C3 * 300.0 / RHO_ICE)
         result = calculate_elastic_modulus(
-            "kochle", density=rho, grain_form="FC",
+            "kochle",
+            density=rho,
+            grain_form="FC",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -138,6 +161,7 @@ class TestKochleNumerical:
 # ---------------------------------------------------------------------------
 # Wautier
 # ---------------------------------------------------------------------------
+
 
 class TestWautierNumerical:
     """E = E_ice * A * (rho/rho_ice)^n where A=0.78, n=2.34, E_ice=E_ICE_POLYCRYSTALLINE."""
@@ -148,7 +172,9 @@ class TestWautierNumerical:
         E_ice = E_ICE_POLYCRYSTALLINE
         expected = E_ice * 0.78 * (300.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
-            "wautier", density=rho, grain_form="RG",
+            "wautier",
+            density=rho,
+            grain_form="RG",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -158,20 +184,26 @@ class TestWautierNumerical:
         E_ice = E_ICE_POLYCRYSTALLINE
         expected = E_ice * 0.78 * (200.0 / RHO_ICE) ** 2.34
         result = calculate_elastic_modulus(
-            "wautier", density=rho, grain_form="FC",
+            "wautier",
+            density=rho,
+            grain_form="FC",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
 
     def test_below_range_returns_nan(self):
         result = calculate_elastic_modulus(
-            "wautier", density=ufloat(50.0, 0.0), grain_form="RG",
+            "wautier",
+            density=ufloat(50.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
     def test_above_range_returns_nan(self):
         result = calculate_elastic_modulus(
-            "wautier", density=ufloat(600.0, 0.0), grain_form="RG",
+            "wautier",
+            density=ufloat(600.0, 0.0),
+            grain_form="RG",
         )
         assert math.isnan(result.nominal_value)
 
@@ -179,6 +211,7 @@ class TestWautierNumerical:
 # ---------------------------------------------------------------------------
 # Schottner
 # ---------------------------------------------------------------------------
+
 
 class TestSchottnerNumerical:
     """E = E_ice * A * (rho/rho_ice)^n.  Grain-type-dependent A, n.
@@ -193,7 +226,9 @@ class TestSchottnerNumerical:
         rho = ufloat(300.0, 0.0)
         expected = 10000.0 * 0.40 * (300.0 / RHO_ICE) ** 4.6
         result = calculate_elastic_modulus(
-            "schottner", density=rho, grain_form="RG",
+            "schottner",
+            density=rho,
+            grain_form="RG",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -202,7 +237,9 @@ class TestSchottnerNumerical:
         rho = ufloat(250.0, 0.0)
         expected = 10000.0 * 1.8 * (250.0 / RHO_ICE) ** 5.1
         result = calculate_elastic_modulus(
-            "schottner", density=rho, grain_form="FC",
+            "schottner",
+            density=rho,
+            grain_form="FC",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
@@ -211,14 +248,18 @@ class TestSchottnerNumerical:
         rho = ufloat(200.0, 0.0)
         expected = 10000.0 * 0.011 * (200.0 / RHO_ICE) ** 1.7
         result = calculate_elastic_modulus(
-            "schottner", density=rho, grain_form="SH",
+            "schottner",
+            density=rho,
+            grain_form="SH",
             include_method_uncertainty=False,
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
 
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_elastic_modulus(
-            "schottner", density=ufloat(300.0, 0.0), grain_form="PP",
+            "schottner",
+            density=ufloat(300.0, 0.0),
+            grain_form="PP",
         )
         assert math.isnan(result.nominal_value)
 
@@ -226,6 +267,7 @@ class TestSchottnerNumerical:
 # ---------------------------------------------------------------------------
 # Unknown method
 # ---------------------------------------------------------------------------
+
 
 class TestUnknownElasticModulusMethod:
     def test_unknown_raises(self):

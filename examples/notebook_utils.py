@@ -7,69 +7,75 @@ Import pattern in notebooks:
         hess_rcparams, SINGLE_COL, DOUBLE_COL, DPI,
     )
 """
+
 from __future__ import annotations
 
 import math
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 os.environ.setdefault(
-    'MPLCONFIGDIR',
-    str(Path(__file__).resolve().parents[1] / '.matplotlib'),
+    "MPLCONFIGDIR",
+    str(Path(__file__).resolve().parents[1] / ".matplotlib"),
 )
 
 import matplotlib as mpl
 import numpy as np
 
+if TYPE_CHECKING:
+    from snowpyt_mechparams.models import Pit, Slab
+
 # ── HESS figure standards ─────────────────────────────────────────────────────
-SINGLE_COL = 3.35   # inches
-DOUBLE_COL = 7.0    # inches
+SINGLE_COL = 3.35  # inches
+DOUBLE_COL = 7.0  # inches
 DPI = 300
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SNOW_ROOT = Path(__file__).resolve().parents[2]
-REPO_PAPER_FIGURES_DIR = REPO_ROOT / 'paper' / 'figures'
-EXTERNAL_PAPER_FIGURES_DIR = SNOW_ROOT / 'mech_params_paper' / 'figures'
+REPO_PAPER_FIGURES_DIR = REPO_ROOT / "paper" / "figures"
+EXTERNAL_PAPER_FIGURES_DIR = SNOW_ROOT / "mech_params_paper" / "figures"
 PAPER_FIGURES_DIR = REPO_PAPER_FIGURES_DIR
 PAPER_FIGURES_DIRS = (REPO_PAPER_FIGURES_DIR, EXTERNAL_PAPER_FIGURES_DIR)
 
 
 def hess_rcparams() -> None:
     """Apply HESS-compliant matplotlib rcParams (call once per notebook)."""
-    mpl.rcParams['font.family'] = 'sans-serif'
-    mpl.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
-    mpl.rcParams['figure.dpi'] = DPI
-    mpl.rcParams['savefig.dpi'] = DPI
-    mpl.rcParams['pdf.fonttype'] = 42
-    mpl.rcParams['ps.fonttype'] = 42
+    mpl.rcParams["font.family"] = "sans-serif"
+    mpl.rcParams["font.sans-serif"] = ["Helvetica", "Arial", "DejaVu Sans"]
+    mpl.rcParams["figure.dpi"] = DPI
+    mpl.rcParams["savefig.dpi"] = DPI
+    mpl.rcParams["pdf.fonttype"] = 42
+    mpl.rcParams["ps.fonttype"] = 42
 
 
 # ── Wong (2011) colorblind-safe palette — density method colours ─────────────
 # Consistent across all pathway and stability criteria notebooks.
 DENSITY_COLORS: dict[str, str] = {
-    'data_flow':           '#CC79A7',   # pink
-    'geldsetzer':          '#0072B2',   # blue
-    'kim_jamieson_table2': '#009E73',   # green
-    'kim_jamieson_table5': '#E69F00',   # orange
+    "data_flow": "#CC79A7",  # pink
+    "geldsetzer": "#0072B2",  # blue
+    "kim_jamieson_table2": "#009E73",  # green
+    "kim_jamieson_table5": "#E69F00",  # orange
 }
 
 
 def rgba(hex_color: str, alpha: float = 0.75) -> str:
     """Convert a #RRGGBB hex colour to a Plotly-compatible rgba() string."""
-    h = hex_color.lstrip('#')
+    h = hex_color.lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-    return f'rgba({r},{g},{b},{alpha})'
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
 
-def load_pits(data_dir: str = 'data') -> list[Pit]:
+
+def load_pits(data_dir: str = "data") -> list[Pit]:
     """Parse all CAAML files in *data_dir* and return a list of Pit objects."""
     import warnings
     from snowpyt_mechparams.models import Pit
     from snowpyt_mechparams.snowpilot import parse_caaml_directory
 
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         snow_pits_raw = parse_caaml_directory(str(Path(data_dir)))
     return [Pit.from_snow_pit(sp) for sp in snow_pits_raw]
 
@@ -79,7 +85,7 @@ def create_ectp_slabs(pits: list[Pit]) -> list[Slab]:
     return [
         slab
         for pit in pits
-        for slab in pit.create_slabs(weak_layer_def='ECTP_failure_layer')
+        for slab in pit.create_slabs(weak_layer_def="ECTP_failure_layer")
     ]
 
 
@@ -104,11 +110,12 @@ def build_layer_infos(pits: list[Pit]) -> list[tuple]:
 
 # ── Computation-trace helpers (used in stability_criteria_inputs.ipynb) ───────
 
+
 def nominal(v) -> float:
     """Extract nominal float value from a UFloat or plain number."""
     if v is None:
         return math.nan
-    if hasattr(v, 'nominal_value'):
+    if hasattr(v, "nominal_value"):
         return float(v.nominal_value)
     try:
         return float(v)
@@ -119,7 +126,8 @@ def nominal(v) -> float:
 def count_ok(traces, param: str, n_layers: int) -> bool:
     """Return True if all *n_layers* layer-level traces for *param* succeeded."""
     n = sum(
-        1 for t in traces
+        1
+        for t in traces
         if t.parameter == param
         and t.layer_index is not None
         and t.success
@@ -134,7 +142,8 @@ def extract_param_stats(traces, param: str) -> tuple[float, float]:
     Returns (nan, nan) when no traces succeed.
     """
     successful = [
-        t for t in traces
+        t
+        for t in traces
         if t.parameter == param
         and t.layer_index is not None
         and t.success
@@ -147,7 +156,7 @@ def extract_param_stats(traces, param: str) -> tuple[float, float]:
     rel_uncs: list[float] = []
     for t in successful:
         out = t.output
-        if hasattr(out, 'nominal_value'):
+        if hasattr(out, "nominal_value"):
             nom = float(out.nominal_value)
             std = float(out.std_dev)
         else:

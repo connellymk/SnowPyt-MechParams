@@ -24,4 +24,6 @@ class WeakLayer(Layer):
     @classmethod
     def from_layer(cls, layer: "Layer") -> "WeakLayer":
         """Create a WeakLayer from a plain Layer, copying all Layer fields."""
-        return cls(**{f.name: getattr(layer, f.name) for f in dataclasses.fields(layer)})
+        return cls(
+            **{f.name: getattr(layer, f.name) for f in dataclasses.fields(layer)}
+        )

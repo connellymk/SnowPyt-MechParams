@@ -965,39 +965,35 @@ def build_slab_weight_attrition_figure(
     )
 
 
-def build_d11_distribution_figure(
-    ordered_paths: Sequence[tuple[str, int]],
-    pathway_nominal: dict[str, Sequence[float]],
-    total_slabs: int,
+def build_d11_paired_pathway_effects_figure(
+    paired_effects: pd.DataFrame,
+    selected_paths: Sequence[str],
     *,
-    top_n: int = 12,
+    top_n: int = 8,
 ) -> plt.Figure:
-    """Create the D11 top-pathways boxplot figure."""
-    selected_keys = select_d11_top_pathways(ordered_paths, pathway_nominal, top_n=top_n)
-    selected_lookup = dict(ordered_paths)
-    data: list[np.ndarray] = []
+    """Create a paired pathway-effect figure using within-slab D11 ratios."""
+    ratio_data: list[np.ndarray] = []
     labels: list[str] = []
     colors: list[str] = []
 
-    for pathway in selected_keys:
-        n_success = selected_lookup[pathway]
-        values = np.asarray(pathway_nominal.get(pathway, []), dtype=float)
-        values = values[np.isfinite(values) & (values > 0)]
-        if values.size == 0:
+    for pathway in list(selected_paths)[:top_n]:
+        pathway_rows = paired_effects[paired_effects["pathway"] == pathway]
+        ratios = np.asarray(pathway_rows["pathway_ratio"], dtype=float)
+        ratios = ratios[np.isfinite(ratios) & (ratios > 0)]
+        if ratios.size == 0:
             continue
-        density_method = pathway.split(" -> ")[0]
-        colors.append(DENSITY_COLORS.get(density_method, "#888888"))
-        data.append(values)
-        labels.append(
-            f"{format_method_path(*pathway.split(' -> '), short=True)} ({n_success / total_slabs:.1%})"
-        )
 
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 5.7))
+        density_method = pathway.split(" -> ")[0]
+        ratio_data.append(ratios)
+        labels.append(format_method_path(*pathway.split(" -> "), short=True))
+        colors.append(DENSITY_COLORS.get(density_method, "#888888"))
+
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 4.2))
     box = ax.boxplot(
-        data,
+        ratio_data,
         vert=False,
         patch_artist=True,
-        widths=0.65,
+        widths=0.62,
         showfliers=False,
         showmeans=True,
         whis=(5, 95),
@@ -1005,53 +1001,48 @@ def build_d11_distribution_figure(
             "marker": "o",
             "markerfacecolor": "#222222",
             "markeredgecolor": "white",
-            "markersize": 4.6,
+            "markersize": 3.8,
         },
-        medianprops={"color": "#222222", "linewidth": 1.2},
-        whiskerprops={"color": "#555555", "linewidth": 1.0},
-        capprops={"color": "#555555", "linewidth": 1.0},
+        medianprops={"color": "#222222", "linewidth": 1.1},
+        whiskerprops={"color": "#555555", "linewidth": 0.9},
+        capprops={"color": "#555555", "linewidth": 0.9},
     )
     for patch, color in zip(box["boxes"], colors, strict=True):
         patch.set_facecolor(color)
         patch.set_edgecolor(COLOR_BORDER)
         patch.set_alpha(0.72)
 
+    ax.axvline(1.0, color=COLOR_BORDER, linewidth=1.0, linestyle="--")
     ax.set_xscale("log")
-    ax.set_xlabel(r"$D_{11}$ (N m)")
-    ax.set_yticks(np.arange(1, len(labels) + 1))
+    ax.set_xlabel(r"$D_{11}$ ratio to within-slab median")
+    y_positions = np.arange(1, len(labels) + 1)
+    ax.set_yticks(y_positions)
     ax.set_yticklabels(labels, fontsize=8)
     ax.invert_yaxis()
     _setup_publication_axes(ax, x_grid=True, y_grid=False)
-
-    fig.legend(
-        handles=density_legend_handles(),
-        loc="upper center",
-        bbox_to_anchor=(0.50, 1.02),
-        ncol=2,
-        frameon=False,
-        fontsize=7.5,
-    )
-    fig.tight_layout(rect=(0, 0, 1, 0.92), pad=0.5)
+    fig.tight_layout(pad=0.5)
     return fig
 
 
-def select_d11_top_pathways(
-    ordered_paths: Sequence[tuple[str, int]],
-    pathway_nominal: dict[str, Sequence[float]],
+def build_d11_spread_attribute_correlations_figure(
+    correlations: pd.DataFrame,
     *,
-    top_n: int = 12,
-) -> list[str]:
-    """Return the top-N D11 pathways with valid positive nominal values."""
-    selected: list[str] = []
-    for pathway, _n_success in ordered_paths:
-        values = np.asarray(pathway_nominal.get(pathway, []), dtype=float)
-        values = values[np.isfinite(values) & (values > 0)]
-        if values.size == 0:
-            continue
-        selected.append(pathway)
-        if len(selected) == top_n:
-            break
-    return selected
+    top_n: int = 10,
+    xlabel: str = r"Spearman $\rho$ with paired pathway spread",
+) -> plt.Figure:
+    """Create a bar chart of Spearman correlations with D11 spread."""
+    table = correlations.head(top_n).iloc[::-1].copy()
+    colors = np.where(table["Spearman rho"] >= 0, "#0072B2", "#D55E00")
+
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.9))
+    ax.barh(table["Attribute"], table["Spearman rho"], color=colors, alpha=0.82)
+    ax.axvline(0, color=COLOR_BORDER, linewidth=0.8)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("")
+    ax.tick_params(axis="y", labelsize=8)
+    _setup_publication_axes(ax, x_grid=True, y_grid=False)
+    fig.tight_layout(pad=0.5)
+    return fig
 
 
 def prepare_slab_weight_shear_table(
@@ -1141,40 +1132,6 @@ def prepare_slab_weight_shear_elasticity_table(
         elasticity_cov,
         total_slabs,
         top_n=top_n,
-    )
-
-
-def _scientific_to_latex(value: str) -> str:
-    """Convert a scientific-notation string like 1.234e+05 to LaTeX math."""
-    coefficient, exponent = value.split("e")
-    return rf"${coefficient} \times 10^{{{int(exponent)}}}$"
-
-
-def prepare_d11_top_pathways_table(
-    summary_df: pd.DataFrame,
-    ordered_paths: Sequence[tuple[str, int]],
-    pathway_nominal: dict[str, Sequence[float]],
-    *,
-    top_n: int = 12,
-) -> pd.DataFrame:
-    """Create a table for the same top-N D11 pathways shown in the figure."""
-    selected_paths = select_d11_top_pathways(
-        ordered_paths, pathway_nominal, top_n=top_n
-    )
-    table = summary_df.set_index("Pathway").loc[selected_paths].reset_index()
-    return pd.DataFrame(
-        {
-            "Pathway": [
-                format_method_path(*pathway.split(" -> "))
-                for pathway in table["Pathway"]
-            ],
-            "Successful slabs": table["Slabs"].astype(str),
-            "Coverage (%)": table["Coverage (%)"].astype(str),
-            "Mean D11 (N m)": table["Mean D11 (N m)"].map(_scientific_to_latex),
-            "Mean relative uncertainty (%)": table[
-                "Mean relative uncertainty (%)"
-            ].astype(str),
-        }
     )
 
 

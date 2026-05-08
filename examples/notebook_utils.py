@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import math
 import os
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 os.environ.setdefault(
     "MPLCONFIGDIR",
@@ -121,6 +122,156 @@ def nominal(v) -> float:
         return float(v)
     except (TypeError, ValueError):
         return math.nan
+
+
+def finite_array(values: Iterable[Any]) -> np.ndarray:
+    """Return finite float values from an iterable of plain or uncertain values."""
+    arr = np.asarray([nominal(value) for value in values], dtype=float)
+    return arr[np.isfinite(arr)]
+
+
+def finite_positive(value: Any) -> bool:
+    """Return True for finite, positive values."""
+    value = nominal(value)
+    return math.isfinite(value) and value > 0
+
+
+def finite_percentile(values: Iterable[Any], q: float) -> float:
+    """Return percentile *q* from finite values, or NaN when none are available."""
+    arr = finite_array(values)
+    return float(np.percentile(arr, q)) if arr.size else math.nan
+
+
+def coefficient_of_variation(values: Iterable[Any]) -> float:
+    """Return std / mean, or NaN when the mean is unavailable or zero."""
+    arr = finite_array(values)
+    if arr.size == 0:
+        return math.nan
+    mean_value = float(np.mean(arr))
+    if mean_value == 0 or not math.isfinite(mean_value):
+        return math.nan
+    return float(np.std(arr, ddof=0) / abs(mean_value))
+
+
+def pathway_key(methods: Mapping[str, str]) -> str:
+    """Return the density -> E -> nu pathway key used in paper tables."""
+    return " -> ".join(
+        [
+            methods.get("density", "data_flow"),
+            methods.get("elastic_modulus", "unknown"),
+            methods.get("poissons_ratio", "unknown"),
+        ]
+    )
+
+
+def extract_pathway_parameter(pathway_result: Any, param: str) -> tuple[float, float]:
+    """Return nominal value and standard deviation from a pathway result trace."""
+    for trace in pathway_result.computation_trace:
+        if trace.parameter == param and trace.success and trace.output is not None:
+            output = trace.output
+            return nominal(output), float(getattr(output, "std_dev", 0.0))
+    return math.nan, math.nan
+
+
+def extract_d11(pathway_result: Any) -> tuple[float, float]:
+    """Return nominal D11 and standard deviation from a pathway result."""
+    return extract_pathway_parameter(pathway_result, "D11")
+
+
+def slab_attribute_record(
+    slab_index: int, slab: Slab
+) -> dict[str, float | int | str | None]:
+    """Summarize slab geometry and layer attributes used in spread analysis."""
+    thicknesses = finite_array(layer.thickness for layer in slab.layers)
+    hardness_values = finite_array(layer.hand_hardness_index for layer in slab.layers)
+    weighted_pairs = [
+        (nominal(layer.hand_hardness_index), nominal(layer.thickness))
+        for layer in slab.layers
+    ]
+    weighted_pairs = [
+        (hardness, thickness)
+        for hardness, thickness in weighted_pairs
+        if math.isfinite(hardness) and math.isfinite(thickness) and thickness > 0
+    ]
+
+    hand_hardness_weighted_mean = math.nan
+    if weighted_pairs:
+        hardness, weights = np.asarray(weighted_pairs, dtype=float).T
+        hand_hardness_weighted_mean = float(np.average(hardness, weights=weights))
+
+    return {
+        "slab_index": slab_index,
+        "slab_id": slab.slab_id,
+        "pit_id": slab.pit_id,
+        "n_layers": len(slab.layers),
+        "total_thickness_cm": nominal(slab.total_thickness),
+        "slope_angle_deg": nominal(slab.angle),
+        "layer_thickness_mean_cm": (
+            float(np.mean(thicknesses)) if thicknesses.size else math.nan
+        ),
+        "layer_thickness_std_cm": (
+            float(np.std(thicknesses, ddof=0)) if thicknesses.size else math.nan
+        ),
+        "layer_thickness_cv": coefficient_of_variation(thicknesses),
+        "layer_thickness_max_cm": (
+            float(np.max(thicknesses)) if thicknesses.size else math.nan
+        ),
+        "hand_hardness_index_mean": (
+            float(np.mean(hardness_values)) if hardness_values.size else math.nan
+        ),
+        "hand_hardness_index_std": (
+            float(np.std(hardness_values, ddof=0))
+            if hardness_values.size
+            else math.nan
+        ),
+        "hand_hardness_index_range": (
+            float(np.ptp(hardness_values)) if hardness_values.size else math.nan
+        ),
+        "hand_hardness_index_cv": coefficient_of_variation(hardness_values),
+        "hand_hardness_index_weighted_mean": hand_hardness_weighted_mean,
+    }
+
+
+def scientific_latex(value: float) -> str:
+    """Return a compact LaTeX scientific-notation value."""
+    if not math.isfinite(value):
+        return ""
+    coefficient, exponent = f"{value:.3e}".split("e")
+    return rf"${coefficient} \times 10^{{{int(exponent)}}}$"
+
+
+def prepare_spread_rank_table(
+    frame: Any,
+    *,
+    top_n: int = 8,
+    pathway_formatter: Callable[[str], str] = str,
+):
+    """Format a paired spread ranking table for manuscript copy/paste."""
+    import pandas as pd
+
+    return pd.DataFrame(
+        {
+            "Slab ID": frame["slab_id"].astype(str),
+            "Pit ID": frame["pit_id"].astype(str),
+            "Layers": frame["n_layers"].astype(int).astype(str),
+            "Thickness (cm)": frame["total_thickness_cm"].map(
+                lambda value: f"{value:.1f}"
+            ),
+            "Min pathway": frame["min_pathway"].map(
+                lambda value: pathway_formatter(str(value))
+            ),
+            "Max pathway": frame["max_pathway"].map(
+                lambda value: pathway_formatter(str(value))
+            ),
+            "Max/min ratio": frame["pathway_spread_ratio"].map(
+                lambda value: f"{value:.1f}"
+            ),
+            "log10(max/min)": frame["log10_pathway_spread"].map(
+                lambda value: f"{value:.2f}"
+            ),
+            "D11 range (N·mm)": frame["range_D11"].map(scientific_latex),
+        }
+    ).head(top_n)
 
 
 def count_ok(traces, param: str, n_layers: int) -> bool:

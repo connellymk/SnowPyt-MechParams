@@ -10,8 +10,10 @@ from typing import Sequence
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from notebook_utils import (
     DENSITY_COLORS,
@@ -228,6 +230,7 @@ DENSITY_SUPPORT_METHODS = [
 ]
 
 ELASTIC_SUPPORT_METHODS = ["bergfeld", "kochle", "wautier", "schottner"]
+EMOD_METHOD_ORDER = ELASTIC_SUPPORT_METHODS
 POISSONS_SUPPORT_METHODS = ["kochle", "srivastava"]
 
 SUPPORT_METHOD_STYLES = {
@@ -1133,6 +1136,294 @@ def prepare_slab_weight_shear_elasticity_table(
         total_slabs,
         top_n=top_n,
     )
+
+
+def sort_pathways_by_emod_group(
+    pathways: Sequence[str],
+) -> list[str]:
+    """Sort pathway keys into E-mod method groups, then by density and nu method."""
+
+    def _sort_key(pathway: str) -> tuple[int, int, int]:
+        parts = pathway.split(" -> ")
+        density, emod, nu = parts[0], parts[1], parts[2] if len(parts) > 2 else ""
+        emod_rank = (
+            EMOD_METHOD_ORDER.index(emod)
+            if emod in EMOD_METHOD_ORDER
+            else len(EMOD_METHOD_ORDER)
+        )
+        density_rank = (
+            DENSITY_METHOD_ORDER.index(density)
+            if density in DENSITY_METHOD_ORDER
+            else len(DENSITY_METHOD_ORDER)
+        )
+        nu_rank = (
+            POISSONS_SUPPORT_METHODS.index(nu)
+            if nu in POISSONS_SUPPORT_METHODS
+            else len(POISSONS_SUPPORT_METHODS)
+        )
+        return (emod_rank, density_rank, nu_rank)
+
+    return sorted(pathways, key=_sort_key)
+
+
+def _parse_pathway(pathway: str) -> tuple[str, str, str]:
+    """Split a 'density -> emod -> nu' pathway key into its three method names."""
+    parts = [p.strip() for p in pathway.split("->")]
+    return parts[0], parts[1] if len(parts) > 1 else "", parts[2] if len(parts) > 2 else ""
+
+
+def _emod_panel_label(idx: int, emod: str) -> str:
+    panel_letters = "abcdefgh"
+    return f"({panel_letters[idx]}) {method_label(emod, short=True)}"
+
+
+def build_d11_faceted_paired_ratio_figure(
+    paired_effects: pd.DataFrame,
+    selected_paths: Sequence[str],
+    pathway_coverage: dict[str, int] | None = None,
+) -> plt.Figure:
+    """Create a 4-panel faceted paired-ratio plot grouped by E-mod method.
+
+    Parameters
+    ----------
+    pathway_coverage : dict mapping pathway key -> total successful slabs
+        When provided, each box row is annotated with ``n = <count>`` on
+        the right-hand side.
+    """
+    sorted_paths = sort_pathways_by_emod_group(list(selected_paths))
+
+    emod_groups: dict[str, list[str]] = {}
+    for pathway in sorted_paths:
+        _, emod, _ = _parse_pathway(pathway)
+        emod_groups.setdefault(emod, []).append(pathway)
+
+    active_emods = [e for e in EMOD_METHOD_ORDER if e in emod_groups]
+    n_panels = len(active_emods)
+
+    max_rows = max(len(emod_groups[e]) for e in active_emods)
+    panel_height = max(1.4, 0.45 * max_rows + 0.6)
+    fig, axes = plt.subplots(
+        n_panels,
+        1,
+        figsize=(DOUBLE_COL, panel_height * n_panels + 0.5),
+        sharex=True,
+        squeeze=False,
+    )
+    axes = axes.ravel()
+
+    for panel_idx, emod in enumerate(active_emods):
+        ax = axes[panel_idx]
+        panel_pathways = emod_groups[emod]
+        ratio_data: list[np.ndarray] = []
+        labels: list[str] = []
+        colors: list[str] = []
+        coverage_counts: list[int | None] = []
+
+        for pathway in panel_pathways:
+            density, _, nu = _parse_pathway(pathway)
+            rows = paired_effects[paired_effects["pathway"] == pathway]
+            ratios = np.asarray(rows["pathway_ratio"], dtype=float)
+            ratios = ratios[np.isfinite(ratios) & (ratios > 0)]
+            if ratios.size == 0:
+                continue
+            ratio_data.append(ratios)
+            labels.append(
+                rf"$\rho$: {method_label(density, short=True)}  "
+                rf"$\nu$: {method_label(nu, short=True)}"
+            )
+            colors.append(DENSITY_COLORS.get(density, "#888888"))
+            coverage_counts.append(
+                pathway_coverage.get(pathway) if pathway_coverage else None
+            )
+
+        if not ratio_data:
+            ax.set_visible(False)
+            continue
+
+        box = ax.boxplot(
+            ratio_data,
+            vert=False,
+            patch_artist=True,
+            widths=0.55,
+            showfliers=False,
+            showmeans=True,
+            whis=(5, 95),
+            meanprops={
+                "marker": "o",
+                "markerfacecolor": "#222222",
+                "markeredgecolor": "white",
+                "markersize": 3.2,
+            },
+            medianprops={"color": "#222222", "linewidth": 1.0},
+            whiskerprops={"color": "#555555", "linewidth": 0.8},
+            capprops={"color": "#555555", "linewidth": 0.8},
+        )
+        for patch, color in zip(box["boxes"], colors, strict=True):
+            patch.set_facecolor(color)
+            patch.set_edgecolor(COLOR_BORDER)
+            patch.set_alpha(0.72)
+
+        if pathway_coverage:
+            for y_pos, count in enumerate(coverage_counts, start=1):
+                if count is not None:
+                    ax.text(
+                        0.99,
+                        y_pos,
+                        f"n = {count:,}",
+                        transform=ax.get_yaxis_transform(),
+                        ha="right",
+                        va="center",
+                        fontsize=5.8,
+                        color="#555555",
+                    )
+
+        ax.axvline(1.0, color=COLOR_BORDER, linewidth=0.9, linestyle="--", zorder=0)
+        ax.set_yticks(range(1, len(labels) + 1))
+        ax.set_yticklabels(labels, fontsize=6.5)
+        ax.invert_yaxis()
+        ax.text(
+            0.01,
+            1.05,
+            _emod_panel_label(panel_idx, emod),
+            transform=ax.transAxes,
+            ha="left",
+            va="bottom",
+            fontsize=8,
+            fontweight="bold",
+        )
+        _setup_publication_axes(ax, x_grid=True, y_grid=False)
+
+    axes[-1].set_xscale("log")
+    axes[-1].set_xlabel(r"$D_{11}$ ratio to within-slab median")
+    fig.tight_layout(pad=0.5)
+    fig.subplots_adjust(hspace=0.45)
+    return fig
+
+
+
+def build_d11_quantile_slab_uncertainty_figure(
+    d11_common: pd.DataFrame,
+    selected_slab_indices: Sequence[int],
+    selected_paths: Sequence[str],
+    quantile_labels: Sequence[str] | None = None,
+    spread_ratios: Sequence[float] | None = None,
+) -> plt.Figure:
+    """Create a multi-panel slab dot plot with error bars, selected at spread quantiles."""
+    sorted_paths = sort_pathways_by_emod_group(list(selected_paths))
+    n_slabs = len(selected_slab_indices)
+
+    if quantile_labels is None:
+        quantile_labels = [f"Slab {i + 1}" for i in range(n_slabs)]
+
+    emod_boundaries: list[int] = []
+    current_emod = ""
+    for i, pw in enumerate(sorted_paths):
+        _, emod, _ = _parse_pathway(pw)
+        if emod != current_emod:
+            if i > 0:
+                emod_boundaries.append(i)
+            current_emod = emod
+
+    fig, axes = plt.subplots(
+        n_slabs,
+        1,
+        figsize=(DOUBLE_COL, 1.7 * n_slabs),
+        sharex=False,
+        squeeze=False,
+    )
+    axes = axes.ravel()
+
+    for ax_idx, slab_idx in enumerate(selected_slab_indices):
+        ax = axes[ax_idx]
+        slab_rows = d11_common[d11_common["slab_index"] == slab_idx].copy()
+        slab_rows = slab_rows.set_index("pathway").reindex(sorted_paths).reset_index()
+
+        y_positions = np.arange(len(sorted_paths))
+        d11_nom = slab_rows["D11_nominal"].to_numpy(dtype=float)
+        d11_unc = np.nan_to_num(
+            slab_rows["D11_std"].to_numpy(dtype=float), nan=0.0
+        )
+        d11_unc = np.clip(d11_unc, 0.0, None)
+
+        emod_colors = []
+        for pw in sorted_paths:
+            _, emod, _ = _parse_pathway(pw)
+            emod_colors.append(
+                SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})["color"]
+            )
+
+        for i in range(len(sorted_paths)):
+            if not np.isfinite(d11_nom[i]):
+                continue
+            ax.errorbar(
+                d11_nom[i],
+                y_positions[i],
+                xerr=d11_unc[i],
+                fmt="o",
+                capsize=3,
+                markersize=4.5,
+                color=emod_colors[i],
+                ecolor="#555555",
+                elinewidth=0.9,
+                zorder=3,
+            )
+
+        for boundary in emod_boundaries:
+            ax.axhline(
+                boundary - 0.5,
+                color="#CCCCCC",
+                linewidth=0.6,
+                linestyle="--",
+                zorder=1,
+            )
+
+        pathway_labels = []
+        for pw in sorted_paths:
+            density, emod, nu = _parse_pathway(pw)
+            pathway_labels.append(
+                f"{method_label(density, short=True)} / "
+                f"{method_label(emod, short=True)} / "
+                f"{method_label(nu, short=True)}"
+            )
+        ax.set_yticks(y_positions)
+        ax.set_yticklabels(pathway_labels, fontsize=5.5)
+        ax.invert_yaxis()
+
+        title = quantile_labels[ax_idx]
+        if spread_ratios is not None:
+            title += f" (spread ratio = {spread_ratios[ax_idx]:.1f})"
+        ax.set_title(title, loc="left", fontsize=7.5, fontweight="bold", pad=3)
+
+        ax.xaxis.set_major_formatter(mticker.ScalarFormatter(useMathText=True))
+        ax.ticklabel_format(axis="x", style="scientific", scilimits=(0, 0))
+        ax.tick_params(axis="x", labelsize=6.5)
+        _setup_publication_axes(ax, x_grid=True, y_grid=False)
+
+    axes[-1].set_xlabel(r"$D_{11}$ (N$\cdot$mm)", fontsize=7.5)
+
+    emod_handles = [
+        mpatches.Patch(
+            facecolor=SUPPORT_METHOD_STYLES[emod]["color"],
+            edgecolor=COLOR_BORDER,
+            label=method_label(emod, short=True),
+        )
+        for emod in EMOD_METHOD_ORDER
+        if emod in SUPPORT_METHOD_STYLES
+    ]
+    fig.legend(
+        handles=emod_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.01),
+        ncol=len(emod_handles),
+        frameon=False,
+        fontsize=7,
+        title="Elastic modulus method",
+        title_fontsize=7.2,
+    )
+
+    fig.tight_layout(pad=0.5)
+    fig.subplots_adjust(hspace=0.55, bottom=0.06)
+    return fig
 
 
 def notebook_latex(df: pd.DataFrame) -> str:

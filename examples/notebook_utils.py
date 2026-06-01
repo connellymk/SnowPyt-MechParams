@@ -52,10 +52,10 @@ def hess_rcparams() -> None:
 # ── Wong (2011) colorblind-safe palette — density method colours ─────────────
 # Consistent across all pathway and stability criteria notebooks.
 DENSITY_COLORS: dict[str, str] = {
-    "data_flow": "#CC79A7",  # pink
+    "data_flow": "#8F8F8F",  # gray
     "geldsetzer": "#0072B2",  # blue
     "kim_jamieson_table2": "#009E73",  # green
-    "kim_jamieson_table5": "#E69F00",  # orange
+    "kim_jamieson_table6": "#E69F00",  # orange
 }
 
 

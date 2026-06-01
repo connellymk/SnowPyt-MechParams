@@ -34,19 +34,19 @@ E_ICE_VALUE = 10000.0
 DENSITY_METHOD_ORDER = [
     "kim_jamieson_table2",
     "geldsetzer",
-    "kim_jamieson_table5",
+    "kim_jamieson_table6",
     "data_flow",
 ]
 
 METHOD_LABELS = {
     "data_flow": "Direct matched density",
     "geldsetzer": "Geldsetzer and Jamieson (2000)",
-    "kim_jamieson_table2": "Kim and Jamieson Table 2",
-    "kim_jamieson_table5": "Kim and Jamieson Table 5",
+    "kim_jamieson_table2": "Kim and Jamieson (2014) Table 2",
+    "kim_jamieson_table6": "Kim and Jamieson (2014) Eq. 5 / Table 6",
     "bergfeld": "Bergfeld et al. (2023)",
-    "kochle": "Kochle and Schneebeli (2014)",
+    "kochle": "Köchle and Schneebeli (2014)",
     "wautier": "Wautier et al. (2015)",
-    "schottner": "Schottner et al. (2026)",
+    "schottner": "Schöttner et al. (2026)",
     "srivastava": "Srivastava et al. (2016)",
 }
 
@@ -54,11 +54,11 @@ METHOD_SHORT_LABELS = {
     "data_flow": "Direct",
     "geldsetzer": "Geldsetzer",
     "kim_jamieson_table2": "Kim T2",
-    "kim_jamieson_table5": "Kim T5",
+    "kim_jamieson_table6": "Kim T6",
     "bergfeld": "Bergfeld",
-    "kochle": "Kochle",
+    "kochle": "Köchle",
     "wautier": "Wautier",
-    "schottner": "Schottner",
+    "schottner": "Schöttner",
     "srivastava": "Srivastava",
 }
 
@@ -226,7 +226,7 @@ SUPPORT_GRAIN_FORM_ORDER = [
 DENSITY_SUPPORT_METHODS = [
     "geldsetzer",
     "kim_jamieson_table2",
-    "kim_jamieson_table5",
+    "kim_jamieson_table6",
 ]
 
 ELASTIC_SUPPORT_METHODS = ["bergfeld", "kochle", "wautier", "schottner"]
@@ -234,13 +234,20 @@ EMOD_METHOD_ORDER = ELASTIC_SUPPORT_METHODS
 POISSONS_SUPPORT_METHODS = ["kochle", "srivastava"]
 
 SUPPORT_METHOD_STYLES = {
-    "geldsetzer": {"color": "#0072B2", "label": "Geldsetzer"},
-    "kim_jamieson_table2": {"color": "#009E73", "label": "Kim T2"},
-    "kim_jamieson_table5": {"color": "#E69F00", "label": "Kim T5"},
+    "data_flow": {"color": DENSITY_COLORS["data_flow"], "label": "Direct"},
+    "geldsetzer": {"color": DENSITY_COLORS["geldsetzer"], "label": "Geldsetzer"},
+    "kim_jamieson_table2": {
+        "color": DENSITY_COLORS["kim_jamieson_table2"],
+        "label": "Kim T2",
+    },
+    "kim_jamieson_table6": {
+        "color": DENSITY_COLORS["kim_jamieson_table6"],
+        "label": "Kim T6",
+    },
     "bergfeld": {"color": "#56B4E9", "label": "Bergfeld"},
-    "kochle": {"color": "#CC79A7", "label": "Kochle"},
-    "wautier": {"color": "#F0E442", "label": "Wautier"},
-    "schottner": {"color": "#D55E00", "label": "Schottner"},
+    "kochle": {"color": "#CC79A7", "label": "Köchle"},
+    "wautier": {"color": "#E6B800", "label": "Wautier"},
+    "schottner": {"color": "#D55E00", "label": "Schöttner"},
     "srivastava": {"color": "#4D4D4D", "label": "Srivastava"},
 }
 
@@ -264,7 +271,7 @@ DENSITY_SUPPORT_RANGES = {
         "DH": (1.00, 5.00),
         "MFcr": (2.00, 5.33),
     },
-    "kim_jamieson_table5": {
+    "kim_jamieson_table6": {
         "FC": (1.67, 4.00),
         "FCxr": (2.33, 4.33),
         "PP": (0.67, 2.00),
@@ -319,30 +326,30 @@ def _schottner_curve(rho: np.ndarray, a: float, n: float) -> np.ndarray:
 
 
 def build_elastic_modulus_curves_figure() -> plt.Figure:
-    """Create the elastic-modulus parameterization figure."""
+    """Create the Young's-modulus parameterization figure."""
     rho = np.linspace(100.0, 545.0, 600)
 
     fig, axes = plt.subplots(1, 2, figsize=(DOUBLE_COL, 3.25), sharex=True)
     curve_specs = [
         (
             "Bergfeld",
-            "#0072B2",
+            SUPPORT_METHOD_STYLES["bergfeld"]["color"],
             "-",
             _bergfeld_curve(rho[(rho >= 110) & (rho <= 363)]),
             rho[(rho >= 110) & (rho <= 363)],
             "PP, DF, RG",
         ),
         (
-            "Kochle low",
-            "#A12A6A",
+            "Köchle low",
+            SUPPORT_METHOD_STYLES["kochle"]["color"],
             "-",
             _kochle_low_curve(rho[(rho >= 150) & (rho < 250)]),
             rho[(rho >= 150) & (rho < 250)],
             "RG, FC, DH, MF",
         ),
         (
-            "Kochle high",
-            "#A12A6A",
+            "Köchle high",
+            SUPPORT_METHOD_STYLES["kochle"]["color"],
             "--",
             _kochle_high_curve(rho[(rho >= 250) & (rho <= 450)]),
             rho[(rho >= 250) & (rho <= 450)],
@@ -350,29 +357,36 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
         ),
         (
             "Wautier",
-            "#E69F00",
+            SUPPORT_METHOD_STYLES["wautier"]["color"],
             "-",
             _wautier_curve(rho[(rho >= 103) & (rho <= 544)]),
             rho[(rho >= 103) & (rho <= 544)],
             "DF, RG, FC, DH, MF",
         ),
         (
-            "Schottner DF/RG",
-            "#009E73",
+            "Schöttner DF/RG",
+            SUPPORT_METHOD_STYLES["schottner"]["color"],
             "-",
             _schottner_curve(rho, 0.40, 4.6),
             rho,
             "DF, RG",
         ),
         (
-            "Schottner FC/DH",
-            "#009E73",
+            "Schöttner FC/DH",
+            SUPPORT_METHOD_STYLES["schottner"]["color"],
             "--",
             _schottner_curve(rho, 1.8, 5.1),
             rho,
             "FC, DH",
         ),
-        ("Schottner SH", "#009E73", ":", _schottner_curve(rho, 0.011, 1.7), rho, "SH"),
+        (
+            "Schöttner SH",
+            SUPPORT_METHOD_STYLES["schottner"]["color"],
+            ":",
+            _schottner_curve(rho, 0.011, 1.7),
+            rho,
+            "SH",
+        ),
     ]
 
     for ax in axes:
@@ -382,14 +396,14 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
                 y_values,
                 color=color,
                 linestyle=linestyle,
-                linewidth=1.8,
+                linewidth=2.1 if "Wautier" in label else 1.8,
                 label=f"{label} ({grain_forms})",
             )
         ax.set_xlim(100, 550)
         ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
-    axes[0].set_ylabel(r"Elastic modulus, $E$ (MPa)")
+    axes[0].set_ylabel(r"Young's modulus, $E$ (MPa)")
     axes[0].set_ylim(0, 950)
     axes[0].text(
         0.02,
@@ -612,7 +626,7 @@ def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
     ax.text(
         0.0,
         1.035,
-        f"{panel_label} {title}",
+        f"{panel_label} {title}".strip(),
         transform=ax.transAxes,
         ha="left",
         va="bottom",
@@ -624,31 +638,14 @@ def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
 
 
 def build_method_support_matrices_figure() -> plt.Figure:
-    """Create stacked support matrices for density, elastic modulus, and nu."""
-    fig, axes = plt.subplots(
-        nrows=3,
-        figsize=(DOUBLE_COL, 8.35),
-        gridspec_kw={"height_ratios": [1.08, 1.0, 1.0], "hspace": 0.42},
-    )
+    """Create the density-method support matrix."""
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.75))
 
-    _draw_density_support_panel(axes[0])
-    _draw_density_range_support_panel(axes[1], "elastic_modulus")
-    _draw_density_range_support_panel(axes[2], "poissons_ratio")
-
+    _draw_density_support_panel(ax)
     _style_support_panel(
-        axes[0],
-        "(a)",
-        "Density methods: support depends on grain form and hand hardness",
-    )
-    _style_support_panel(
-        axes[1],
-        "(b)",
-        "Elastic modulus methods: support narrows by density and grain form",
-    )
-    _style_support_panel(
-        axes[2],
-        "(c)",
-        "Poisson's ratio methods: support is most restrictive",
+        ax,
+        "",
+        "Density method support by grain form and hand hardness",
     )
 
     handles = [
@@ -657,9 +654,7 @@ def build_method_support_matrices_figure() -> plt.Figure:
             edgecolor=COLOR_BORDER,
             label=SUPPORT_METHOD_STYLES[method]["label"],
         )
-        for method in (
-            DENSITY_SUPPORT_METHODS + ELASTIC_SUPPORT_METHODS + ["srivastava"]
-        )
+        for method in DENSITY_SUPPORT_METHODS
     ]
     handles.append(
         mpatches.Patch(
@@ -671,14 +666,14 @@ def build_method_support_matrices_figure() -> plt.Figure:
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=5,
+        ncol=4,
         frameon=False,
-        bbox_to_anchor=(0.55, 0.006),
-        fontsize=6.8,
+        bbox_to_anchor=(0.50, 0.005),
+        fontsize=7.0,
         columnspacing=0.95,
         handlelength=1.4,
     )
-    fig.subplots_adjust(left=0.075, right=0.99, top=0.965, bottom=0.095)
+    fig.subplots_adjust(left=0.075, right=0.99, top=0.91, bottom=0.24)
     return fig
 
 
@@ -765,7 +760,7 @@ def build_slab_weight_coverage_comparison_figure(
         axes,
         [
             r"Shear Weight ($W_S$) Pathways",
-            r"Shear Weight ($W_S$) with Elasticity Parameters ($E$, $\nu$) Pathways",
+            r"Shear Weight ($W_S$) with Elastic Inputs ($E$, $\nu$)",
         ],
         strict=True,
     ):
@@ -815,7 +810,7 @@ def build_slab_weight_coverage_comparison_figure(
         ncol=2,
         frameon=False,
         fontsize=7.0,
-        title="Density Method",
+        title="Density method",
         title_fontsize=7.2,
         columnspacing=1.2,
         handlelength=1.5,
@@ -1095,16 +1090,22 @@ def prepare_slab_weight_shear_with_elasticity_table(
     return table.rename(
         columns={
             "density_method": "Density method",
-            "emod_method": "E method",
-            "nu_method": "nu method",
+            "emod_method": "$E$ method",
+            "nu_method": r"$\nu$ method",
         }
     )[
-        ["Density method", "E method", "nu method", "Successful slabs", "Coverage (%)"]
+        [
+            "Density method",
+            "$E$ method",
+            r"$\nu$ method",
+            "Successful slabs",
+            "Coverage (%)",
+        ]
     ].assign(
         **{
             "Density method": lambda frame: frame["Density method"].map(method_label),
-            "E method": lambda frame: frame["E method"].map(method_label),
-            "nu method": lambda frame: frame["nu method"].map(method_label),
+            "$E$ method": lambda frame: frame["$E$ method"].map(method_label),
+            r"$\nu$ method": lambda frame: frame[r"$\nu$ method"].map(method_label),
         }
     )
 
@@ -1141,7 +1142,7 @@ def prepare_slab_weight_shear_elasticity_table(
 def sort_pathways_by_emod_group(
     pathways: Sequence[str],
 ) -> list[str]:
-    """Sort pathway keys into E-mod method groups, then by density and nu method."""
+    """Sort pathway keys into Young's-modulus method groups, then by density and nu method."""
 
     def _sort_key(pathway: str) -> tuple[int, int, int]:
         parts = pathway.split(" -> ")
@@ -1182,7 +1183,7 @@ def build_d11_faceted_paired_ratio_figure(
     selected_paths: Sequence[str],
     pathway_coverage: dict[str, int] | None = None,
 ) -> plt.Figure:
-    """Create a 4-panel faceted paired-ratio plot grouped by E-mod method.
+    """Create a 4-panel faceted paired-ratio plot grouped by Young's-modulus method.
 
     Parameters
     ----------
@@ -1216,7 +1217,6 @@ def build_d11_faceted_paired_ratio_figure(
         panel_pathways = emod_groups[emod]
         ratio_data: list[np.ndarray] = []
         labels: list[str] = []
-        colors: list[str] = []
         coverage_counts: list[int | None] = []
 
         for pathway in panel_pathways:
@@ -1231,7 +1231,6 @@ def build_d11_faceted_paired_ratio_figure(
                 rf"$\rho$: {method_label(density, short=True)}  "
                 rf"$\nu$: {method_label(nu, short=True)}"
             )
-            colors.append(DENSITY_COLORS.get(density, "#888888"))
             coverage_counts.append(
                 pathway_coverage.get(pathway) if pathway_coverage else None
             )
@@ -1258,10 +1257,11 @@ def build_d11_faceted_paired_ratio_figure(
             whiskerprops={"color": "#555555", "linewidth": 0.8},
             capprops={"color": "#555555", "linewidth": 0.8},
         )
-        for patch, color in zip(box["boxes"], colors, strict=True):
-            patch.set_facecolor(color)
+        emod_color = SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})["color"]
+        for patch in box["boxes"]:
+            patch.set_facecolor(emod_color)
             patch.set_edgecolor(COLOR_BORDER)
-            patch.set_alpha(0.72)
+            patch.set_alpha(0.75)
 
         if pathway_coverage:
             for y_pos, count in enumerate(coverage_counts, start=1):
@@ -1307,6 +1307,7 @@ def build_d11_quantile_slab_uncertainty_figure(
     selected_paths: Sequence[str],
     quantile_labels: Sequence[str] | None = None,
     spread_ratios: Sequence[float] | None = None,
+    slab_metadata_labels: Sequence[str] | None = None,
 ) -> plt.Figure:
     """Create a multi-panel slab dot plot with error bars, selected at spread quantiles."""
     sorted_paths = sort_pathways_by_emod_group(list(selected_paths))
@@ -1327,11 +1328,17 @@ def build_d11_quantile_slab_uncertainty_figure(
     fig, axes = plt.subplots(
         n_slabs,
         1,
-        figsize=(DOUBLE_COL, 1.7 * n_slabs),
-        sharex=False,
+        figsize=(DOUBLE_COL, 1.75 * n_slabs),
+        sharex=True,
         squeeze=False,
     )
     axes = axes.ravel()
+    positive_values = d11_common.loc[
+        np.isfinite(d11_common["D11_nominal"]) & (d11_common["D11_nominal"] > 0),
+        "D11_nominal",
+    ].to_numpy(dtype=float)
+    x_min = float(np.nanmin(positive_values)) / 1.6
+    x_max = float(np.nanmax(positive_values)) * 1.6
 
     for ax_idx, slab_idx in enumerate(selected_slab_indices):
         ax = axes[ax_idx]
@@ -1344,6 +1351,8 @@ def build_d11_quantile_slab_uncertainty_figure(
             slab_rows["D11_std"].to_numpy(dtype=float), nan=0.0
         )
         d11_unc = np.clip(d11_unc, 0.0, None)
+        xerr_lower = np.minimum(d11_unc, np.clip(d11_nom - x_min, 0.0, None))
+        xerr_upper = d11_unc
 
         emod_colors = []
         for pw in sorted_paths:
@@ -1353,12 +1362,12 @@ def build_d11_quantile_slab_uncertainty_figure(
             )
 
         for i in range(len(sorted_paths)):
-            if not np.isfinite(d11_nom[i]):
+            if not np.isfinite(d11_nom[i]) or d11_nom[i] <= 0:
                 continue
             ax.errorbar(
                 d11_nom[i],
                 y_positions[i],
-                xerr=d11_unc[i],
+                xerr=np.array([[xerr_lower[i]], [xerr_upper[i]]]),
                 fmt="o",
                 capsize=3,
                 markersize=4.5,
@@ -1391,11 +1400,14 @@ def build_d11_quantile_slab_uncertainty_figure(
 
         title = quantile_labels[ax_idx]
         if spread_ratios is not None:
-            title += f" (spread ratio = {spread_ratios[ax_idx]:.1f})"
-        ax.set_title(title, loc="left", fontsize=7.5, fontweight="bold", pad=3)
+            title += f" (spread = {spread_ratios[ax_idx]:.1f})"
+        if slab_metadata_labels is not None:
+            title += f"\n{slab_metadata_labels[ax_idx]}"
+        ax.set_title(title, loc="left", fontsize=7.2, fontweight="bold", pad=3)
 
-        ax.xaxis.set_major_formatter(mticker.ScalarFormatter(useMathText=True))
-        ax.ticklabel_format(axis="x", style="scientific", scilimits=(0, 0))
+        ax.set_xscale("log")
+        ax.set_xlim(x_min, x_max)
+        ax.xaxis.set_major_formatter(mticker.LogFormatterMathtext())
         ax.tick_params(axis="x", labelsize=6.5)
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
@@ -1417,12 +1429,12 @@ def build_d11_quantile_slab_uncertainty_figure(
         ncol=len(emod_handles),
         frameon=False,
         fontsize=7,
-        title="Elastic modulus method",
+        title="Young's modulus method",
         title_fontsize=7.2,
     )
 
     fig.tight_layout(pad=0.5)
-    fig.subplots_adjust(hspace=0.55, bottom=0.06)
+    fig.subplots_adjust(hspace=0.55, bottom=0.095)
     return fig
 
 

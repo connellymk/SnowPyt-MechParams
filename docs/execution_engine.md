@@ -385,7 +385,7 @@ class MethodSpec:
 | **density** | `data_flow` | layer | density_measured | Direct measurement |
 | | `geldsetzer` | layer | hand_hardness_index, grain_form | Geldsetzer & Jamieson (2000) |
 | | `kim_jamieson_table2` | layer | hand_hardness_index, grain_form | Kim & Jamieson (2014) Table 2 |
-| | `kim_jamieson_table5` | layer | hand_hardness_index, grain_form, grain_size | Kim & Jamieson (2014) Table 5 |
+| | `kim_jamieson_table6` | layer | hand_hardness_index, grain_form, grain_size | Kim & Jamieson (2014) Eq. 5 / Table 6 |
 | **elastic_modulus** | `bergfeld` | layer | density, grain_form | Bergfeld et al. (2023) |
 | | `kochle` | layer | density, grain_form | Köchle & Schneebeli (2014) |
 | | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
@@ -423,7 +423,7 @@ GRAIN_FORM_METHODS = {
         "sub_grain_class": {"PPgp", "RGxf", "FCxr", "MFcr"},
         "basic_grain_class": {"PP", "DF", "FC", "DH", "RG"},
     },
-    "kim_jamieson_table5": {
+    "kim_jamieson_table6": {
         "sub_grain_class": {"FCxr", "PPgp"},
         "basic_grain_class": {"FC", "PP", "DF", "MF"},
     },
@@ -690,7 +690,7 @@ density → elastic_modulus → poissons_ratio → plate_theory → D11
 
 | Parameter | Methods | Count | Notes |
 |-----------|---------|-------|-------|
-| **density** | `data_flow`, `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table5` | 4 | data_flow requires measured_density |
+| **density** | `data_flow`, `geldsetzer`, `kim_jamieson_table2`, `kim_jamieson_table6` | 4 | data_flow requires measured_density |
 | **elastic_modulus** | `bergfeld`, `kochle`, `wautier`, `schottner` | 4 | All require calculated density |
 | **poissons_ratio** | `kochle`, `srivastava` | 2 | kochle: grain_form only; srivastava: density + grain_form (density shared with E) |
 | **Plate Theory** | `weissgraeber_rosendahl` (A11, B11, D11, A55) | 1 | Classical laminate theory |
@@ -1011,7 +1011,7 @@ Not all grain forms in SnowPilot data are supported by the density estimation me
 |------------|------------|---------|
 | FC (Faceted crystals) | Common | ✅ All methods |
 | RG (Rounded grains) | Common | ✅ Geldsetzer, Kim T2 |
-| MF (Melt forms) | Common | ⚠️ Only MFcr sub-code in Kim T2; MF in Kim T5 |
+| MF (Melt forms) | Common | ⚠️ Only MFcr sub-code in Kim T2; MF in Kim T6 |
 | DF (Decomposing forms) | Common | ✅ All methods |
 | IF (Ice formations) | Moderate | ❌ No support |
 | PP (Precipitation particles) | Moderate | ✅ All methods |
@@ -1027,7 +1027,7 @@ Pathway success depends on data availability in the snow pit:
 | density_measured | ~3% | data_flow pathway rarely succeeds |
 | hand_hardness | ~92% | Required for all estimation methods |
 | grain_form | ~88% | Required for all methods |
-| grain_size_avg | ~52% | Required only for Kim T5 |
+| grain_size_avg | ~52% | Required only for Kim T6 |
 
 ---
 

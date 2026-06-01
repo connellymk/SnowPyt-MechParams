@@ -84,7 +84,7 @@ class TestFindParameterizationsLayerLevel:
         pathways = find_parameterizations(graph, node)
 
         # Should have: 1 data_flow + 3 calculation methods
-        # geldsetzer, kim_jamieson_table2, kim_jamieson_table5
+        # geldsetzer, kim_jamieson_table2, kim_jamieson_table6
         assert len(pathways) == 4
 
         # Check that we have expected methods
@@ -105,7 +105,7 @@ class TestFindParameterizationsLayerLevel:
         assert "data_flow" in methods_used
         assert "geldsetzer" in methods_used
         assert "kim_jamieson_table2" in methods_used
-        assert "kim_jamieson_table5" in methods_used
+        assert "kim_jamieson_table6" in methods_used
 
     def test_find_elastic_modulus_parameterizations(self):
         """Should find all elastic modulus calculation pathways."""
@@ -131,7 +131,7 @@ class TestFindParameterizationsLayerLevel:
 
         # kochle (grain_form only) + srivastava (density + grain_form)
         # srivastava goes through merge_d_gf and needs density (4 sources):
-        #   data_flow, geldsetzer, kim_jamieson_table2, kim_jamieson_table5
+        #   data_flow, geldsetzer, kim_jamieson_table2, kim_jamieson_table6
         # Total: 1 (kochle) + 4 (srivastava) = 5 pathways
         assert len(pathways) == 5
 

@@ -2,7 +2,7 @@
 Tests for the include_method_uncertainty parameter on layer parameter functions.
 
 Covers:
-- calculate_density (geldsetzer, kim_jamieson_table2, kim_jamieson_table5)
+- calculate_density (geldsetzer, kim_jamieson_table2, kim_jamieson_table6)
 - calculate_elastic_modulus (bergfeld, kochle, wautier, schottner)
 - calculate_poissons_ratio (kochle, srivastava)
 - calculate_shear_modulus (lame_relationship)
@@ -135,11 +135,11 @@ class TestDensityMethodUncertainty:
         )
         assert _std(result) > 0
 
-    # --- kim_jamieson_table5 ---
+    # --- kim_jamieson_table6 ---
 
-    def test_kim_jamieson_table5_false_gives_zero_method_uncertainty(self):
+    def test_kim_jamieson_table6_false_gives_zero_method_uncertainty(self):
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             include_method_uncertainty=False,
             hand_hardness_index=HHI_4F_EXACT,
             grain_form="FC",
@@ -147,15 +147,15 @@ class TestDensityMethodUncertainty:
         )
         assert _std(result) == 0.0
 
-    def test_kim_jamieson_table5_nominal_value_unchanged(self):
+    def test_kim_jamieson_table6_nominal_value_unchanged(self):
         on = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=HHI_4F,
             grain_form="FC",
             grain_size=GS_1MM,
         )
         off = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             include_method_uncertainty=False,
             hand_hardness_index=HHI_4F,
             grain_form="FC",
@@ -163,14 +163,30 @@ class TestDensityMethodUncertainty:
         )
         assert _nominal(on) == pytest.approx(_nominal(off))
 
-    def test_kim_jamieson_table5_true_has_nonzero_uncertainty(self):
+    def test_kim_jamieson_table6_true_has_nonzero_uncertainty(self):
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=HHI_4F,
             grain_form="FC",
             grain_size=GS_1MM,
         )
         assert _std(result) > 0
+
+    def test_kim_jamieson_table5_legacy_alias_matches_table6(self):
+        canonical = calculate_density(
+            "kim_jamieson_table6",
+            hand_hardness_index=HHI_4F,
+            grain_form="FC",
+            grain_size=GS_1MM,
+        )
+        legacy = calculate_density(
+            "kim_jamieson_table5",
+            hand_hardness_index=HHI_4F,
+            grain_form="FC",
+            grain_size=GS_1MM,
+        )
+        assert _nominal(legacy) == pytest.approx(_nominal(canonical))
+        assert _std(legacy) == pytest.approx(_std(canonical))
 
 
 # ---------------------------------------------------------------------------

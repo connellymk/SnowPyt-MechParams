@@ -38,8 +38,9 @@ def calculate_density(
           and grain form
         - 'kim_jamieson_table2': Uses Kim & Jamieson (2014) Table 2 formulas based
           on hand hardness and grain form (extended from Geldsetzer)
-        - 'kim_jamieson_table5': Uses Kim & Jamieson (2014) Table 5 formulas based
-          on hand hardness, grain type, and grain size
+        - 'kim_jamieson_table6': Uses Kim & Jamieson (2014) Equation 5 formulas
+          with Table 6 parameters based on hand hardness, grain type, and grain size
+        - 'kim_jamieson_table5': Deprecated alias for 'kim_jamieson_table6'
     include_method_uncertainty : bool, optional
         Whether to include the uncertainty inherent to the empirical method
         (e.g. regression standard error). Default is True. If False, the
@@ -50,7 +51,7 @@ def calculate_density(
         - ``hand_hardness_index`` : UncertainValue
             Hand hardness index as a ufloat (HHI with measurement uncertainty
             already applied). Obtain via ``Layer.hand_hardness_index``.
-        'kim_jamieson_table5' additionally requires:
+        'kim_jamieson_table6' additionally requires:
         - ``grain_size`` : UncertainValue
             Grain size in mm as a ufloat with measurement uncertainty already
             applied. Obtain via ``Layer.grain_size_avg``.
@@ -73,12 +74,16 @@ def calculate_density(
         return _calculate_density_kim_jamieson_table2(
             include_method_uncertainty=include_method_uncertainty, **kwargs
         )
-    elif method.lower() == "kim_jamieson_table5":
-        return _calculate_density_kim_jamieson_table5(
+    elif method.lower() in {"kim_jamieson_table6", "kim_jamieson_table5"}:
+        return _calculate_density_kim_jamieson_table6(
             include_method_uncertainty=include_method_uncertainty, **kwargs
         )
     else:
-        available_methods = ["geldsetzer", "kim_jamieson_table2", "kim_jamieson_table5"]
+        available_methods = [
+            "geldsetzer",
+            "kim_jamieson_table2",
+            "kim_jamieson_table6",
+        ]
         raise ValueError(
             f"Unknown method: {method}. Available methods: {available_methods}"
         )
@@ -357,7 +362,7 @@ def _calculate_density_kim_jamieson_table2(
     return ufloat(rho.nominal_value, total_std)
 
 
-def _calculate_density_kim_jamieson_table5(
+def _calculate_density_kim_jamieson_table6(
     hand_hardness_index: UncertainValue,
     grain_form: str,
     grain_size: UncertainValue,
@@ -368,7 +373,7 @@ def _calculate_density_kim_jamieson_table5(
     on hand hardness, grain form, and grain size.
 
     This method uses empirical relationships from Kim & Jamieson (2014) Equation (5)
-    to estimate snow density: rho = A*h + B*gs + C
+    with parameters from Table 6 to estimate snow density: rho = A*h + B*gs + C
 
     Parameters
     ----------
@@ -412,14 +417,14 @@ def _calculate_density_kim_jamieson_table5(
     valid_grain_forms = ["FC", "FCxr", "PP", "PPgp", "DF", "MF"]
     if grain_form not in valid_grain_forms:
         logger.debug(
-            "_calculate_density_kim_jamieson_table5: unsupported grain_form=%r",
+            "_calculate_density_kim_jamieson_table6: unsupported grain_form=%r",
             grain_form,
         )
         return ufloat(np.nan, np.nan)
 
     if hand_hardness_index is None:
         logger.debug(
-            "_calculate_density_kim_jamieson_table5: hand_hardness_index is None"
+            "_calculate_density_kim_jamieson_table6: hand_hardness_index is None"
         )
         return ufloat(np.nan, np.nan)
     h = _to_ufloat(hand_hardness_index)

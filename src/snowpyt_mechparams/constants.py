@@ -98,10 +98,17 @@ GRAIN_FORM_METHODS = {
         "sub_grain_class": {"PPgp", "RGxf", "FCxr", "MFcr"},
         "basic_grain_class": {"PP", "DF", "FC", "DH", "RG"},
     },
-    "kim_jamieson_table5": {
+    "kim_jamieson_table6": {
         "sub_grain_class": {"FCxr", "PPgp"},
         "basic_grain_class": {"FC", "PP", "DF", "MF"},
     },
+}
+
+METHOD_ALIASES = {
+    # Deprecated compatibility alias. This method was previously mislabeled as
+    # Table 5; the implemented density regression is Kim & Jamieson (2014)
+    # Equation 5 with parameters from Table 6.
+    "kim_jamieson_table5": "kim_jamieson_table6",
 }
 
 
@@ -124,7 +131,7 @@ def resolve_grain_form_for_method(
         - None
     method : str
         The density estimation method name. Should be one of the keys in
-        GRAIN_FORM_METHODS: 'geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table5'
+        GRAIN_FORM_METHODS: 'geldsetzer', 'kim_jamieson_table2', 'kim_jamieson_table6'
 
     Returns
     -------
@@ -142,10 +149,10 @@ def resolve_grain_form_for_method(
     >>> resolve_grain_form_for_method('RGxf', 'geldsetzer')
     'RG'
 
-    >>> resolve_grain_form_for_method('FC', 'kim_jamieson_table5')
+    >>> resolve_grain_form_for_method('FC', 'kim_jamieson_table6')
     'FC'
 
-    >>> resolve_grain_form_for_method('DH', 'kim_jamieson_table5')
+    >>> resolve_grain_form_for_method('DH', 'kim_jamieson_table6')
     None  # DH not valid for this method
 
     Notes
@@ -158,7 +165,7 @@ def resolve_grain_form_for_method(
         return None
 
     # Normalize method name to lowercase
-    method_lower = method.lower()
+    method_lower = METHOD_ALIASES.get(method.lower(), method.lower())
 
     # If method not recognized, return grain_form as-is (let caller decide)
     if method_lower not in GRAIN_FORM_METHODS:

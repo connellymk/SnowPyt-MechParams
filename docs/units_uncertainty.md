@@ -14,7 +14,7 @@ Use these units when constructing model objects directly:
 | `Layer.depth_top` | cm | Depth below snow surface. |
 | `Layer.thickness` | cm | Converted to mm inside slab stiffness formulas. |
 | `Layer.density_measured` | kg/m^3 | Direct measured density. |
-| `Layer.grain_size_avg` | mm | Used by Kim and Jamieson Table 5 density. |
+| `Layer.grain_size_avg` | mm | Used by Kim and Jamieson Equation 5 / Table 6 density. |
 | `Slab.angle` | degrees | Slope angle, used by slab-weight shear projections. |
 
 Layer elastic and shear moduli are reported in MPa. Slab stiffness outputs use

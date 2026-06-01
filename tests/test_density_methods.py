@@ -227,21 +227,21 @@ class TestKimJamiesonTable2Numerical:
 
 
 # ---------------------------------------------------------------------------
-# Kim & Jamieson Table 5
+# Kim & Jamieson Equation 5 / Table 6
 # ---------------------------------------------------------------------------
 
 
-class TestKimJamiesonTable5Numerical:
-    """Verify kim_jamieson_table5 density against Table 5 (Table 6 in code) coefficients.
+class TestKimJamiesonTable6Numerical:
+    """Verify kim_jamieson_table6 density against Eq. 5 / Table 6 coefficients.
 
     rho = A*h + B*grain_size + C.
-    Coefficients from Kim & Jamieson (2014) Table 5/6.
+    Coefficients from Kim & Jamieson (2014) Table 6.
     """
 
     def test_FC_multivariate(self):
         """FC: rho = 51.9*h + 19.7*gs + 82.8.  h=2.0, gs=1.0 => 103.8+19.7+82.8=206.3."""
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=ufloat(2.0, 0.0),
             grain_form="FC",
             grain_size=ufloat(1.0, 0.0),
@@ -253,7 +253,7 @@ class TestKimJamiesonTable5Numerical:
     def test_PP_multivariate(self):
         """PP: rho = 40.0*h + (-7.33)*gs + 52.8.  h=1.0, gs=2.0 => 40-14.66+52.8=78.14."""
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=ufloat(1.0, 0.0),
             grain_form="PP",
             grain_size=ufloat(2.0, 0.0),
@@ -264,7 +264,7 @@ class TestKimJamiesonTable5Numerical:
 
     def test_unsupported_grain_form_returns_nan(self):
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=ufloat(1.0, 0.0),
             grain_form="DH",
             grain_size=ufloat(1.0, 0.0),
@@ -274,7 +274,7 @@ class TestKimJamiesonTable5Numerical:
     def test_unsupported_hand_hardness_returns_nan(self):
         """FC is only supported from 4F- to P in Kim & Jamieson Table 6."""
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=ufloat(1.0, 0.0),
             grain_form="FC",
             grain_size=ufloat(1.0, 0.0),
@@ -284,7 +284,7 @@ class TestKimJamiesonTable5Numerical:
     def test_supported_hand_hardness_boundary_is_inclusive(self):
         """PP at 4F hardness is still supported."""
         result = calculate_density(
-            "kim_jamieson_table5",
+            "kim_jamieson_table6",
             hand_hardness_index=ufloat(2.0, 0.0),
             grain_form="PP",
             grain_size=ufloat(2.0, 0.0),
@@ -292,6 +292,23 @@ class TestKimJamiesonTable5Numerical:
         )
         expected = 40.0 * 2.0 + (-7.33) * 2.0 + 52.8
         assert result.nominal_value == pytest.approx(expected, abs=0.01)
+
+    def test_legacy_table5_alias_matches_table6(self):
+        canonical = calculate_density(
+            "kim_jamieson_table6",
+            hand_hardness_index=ufloat(2.0, 0.0),
+            grain_form="FC",
+            grain_size=ufloat(1.0, 0.0),
+            include_method_uncertainty=False,
+        )
+        legacy = calculate_density(
+            "kim_jamieson_table5",
+            hand_hardness_index=ufloat(2.0, 0.0),
+            grain_form="FC",
+            grain_size=ufloat(1.0, 0.0),
+            include_method_uncertainty=False,
+        )
+        assert legacy.nominal_value == pytest.approx(canonical.nominal_value)
 
 
 # ---------------------------------------------------------------------------

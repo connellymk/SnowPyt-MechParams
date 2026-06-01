@@ -106,7 +106,7 @@ class TestLayerParameterNodes:
         ]
         assert (
             len(method_edges) >= 3
-        )  # geldsetzer, kim_jamieson_table2, kim_jamieson_table5
+        )  # geldsetzer, kim_jamieson_table2, kim_jamieson_table6
 
 
 class TestSlabParameterNodes:

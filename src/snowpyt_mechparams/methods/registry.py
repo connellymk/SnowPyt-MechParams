@@ -31,6 +31,9 @@ class MethodRegistry:
     def __init__(self, specs: Iterable[MethodSpec] = ()) -> None:
         self._specs: Dict[Tuple[str, str], MethodSpec] = {}
         self._by_target: Dict[str, List[MethodSpec]] = defaultdict(list)
+        self._aliases: Dict[Tuple[str, str], Tuple[str, str]] = {
+            ("density", "kim_jamieson_table5"): ("density", "kim_jamieson_table6")
+        }
         for spec in specs:
             self.register(spec)
 
@@ -44,7 +47,8 @@ class MethodRegistry:
 
     def get(self, target: str, method_name: str) -> Optional[MethodSpec]:
         """Return a method specification by target and method name."""
-        return self._specs.get((target, method_name))
+        key = self._aliases.get((target, method_name), (target, method_name))
+        return self._specs.get(key)
 
     def require(self, target: str, method_name: str) -> MethodSpec:
         """Return a method specification, raising for unknown methods."""
@@ -142,7 +146,7 @@ def _layer_specs() -> List[MethodSpec]:
         ),
         MethodSpec(
             target="density",
-            method_name="kim_jamieson_table5",
+            method_name="kim_jamieson_table6",
             level=layer,
             source_nodes=(
                 "measured_hand_hardness",
@@ -151,7 +155,7 @@ def _layer_specs() -> List[MethodSpec]:
             ),
             required_inputs=("hand_hardness_index", "grain_form", "grain_size"),
             function=lambda hand_hardness_index, grain_form, grain_size, include_method_uncertainty=True: calculate_density(
-                "kim_jamieson_table5",
+                "kim_jamieson_table6",
                 hand_hardness_index=hand_hardness_index,
                 grain_form=grain_form,
                 grain_size=grain_size,
@@ -161,7 +165,7 @@ def _layer_specs() -> List[MethodSpec]:
             cache_scope="layer",
             description=(
                 "Estimate density from hand hardness, grain form, and grain size "
-                "using Table 5."
+                "using Kim & Jamieson (2014) Equation 5 and Table 6."
             ),
             citation="Kim & Jamieson (2014)",
         ),

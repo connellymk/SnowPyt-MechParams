@@ -39,8 +39,8 @@ class TestResolveGrainFormForMethod:
 
     def test_invalid_grain_code_returns_none(self):
         """Test grain code that is not valid for any form in the method."""
-        # DH is not valid for kim_jamieson_table5
-        result = resolve_grain_form_for_method("DH", "kim_jamieson_table5")
+        # DH is not valid for kim_jamieson_table6
+        result = resolve_grain_form_for_method("DH", "kim_jamieson_table6")
         assert result is None
 
     def test_unknown_method_returns_grain_form_unchanged(self):
@@ -90,21 +90,26 @@ class TestResolveGrainFormForMethod:
         assert resolve_grain_form_for_method("DH", "kim_jamieson_table2") == "DH"
         assert resolve_grain_form_for_method("RG", "kim_jamieson_table2") == "RG"
 
-    def test_kim_jamieson_table5_specific_codes(self):
-        """Test kim_jamieson_table5-specific grain form codes."""
+    def test_kim_jamieson_table6_specific_codes(self):
+        """Test kim_jamieson_table6-specific grain form codes."""
         # Valid sub-grain codes
-        assert resolve_grain_form_for_method("FCxr", "kim_jamieson_table5") == "FCxr"
-        assert resolve_grain_form_for_method("PPgp", "kim_jamieson_table5") == "PPgp"
+        assert resolve_grain_form_for_method("FCxr", "kim_jamieson_table6") == "FCxr"
+        assert resolve_grain_form_for_method("PPgp", "kim_jamieson_table6") == "PPgp"
 
         # Valid basic codes
-        assert resolve_grain_form_for_method("FC", "kim_jamieson_table5") == "FC"
-        assert resolve_grain_form_for_method("PP", "kim_jamieson_table5") == "PP"
-        assert resolve_grain_form_for_method("DF", "kim_jamieson_table5") == "DF"
-        assert resolve_grain_form_for_method("MF", "kim_jamieson_table5") == "MF"
+        assert resolve_grain_form_for_method("FC", "kim_jamieson_table6") == "FC"
+        assert resolve_grain_form_for_method("PP", "kim_jamieson_table6") == "PP"
+        assert resolve_grain_form_for_method("DF", "kim_jamieson_table6") == "DF"
+        assert resolve_grain_form_for_method("MF", "kim_jamieson_table6") == "MF"
 
-        # Invalid codes (not in table5)
+        # Invalid codes (not in Eq. 5 / Table 6)
+        assert resolve_grain_form_for_method("DH", "kim_jamieson_table6") is None
+        assert resolve_grain_form_for_method("RG", "kim_jamieson_table6") is None
+
+    def test_kim_jamieson_table5_legacy_alias(self):
+        """The old table5 method id remains a deprecated alias for table6."""
+        assert resolve_grain_form_for_method("FC", "kim_jamieson_table5") == "FC"
         assert resolve_grain_form_for_method("DH", "kim_jamieson_table5") is None
-        assert resolve_grain_form_for_method("RG", "kim_jamieson_table5") is None
 
     def test_fallback_extraction_from_sub_grain_code(self):
         """Test that basic code is extracted from longer sub-grain codes."""
@@ -132,7 +137,7 @@ class TestGrainFormMethodsConstants:
 
     def test_all_methods_present(self):
         """Test all expected methods are in GRAIN_FORM_METHODS."""
-        expected_methods = ["geldsetzer", "kim_jamieson_table2", "kim_jamieson_table5"]
+        expected_methods = ["geldsetzer", "kim_jamieson_table2", "kim_jamieson_table6"]
         for method in expected_methods:
             assert method in GRAIN_FORM_METHODS
 

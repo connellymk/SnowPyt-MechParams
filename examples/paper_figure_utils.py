@@ -1329,16 +1329,10 @@ def build_d11_quantile_slab_uncertainty_figure(
         n_slabs,
         1,
         figsize=(DOUBLE_COL, 1.75 * n_slabs),
-        sharex=True,
+        sharex=False,
         squeeze=False,
     )
     axes = axes.ravel()
-    positive_values = d11_common.loc[
-        np.isfinite(d11_common["D11_nominal"]) & (d11_common["D11_nominal"] > 0),
-        "D11_nominal",
-    ].to_numpy(dtype=float)
-    x_min = float(np.nanmin(positive_values)) / 1.6
-    x_max = float(np.nanmax(positive_values)) * 1.6
 
     for ax_idx, slab_idx in enumerate(selected_slab_indices):
         ax = axes[ax_idx]
@@ -1351,8 +1345,17 @@ def build_d11_quantile_slab_uncertainty_figure(
             slab_rows["D11_std"].to_numpy(dtype=float), nan=0.0
         )
         d11_unc = np.clip(d11_unc, 0.0, None)
-        xerr_lower = np.minimum(d11_unc, np.clip(d11_nom - x_min, 0.0, None))
+        xerr_lower = d11_unc
         xerr_upper = d11_unc
+        finite_points = np.isfinite(d11_nom) & (d11_nom > 0)
+        x_lower = d11_nom[finite_points] - d11_unc[finite_points]
+        x_upper = d11_nom[finite_points] + d11_unc[finite_points]
+        x_min = float(np.nanmin(x_lower))
+        x_max = float(np.nanmax(x_upper))
+        x_span = x_max - x_min
+        x_pad = 0.05 * x_span if x_span > 0 else max(abs(x_max), 1.0) * 0.05
+        x_min = min(x_min - x_pad, 0.0)
+        x_max += x_pad
 
         emod_colors = []
         for pw in sorted_paths:
@@ -1405,9 +1408,8 @@ def build_d11_quantile_slab_uncertainty_figure(
             title += f"\n{slab_metadata_labels[ax_idx]}"
         ax.set_title(title, loc="left", fontsize=7.2, fontweight="bold", pad=3)
 
-        ax.set_xscale("log")
         ax.set_xlim(x_min, x_max)
-        ax.xaxis.set_major_formatter(mticker.LogFormatterMathtext())
+        ax.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
         ax.tick_params(axis="x", labelsize=6.5)
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
@@ -1433,8 +1435,9 @@ def build_d11_quantile_slab_uncertainty_figure(
         title_fontsize=7.2,
     )
 
+    legend_bottom = 0.22 if n_slabs <= 3 else 0.095
     fig.tight_layout(pad=0.5)
-    fig.subplots_adjust(hspace=0.55, bottom=0.095)
+    fig.subplots_adjust(hspace=0.55, bottom=legend_bottom)
     return fig
 
 

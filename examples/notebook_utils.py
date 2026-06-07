@@ -184,6 +184,12 @@ def slab_attribute_record(
     """Summarize slab geometry and layer attributes used in spread analysis."""
     thicknesses = finite_array(layer.thickness for layer in slab.layers)
     hardness_values = finite_array(layer.hand_hardness_index for layer in slab.layers)
+    grain_forms = [
+        str(layer.grain_form)
+        for layer in slab.layers
+        if layer.grain_form is not None
+    ]
+    grain_form_label = ", ".join(dict.fromkeys(grain_forms)) if grain_forms else None
     weighted_pairs = [
         (nominal(layer.hand_hardness_index), nominal(layer.thickness))
         for layer in slab.layers
@@ -206,6 +212,7 @@ def slab_attribute_record(
         "n_layers": len(slab.layers),
         "total_thickness_cm": nominal(slab.total_thickness),
         "slope_angle_deg": nominal(slab.angle),
+        "grain_form_label": grain_form_label,
         "layer_thickness_mean_cm": (
             float(np.mean(thicknesses)) if thicknesses.size else math.nan
         ),

@@ -992,18 +992,17 @@ def build_d11_paired_pathway_effects_figure(
         vert=False,
         patch_artist=True,
         widths=0.62,
-        showfliers=False,
-        showmeans=True,
-        whis=(5, 95),
-        meanprops={
-            "marker": "o",
-            "markerfacecolor": "#222222",
-            "markeredgecolor": "white",
-            "markersize": 3.8,
-        },
+        showfliers=True,
         medianprops={"color": "#222222", "linewidth": 1.1},
         whiskerprops={"color": "#555555", "linewidth": 0.9},
         capprops={"color": "#555555", "linewidth": 0.9},
+        flierprops={
+            "marker": ".",
+            "markerfacecolor": "#555555",
+            "markeredgecolor": "#555555",
+            "markersize": 2.2,
+            "alpha": 0.45,
+        },
     )
     for patch, color in zip(box["boxes"], colors, strict=True):
         patch.set_facecolor(color)
@@ -1244,18 +1243,17 @@ def build_d11_faceted_paired_ratio_figure(
             vert=False,
             patch_artist=True,
             widths=0.55,
-            showfliers=False,
-            showmeans=True,
-            whis=(5, 95),
-            meanprops={
-                "marker": "o",
-                "markerfacecolor": "#222222",
-                "markeredgecolor": "white",
-                "markersize": 3.2,
-            },
+            showfliers=True,
             medianprops={"color": "#222222", "linewidth": 1.0},
             whiskerprops={"color": "#555555", "linewidth": 0.8},
             capprops={"color": "#555555", "linewidth": 0.8},
+            flierprops={
+                "marker": ".",
+                "markerfacecolor": "#555555",
+                "markeredgecolor": "#555555",
+                "markersize": 2.2,
+                "alpha": 0.45,
+            },
         )
         emod_color = SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})["color"]
         for patch in box["boxes"]:

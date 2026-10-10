@@ -42,7 +42,18 @@ PAPER_FIGURES_DIRS = (REPO_PAPER_FIGURES_DIR, EXTERNAL_PAPER_FIGURES_DIR)
 def hess_rcparams() -> None:
     """Apply HESS-compliant matplotlib rcParams (call once per notebook)."""
     mpl.rcParams["font.family"] = "sans-serif"
-    mpl.rcParams["font.sans-serif"] = ["Helvetica", "Arial", "DejaVu Sans"]
+    mpl.rcParams["font.sans-serif"] = ["Helvetica"]
+    mpl.rcParams["mathtext.fontset"] = "custom"
+    mpl.rcParams["mathtext.rm"] = "Helvetica"
+    mpl.rcParams["mathtext.it"] = "Helvetica:italic"
+    mpl.rcParams["mathtext.bf"] = "Helvetica:bold"
+    mpl.rcParams["mathtext.fallback"] = "None"
+    mpl.rcParams["font.size"] = 8.0
+    mpl.rcParams["axes.labelsize"] = 8.0
+    mpl.rcParams["axes.titlesize"] = 8.5
+    mpl.rcParams["xtick.labelsize"] = 7.5
+    mpl.rcParams["ytick.labelsize"] = 7.5
+    mpl.rcParams["legend.fontsize"] = 7.5
     mpl.rcParams["figure.dpi"] = DPI
     mpl.rcParams["savefig.dpi"] = DPI
     mpl.rcParams["pdf.fonttype"] = 42
@@ -190,6 +201,25 @@ def slab_attribute_record(
         if layer.grain_form is not None
     ]
     grain_form_label = ", ".join(dict.fromkeys(grain_forms)) if grain_forms else None
+    hand_hardness_codes = [
+        str(layer.hand_hardness)
+        for layer in slab.layers
+        if layer.hand_hardness is not None
+    ]
+    hand_hardness_label = (
+        ", ".join(dict.fromkeys(hand_hardness_codes))
+        if hand_hardness_codes
+        else None
+    )
+    layer_info_label = "; ".join(
+        (
+            f"Layer {layer_index}: HH = "
+            f"{layer.hand_hardness if layer.hand_hardness is not None else 'unknown'}, "
+            f"grain form = "
+            f"{layer.grain_form if layer.grain_form is not None else 'unknown'}"
+        )
+        for layer_index, layer in enumerate(slab.layers, start=1)
+    )
     weighted_pairs = [
         (nominal(layer.hand_hardness_index), nominal(layer.thickness))
         for layer in slab.layers
@@ -213,6 +243,8 @@ def slab_attribute_record(
         "total_thickness_cm": nominal(slab.total_thickness),
         "slope_angle_deg": nominal(slab.angle),
         "grain_form_label": grain_form_label,
+        "hand_hardness_label": hand_hardness_label,
+        "layer_info_label": layer_info_label,
         "layer_thickness_mean_cm": (
             float(np.mean(thicknesses)) if thicknesses.size else math.nan
         ),

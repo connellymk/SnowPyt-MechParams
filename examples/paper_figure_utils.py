@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Sequence
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.ticker as mticker
+from matplotlib.offsetbox import AnchoredOffsetbox, HPacker, TextArea, VPacker
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -21,7 +23,6 @@ from notebook_utils import (
     DPI,
     EXTERNAL_PAPER_FIGURES_DIR,
     PAPER_FIGURES_DIR,
-    PAPER_FIGURES_DIRS,
     REPO_PAPER_FIGURES_DIR,
 )
 
@@ -37,6 +38,27 @@ DENSITY_METHOD_ORDER = [
     "kim_jamieson_table6",
     "data_flow",
 ]
+
+DENSITY_METHOD_HATCHES = {
+    "data_flow": "...",
+    "geldsetzer": "///",
+    "kim_jamieson_table2": "\\\\\\",
+    "kim_jamieson_table6": "xx",
+}
+
+EMOD_METHOD_MARKERS = {
+    "bergfeld": "o",
+    "kochle": "s",
+    "wautier": "^",
+    "schottner": "D",
+}
+
+EMOD_METHOD_HATCHES = {
+    "bergfeld": "///",
+    "kochle": "\\\\\\",
+    "wautier": "xx",
+    "schottner": "...",
+}
 
 METHOD_LABELS = {
     "data_flow": "Direct matched density",
@@ -91,18 +113,27 @@ def paper_figures_dir() -> Path:
 def save_paper_figure(
     fig: plt.Figure, stem: str, close: bool = False
 ) -> dict[str, Path]:
-    """Save a paper figure as PDF and PNG in repo and manuscript directories."""
-    saved_paths: dict[str, Path] = {}
-    for output_dir in PAPER_FIGURES_DIRS:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        prefix = "repo" if output_dir == REPO_PAPER_FIGURES_DIR else "external"
-        pdf_path = output_dir / f"{stem}.pdf"
-        png_path = output_dir / f"{stem}.png"
-        with _quiet_fonttools_pdf_metadata_warnings():
-            fig.savefig(pdf_path, dpi=DPI, bbox_inches="tight")
-        fig.savefig(png_path, dpi=DPI, bbox_inches="tight")
-        saved_paths[f"{prefix}_pdf"] = pdf_path
-        saved_paths[f"{prefix}_png"] = png_path
+    """Export once, then copy identical files to the manuscript directory."""
+    REPO_PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    EXTERNAL_PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    repo_pdf = REPO_PAPER_FIGURES_DIR / f"{stem}.pdf"
+    repo_png = REPO_PAPER_FIGURES_DIR / f"{stem}.png"
+    external_pdf = EXTERNAL_PAPER_FIGURES_DIR / f"{stem}.pdf"
+    external_png = EXTERNAL_PAPER_FIGURES_DIR / f"{stem}.png"
+
+    with _quiet_fonttools_pdf_metadata_warnings():
+        fig.savefig(repo_pdf, dpi=DPI, bbox_inches="tight")
+    fig.savefig(repo_png, dpi=DPI, bbox_inches="tight")
+    shutil.copy2(repo_pdf, external_pdf)
+    shutil.copy2(repo_png, external_png)
+
+    saved_paths: dict[str, Path] = {
+        "repo_pdf": repo_pdf,
+        "repo_png": repo_png,
+        "external_pdf": external_pdf,
+        "external_png": external_png,
+    }
 
     saved_paths["pdf"] = saved_paths["repo_pdf"]
     saved_paths["png"] = saved_paths["repo_png"]
@@ -135,13 +166,14 @@ def format_method_path(
 
 
 def density_legend_handles() -> list[mpatches.Patch]:
-    """Build legend handles for density method colors."""
+    """Build legend handles for density method colors and hatches."""
     handles = []
     for method in DENSITY_METHOD_ORDER:
         handles.append(
             mpatches.Patch(
                 facecolor=DENSITY_COLORS[method],
                 edgecolor=COLOR_BORDER,
+                hatch=DENSITY_METHOD_HATCHES[method],
                 label=method_label(method),
                 alpha=0.85,
             )
@@ -326,10 +358,10 @@ def _schottner_curve(rho: np.ndarray, a: float, n: float) -> np.ndarray:
 
 
 def build_elastic_modulus_curves_figure() -> plt.Figure:
-    """Create the Young's-modulus parameterization figure."""
+    """Create the log-scale Young's-modulus parameterization figure."""
     rho = np.linspace(100.0, 545.0, 600)
 
-    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE_COL, 3.25), sharex=True)
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.15))
     curve_specs = [
         (
             "Bergfeld",
@@ -389,55 +421,34 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
         ),
     ]
 
-    for ax in axes:
-        for label, color, linestyle, y_values, x_values, grain_forms in curve_specs:
-            ax.plot(
-                x_values,
-                y_values,
-                color=color,
-                linestyle=linestyle,
-                linewidth=2.1 if "Wautier" in label else 1.8,
-                label=f"{label} ({grain_forms})",
-            )
-        ax.set_xlim(100, 550)
-        ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
-        _setup_publication_axes(ax, x_grid=True, y_grid=False)
+    for label, color, linestyle, y_values, x_values, grain_forms in curve_specs:
+        ax.plot(
+            x_values,
+            y_values,
+            color=color,
+            linestyle=linestyle,
+            linewidth=2.1 if "Wautier" in label else 1.8,
+            label=f"{label} ({grain_forms})",
+        )
+    ax.set_xlim(100, 550)
+    ax.set_yscale("log")
+    ax.set_ylim(0.3, 5000)
+    ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
+    ax.set_ylabel(r"Young's modulus, $E$ (MPa)")
+    _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
-    axes[0].set_ylabel(r"Young's modulus, $E$ (MPa)")
-    axes[0].set_ylim(0, 950)
-    axes[0].text(
-        0.02,
-        0.96,
-        "(a) Linear scale",
-        transform=axes[0].transAxes,
-        va="top",
-        fontsize=8,
-        fontweight="bold",
-    )
-
-    axes[1].set_yscale("log")
-    axes[1].set_ylim(0.3, 5000)
-    axes[1].text(
-        0.02,
-        0.96,
-        "(b) Log scale",
-        transform=axes[1].transAxes,
-        va="top",
-        fontsize=8,
-        fontweight="bold",
-    )
-
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
         handles,
         labels,
-        loc="upper center",
-        bbox_to_anchor=(0.50, 1.02),
-        ncol=2,
+        loc="center left",
+        bbox_to_anchor=(1.01, 0.5),
+        ncol=1,
         frameon=False,
-        fontsize=7,
+        fontsize=7.2,
+        handlelength=2.2,
     )
-    fig.tight_layout(rect=(0, 0, 1, 0.90), pad=0.4)
+    fig.subplots_adjust(left=0.10, right=0.64, top=0.96, bottom=0.18)
     return fig
 
 
@@ -620,9 +631,9 @@ def _draw_density_range_support_panel(ax: plt.Axes, parameter: str) -> None:
 def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
     ax.set_yticks(np.arange(len(SUPPORT_GRAIN_FORM_ORDER)))
     ax.set_yticklabels(SUPPORT_GRAIN_FORM_ORDER)
-    ax.tick_params(axis="both", length=0, labelsize=6.8)
-    ax.tick_params(axis="x", labelsize=6.5)
-    ax.set_ylabel("Grain form")
+    ax.tick_params(axis="both", length=0, labelsize=7.5)
+    ax.tick_params(axis="x", labelsize=7.2)
+    ax.set_ylabel("Grain form", fontsize=8.5)
     ax.text(
         0.0,
         1.035,
@@ -630,7 +641,7 @@ def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
         transform=ax.transAxes,
         ha="left",
         va="bottom",
-        fontsize=8.1,
+        fontsize=9.0,
         fontweight="bold",
     )
     for spine in ax.spines.values():
@@ -639,14 +650,10 @@ def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
 
 def build_method_support_matrices_figure() -> plt.Figure:
     """Create the density-method support matrix."""
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.75))
+    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 4.05))
 
     _draw_density_support_panel(ax)
-    _style_support_panel(
-        ax,
-        "",
-        "Density method support by grain form and hand hardness",
-    )
+    _style_support_panel(ax, "", "")
 
     handles = [
         mpatches.Patch(
@@ -669,11 +676,13 @@ def build_method_support_matrices_figure() -> plt.Figure:
         ncol=4,
         frameon=False,
         bbox_to_anchor=(0.50, 0.005),
-        fontsize=7.0,
+        fontsize=7.5,
+        title="Density method (lanes top to bottom)",
+        title_fontsize=7.5,
         columnspacing=0.95,
         handlelength=1.4,
     )
-    fig.subplots_adjust(left=0.075, right=0.99, top=0.91, bottom=0.24)
+    fig.subplots_adjust(left=0.085, right=0.99, top=0.91, bottom=0.23)
     return fig
 
 
@@ -697,9 +706,11 @@ def build_slab_weight_coverage_comparison_figure(
     ]
     elasticity_plot["label"] = [
         (
-            rf"$\rho$: {method_label(dm, short=True)} | "
-            rf"$E$: {method_label(em, short=True)} | "
-            rf"$\nu$: {method_label(nu, short=True)} ({int(count):,})"
+            rf"$\rho$ {method_label(dm, short=True)}"
+            "\n"
+            rf"$E$ {method_label(em, short=True)}"
+            "\n"
+            rf"$\nu$ {method_label(nu, short=True)} ({int(count):,})"
         )
         for dm, em, nu, count in zip(
             elasticity_plot["density_method"],
@@ -713,9 +724,9 @@ def build_slab_weight_coverage_comparison_figure(
     fig, axes = plt.subplots(
         1,
         2,
-        figsize=(DOUBLE_COL, 5.25),
-        sharey=True,
-        gridspec_kw={"width_ratios": [4, 10]},
+        figsize=(DOUBLE_COL, 5.05),
+        sharey=False,
+        gridspec_kw={"width_ratios": [4, 9]},
     )
 
     def _method_color(method: str) -> str:
@@ -730,11 +741,14 @@ def build_slab_weight_coverage_comparison_figure(
         labels: Sequence[str],
         values: Sequence[float],
         colors: Sequence[str],
+        hatches: Sequence[str],
         *,
         value_offset: float,
+        rotation: float,
+        ha: str,
     ) -> None:
         x_pos = np.arange(len(labels))
-        ax.bar(
+        bars = ax.bar(
             x_pos,
             values,
             width=0.58,
@@ -743,6 +757,8 @@ def build_slab_weight_coverage_comparison_figure(
             linewidth=0.7,
             alpha=0.85,
         )
+        for bar, hatch in zip(bars, hatches, strict=True):
+            bar.set_hatch(hatch)
         for x_idx, value in zip(x_pos, values, strict=True):
             ax.text(
                 x_idx,
@@ -750,25 +766,65 @@ def build_slab_weight_coverage_comparison_figure(
                 f"{value:.1f}%",
                 va="bottom",
                 ha="center",
-                fontsize=6.8,
+                fontsize=7.2,
                 clip_on=False,
             )
         ax.set_xticks(x_pos)
-        ax.set_xticklabels(labels, rotation=45, ha="right", rotation_mode="anchor")
+        ax.set_xticklabels(labels, rotation=rotation, ha=ha, rotation_mode="anchor")
 
-    for ax, title in zip(
-        axes,
-        [
-            r"Shear Weight ($W_S$) Pathways",
-            r"Shear Weight ($W_S$) with Elastic Inputs ($E$, $\nu$)",
-        ],
-        strict=True,
-    ):
-        _setup_publication_axes(ax, x_grid=False, y_grid=True)
-        ax.set_title(title, loc="left", fontsize=8, fontweight="bold", pad=3)
-        ax.set_ylim(0, 42)
-        ax.set_yticks([0, 10, 20, 30, 40])
-        ax.set_ylabel("Coverage of ECTP slabs (%)", fontsize=7.5)
+    def _draw_horizontal_bar_chart(
+        ax: plt.Axes,
+        labels: Sequence[str],
+        values: Sequence[float],
+        colors: Sequence[str],
+        hatches: Sequence[str],
+    ) -> None:
+        y_pos = np.arange(len(labels))
+        bars = ax.barh(
+            y_pos,
+            values,
+            height=0.58,
+            color=colors,
+            edgecolor=COLOR_BORDER,
+            linewidth=0.7,
+            alpha=0.85,
+        )
+        for bar, hatch in zip(bars, hatches, strict=True):
+            bar.set_hatch(hatch)
+        for y_idx, value in zip(y_pos, values, strict=True):
+            ax.text(
+                value + 0.08,
+                y_idx,
+                f"{value:.1f}%",
+                va="center",
+                ha="left",
+                fontsize=7.2,
+                clip_on=False,
+            )
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels, fontsize=6.2)
+        ax.invert_yaxis()
+
+    axes[0].set_title(
+        r"(a) Shear weight ($W_{\mathrm{shear}}$) pathways",
+        loc="left",
+        fontsize=8.5,
+        fontweight="bold",
+        pad=4,
+    )
+    _setup_publication_axes(axes[0], x_grid=False, y_grid=True)
+    axes[0].set_ylim(0, 42)
+    axes[0].set_yticks([0, 10, 20, 30, 40])
+    axes[0].set_ylabel("Coverage of ECTP slabs (%)", fontsize=8.0)
+
+    axes[1].set_title(
+        r"(b) Shear weight ($W_{\mathrm{shear}}$) with elastic inputs ($E$, $\nu$)",
+        loc="left",
+        fontsize=8.5,
+        fontweight="bold",
+        pad=4,
+    )
+    _setup_publication_axes(axes[1], x_grid=True, y_grid=False)
 
     shear_widths = shear_plot["n_all_inputs"] / total_slabs * 100.0
     _draw_bar_chart(
@@ -776,28 +832,34 @@ def build_slab_weight_coverage_comparison_figure(
         shear_plot["label"],
         shear_widths,
         [_method_color(m) for m in shear_plot["density_method"]],
+        [DENSITY_METHOD_HATCHES.get(m, "") for m in shear_plot["density_method"]],
         value_offset=0.7,
+        rotation=45,
+        ha="right",
     )
 
     elasticity_widths = elasticity_plot["n_all_inputs"] / total_slabs * 100.0
-    _draw_bar_chart(
+    _draw_horizontal_bar_chart(
         axes[1],
         elasticity_plot["label"],
         elasticity_widths,
         [_method_color(m) for m in elasticity_plot["density_method"]],
-        value_offset=0.35,
+        [DENSITY_METHOD_HATCHES.get(m, "") for m in elasticity_plot["density_method"]],
     )
+    axes[1].set_xlim(0, max(elasticity_widths) * 1.24)
 
-    axes[0].set_xlabel("Pathway (successful slabs)", fontsize=7.5)
-    axes[1].set_xlabel("Pathway (successful slabs)", fontsize=7.5)
+    axes[0].set_xlabel("Pathway (successful slabs)", fontsize=8.0)
+    axes[1].set_xlabel("Coverage of ECTP slabs (%)", fontsize=8.0)
     for ax in axes:
-        ax.tick_params(axis="x", labelsize=6.1)
-        ax.tick_params(axis="y", labelsize=7.0, labelleft=True)
+        ax.tick_params(axis="x", labelsize=6.6)
+    axes[0].tick_params(axis="y", labelsize=7.5)
+    axes[1].tick_params(axis="y", labelsize=6.2)
 
     legend_handles = [
         mpatches.Patch(
             facecolor=_method_color(method),
             edgecolor=COLOR_BORDER,
+            hatch=DENSITY_METHOD_HATCHES[method],
             label=method_label(method),
             alpha=0.85,
         )
@@ -806,16 +868,16 @@ def build_slab_weight_coverage_comparison_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.50, 0.055),
+        bbox_to_anchor=(0.50, 0.005),
         ncol=2,
         frameon=False,
-        fontsize=7.0,
+        fontsize=7.5,
         title="Density method",
         title_fontsize=7.2,
         columnspacing=1.2,
         handlelength=1.5,
     )
-    fig.subplots_adjust(left=0.09, right=0.985, top=0.92, bottom=0.48, wspace=0.24)
+    fig.subplots_adjust(left=0.09, right=0.985, top=0.91, bottom=0.31, wspace=0.50)
     return fig
 
 
@@ -849,8 +911,6 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
     ax.axis("off")
 
     y_positions = np.linspace(0.78, 0.16, len(steps))
-    base_color = DENSITY_COLORS["kim_jamieson_table2"]
-    alphas = [0.35, 0.50, 0.68, 0.85]
     bar_center = 0.43
     max_bar_width = 0.56
     min_bar_width = 0.12
@@ -884,10 +944,10 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             width,
             0.12,
             boxstyle="round,pad=0.01,rounding_size=0.016",
-            facecolor=base_color,
+            facecolor="none",
             edgecolor=COLOR_BORDER,
             linewidth=1.0,
-            alpha=alphas[min(idx, len(alphas) - 1)],
+            alpha=1.0,
             transform=ax.transAxes,
         )
         ax.add_patch(rect)
@@ -897,7 +957,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             label,
             ha="left",
             va="center",
-            fontsize=8.2,
+            fontsize=8.5,
             transform=ax.transAxes,
         )
         ax.text(
@@ -906,7 +966,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             f"{count:,} slabs ({count / total_slabs:.1%})",
             ha="center",
             va="center",
-            fontsize=8.4,
+            fontsize=8.6,
             fontweight="bold",
             transform=ax.transAxes,
         )
@@ -917,7 +977,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
                 method_steps[idx],
                 ha="left",
                 va="center",
-                fontsize=7.8,
+                fontsize=8.0,
                 color="#333333",
                 transform=ax.transAxes,
             )
@@ -1201,11 +1261,11 @@ def build_d11_faceted_paired_ratio_figure(
     n_panels = len(active_emods)
 
     max_rows = max(len(emod_groups[e]) for e in active_emods)
-    panel_height = max(1.4, 0.45 * max_rows + 0.6)
+    panel_height = max(1.45, 0.30 * max_rows + 0.35)
     fig, axes = plt.subplots(
         n_panels,
         1,
-        figsize=(DOUBLE_COL, panel_height * n_panels + 0.5),
+        figsize=(DOUBLE_COL, panel_height * n_panels + 0.85),
         sharex=True,
         squeeze=False,
     )
@@ -1259,6 +1319,7 @@ def build_d11_faceted_paired_ratio_figure(
         for patch in box["boxes"]:
             patch.set_facecolor(emod_color)
             patch.set_edgecolor(COLOR_BORDER)
+            patch.set_hatch(EMOD_METHOD_HATCHES.get(emod, ""))
             patch.set_alpha(0.75)
 
         if pathway_coverage:
@@ -1271,13 +1332,13 @@ def build_d11_faceted_paired_ratio_figure(
                         transform=ax.get_yaxis_transform(),
                         ha="right",
                         va="center",
-                        fontsize=5.8,
+                        fontsize=6.4,
                         color="#555555",
                     )
 
         ax.axvline(1.0, color=COLOR_BORDER, linewidth=0.9, linestyle="--", zorder=0)
         ax.set_yticks(range(1, len(labels) + 1))
-        ax.set_yticklabels(labels, fontsize=6.5)
+        ax.set_yticklabels(labels, fontsize=7.0)
         ax.invert_yaxis()
         ax.text(
             0.01,
@@ -1286,15 +1347,42 @@ def build_d11_faceted_paired_ratio_figure(
             transform=ax.transAxes,
             ha="left",
             va="bottom",
-            fontsize=8,
+            fontsize=8.5,
             fontweight="bold",
         )
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
-    axes[-1].set_xscale("log")
-    axes[-1].set_xlabel(r"$D_{11}$ ratio to within-slab median")
+    for ax in axes:
+        ax.set_xscale("log")
+        ax.set_xlim(0.1, 22.0)
+        ax.xaxis.set_major_locator(mticker.LogLocator(base=10, numticks=4))
+        ax.xaxis.set_major_formatter(mticker.LogFormatterMathtext(base=10))
+        ax.tick_params(axis="x", labelsize=7.5)
+    axes[-1].set_xlabel(r"$D_{11}$ ratio", fontsize=8.5)
+    emod_handles = [
+        mpatches.Patch(
+            facecolor=SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})[
+                "color"
+            ],
+            edgecolor=COLOR_BORDER,
+            hatch=EMOD_METHOD_HATCHES.get(emod, ""),
+            label=method_label(emod, short=True),
+            alpha=0.75,
+        )
+        for emod in active_emods
+    ]
+    fig.legend(
+        handles=emod_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.005),
+        ncol=len(emod_handles),
+        frameon=False,
+        fontsize=7.5,
+        title="Young's modulus method",
+        title_fontsize=7.2,
+    )
     fig.tight_layout(pad=0.5)
-    fig.subplots_adjust(hspace=0.45)
+    fig.subplots_adjust(hspace=0.45, bottom=0.12)
     return fig
 
 
@@ -1306,8 +1394,10 @@ def build_d11_quantile_slab_uncertainty_figure(
     quantile_labels: Sequence[str] | None = None,
     spread_ratios: Sequence[float] | None = None,
     slab_metadata_labels: Sequence[str] | None = None,
+    pit_id_labels: Sequence[str] | None = None,
+    slab_heights_cm: Sequence[float] | None = None,
 ) -> plt.Figure:
-    """Create a multi-panel slab dot plot with error bars, selected at spread quantiles."""
+    """Create a multi-panel slab dot plot for selected spread-ratio percentiles."""
     sorted_paths = sort_pathways_by_emod_group(list(selected_paths))
     n_slabs = len(selected_slab_indices)
 
@@ -1326,7 +1416,7 @@ def build_d11_quantile_slab_uncertainty_figure(
     fig, axes = plt.subplots(
         n_slabs,
         1,
-        figsize=(DOUBLE_COL, 1.75 * n_slabs),
+        figsize=(DOUBLE_COL, 2.42 * n_slabs),
         sharex=False,
         squeeze=False,
     )
@@ -1365,14 +1455,17 @@ def build_d11_quantile_slab_uncertainty_figure(
         for i in range(len(sorted_paths)):
             if not np.isfinite(d11_nom[i]) or d11_nom[i] <= 0:
                 continue
+            _, emod, _ = _parse_pathway(sorted_paths[i])
             ax.errorbar(
                 d11_nom[i],
                 y_positions[i],
                 xerr=np.array([[xerr_lower[i]], [xerr_upper[i]]]),
-                fmt="o",
+                fmt=EMOD_METHOD_MARKERS.get(emod, "o"),
                 capsize=3,
                 markersize=4.5,
                 color=emod_colors[i],
+                markeredgecolor=COLOR_BORDER,
+                markeredgewidth=0.45,
                 ecolor="#555555",
                 elinewidth=0.9,
                 zorder=3,
@@ -1396,27 +1489,78 @@ def build_d11_quantile_slab_uncertainty_figure(
                 f"{method_label(nu, short=True)}"
             )
         ax.set_yticks(y_positions)
-        ax.set_yticklabels(pathway_labels, fontsize=5.5)
+        ax.set_yticklabels(pathway_labels, fontsize=6.4)
         ax.invert_yaxis()
 
-        title = quantile_labels[ax_idx]
+        title_rows: list[TextArea | HPacker] = []
+        if pit_id_labels is not None:
+            title_rows.append(
+                HPacker(
+                    children=[
+                        TextArea(
+                            f"Pit ID: {pit_id_labels[ax_idx]}",
+                            textprops={"fontsize": 7.7, "fontweight": "bold"},
+                        ),
+                        TextArea(
+                            f", {quantile_labels[ax_idx]}",
+                            textprops={"fontsize": 7.7},
+                        ),
+                    ],
+                    align="baseline",
+                    pad=0,
+                    sep=0,
+                )
+            )
+        else:
+            title_rows.append(
+                TextArea(quantile_labels[ax_idx], textprops={"fontsize": 7.7})
+            )
+
+        row_two: list[str] = []
         if spread_ratios is not None:
-            title += f" (spread = {spread_ratios[ax_idx]:.1f})"
+            row_two.append(f"spread ratio = {spread_ratios[ax_idx]:.1f}")
+        if slab_heights_cm is not None:
+            row_two.append(f"H = {slab_heights_cm[ax_idx]:.0f} cm")
+        if row_two:
+            title_rows.append(
+                TextArea(", ".join(row_two), textprops={"fontsize": 7.7})
+            )
         if slab_metadata_labels is not None:
-            title += f"\n{slab_metadata_labels[ax_idx]}"
-        ax.set_title(title, loc="left", fontsize=7.2, fontweight="bold", pad=3)
+            title_rows.append(
+                TextArea(
+                    slab_metadata_labels[ax_idx], textprops={"fontsize": 7.7}
+                )
+            )
+        title_box = VPacker(children=title_rows, align="left", pad=0, sep=1.5)
+        ax.add_artist(
+            AnchoredOffsetbox(
+                loc="lower left",
+                child=title_box,
+                frameon=False,
+                bbox_to_anchor=(0.0, 1.02),
+                bbox_transform=ax.transAxes,
+                borderpad=0,
+                pad=0,
+            )
+        )
 
         ax.set_xlim(x_min, x_max)
         ax.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
-        ax.tick_params(axis="x", labelsize=6.5)
+        ax.tick_params(axis="x", labelsize=7.2)
         _setup_publication_axes(ax, x_grid=True, y_grid=False)
 
-    axes[-1].set_xlabel(r"$D_{11}$ (N$\cdot$mm)", fontsize=7.5)
+    axes[-1].set_xlabel(r"$D_{11}$ (N mm)", fontsize=8.2)
 
     emod_handles = [
-        mpatches.Patch(
-            facecolor=SUPPORT_METHOD_STYLES[emod]["color"],
-            edgecolor=COLOR_BORDER,
+        plt.Line2D(
+            [],
+            [],
+            color=SUPPORT_METHOD_STYLES[emod]["color"],
+            marker=EMOD_METHOD_MARKERS.get(emod, "o"),
+            linestyle="None",
+            markeredgecolor=COLOR_BORDER,
+            markeredgewidth=0.45,
+            markersize=5.2,
             label=method_label(emod, short=True),
         )
         for emod in EMOD_METHOD_ORDER
@@ -1425,17 +1569,17 @@ def build_d11_quantile_slab_uncertainty_figure(
     fig.legend(
         handles=emod_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.01),
+        bbox_to_anchor=(0.5, 0.005),
         ncol=len(emod_handles),
         frameon=False,
-        fontsize=7,
+        fontsize=7.5,
         title="Young's modulus method",
         title_fontsize=7.2,
     )
 
-    legend_bottom = 0.22 if n_slabs <= 3 else 0.095
+    legend_bottom = 0.105 if n_slabs <= 3 else 0.075
     fig.tight_layout(pad=0.5)
-    fig.subplots_adjust(hspace=0.55, bottom=legend_bottom)
+    fig.subplots_adjust(hspace=0.78, bottom=legend_bottom)
     return fig
 
 

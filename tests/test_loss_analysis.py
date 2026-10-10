@@ -251,3 +251,51 @@ def test_failure_partition_covers_all_cases():
         == "mixed"
     )
     assert failure_category([Issue("other", "error", "output")]) == "other"
+
+
+def test_heatmap_uses_starting_cohort_not_step_survivors():
+    """After one of three slabs fails density, another loss is 33%, not 50%."""
+    from loss_analysis_utils import plot_loss_heatmap
+    import matplotlib.pyplot as plt
+
+    missing = Layer(depth_top=0, thickness=10, grain_form="RG")
+    unsupported = Layer(
+        depth_top=0, thickness=10, grain_form="IF", density_measured=ufloat(250, 1)
+    )
+    valid = Layer(
+        depth_top=0, thickness=10, grain_form="RG", density_measured=ufloat(250, 1)
+    )
+    result = analyze_losses(
+        [_slab(layer, i) for i, layer in enumerate([missing, unsupported, valid])],
+        "D11",
+        progress=False,
+    )
+    figure = plot_loss_heatmap(result)
+    measured = figure.axes[0].images[0].get_array()
+    assert measured[0, 0] == pytest.approx(100 / 3)
+    assert measured[0, 1] == pytest.approx(100 / 3)
+    assert (
+        sum(ax.images[0].get_array().shape[0] for ax in figure.axes if ax.images) == 32
+    )
+    plt.close(figure)
+
+
+def test_cause_bars_keep_overlapping_grain_and_density_failures_separate():
+    """One observed layer can violate two limits; neither bar becomes a sum."""
+    from loss_analysis_utils import plot_method_causes, plot_stepwise_losses
+    import matplotlib.pyplot as plt
+
+    layer = Layer(
+        depth_top=0, thickness=10, grain_form="IF", density_measured=ufloat(500, 1)
+    )
+    result = analyze_losses([_slab(layer, 0)], "D11", progress=False)
+    figure = plot_method_causes(result, "elastic_modulus", "bergfeld", "data_flow")
+    bars = figure.axes[0].patches
+    assert len(bars) == 2
+    assert all(b.get_x() == 0 and b.get_width() == 1 for b in bars)
+    labels = [tick.get_text() for tick in figure.axes[0].get_yticklabels()]
+    assert any("unsupported grain form" in label for label in labels)
+    assert any("363 kg/m³" in label for label in labels)
+    plt.close(figure)
+    with pytest.raises(ValueError, match="Unknown pathway"):
+        plot_stepwise_losses(result, "not a pathway")

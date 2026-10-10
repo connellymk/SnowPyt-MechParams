@@ -771,3 +771,303 @@ def comparison_table(*results: LossAnalysis) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows).set_index("target")
+
+
+LOSS_COLORS = {
+    "surviving": "#009E73",
+    "missing_only": "#0072B2",
+    "validity_only": "#E69F00",
+    "mixed": "#CC79A7",
+    "other": "#8F8F8F",
+}
+LOSS_LABELS = {
+    "surviving": "Surviving",
+    "missing_only": "Missing observations only",
+    "validity_only": "Validity limits only",
+    "mixed": "Mixed causes",
+    "other": "Other errors",
+}
+DENSITY_ORDER = [
+    "data_flow",
+    "geldsetzer",
+    "kim_jamieson_table2",
+    "kim_jamieson_table6",
+]
+EMOD_ORDER = ["bergfeld", "kochle", "wautier", "schottner"]
+NU_ORDER = ["kochle", "srivastava"]
+
+
+def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
+    """Stack survivors and exclusive newly lost categories for one pathway.
+
+    Each bar's total is the population entering that step. This is a reporting
+    funnel, not a stacking of the overlapping all-cause detail counts.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+    from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+
+    if pathway is None:
+        pathway = result.coverage.iloc[0].pathway
+    stages = result.stages[result.stages.pathway == pathway].sort_values("step")
+    if stages.empty:
+        raise ValueError(f"Unknown pathway: {pathway}")
+    fig, ax = plt.subplots(figsize=(12, 2.2 + 0.6 * (len(stages) + 1)))
+    ax.barh(0, result.n_slabs, color=LOSS_COLORS["surviving"], height=0.65)
+    ax.text(
+        result.n_slabs / 2,
+        0,
+        f"{result.n_slabs:,}",
+        ha="center",
+        va="center",
+        fontsize=9,
+    )
+    for y, row in enumerate(stages.itertuples(), start=1):
+        left = 0
+        for category in LOSS_COLORS:
+            value = int(getattr(row, category))
+            ax.barh(y, value, left=left, height=0.65, color=LOSS_COLORS[category])
+            if value >= 0.04 * result.n_slabs:
+                ax.text(
+                    left + value / 2,
+                    y,
+                    f"{value:,}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                )
+            left += value
+        ax.text(
+            result.n_slabs * 1.03,
+            y,
+            f"{row.surviving:,} survive · {row.newly_lost:,} lost",
+            va="center",
+            fontsize=9,
+        )
+    ax.text(result.n_slabs * 1.03, 0, "Starting cohort", va="center", fontsize=9)
+    ax.set(
+        yticks=range(len(stages) + 1),
+        yticklabels=["Starting cohort", *stages.requirement],
+        xlabel="Slab count entering each step",
+        xlim=(0, result.n_slabs * 1.53),
+        title=f"{'Shear weight' if result.target == 'slab_weight_shear' else 'D11'}: {pathway}",
+    )
+    ax.invert_yaxis()
+    ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    # Keep tick marks within the actual cohort; the right margin holds labels.
+    ax.set_xticks(
+        [
+            t
+            for t in MaxNLocator(nbins=4, integer=True).tick_values(0, result.n_slabs)
+            if 0 <= t <= result.n_slabs
+        ]
+    )
+    ax.grid(axis="x", alpha=0.2)
+    ax.set_axisbelow(True)
+    handles = [
+        Patch(facecolor=LOSS_COLORS[c], label=LOSS_LABELS[c]) for c in LOSS_COLORS
+    ]
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=9, frameon=False)
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
+    return fig
+
+
+def plot_loss_heatmap(result: LossAnalysis):
+    """Compare newly lost fractions using the original cohort denominator.
+
+    D11 is faceted by density method, with all E/nu combinations in each panel.
+    No conditional step percentages or summed overlapping causes are used.
+    """
+    import matplotlib.pyplot as plt
+
+    steps = result.stages.requirement.drop_duplicates().tolist()
+    losses = result.stages.pivot(
+        index="pathway", columns="requirement", values="newly_lost"
+    )
+    losses = 100 * losses.reindex(columns=steps) / result.n_slabs
+    if result.target == "D11":
+        fig, axes = plt.subplots(2, 2, figsize=(13, 9), constrained_layout=True)
+        panels = axes.ravel()
+        short_steps = ["Density", "$E$", "$\\nu$", "Geometry", "D11"]
+    else:
+        fig, ax = plt.subplots(figsize=(7.5, 3.8), constrained_layout=True)
+        panels = [ax]
+        short_steps = ["Density", "Weight", "Shear weight"]
+    for index, ax in enumerate(panels):
+        if result.target == "D11":
+            density_method = DENSITY_ORDER[index]
+            selected = result.coverage[
+                result.coverage.density_method == density_method
+            ].copy()
+            selected["emod_order"] = selected.emod_method.map(
+                {m: i for i, m in enumerate(EMOD_ORDER)}
+            )
+            selected["nu_order"] = selected.nu_method.map(
+                {m: i for i, m in enumerate(NU_ORDER)}
+            )
+            selected = selected.sort_values(["emod_order", "nu_order"])
+            labels = [
+                f"{METHOD_LABELS[e]} → {METHOD_LABELS[n]}"
+                for e, n in zip(selected.emod_method, selected.nu_method)
+            ]
+            ax.set_title(
+                f"Density: {METHOD_LABELS[density_method]}", fontsize=12, pad=10
+            )
+        else:
+            selected = (
+                result.coverage.set_index("density_method")
+                .loc[DENSITY_ORDER]
+                .reset_index()
+            )
+            labels = selected.pathway.tolist()
+            ax.set_title("Shear weight: newly lost slabs", fontsize=12, pad=10)
+        values = losses.loc[selected.pathway].to_numpy()
+        heatmap = ax.imshow(values, cmap="YlOrRd", vmin=0, vmax=100, aspect="auto")
+        ax.set(
+            xticks=range(len(steps)),
+            xticklabels=short_steps,
+            yticks=range(len(labels)),
+            yticklabels=labels,
+        )
+        ax.tick_params(axis="both", labelsize=9)
+        for y in range(len(labels)):
+            for x in range(len(steps)):
+                value = values[y, x]
+                label = "<0.1" if 0 < value < 0.1 else f"{value:.1f}"
+                ax.text(
+                    x,
+                    y,
+                    label,
+                    ha="center",
+                    va="center",
+                    fontsize=9,
+                    color="white" if value >= 60 else "black",
+                )
+        ax.set_xticks(np.arange(-0.5, len(steps)), minor=True)
+        ax.set_yticks(np.arange(-0.5, len(labels)), minor=True)
+        ax.grid(which="minor", color="white", linewidth=1.5)
+        ax.tick_params(which="minor", bottom=False, left=False)
+    colorbar = fig.colorbar(heatmap, ax=panels, shrink=0.85, pad=0.025)
+    colorbar.set_label(f"Newly lost slabs (% of all {result.n_slabs:,} starting slabs)")
+    if result.target == "D11":
+        fig.suptitle(
+            "D11 stepwise losses across all 32 pathways\nRows: Young's modulus → Poisson's ratio",
+            fontsize=14,
+        )
+    return fig
+
+
+def _cause_label(row) -> str:
+    """Keep raw grain codes, method resolution, and numerical bounds visible."""
+    grain = row.grain_form or "No grain form"
+    if row.resolved_grain_form and row.resolved_grain_form != row.grain_form:
+        grain += f" → {row.resolved_grain_form}"
+    if row.reason == "unsupported grain form":
+        cause = "unsupported grain form"
+    elif row.reason in {"below lower bound", "above upper bound"}:
+        field = (
+            "Hardness" if row.field == "hand_hardness_index" else row.field.capitalize()
+        )
+        operator = (
+            ">"
+            if row.reason == "above upper bound"
+            else ("≤" if row.interval.startswith("(") else "<")
+        )
+        bound = row.upper if row.reason == "above upper bound" else row.lower
+        cause = f"{field} {operator} {bound:g} {row.unit}"
+    else:
+        cause = f"{row.reason}: {row.field.replace('_', ' ')}"
+    if row.grain_form or row.field == "grain_form":
+        cause = f"{grain} · {cause}"
+    if row.density_context:
+        cause += f"\nDensity: {METHOD_LABELS[row.density_context]}"
+    return cause
+
+
+def plot_method_causes(
+    result: LossAnalysis,
+    parameter: str,
+    method: str,
+    density_context: str | None = None,
+    top_n: int = 12,
+):
+    """Separate bars for overlapping causes, with no aggregate 'other' bin.
+
+    Show the largest ``top_n`` detailed rows per category. Each row keeps its
+    original grain code and upstream context; rows are never summed across
+    grain subclasses or contexts. Full counts remain available in reasons.
+    Blocked computations and other errors remain in the notebook's tables.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+
+    if top_n < 1:
+        raise ValueError("top_n must be positive")
+    frame = result.reasons[
+        (result.reasons.parameter == parameter) & (result.reasons.method == method)
+    ]
+    if density_context is not None:
+        frame = frame[frame.density_context == density_context]
+    panels = []
+    for category, label, color in [
+        ("missing", "Missing observations", LOSS_COLORS["missing_only"]),
+        ("validity", "Method validity limits", LOSS_COLORS["validity_only"]),
+    ]:
+        selected = frame[frame.category == category].sort_values(
+            ["slabs", "field", "reason", "grain_form", "density_context"],
+            ascending=[False, True, True, True, True],
+        )
+        if not selected.empty:
+            panels.append((label, color, selected.head(top_n), len(selected)))
+    if not panels:
+        fig, ax = plt.subplots(figsize=(7, 2.5))
+        ax.axis("off")
+        ax.text(
+            0.5,
+            0.5,
+            "No missing-observation or validity-limit causes\nfor this method and density context.",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+        )
+        return fig
+    # Context labels have two lines. Allow room for both labels and count text.
+    heights = [2.0 + 0.62 * len(p[2]) for p in panels]
+    fig, axes = plt.subplots(
+        len(panels),
+        1,
+        figsize=(11, sum(heights) + 0.5),
+        squeeze=False,
+        gridspec_kw={"height_ratios": heights},
+    )
+    for ax, (label, color, selected, total) in zip(axes.ravel(), panels):
+        rows = list(selected.itertuples())
+        maximum = int(selected.slabs.max())
+        ax.barh(range(len(rows)), selected.slabs, color=color, height=0.65)
+        for y, row in enumerate(rows):
+            ax.text(
+                row.slabs + max(0.015 * maximum, 0.05),
+                y,
+                f"{row.slabs:,}",
+                va="center",
+                fontsize=9,
+            )
+        ax.set(
+            yticks=range(len(rows)),
+            yticklabels=[_cause_label(r) for r in rows],
+            xlabel="Affected slabs (overlapping causes)",
+            xlim=(0, max(1.2 * maximum, 1.5)),
+            title=f"{label}: {len(rows)} of {total} causes shown",
+        )
+        ax.invert_yaxis()
+        ax.tick_params(axis="y", labelsize=9)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+        ax.grid(axis="x", alpha=0.2)
+        ax.set_axisbelow(True)
+    title = f"{parameter.replace('_', ' ').capitalize()}: {METHOD_LABELS.get(method, method)}"
+    if density_context is not None:
+        title += f" · density from {METHOD_LABELS[density_context]}"
+    fig.suptitle(title, fontsize=13)
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    return fig

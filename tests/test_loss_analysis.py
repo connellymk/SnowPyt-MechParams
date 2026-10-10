@@ -343,3 +343,34 @@ def test_cause_bars_keep_overlapping_grain_and_density_failures_separate():
     plt.close(figure)
     with pytest.raises(ValueError, match="Unknown pathway"):
         plot_stepwise_losses(result, "not a pathway")
+
+
+@pytest.mark.parametrize("method", list(HARDNESS_RANGES))
+def test_missing_hardness_bar_combines_grains_without_double_counting(method):
+    from loss_analysis_utils import plot_method_causes
+    import matplotlib.pyplot as plt
+
+    rounded = Layer(thickness=10, grain_form="RG")
+    faceted = Layer(thickness=10, grain_form="FC")
+    precipitation = Layer(thickness=10, grain_form="PP")
+    slabs = [
+        Slab(layers=[rounded, faceted], angle=30, slab_id="mixed", pit_id="pit"),
+        _slab(rounded, 1),
+        _slab(precipitation, 2),
+    ]
+    result = analyze_losses(slabs, "slab_weight_shear", progress=False)
+    details = result.details("density", method)
+    missing = details[
+        (details.category == "missing") & (details.field == "hand_hardness")
+    ]
+    assert len(missing) == 1
+    assert missing.iloc[0].slabs == 3 and missing.iloc[0].layers == 3
+    assert missing.iloc[0].grain_form == ""
+    assert missing.iloc[0].resolved_grain_form == ""
+    figure = plot_method_causes(result, "density", method, top_n=1)
+    axis = figure.axes[0]
+    assert [tick.get_text() for tick in axis.get_yticklabels()] == [
+        "missing observation: hand hardness"
+    ]
+    assert len(axis.patches) == 1 and axis.patches[0].get_width() == 3
+    plt.close(figure)

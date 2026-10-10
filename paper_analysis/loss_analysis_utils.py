@@ -331,6 +331,15 @@ class _CauseCounter:
         context: str,
         issue: Issue,
     ) -> None:
+        # Missing hardness is the same observation gap for every grain form.
+        # Merge before counting so slabs with several affected layers count once.
+        if issue.category == "missing" and issue.field == "hand_hardness":
+            issue = replace(
+                issue,
+                reason="missing observation",
+                grain_form="",
+                resolved_grain_form="",
+            )
         summary_key = (parameter, method, context, issue.category)
         detail_key = summary_key + (
             issue.reason,
@@ -1034,9 +1043,10 @@ def plot_method_causes(
 ):
     """Separate bars for overlapping causes, with no aggregate 'other' bin.
 
-    Show the largest ``top_n`` detailed rows per category. Each row keeps its
-    original grain code and upstream context; rows are never summed across
-    grain subclasses or contexts. Full counts remain available in reasons.
+    Show the largest ``top_n`` detailed rows per category. Missing hand hardness
+    is counted once per affected slab across grain forms. Other causes keep
+    their original grain code and upstream context; counts are never summed
+    across contexts. Full counts remain available in reasons.
     Blocked computations and other errors remain in the notebook's tables.
     """
     import matplotlib.pyplot as plt

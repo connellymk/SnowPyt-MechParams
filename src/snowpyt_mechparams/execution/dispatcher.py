@@ -26,15 +26,13 @@ LAYER_INPUT_MAPPING = {
 
 
 def _resolve_density(layer: Layer) -> Optional[UncertainValue]:
-    """Prefer pathway-computed density, falling back to direct measurement."""
-    if layer.density_calculated is not None:
-        return layer.density_calculated
-    if layer.density_measured is not None:
-        value = layer.density_measured
-        if isinstance(value, (int, float)):
-            return ufloat(float(value), 0.0)
-        return value
-    return None
+    """Use only density produced by the selected pathway's density step.
+
+    Direct observations enter through the explicit ``density.data_flow``
+    method, which populates ``density_calculated`` like every other method.
+    A failed empirical method must not silently switch to measured density.
+    """
+    return layer.density_calculated
 
 
 def _resolve_grain_form(

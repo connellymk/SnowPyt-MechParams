@@ -352,3 +352,54 @@ class TestCustomRegistry:
 
         with pytest.raises(ValueError, match="dispatcher and registry"):
             ExecutionEngine(dispatcher=dispatcher, registry=other_registry)
+
+
+@pytest.mark.parametrize(
+    "target", ["elastic_modulus", "poissons_ratio", "D11", "shear_modulus"]
+)
+@pytest.mark.parametrize("hardness", [None, "F-"])
+def test_downstream_density_never_falls_back_after_empirical_failure(target, hardness):
+    """Measured density cannot rescue a selected method with missing/out-of-range HH."""
+    engine = ExecutionEngine()
+    source = Slab(
+        layers=[
+            Layer(
+                depth_top=0,
+                thickness=ufloat(10, 0.5),
+                grain_form="RG",
+                hand_hardness=hardness,
+                density_measured=ufloat(250, 25),
+            )
+        ],
+        angle=30,
+    )
+    choices = {
+        "density": "geldsetzer",
+        "poissons_ratio": "srivastava",
+        "elastic_modulus": "bergfeld",
+    }
+    if target == "elastic_modulus":
+        choices.pop("poissons_ratio")
+    elif target == "poissons_ratio":
+        choices.pop("elastic_modulus")
+    failed = engine.execute_single(source, target, choices)
+    assert failed is not None and not failed.success
+    assert not failed.get_traces_for_parameter("density")[0].success
+    assert not failed.get_traces_for_parameter(target)[-1].success
+    assert failed.slab.layers[0].density_calculated is None
+    choices["density"] = "data_flow"
+    direct = engine.execute_single(source, target, choices)
+    assert direct is not None and direct.success
+    assert direct.slab.layers[0].density_calculated.nominal_value == 250
+    assert source.layers[0].density_calculated is None
+
+
+def test_dispatcher_requires_selected_density_output():
+    """Direct dispatcher users must explicitly supply a computed density."""
+    layer = Layer(grain_form="RG", density_measured=ufloat(250, 25))
+    dispatcher = MethodDispatcher()
+    result, error = dispatcher.execute("elastic_modulus", "bergfeld", layer=layer)
+    assert result is None and "Missing required inputs" in error
+    layer.density_calculated = layer.density_measured
+    result, error = dispatcher.execute("elastic_modulus", "bergfeld", layer=layer)
+    assert result is not None and error is None

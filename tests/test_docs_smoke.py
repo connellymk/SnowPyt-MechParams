@@ -17,6 +17,7 @@ def test_documented_quick_start_runs():
         Layer(
             depth_top=ufloat(20, 0.2),
             thickness=ufloat(25, 1),
+            hand_hardness="P",
             density_measured=ufloat(220, 20),
             grain_form="DF",
         ),

@@ -86,6 +86,12 @@ STEPS = {
         ("slab_weight", "Thickness / integrated weight"),
         ("slab_weight_shear", "Slope / shear weight"),
     ),
+    "slab_weight_shear_with_elasticity": (
+        ("density", "Density"),
+        ("slab_weight_shear", "Thickness + slope / shear weight"),
+        ("elastic_modulus", "Young's modulus"),
+        ("poissons_ratio", "Poisson's ratio"),
+    ),
     "D11": (
         ("density", "Density"),
         ("elastic_modulus", "Young's modulus"),
@@ -93,6 +99,11 @@ STEPS = {
         ("geometry", "Layer geometry"),
         ("D11", "D11 calculation"),
     ),
+}
+TARGET_LABELS = {
+    "slab_weight_shear": "Shear slab weight",
+    "slab_weight_shear_with_elasticity": "Shear weight with elasticity",
+    "D11": "D11",
 }
 
 
@@ -468,7 +479,9 @@ def analyze_losses(
             stage_issues: dict[str, list[Issue]] = defaultdict(list)
             ready = {}
             for parameter in ["density"] + (
-                ["elastic_modulus", "poissons_ratio"] if target == "D11" else []
+                ["elastic_modulus", "poissons_ratio"]
+                if target != "slab_weight_shear"
+                else []
             ):
                 method = methods[parameter]
                 context = (
@@ -527,7 +540,13 @@ def analyze_losses(
             if target == "D11":
                 ready["geometry"] = bool(slab.layers) and not geometry_issues
 
-            for parameter in ["slab_weight", target] if target != "D11" else [target]:
+            slab_parameters = (
+                [target]
+                if target == "D11"
+                else ["slab_weight", "slab_weight_shear"]
+                + ([target] if target == "slab_weight_shear_with_elasticity" else [])
+            )
+            for parameter in slab_parameters:
                 trace = traces[(parameter, None)]
                 issues = (
                     list(geometry_issues) if parameter in {"slab_weight", "D11"} else []
@@ -553,6 +572,8 @@ def analyze_losses(
                         if parameter == "slab_weight"
                         else ["elastic_modulus", "poissons_ratio"]
                     )
+                    if parameter == "slab_weight_shear_with_elasticity":
+                        prerequisites = ["slab_weight_shear", *prerequisites]
                     for upstream in prerequisites:
                         if not ready[upstream]:
                             issues.append(
@@ -591,6 +612,21 @@ def analyze_losses(
                     i for i in issues if i not in stage_issues[parameter]
                 )
                 ready[parameter] = bool(output_ok) and not issues
+
+            if target == "slab_weight_shear_with_elasticity":
+                # The paper combines thickness and slope in its shear-weight
+                # stage. Attribute missing thickness to this step, rather than
+                # treating its integrated-weight consequence as a new error.
+                stage_issues["slab_weight_shear"] = geometry_issues + [
+                    i
+                    for i in stage_issues["slab_weight_shear"]
+                    if i.category != "blocked"
+                ]
+                # A final-output error after all four requirements passed is
+                # charged to the last step so the four-stage funnel reconciles.
+                if all(ready[p] for p in step_parameters) and not ready[target]:
+                    ready["poissons_ratio"] = False
+                    stage_issues["poissons_ratio"] = stage_issues[target]
 
             success = all(ready[p] for p in step_parameters)
             first_failed = next((p for p in step_parameters if not ready[p]), "")
@@ -736,7 +772,7 @@ def plot_histogram(result: LossAnalysis):
     ax.set(
         xlabel="Number of successfully calculated pathways",
         ylabel="Slab count",
-        title=f"{'Shear slab weight' if result.target == 'slab_weight_shear' else 'D11'}: {result.n_slabs:,} ECTP slabs",
+        title=f"{TARGET_LABELS[result.target]}: {result.n_slabs:,} ECTP slabs",
         xticks=range(result.n_pathways + 1),
         xlim=(-0.6, result.n_pathways + 0.6),
     )
@@ -850,7 +886,7 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
         yticklabels=["Starting cohort", *stages.requirement],
         xlabel="Slab count entering each step",
         xlim=(0, result.n_slabs * 1.53),
-        title=f"{'Shear weight' if result.target == 'slab_weight_shear' else 'D11'}: {pathway}",
+        title=f"{TARGET_LABELS[result.target]}: {pathway}",
     )
     ax.invert_yaxis()
     ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
@@ -875,7 +911,7 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
 def plot_loss_heatmap(result: LossAnalysis):
     """Compare newly lost fractions using the original cohort denominator.
 
-    D11 is faceted by density method, with all E/nu combinations in each panel.
+    Elasticity targets are faceted by density method, with all E/nu combinations.
     No conditional step percentages or summed overlapping causes are used.
     """
     import matplotlib.pyplot as plt
@@ -885,16 +921,20 @@ def plot_loss_heatmap(result: LossAnalysis):
         index="pathway", columns="requirement", values="newly_lost"
     )
     losses = 100 * losses.reindex(columns=steps) / result.n_slabs
-    if result.target == "D11":
+    if result.target != "slab_weight_shear":
         fig, axes = plt.subplots(2, 2, figsize=(13, 9), constrained_layout=True)
         panels = axes.ravel()
-        short_steps = ["Density", "$E$", "$\\nu$", "Geometry", "D11"]
+        short_steps = (
+            ["Density", "$E$", "$\\nu$", "Geometry", "D11"]
+            if result.target == "D11"
+            else ["Density", "Shear weight", "$E$", "$\\nu$"]
+        )
     else:
         fig, ax = plt.subplots(figsize=(7.5, 3.8), constrained_layout=True)
         panels = [ax]
         short_steps = ["Density", "Weight", "Shear weight"]
     for index, ax in enumerate(panels):
-        if result.target == "D11":
+        if result.target != "slab_weight_shear":
             density_method = DENSITY_ORDER[index]
             selected = result.coverage[
                 result.coverage.density_method == density_method
@@ -949,9 +989,10 @@ def plot_loss_heatmap(result: LossAnalysis):
         ax.tick_params(which="minor", bottom=False, left=False)
     colorbar = fig.colorbar(heatmap, ax=panels, shrink=0.85, pad=0.025)
     colorbar.set_label(f"Newly lost slabs (% of all {result.n_slabs:,} starting slabs)")
-    if result.target == "D11":
+    if result.target != "slab_weight_shear":
         fig.suptitle(
-            "D11 stepwise losses across all 32 pathways\nRows: Young's modulus → Poisson's ratio",
+            f"{TARGET_LABELS[result.target]}: losses across all 32 pathways\n"
+            "Rows: Young's modulus → Poisson's ratio",
             fontsize=14,
         )
     return fig

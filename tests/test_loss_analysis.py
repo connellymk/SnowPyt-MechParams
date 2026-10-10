@@ -161,12 +161,13 @@ def _slab(layer, index, angle=30):
     return Slab(layers=[layer], angle=angle, slab_id=f"slab_{index}", pit_id="pit")
 
 
-def test_shared_branches_and_layers_are_deduplicated_and_funnels_reconcile():
+@pytest.mark.parametrize("target", ["D11", "slab_weight_shear_with_elasticity"])
+def test_shared_branches_and_layers_are_deduplicated_and_funnels_reconcile(target):
     source = Layer(
         depth_top=0, thickness=10, grain_form="RG", density_measured=ufloat(250, 25)
     )
     slabs = [_slab(source, 0), _slab(source, 1)]
-    result = analyze_losses(slabs, "D11", progress=False)
+    result = analyze_losses(slabs, target, progress=False)
     assert len(result.attempts) == 64
     rows = result.method_summary
     missing = rows[
@@ -253,7 +254,8 @@ def test_failure_partition_covers_all_cases():
     assert failure_category([Issue("other", "error", "output")]) == "other"
 
 
-def test_heatmap_uses_starting_cohort_not_step_survivors():
+@pytest.mark.parametrize("target", ["D11", "slab_weight_shear_with_elasticity"])
+def test_heatmap_uses_starting_cohort_not_step_survivors(target):
     """After one of three slabs fails density, another loss is 33%, not 50%."""
     from loss_analysis_utils import plot_loss_heatmap
     import matplotlib.pyplot as plt
@@ -267,17 +269,59 @@ def test_heatmap_uses_starting_cohort_not_step_survivors():
     )
     result = analyze_losses(
         [_slab(layer, i) for i, layer in enumerate([missing, unsupported, valid])],
-        "D11",
+        target,
         progress=False,
     )
     figure = plot_loss_heatmap(result)
     measured = figure.axes[0].images[0].get_array()
     assert measured[0, 0] == pytest.approx(100 / 3)
-    assert measured[0, 1] == pytest.approx(100 / 3)
+    emod_step = 1 if target == "D11" else 2
+    assert measured[0, emod_step] == pytest.approx(100 / 3)
     assert (
         sum(ax.images[0].get_array().shape[0] for ax in figure.axes if ax.images) == 32
     )
     plt.close(figure)
+
+
+def test_elastic_shear_matches_weight_without_requiring_depth_and_allows_zero():
+    layer = Layer(thickness=10, grain_form="RG", density_measured=ufloat(250, 1))
+    result = analyze_losses(
+        [_slab(layer, 0, angle=0)],
+        "slab_weight_shear_with_elasticity",
+        progress=False,
+    )
+    direct = result.attempts[result.attempts.density_method == "data_flow"]
+    assert direct.success.all()
+    assert direct.value.eq(0).all()
+    assert result.histogram.loc[8] == 1
+    assert "geometry" not in set(result.reasons.parameter)
+    figure = plot_histogram(result)
+    assert len(figure.axes[0].patches) == 33
+    assert "Shear weight with elasticity" in figure.axes[0].get_title()
+    import matplotlib.pyplot as plt
+
+    plt.close(figure)
+
+
+def test_elastic_shear_loses_missing_thickness_or_slope_before_elasticity():
+    # PP independently fails Köchle E, but missing geometry is first in the
+    # paper's reporting order. Missing thickness must not become "blocked" loss.
+    missing_thickness = Layer(grain_form="PP", density_measured=ufloat(250, 1))
+    missing_slope = Layer(
+        thickness=10, grain_form="PP", density_measured=ufloat(250, 1)
+    )
+    result = analyze_losses(
+        [_slab(missing_thickness, 0), _slab(missing_slope, 1, angle=None)],
+        "slab_weight_shear_with_elasticity",
+        progress=False,
+    )
+    direct = result.attempts[result.attempts.density_method == "data_flow"]
+    assert set(direct.first_failed_step) == {"slab_weight_shear"}
+    assert set(direct.failure_category) == {"missing_only"}
+    assert not result.attempts.success.any()
+    assert not result.details("elastic_modulus", "kochle").empty
+    stages = result.stages[result.stages.pathway == "Measured → Köchle → Köchle"]
+    assert stages.surviving.tolist() == [2, 0, 0, 0]
 
 
 def test_cause_bars_keep_overlapping_grain_and_density_failures_separate():

@@ -32,8 +32,9 @@ from snowpyt_mechparams.execution import ExecutionConfig
 from snowpyt_mechparams.models import Layer, Slab
 
 layers = [
-    Layer(thickness=ufloat(20, 1), hand_hardness="1F", grain_form="RG"),
-    Layer(thickness=ufloat(25, 1), density_measured=ufloat(220, 20), grain_form="DF"),
+    Layer(depth_top=0, thickness=ufloat(20, 1), hand_hardness="1F", grain_form="RG"),
+    Layer(depth_top=20, thickness=ufloat(25, 1), hand_hardness="P",
+          density_measured=ufloat(220, 20), grain_form="DF"),
 ]
 slab = Slab(layers=layers, angle=35.0)
 

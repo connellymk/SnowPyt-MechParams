@@ -857,6 +857,7 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
     stages = result.stages[result.stages.pathway == pathway].sort_values("step")
     if stages.empty:
         raise ValueError(f"Unknown pathway: {pathway}")
+    categories = ("surviving", "missing_only", "validity_only", "mixed")
     fig, ax = plt.subplots(figsize=(12, 2.2 + 0.6 * (len(stages) + 1)))
     ax.barh(0, result.n_slabs, color=LOSS_COLORS["surviving"], height=0.65)
     ax.text(
@@ -869,7 +870,7 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
     )
     for y, row in enumerate(stages.itertuples(), start=1):
         left = 0
-        for category in LOSS_COLORS:
+        for category in categories:
             value = int(getattr(row, category))
             ax.barh(y, value, left=left, height=0.65, color=LOSS_COLORS[category])
             if value >= 0.04 * result.n_slabs:
@@ -910,7 +911,7 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
     ax.grid(axis="x", alpha=0.2)
     ax.set_axisbelow(True)
     handles = [
-        Patch(facecolor=LOSS_COLORS[c], label=LOSS_LABELS[c]) for c in LOSS_COLORS
+        Patch(facecolor=LOSS_COLORS[c], label=LOSS_LABELS[c]) for c in categories
     ]
     fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=9, frameon=False)
     fig.tight_layout(rect=(0, 0.13, 1, 1))

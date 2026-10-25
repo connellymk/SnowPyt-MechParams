@@ -7,4 +7,4 @@ loss analysis nb
 - Stepwise loss
     - Use different color palette than methods in the paper
     - Use a color or style (hatched?) to represent "mixed causes" loss, that combines the color or style of missing measurements and validity
-- Remove thickness / integrated weight step
+- Remove thickness / integrated weight step from shear weight stepwise losses (Thickness is always available so it will always be the same.)

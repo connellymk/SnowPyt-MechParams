@@ -16,6 +16,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -70,7 +71,7 @@ DENSITY_RANGES = {
     "wautier": (103.0, 544.0),
 }
 METHOD_LABELS = {
-    "data_flow": "Measured",
+    "data_flow": "Direct matched density",
     "geldsetzer": "Geldsetzer",
     "kim_jamieson_table2": "Kim T2",
     "kim_jamieson_table6": "Kim T6",
@@ -82,15 +83,14 @@ METHOD_LABELS = {
 }
 STEPS = {
     "slab_weight_shear": (
-        ("density", "Density"),
-        ("slab_weight", "Thickness / integrated weight"),
-        ("slab_weight_shear", "Slope / shear weight"),
+        ("density", r"Density, $\rho$"),
+        ("slab_weight_shear", r"Shear weight, $W_{\mathrm{shear}}$"),
     ),
     "slab_weight_shear_with_elasticity": (
-        ("density", "Density"),
-        ("slab_weight_shear", "Thickness + slope / shear weight"),
-        ("elastic_modulus", "Young's modulus"),
-        ("poissons_ratio", "Poisson's ratio"),
+        ("density", r"Density, $\rho$"),
+        ("slab_weight_shear", r"Shear weight, $W_{\mathrm{shear}}$"),
+        ("elastic_modulus", "Young's modulus, $E$"),
+        ("poissons_ratio", r"Poisson's ratio, $\nu$"),
     ),
     "D11": (
         ("density", "Density"),
@@ -101,9 +101,30 @@ STEPS = {
     ),
 }
 TARGET_LABELS = {
-    "slab_weight_shear": "Shear slab weight",
+    "slab_weight_shear": "Shear weight",
     "slab_weight_shear_with_elasticity": "Shear weight with elasticity",
     "D11": "D11",
+}
+PARAMETER_LABELS = {
+    "density": r"Density, $\rho$",
+    "elastic_modulus": "Young's modulus, $E$",
+    "poissons_ratio": r"Poisson's ratio, $\nu$",
+    "slab_weight": "Slab weight per unit area, $W$",
+    "slab_weight_shear": r"Shear weight, $W_{\mathrm{shear}}$",
+    "slab_weight_shear_with_elasticity": "Shear weight with elasticity",
+    "D11": r"Bending stiffness, $D_{11}$",
+}
+FIELD_LABELS = {
+    "density_measured": "matched density observation",
+    "density": r"density, $\rho$",
+    "hand_hardness": "hand hardness",
+    "hand_hardness_index": "hand hardness index",
+    "grain_form": "primary grain form",
+    "grain_size": "average grain size",
+    "thickness": "layer thickness",
+    "depth_top": "layer top depth",
+    "slope_angle": r"slope angle, $\psi$",
+    "output": "calculated output",
 }
 
 
@@ -383,12 +404,14 @@ class _CauseCounter:
                 row.update(slabs=len(bucket["slabs"]), layers=len(bucket["layers"]))
                 if mapping is self.details:
                     row.update(
-                        observed_min=bucket["minimum"]
-                        if bucket["minimum"] != math.inf
-                        else None,
-                        observed_max=bucket["maximum"]
-                        if bucket["maximum"] != -math.inf
-                        else None,
+                        observed_min=(
+                            bucket["minimum"] if bucket["minimum"] != math.inf else None
+                        ),
+                        observed_max=(
+                            bucket["maximum"]
+                            if bucket["maximum"] != -math.inf
+                            else None
+                        ),
                         observed_examples=", ".join(sorted(bucket["examples"])),
                     )
                 rows.append(row)
@@ -601,9 +624,9 @@ def analyze_losses(
                             "other",
                             trace.error or "invalid target output",
                             "output",
-                            observed=nominal(trace.output)
-                            if finite(trace.output)
-                            else None,
+                            observed=(
+                                nominal(trace.output) if finite(trace.output) else None
+                            ),
                         )
                     )
                 # Geometry/slope observations have already been counted above.
@@ -622,15 +645,20 @@ def analyze_losses(
                 )
                 ready[parameter] = bool(output_ok) and not issues
 
+            if target in {"slab_weight_shear", "slab_weight_shear_with_elasticity"}:
+                # Both funnels combine thickness and slope. Preserve genuine
+                # integrated-weight errors, but omit blocked consequences of
+                # an earlier loss. Thickness remains checked for every layer.
+                stage_issues["slab_weight_shear"] = (
+                    geometry_issues
+                    + [i for i in stage_issues["slab_weight"] if i.category == "other"]
+                    + [
+                        i
+                        for i in stage_issues["slab_weight_shear"]
+                        if i.category != "blocked"
+                    ]
+                )
             if target == "slab_weight_shear_with_elasticity":
-                # The paper combines thickness and slope in its shear-weight
-                # stage. Attribute missing thickness to this step, rather than
-                # treating its integrated-weight consequence as a new error.
-                stage_issues["slab_weight_shear"] = geometry_issues + [
-                    i
-                    for i in stage_issues["slab_weight_shear"]
-                    if i.category != "blocked"
-                ]
                 # A final-output error after all four requirements passed is
                 # charged to the last step so the four-stage funnel reconciles.
                 if all(ready[p] for p in step_parameters) and not ready[target]:
@@ -776,11 +804,13 @@ def plot_histogram(result: LossAnalysis):
         result.histogram.index,
         result.histogram.values,
         width=0.8,
-        color="#0072B2" if result.target == "slab_weight_shear" else "#009E73",
+        color=LOSS_COLORS["missing_only"],
+        edgecolor="#30383B",
+        linewidth=0.4,
     )
     ax.set(
-        xlabel="Number of successfully calculated pathways",
-        ylabel="Slab count",
+        xlabel="Successful calculation pathways per slab",
+        ylabel="ECTP slabs",
         title=f"{TARGET_LABELS[result.target]}: {result.n_slabs:,} ECTP slabs",
         xticks=range(result.n_pathways + 1),
         xlim=(-0.6, result.n_pathways + 0.6),
@@ -818,20 +848,268 @@ def comparison_table(*results: LossAnalysis) -> pd.DataFrame:
     return pd.DataFrame(rows).set_index("target")
 
 
+def successful_pathway_table(
+    weight: LossAnalysis, elastic_weight: LossAnalysis, compact: bool = False
+) -> pd.DataFrame:
+    """Exact integer bins; inapplicable bins are NA, not zero coverage.
+
+    The default paper table and CSV retain all bins through 32, including
+    unoccupied bins and zero-success slabs. An optional compact diagnostic
+    view omits bins empty for both targets.
+    """
+    if (weight.target, elastic_weight.target) != (
+        "slab_weight_shear",
+        "slab_weight_shear_with_elasticity",
+    ):
+        raise ValueError(
+            "Expected shear-weight and shear-weight-with-elasticity results"
+        )
+    if weight.n_slabs != elastic_weight.n_slabs:
+        raise ValueError("Both distributions must use the same cohort")
+    frame = pd.DataFrame(index=range(elastic_weight.n_pathways + 1))
+    frame.index.name = "Successful pathways"
+    for label, result in [
+        ("Shear weight", weight),
+        ("With elasticity", elastic_weight),
+    ]:
+        counts = result.histogram.reindex(frame.index).astype("Int64")
+        frame[f"{label}: slabs"] = counts
+        frame[f"{label}: %"] = 100 * counts / result.n_slabs
+    if compact:
+        columns = [c for c in frame if c.endswith(": slabs")]
+        frame = frame.loc[frame[columns].fillna(0).sum(axis=1) > 0]
+    return frame
+
+
+def plot_pathway_distribution(weight: LossAnalysis, elastic_weight: LossAnalysis):
+    """Align a count/percentage table and horizontal bars for each target.
+
+    Both panels use rows 0..32 and the same linear slab-count scale. Rows above
+    four are inapplicable to shear weight, so they have dashes and no bar.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+
+    table = successful_pathway_table(weight, elastic_weight)
+    n_rows = len(table)
+    ticks = MaxNLocator(nbins=3, integer=True).tick_values(0, weight.n_slabs)
+    limit = ticks[-1]
+    fig = plt.figure(figsize=(7, 8.2))
+    outer = fig.add_gridspec(
+        1, 2, left=0.025, right=0.99, bottom=0.12, top=0.91, wspace=0.13
+    )
+    for panel, (label, result) in enumerate(
+        [("Shear weight", weight), ("With elasticity", elastic_weight)]
+    ):
+        grid = outer[panel].subgridspec(1, 2, width_ratios=[1.15, 1.45], wspace=0.06)
+        tab_ax = fig.add_subplot(grid[0])
+        bar_ax = fig.add_subplot(grid[1], sharey=tab_ax)
+        for ax in [tab_ax, bar_ax]:
+            ax.set_ylim(n_rows - 0.5, -2.0)
+            for row in range(n_rows):
+                if row % 2 == 0:
+                    ax.axhspan(row - 0.5, row + 0.5, color="#F2F4F4", zorder=0)
+            ax.axhline(-0.6, color="#60686A", linewidth=0.5)
+        tab_ax.set_xlim(0, 1)
+        tab_ax.axis("off")
+        positions = [0.13, 0.62, 0.98]
+        for x, header, align in zip(
+            positions,
+            ["Successful\npathways", "Slabs", "%"],
+            ["center", "right", "right"],
+        ):
+            tab_ax.text(x, -1.25, header, ha=align, va="center", fontsize=7)
+        bar_ax.text(
+            0.5,
+            -1.25,
+            "Slab count",
+            ha="center",
+            va="center",
+            fontsize=7,
+            transform=bar_ax.get_yaxis_transform(),
+        )
+        for k in table.index:
+            count = table.loc[k, f"{label}: slabs"]
+            percent = table.loc[k, f"{label}: %"]
+            applicable = pd.notna(count)
+            text_color = "#222222" if applicable else "#909898"
+            entries = [
+                str(k),
+                f"{int(count):,}" if applicable else "—",
+                f"{percent:.2f}" if applicable else "—",
+            ]
+            for x, value, align in zip(
+                positions, entries, ["center", "right", "right"]
+            ):
+                tab_ax.text(
+                    x, k, value, ha=align, va="center", fontsize=7, color=text_color
+                )
+        counts = result.histogram
+        bar_ax.barh(
+            counts.index,
+            counts.values,
+            height=0.7,
+            color="#4C9085",
+            edgecolor="#30383B",
+            linewidth=0.25,
+            zorder=2,
+        )
+        bar_ax.set_xlim(0, limit)
+        bar_ax.set_xticks(ticks)
+        bar_ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+        bar_ax.set_xlabel("ECTP slabs", fontsize=7.5)
+        bar_ax.tick_params(axis="x", labelsize=6.5, length=2)
+        bar_ax.tick_params(axis="y", left=False, labelleft=False)
+        bar_ax.spines[["top", "right", "left"]].set_visible(False)
+        bar_ax.grid(axis="x", color="#D8D8D8", linewidth=0.4, zorder=1)
+        bar_ax.set_axisbelow(True)
+        bounds = outer[panel].get_position(fig)
+        title = (
+            r"(a) Shear weight, $W_{\mathrm{shear}}$"
+            if panel == 0
+            else r"(b) Shear weight with elasticity"
+            + "\n"
+            + r"($E$ and $\nu$ required)"
+        )
+        fig.text(
+            (bounds.x0 + bounds.x1) / 2,
+            0.965,
+            title,
+            ha="center",
+            va="top",
+            fontsize=8.5,
+        )
+    fig.text(
+        0.025,
+        0.065,
+        "Bars count slabs with exactly the successful-pathway count shown in each row.\n"
+        f"Both targets use {weight.n_slabs:,} ECTP slabs; percentages use this full cohort.\n"
+        "Dashes indicate counts above the four available shear-weight pathways.",
+        fontsize=7,
+        ha="left",
+        va="top",
+        linespacing=1.5,
+    )
+    return fig
+
+
+def write_successful_pathway_preview(table_path: Path) -> Path:
+    """Add a compilable document beside the manuscript's table include."""
+    preview = table_path.with_name(f"{table_path.stem}_preview.tex")
+    preview.write_text(
+        "\n".join(
+            [
+                r"\documentclass[10pt]{article}",
+                r"\usepackage[margin=1in]{geometry}",
+                r"\usepackage{booktabs,threeparttable}",
+                r"\pagestyle{empty}",
+                r"\begin{document}",
+                rf"\input{{{table_path.name}}}",
+                r"\end{document}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return preview
+
+
+def export_successful_pathway_table(
+    weight: LossAnalysis, elastic_weight: LossAnalysis, directories
+) -> list[Path]:
+    """Write a table include, its complete CSV, and a compilable preview."""
+    full = successful_pathway_table(weight, elastic_weight)
+    lines = [
+        "% Manuscript include; compile successful_pathway_distribution_preview.tex for a standalone PDF.",
+        r"\begin{table}[t]",
+        r"\centering",
+        r"\begin{threeparttable}",
+        r"\caption{Distribution of successful calculation pathways per ECTP slab. "
+        + f"Both targets use the same {weight.n_slabs:,}".replace(",", r"{,}")
+        + r" slabs; shear weight has four pathways and shear weight with elasticity has 32.}",
+        r"\label{tab:successful_pathway_distribution}",
+        r"\small",
+        r"\begin{tabular}{@{}rrrrr@{}}",
+        r"\toprule",
+        r" & \multicolumn{2}{c}{Shear weight, $W_{\mathrm{shear}}$}"
+        r" & \multicolumn{2}{c}{With elasticity} \\",
+        r"\cmidrule(lr){2-3}\cmidrule(l){4-5}",
+        r"Successful pathways & Slabs & (\%) & Slabs & (\%) \\",
+        r"\midrule",
+    ]
+    for k, row in full.iterrows():
+        cells = [str(k)]
+        for label in ["Shear weight", "With elasticity"]:
+            count, percent = row[f"{label}: slabs"], row[f"{label}: %"]
+            cells.extend(
+                ["---", "---"]
+                if pd.isna(count)
+                else [f"{int(count):,}".replace(",", r"{,}"), f"{percent:.2f}"]
+            )
+        lines.append(" & ".join(cells) + r" \\")
+    lines.extend(
+        [
+            r"\midrule",
+            r"Total & "
+            + f"{weight.n_slabs:,}".replace(",", r"{,}")
+            + r" & 100.00 & "
+            + f"{elastic_weight.n_slabs:,}".replace(",", r"{,}")
+            + r" & 100.00 \\",
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"\begin{tablenotes}[flushleft]\footnotesize",
+            r"\item Percentages use all starting slabs. All pathway counts from 0 to "
+            r"32 are shown; zeros indicate that no slabs have that count. Dashes "
+            r"indicate pathway counts exceeding the four "
+            r"available shear-weight pathways. Percentages may not sum exactly to 100\% "
+            r"because of rounding.",
+            r"\end{tablenotes}",
+            r"\end{threeparttable}",
+            r"\end{table}",
+        ]
+    )
+    paths = []
+    for directory in directories:
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        stem = directory / "successful_pathway_distribution"
+        csv, tex = stem.with_suffix(".csv"), stem.with_suffix(".tex")
+        full.to_csv(csv, float_format="%.6f")
+        tex.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        paths.extend([csv, tex, write_successful_pathway_preview(tex)])
+    return paths
+
+
 LOSS_COLORS = {
-    "surviving": "#009E73",
-    "missing_only": "#0072B2",
-    "validity_only": "#E69F00",
-    "mixed": "#CC79A7",
-    "other": "#8F8F8F",
+    "surviving": "#D9DDDF",
+    "missing_only": "#4C9085",
+    "validity_only": "#BE7655",
+    "mixed": "#4C9085",
+    "other": "#222222",
 }
 LOSS_LABELS = {
-    "surviving": "Surviving",
+    "surviving": "Surviving slabs",
     "missing_only": "Missing observations only",
     "validity_only": "Validity limits only",
-    "mixed": "Mixed causes",
+    "mixed": "Missing observations + validity limits",
     "other": "Other errors",
 }
+
+
+def _loss_style(category: str) -> dict:
+    return {
+        "facecolor": LOSS_COLORS[category],
+        "edgecolor": LOSS_COLORS["validity_only"] if category == "mixed" else "#30383B",
+        "linewidth": 0.35,
+        "hatch": "////" if category == "mixed" else None,
+    }
+
+
+def _figure_label(text: str) -> str:
+    """Use a math arrow: the paper's Helvetica text font lacks U+2192."""
+    return text.replace("→", r"$\rightarrow$")
+
+
 DENSITY_ORDER = [
     "data_flow",
     "geldsetzer",
@@ -842,7 +1120,28 @@ EMOD_ORDER = ["bergfeld", "kochle", "wautier", "schottner"]
 NU_ORDER = ["kochle", "srivastava"]
 
 
-def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
+def _stepwise_title(result: LossAnalysis, pathway: str) -> str:
+    methods = result.coverage.set_index("pathway").loc[pathway]
+    labels = []
+    for column, symbol in [
+        ("density_method", r"$\rho$"),
+        ("emod_method", "$E$"),
+        ("nu_method", r"$\nu$"),
+    ]:
+        method = methods[column]
+        if method:
+            labels.append(f"{METHOD_LABELS[method]} ({symbol})")
+    return TARGET_LABELS[result.target] + "\n" + r" $\rightarrow$ ".join(labels)
+
+
+def plot_stepwise_losses(
+    result: LossAnalysis,
+    pathway: str | None = None,
+    *,
+    ax=None,
+    final_step: int | None = None,
+    compact: bool = False,
+):
     """Stack survivors and exclusive newly lost categories for one pathway.
 
     Each bar's total is the population entering that step. This is a reporting
@@ -857,50 +1156,111 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
     stages = result.stages[result.stages.pathway == pathway].sort_values("step")
     if stages.empty:
         raise ValueError(f"Unknown pathway: {pathway}")
-    categories = ("surviving", "missing_only", "validity_only", "mixed")
-    fig, ax = plt.subplots(figsize=(12, 2.2 + 0.6 * (len(stages) + 1)))
-    ax.barh(0, result.n_slabs, color=LOSS_COLORS["surviving"], height=0.65)
+    categories = ["surviving", "missing_only", "validity_only", "mixed"]
+    if stages.other.any():
+        categories.append("other")
+    parameters = [p for p, _ in STEPS[result.target]]
+    requirements = []
+    for parameter, label in zip(parameters, stages.requirement):
+        label = PARAMETER_LABELS.get(parameter, label)
+        if parameter == "slab_weight_shear":
+            label += (
+                "\n"
+                + r"(Join: layer thickness, $h_n$;"
+                + "\n"
+                + r"slope angle, $\psi$)"
+            )
+        elif parameter == "geometry":
+            label += "\n(Join: layer depths and thicknesses)"
+        requirements.append(label)
+    final_count = int(stages.iloc[-1].surviving)
+    show_final = result.target != "slab_weight_shear"
+    target_label = PARAMETER_LABELS[result.target]
+    if result.target == "slab_weight_shear_with_elasticity":
+        target_label = (
+            "Shear weight with elasticity\n"
+            + r"(Join: $W_{\mathrm{shear}}$, $E$, $\nu$)"
+        )
+    else:
+        target_label += "\n(Final target)"
+    if show_final:
+        requirements.append(target_label)
+    standalone = ax is None
+    if standalone:
+        fig, ax = plt.subplots(
+            figsize=(7, 2.0 + 0.60 * (len(stages) + 1 + int(show_final)))
+        )
+    else:
+        fig = ax.figure
+    font_size = 6.5 if compact else 7.5
+    value_size = 6 if compact else 7
+    label_threshold = 0.20 if compact else 0.07
+    ax.barh(0, result.n_slabs, height=0.65, **_loss_style("surviving"))
     ax.text(
         result.n_slabs / 2,
         0,
         f"{result.n_slabs:,}",
         ha="center",
         va="center",
-        fontsize=9,
+        fontsize=font_size,
     )
     for y, row in enumerate(stages.itertuples(), start=1):
         left = 0
         for category in categories:
             value = int(getattr(row, category))
-            ax.barh(y, value, left=left, height=0.65, color=LOSS_COLORS[category])
-            if value >= 0.04 * result.n_slabs:
+            ax.barh(y, value, left=left, height=0.65, **_loss_style(category))
+            if value >= label_threshold * result.n_slabs:
                 ax.text(
                     left + value / 2,
                     y,
                     f"{value:,}",
                     ha="center",
                     va="center",
-                    fontsize=8,
+                    fontsize=value_size,
+                    color="white" if category == "other" else "black",
                 )
             left += value
         ax.text(
-            result.n_slabs * 1.03,
+            1.025,
             y,
-            f"{row.surviving:,} survive · {row.newly_lost:,} lost",
+            f"{row.surviving:,} survive\n"
+            f"{row.newly_lost:,} lost ({100 * row.newly_lost / result.n_slabs:.1f}%)",
+            transform=ax.get_yaxis_transform(),
             va="center",
-            fontsize=9,
+            fontsize=font_size,
         )
-    ax.text(result.n_slabs * 1.03, 0, "Starting cohort", va="center", fontsize=9)
-    ax.set(
-        yticks=range(len(stages) + 1),
-        yticklabels=["Starting cohort", *stages.requirement],
-        xlabel="Slab count entering each step",
-        xlim=(0, result.n_slabs * 1.53),
-        title=f"{TARGET_LABELS[result.target]}: {pathway}",
+    final_y = len(stages) + 1 if final_step is None else final_step
+    if show_final:
+        ax.barh(final_y, final_count, height=0.65, **_loss_style("surviving"))
+        ax.text(
+            1.025,
+            final_y,
+            f"{final_count:,}\n0 lost (0.0%)",
+            transform=ax.get_yaxis_transform(),
+            va="center",
+            fontsize=font_size,
+        )
+    ax.text(
+        1.025,
+        0,
+        "Starting cohort",
+        transform=ax.get_yaxis_transform(),
+        va="center",
+        fontsize=font_size,
     )
-    ax.invert_yaxis()
+    ax.set(
+        yticks=[*range(len(stages) + 1), *([final_y] if show_final else [])],
+        yticklabels=["Starting cohort\n(All ECTP slabs)", *requirements],
+        xlabel="ECTP slabs entering each requirement",
+        xlim=(0, result.n_slabs),
+    )
+    last_row = final_y if show_final or final_step is not None else len(stages)
+    ax.set_ylim(last_row + 0.65, -0.65)
+    if standalone:
+        fig.suptitle(_stepwise_title(result, pathway), fontsize=9, y=0.98)
+    ax.tick_params(labelsize=font_size)
+    ax.xaxis.label.set_fontsize(font_size)
     ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
-    # Keep tick marks within the actual cohort; the right margin holds labels.
     ax.set_xticks(
         [
             t
@@ -908,13 +1268,78 @@ def plot_stepwise_losses(result: LossAnalysis, pathway: str | None = None):
             if 0 <= t <= result.n_slabs
         ]
     )
-    ax.grid(axis="x", alpha=0.2)
+    ax.grid(axis="x", alpha=0.2, linewidth=0.5)
     ax.set_axisbelow(True)
-    handles = [
-        Patch(facecolor=LOSS_COLORS[c], label=LOSS_LABELS[c]) for c in categories
-    ]
-    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=9, frameon=False)
-    fig.tight_layout(rect=(0, 0.13, 1, 1))
+    ax.spines[["top", "right"]].set_visible(False)
+    if standalone:
+        handles = [Patch(label=LOSS_LABELS[c], **_loss_style(c)) for c in categories]
+        fig.legend(
+            handles=handles,
+            title=f"Loss percentages use all {result.n_slabs:,} starting slabs",
+            title_fontsize=6.5,
+            loc="lower center",
+            ncol=2,
+            fontsize=7,
+            frameon=False,
+            bbox_to_anchor=(0.5, 0.015),
+        )
+        fig.subplots_adjust(left=0.31, right=0.80, top=0.88, bottom=0.22)
+    return fig
+
+
+def plot_stepwise_comparison(
+    weight: LossAnalysis,
+    elastic_weight: LossAnalysis,
+    weight_pathway: str | None = None,
+    elasticity_pathway: str | None = None,
+):
+    """Compare selected targets with shared count and row scales and one legend."""
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+
+    if weight.n_slabs != elastic_weight.n_slabs:
+        raise ValueError("Both panels must use the same slab cohort")
+    weight_pathway = weight_pathway or weight.coverage.iloc[0].pathway
+    elasticity_pathway = elasticity_pathway or elastic_weight.coverage.iloc[0].pathway
+    final_step = max(len(STEPS[r.target]) for r in [weight, elastic_weight]) + 1
+    fig = plt.figure(figsize=(7, 5.2))
+    left = fig.add_axes([0.19, 0.20, 0.20, 0.63])
+    right = fig.add_axes([0.70, 0.20, 0.20, 0.63], sharex=left)
+    selected = [(weight, weight_pathway), (elastic_weight, elasticity_pathway)]
+    for panel, (ax, (result, pathway)) in enumerate(zip([left, right], selected)):
+        plot_stepwise_losses(
+            result, pathway, ax=ax, final_step=final_step, compact=True
+        )
+        labels = [tick.get_text() for tick in ax.get_yticklabels()]
+        labels = [
+            label.replace(
+                "Shear weight with elasticity", "Shear weight with\nelasticity"
+            )
+            for label in labels
+        ]
+        ax.set_yticks(ax.get_yticks(), labels=labels)
+        ax.set_xlabel("ECTP slabs", fontsize=7)
+        fig.text(
+            0.25 + 0.51 * panel,
+            0.97,
+            f"({chr(97 + panel)}) {_stepwise_title(result, pathway)}",
+            ha="center",
+            va="top",
+            fontsize=7.5,
+        )
+    categories = ["surviving", "missing_only", "validity_only", "mixed"]
+    if any(r.stages.loc[r.stages.pathway == p, "other"].any() for r, p in selected):
+        categories.append("other")
+    fig.legend(
+        handles=[Patch(label=LOSS_LABELS[c], **_loss_style(c)) for c in categories],
+        title=f"Loss percentages use all {weight.n_slabs:,} starting slabs",
+        title_fontsize=6.5,
+        loc="lower center",
+        ncol=2,
+        fontsize=7,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.015),
+    )
     return fig
 
 
@@ -935,14 +1360,14 @@ def plot_loss_heatmap(result: LossAnalysis):
         fig, axes = plt.subplots(2, 2, figsize=(13, 9), constrained_layout=True)
         panels = axes.ravel()
         short_steps = (
-            ["Density", "$E$", "$\\nu$", "Geometry", "D11"]
+            [r"Density, $\rho$", "$E$", r"$\nu$", "Layer geometry", "$D_{11}$"]
             if result.target == "D11"
-            else ["Density", "Shear weight", "$E$", "$\\nu$"]
+            else [r"Density, $\rho$", r"$W_{\mathrm{shear}}$", "$E$", r"$\nu$"]
         )
     else:
         fig, ax = plt.subplots(figsize=(7.5, 3.8), constrained_layout=True)
         panels = [ax]
-        short_steps = ["Density", "Weight", "Shear weight"]
+        short_steps = [r"Density, $\rho$", r"Shear weight, $W_{\mathrm{shear}}$"]
     for index, ax in enumerate(panels):
         if result.target != "slab_weight_shear":
             density_method = DENSITY_ORDER[index]
@@ -957,11 +1382,11 @@ def plot_loss_heatmap(result: LossAnalysis):
             )
             selected = selected.sort_values(["emod_order", "nu_order"])
             labels = [
-                f"{METHOD_LABELS[e]} → {METHOD_LABELS[n]}"
+                _figure_label(f"{METHOD_LABELS[e]} → {METHOD_LABELS[n]}")
                 for e, n in zip(selected.emod_method, selected.nu_method)
             ]
             ax.set_title(
-                f"Density: {METHOD_LABELS[density_method]}", fontsize=12, pad=10
+                f"Density method: {METHOD_LABELS[density_method]}", fontsize=12, pad=10
             )
         else:
             selected = (
@@ -1002,7 +1427,7 @@ def plot_loss_heatmap(result: LossAnalysis):
     if result.target != "slab_weight_shear":
         fig.suptitle(
             f"{TARGET_LABELS[result.target]}: losses across all 32 pathways\n"
-            "Rows: Young's modulus → Poisson's ratio",
+            r"Rows: Young's modulus, $E$ $\rightarrow$ Poisson's ratio, $\nu$",
             fontsize=14,
         )
     return fig
@@ -1010,29 +1435,36 @@ def plot_loss_heatmap(result: LossAnalysis):
 
 def _cause_label(row) -> str:
     """Keep raw grain codes, method resolution, and numerical bounds visible."""
-    grain = row.grain_form or "No grain form"
+    grain = row.grain_form or "No primary grain form"
     if row.resolved_grain_form and row.resolved_grain_form != row.grain_form:
         grain += f" → {row.resolved_grain_form}"
     if row.reason == "unsupported grain form":
-        cause = "unsupported grain form"
+        cause = "unsupported primary grain form"
     elif row.reason in {"below lower bound", "above upper bound"}:
-        field = (
-            "Hardness" if row.field == "hand_hardness_index" else row.field.capitalize()
-        )
+        field = FIELD_LABELS.get(row.field, row.field.replace("_", " "))
+        field = field[0].upper() + field[1:]
         operator = (
             ">"
             if row.reason == "above upper bound"
             else ("≤" if row.interval.startswith("(") else "<")
         )
         bound = row.upper if row.reason == "above upper bound" else row.lower
-        cause = f"{field} {operator} {bound:g} {row.unit}"
+        unit = r"kg m$^{-3}$" if row.unit == "kg/m³" else row.unit
+        cause = f"{field} {operator} {bound:g}" + (
+            f" {unit}" if unit != "index" else ""
+        )
     else:
-        cause = f"{row.reason}: {row.field.replace('_', ' ')}"
+        reason = {
+            "absent observation": "Missing observation",
+            "missing observation": "Missing observation",
+            "nonfinite observation": "Nonfinite observation",
+        }.get(row.reason, row.reason)
+        cause = f"{reason}: {FIELD_LABELS.get(row.field, row.field.replace('_', ' '))}"
     if row.grain_form or row.field == "grain_form":
         cause = f"{grain} · {cause}"
     if row.density_context:
-        cause += f"\nDensity: {METHOD_LABELS[row.density_context]}"
-    return cause
+        cause += f"\nDensity method: {METHOD_LABELS[row.density_context]}"
+    return _figure_label(cause)
 
 
 def plot_method_causes(
@@ -1117,9 +1549,9 @@ def plot_method_causes(
         ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
         ax.grid(axis="x", alpha=0.2)
         ax.set_axisbelow(True)
-    title = f"{parameter.replace('_', ' ').capitalize()}: {METHOD_LABELS.get(method, method)}"
+    title = f"{PARAMETER_LABELS[parameter]}: {METHOD_LABELS.get(method, method)}"
     if density_context is not None:
-        title += f" · density from {METHOD_LABELS[density_context]}"
+        title += f"\nDensity method: {METHOD_LABELS[density_context]}"
     fig.suptitle(title, fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.97))
     return fig

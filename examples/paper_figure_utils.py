@@ -686,6 +686,121 @@ def build_method_support_matrices_figure() -> plt.Figure:
     return fig
 
 
+def build_elastic_applicability_figure() -> plt.Figure:
+    """Show implemented acceptance rules, not source-study validation domains.
+
+    The source/implementation comparison and rationale belong in the manuscript
+    applicability table. Arrowheads mark absent density bounds; the display
+    window must not be mistaken for a calibrated interval.
+    """
+    grains = ["PP", "MM", "DF", "RG", "FC", "DH", "SH", "MF", "IF"]
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE_COL, 4.7), sharey=True)
+    for ax, parameter, methods, title in zip(
+        axes,
+        ["elastic_modulus", "poissons_ratio"],
+        [ELASTIC_SUPPORT_METHODS, POISSONS_SUPPORT_METHODS],
+        [r"(a) Young's modulus, $E$", r"(b) Poisson's ratio, $\nu$"],
+        strict=True,
+    ):
+        lane_height = 0.76 / len(methods)
+        bar_height = 0.14
+        head_half_height = 0.11
+        for row, grain in enumerate(grains):
+            ax.axhspan(row - 0.5, row + 0.5,
+                       color="#F4F5F6" if row % 2 == 0 else "white", zorder=0)
+            for lane, method in enumerate(methods):
+                color = SUPPORT_METHOD_STYLES[method]["color"]
+                center = row - 0.38 + (lane + 0.5) * lane_height
+                for low, high in _parameter_supported_ranges(method, grain, parameter):
+                    unbounded_low = method == "schottner" or (
+                        parameter == "poissons_ratio" and method == "kochle"
+                    )
+                    unbounded_high = unbounded_low or (
+                        parameter == "poissons_ratio" and method == "srivastava"
+                        and grain != "RG"
+                    )
+                    # Hatch the MF application whose source reports distinct
+                    # behavior without supplying a separate MF regression.
+                    hatch = "////" if parameter == "elastic_modulus" and method == "kochle" and grain == "MF" else None
+                    # Build each arrowhead in data coordinates and join the
+                    # shaft at its base. Use the same thickness in both panels
+                    # so adjacent Poisson's-ratio arrowheads stay separate.
+                    head_width = 10.0
+                    shaft_low = low + head_width if unbounded_low else low
+                    shaft_high = high - head_width if unbounded_high else high
+                    ax.add_patch(mpatches.Rectangle(
+                        (shaft_low, center - bar_height / 2), shaft_high - shaft_low,
+                        bar_height, facecolor=color,
+                        edgecolor="#505050" if hatch else color,
+                        hatch=hatch, linewidth=0.35, zorder=2,
+                    ))
+                    # A filled endpoint is inclusive; Srivastava's lower
+                    # bound is strictly greater than 200 kg/m^3.
+                    for bound, unbounded, marker in [
+                        (low, unbounded_low, "<"), (high, unbounded_high, ">")
+                    ]:
+                        if unbounded:
+                            direction = -1 if marker == "<" else 1
+                            base = bound - direction * head_width
+                            tip = bound + direction * head_width
+                            ax.add_patch(mpatches.Polygon(
+                                [(tip, center),
+                                 (base, center - head_half_height),
+                                 (base, center + head_half_height)],
+                                facecolor=color, edgecolor="none",
+                                clip_on=False, zorder=4,
+                            ))
+                        else:
+                            opened = method == "srivastava" and bound == low
+                            ax.plot(bound, center, marker="o", markersize=2.6,
+                                    markerfacecolor="white" if opened else color,
+                                    markeredgecolor=color, markeredgewidth=0.7, zorder=4)
+        ax.set(xlim=(0, 600), ylim=(len(grains) - 0.5, -0.5),
+               xticks=np.arange(0, 601, 100), yticks=range(len(grains)))
+        ax.set_yticklabels(grains)
+        ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
+        ax.set_title(title, loc="left", fontsize=9, pad=8)
+        ax.grid(axis="x", color="#DDDDDD", linewidth=0.5, zorder=1)
+        ax.tick_params(axis="y", length=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+    axes[0].set_ylabel("Primary grain-form parent class")
+    handles = [mpatches.Patch(facecolor=SUPPORT_METHOD_STYLES[m]["color"],
+                             label=SUPPORT_METHOD_STYLES[m]["label"])
+               for m in ["bergfeld", "kochle", "wautier", "schottner", "srivastava"]]
+    fig.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.52, 0.155),
+               ncol=5, frameon=False, fontsize=7, handlelength=1.2,
+               columnspacing=1.15)
+    key = fig.add_axes([0.09, 0.015, 0.89, 0.125])
+    key.set(xlim=(0, 1), ylim=(0, 1))
+    key.set_axis_off()
+    gray = "#606060"
+    for x, filled, label in [(0.0, True, "Included endpoint"),
+                              (0.34, False, "Excluded endpoint")]:
+        key.plot([x + 0.015, x + 0.065], [0.74, 0.74], color=gray, linewidth=2)
+        key.plot(x + 0.015, 0.74, marker="o", markersize=4,
+                 markerfacecolor=gray if filled else "white", markeredgecolor=gray)
+        key.text(x + 0.085, 0.74, label, va="center", fontsize=7)
+    key.add_patch(mpatches.FancyArrow(
+        0.695, 0.74, 0.05, 0, width=0.065, head_width=0.19,
+        head_length=0.015, length_includes_head=True, color=gray,
+    ))
+    key.text(0.765, 0.74, "No density bound", va="center", fontsize=7)
+    key.add_patch(mpatches.Rectangle(
+        (0.015, 0.15), 0.05, 0.19,
+        facecolor=SUPPORT_METHOD_STYLES["kochle"]["color"],
+        edgecolor=gray, hatch="////", linewidth=0.4,
+    ))
+    key.text(0.085, 0.245, "Köchle MF assumption", va="center", fontsize=7)
+    key.add_patch(mpatches.Rectangle(
+        (0.355, 0.15), 0.05, 0.19,
+        facecolor="white", edgecolor="#AAAAAA", linewidth=0.5,
+    ))
+    key.text(0.425, 0.245, "Not accepted", va="center", fontsize=7)
+    fig.subplots_adjust(left=0.09, right=0.98, top=0.93, bottom=0.29, wspace=0.12)
+    return fig
+
+
 def build_slab_weight_coverage_comparison_figure(
     shear_cov: pd.DataFrame,
     elasticity_cov: pd.DataFrame,

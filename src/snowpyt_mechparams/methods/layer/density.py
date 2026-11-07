@@ -196,12 +196,10 @@ def _calculate_density_geldsetzer(
     if params["formula"] == "linear":
         # Linear regression: rho = A + B*h (Equation 4)
         rho = a + b * h
-    elif params["formula"] == "nonlinear":
+    else:  # RG is the only non-linear entry in this local, validated table.
         # Non-linear regression for rounded grains: rho = A + B*h^3.15 (Equation 5)
         x = 3.15
         rho = a + b * (h**x)
-    else:
-        raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
     # Combine propagated input uncertainty with method SE in quadrature
     if include_method_uncertainty:
@@ -348,7 +346,7 @@ def _calculate_density_kim_jamieson_table2(
             total_std = sqrt(rho.std_dev**2 + se**2)
         else:
             total_std = rho.std_dev
-    elif params["formula"] == "nonlinear":
+    else:  # RG is the only non-linear entry in this local, validated table.
         # Non-linear regression for rounded grains: rho = A*e^(B*h) (Equation 2)
         # B_SE is the standard error of coefficient B, propagated through the
         # exponential automatically by encoding B as a ufloat.
@@ -356,8 +354,6 @@ def _calculate_density_kim_jamieson_table2(
         b = ufloat(params["B"], b_se)
         rho = a * umath.exp(b * h)
         total_std = rho.std_dev
-    else:
-        raise ValueError(f"Unknown formula type for grain form '{grain_form}'")
 
     return ufloat(rho.nominal_value, total_std)
 

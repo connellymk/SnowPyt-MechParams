@@ -10,7 +10,7 @@ This module extracts that shared logic into a single function.
 """
 
 import logging
-from typing import Callable, Union
+from typing import Callable, Union, cast
 
 import numpy as np
 from uncertainties import ufloat
@@ -108,19 +108,14 @@ def integrate_plane_strain_over_layers(
                 "integrate_plane_strain_over_layers: layer %d missing poissons_ratio", i
             )
             return ufloat(np.nan, np.nan)
-        if layer.thickness is None:
-            logger.debug(
-                "integrate_plane_strain_over_layers: layer %d missing thickness", i
-            )
-            return ufloat(np.nan, np.nan)
-
+        # Slab.total_thickness above already rejects any missing thickness.
         E_i = layer.elastic_modulus  # MPa = N/mm²
         nu_i = layer.poissons_ratio  # dimensionless
-        h_i = layer.thickness * 10.0  # cm → mm
+        h_i = cast(UncertainValue, layer.thickness) * 10.0  # cm → mm
 
         # --- Validate Poisson's ratio ---
         nu_val = nu_i.nominal_value if hasattr(nu_i, "nominal_value") else nu_i
-        if nu_val >= 1.0 or nu_val < -1.0:
+        if nu_val >= 1.0 or nu_val <= -1.0:
             logger.debug(
                 "integrate_plane_strain_over_layers: layer %d Poisson's ratio %.3f outside valid range (-1, 1)",
                 i,
@@ -133,6 +128,11 @@ def integrate_plane_strain_over_layers(
 
         # --- z-coordinates relative to slab midplane ---
         if use_depth_top:
+            if layer.depth_top is None:
+                logger.debug(
+                    "integrate_plane_strain_over_layers: layer %d missing depth_top", i
+                )
+                return ufloat(np.nan, np.nan)
             depth_top_mm = layer.depth_top * 10.0  # cm → mm
             z_top = z_ref - depth_top_mm
             z_bottom = z_ref - (depth_top_mm + h_i)

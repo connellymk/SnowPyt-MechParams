@@ -505,16 +505,9 @@ def _calculate_elastic_modulus_schottner(
     elif main_grain_shape in ["FC", "DH"]:
         A = _u(1.8, 0.7)
         n = _u(5.1, 0.3)
-    elif main_grain_shape in ["SH"]:
+    else:  # Validation above leaves only SH.
         A = _u(0.011, 0.009)
         n = _u(1.7, 0.4)
-    else:
-        logger.debug(
-            "schottner: grain_form=%r (main_grain_shape=%r) not matched in parameter table; returning NaN",
-            grain_form,
-            main_grain_shape,
-        )
-        return ufloat(np.nan, np.nan)
 
     E_snow = E_ice * A * (rho_snow / RHO_ICE) ** n
 

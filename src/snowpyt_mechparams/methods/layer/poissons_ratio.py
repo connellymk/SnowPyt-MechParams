@@ -150,7 +150,7 @@ def _calculate_poissons_ratio_kochle(
         nu_snow = _u(0.171, 0.026)
     elif main_grain_shape == "FC":
         nu_snow = _u(0.130, 0.040)
-    elif main_grain_shape == "DH":
+    else:  # Validation above leaves only DH.
         nu_snow = _u(0.087, 0.063)
 
     return nu_snow
@@ -258,7 +258,7 @@ def _calculate_poissons_ratio_srivastava(
     elif main_grain_shape in ["PP", "DF"]:
         # Precipitation particles and decomposing/fragmented: largest scatter
         nu_snow = _u(0.132, 0.053)
-    elif main_grain_shape in ["FC", "DH"]:
+    else:  # Validation above leaves only FC/DH.
         # Faceted crystals and depth hoar: intermediate scatter
         nu_snow = _u(0.17, 0.02)
 

@@ -1,0 +1,11 @@
+parameter,method,density_context,category,slabs,layers
+density,data_flow,,missing,14667,49328
+density,geldsetzer,,missing,6911,12428
+density,geldsetzer,,validity,6416,8778
+density,kim_jamieson_table2,,missing,6911,12428
+density,kim_jamieson_table2,,validity,3665,4353
+density,kim_jamieson_table6,,missing,11806,30559
+density,kim_jamieson_table6,,validity,10205,18679
+slab_weight,sum_layer_weight,,blocked,14756,0
+slab_weight_shear,slope_parallel_component,,blocked,14756,0
+slab_weight_shear,slope_parallel_component,,missing,1061,0

@@ -1,0 +1,215 @@
+parameter,method,density_context,category,reason,field,grain_form,resolved_grain_form,lower,upper,interval,unit,slabs,layers,observed_min,observed_max,observed_examples
+density,data_flow,,missing,absent observation,density_measured,,,,,,kg/m³,3722,8782,,,
+density,data_flow,,missing,absent observation,density_measured,DF,,,,,kg/m³,5640,6681,,,
+density,data_flow,,missing,absent observation,density_measured,DFbk,,,,,kg/m³,1603,1578,,,
+density,data_flow,,missing,absent observation,density_measured,DFdc,,,,,kg/m³,1621,1749,,,
+density,data_flow,,missing,absent observation,density_measured,DH,,,,,kg/m³,92,92,,,
+density,data_flow,,missing,absent observation,density_measured,DHch,,,,,kg/m³,10,10,,,
+density,data_flow,,missing,absent observation,density_measured,DHcp,,,,,kg/m³,20,19,,,
+density,data_flow,,missing,absent observation,density_measured,DHla,,,,,kg/m³,12,12,,,
+density,data_flow,,missing,absent observation,density_measured,DHpr,,,,,kg/m³,7,7,,,
+density,data_flow,,missing,absent observation,density_measured,DHxr,,,,,kg/m³,20,19,,,
+density,data_flow,,missing,absent observation,density_measured,FC,,,,,kg/m³,2553,3202,,,
+density,data_flow,,missing,absent observation,density_measured,FCsf,,,,,kg/m³,982,902,,,
+density,data_flow,,missing,absent observation,density_measured,FCso,,,,,kg/m³,826,969,,,
+density,data_flow,,missing,absent observation,density_measured,FCxr,,,,,kg/m³,1875,2381,,,
+density,data_flow,,missing,absent observation,density_measured,IF,,,,,kg/m³,473,516,,,
+density,data_flow,,missing,absent observation,density_measured,IFic,,,,,kg/m³,2,2,,,
+density,data_flow,,missing,absent observation,density_measured,IFil,,,,,kg/m³,335,358,,,
+density,data_flow,,missing,absent observation,density_measured,IFrc,,,,,kg/m³,884,884,,,
+density,data_flow,,missing,absent observation,density_measured,IFsc,,,,,kg/m³,264,273,,,
+density,data_flow,,missing,absent observation,density_measured,MF,,,,,kg/m³,414,500,,,
+density,data_flow,,missing,absent observation,density_measured,MFcl,,,,,kg/m³,250,274,,,
+density,data_flow,,missing,absent observation,density_measured,MFcr,,,,,kg/m³,3690,4491,,,
+density,data_flow,,missing,absent observation,density_measured,MFpc,,,,,kg/m³,179,204,,,
+density,data_flow,,missing,absent observation,density_measured,MFsl,,,,,kg/m³,51,46,,,
+density,data_flow,,missing,absent observation,density_measured,MM,,,,,kg/m³,1,1,,,
+density,data_flow,,missing,absent observation,density_measured,MMci,,,,,kg/m³,1,1,,,
+density,data_flow,,missing,absent observation,density_measured,PP,,,,,kg/m³,4111,3837,,,
+density,data_flow,,missing,absent observation,density_measured,PPco,,,,,kg/m³,5,4,,,
+density,data_flow,,missing,absent observation,density_measured,PPgp,,,,,kg/m³,429,398,,,
+density,data_flow,,missing,absent observation,density_measured,PPhl,,,,,kg/m³,1,1,,,
+density,data_flow,,missing,absent observation,density_measured,PPip,,,,,kg/m³,3,3,,,
+density,data_flow,,missing,absent observation,density_measured,PPir,,,,,kg/m³,46,39,,,
+density,data_flow,,missing,absent observation,density_measured,PPnd,,,,,kg/m³,33,33,,,
+density,data_flow,,missing,absent observation,density_measured,PPpl,,,,,kg/m³,22,19,,,
+density,data_flow,,missing,absent observation,density_measured,PPrm,,,,,kg/m³,164,141,,,
+density,data_flow,,missing,absent observation,density_measured,PPsd,,,,,kg/m³,578,518,,,
+density,data_flow,,missing,absent observation,density_measured,RG,,,,,kg/m³,3348,4427,,,
+density,data_flow,,missing,absent observation,density_measured,RGlr,,,,,kg/m³,382,419,,,
+density,data_flow,,missing,absent observation,density_measured,RGsr,,,,,kg/m³,1060,1283,,,
+density,data_flow,,missing,absent observation,density_measured,RGwp,,,,,kg/m³,2271,2203,,,
+density,data_flow,,missing,absent observation,density_measured,RGxf,,,,,kg/m³,850,953,,,
+density,data_flow,,missing,absent observation,density_measured,SH,,,,,kg/m³,816,720,,,
+density,data_flow,,missing,absent observation,density_measured,SHcv,,,,,kg/m³,2,2,,,
+density,data_flow,,missing,absent observation,density_measured,SHsu,,,,,kg/m³,280,255,,,
+density,data_flow,,missing,absent observation,density_measured,SHxr,,,,,kg/m³,138,120,,,
+density,geldsetzer,,missing,absent observation,grain_form,,,,,,,3727,8792,,,
+density,geldsetzer,,missing,missing observation,hand_hardness,,,,,,,4365,4669,,,
+density,geldsetzer,,validity,unsupported grain form,grain_form,IF,,,,,,474,517,,,IF
+density,geldsetzer,,validity,unsupported grain form,grain_form,IFic,,,,,,2,2,,,IFic
+density,geldsetzer,,validity,unsupported grain form,grain_form,IFil,,,,,,335,358,,,IFil
+density,geldsetzer,,validity,unsupported grain form,grain_form,IFrc,,,,,,884,886,,,IFrc
+density,geldsetzer,,validity,unsupported grain form,grain_form,IFsc,,,,,,264,273,,,IFsc
+density,geldsetzer,,validity,unsupported grain form,grain_form,MF,,,,,,419,504,,,MF
+density,geldsetzer,,validity,unsupported grain form,grain_form,MFcl,,,,,,254,279,,,MFcl
+density,geldsetzer,,validity,unsupported grain form,grain_form,MFcr,,,,,,3700,4502,,,MFcr
+density,geldsetzer,,validity,unsupported grain form,grain_form,MFpc,,,,,,185,211,,,MFpc
+density,geldsetzer,,validity,unsupported grain form,grain_form,MFsl,,,,,,51,46,,,MFsl
+density,geldsetzer,,validity,unsupported grain form,grain_form,MM,,,,,,1,1,,,MM
+density,geldsetzer,,validity,unsupported grain form,grain_form,MMci,,,,,,1,1,,,MMci
+density,geldsetzer,,validity,unsupported grain form,grain_form,SH,,,,,,817,721,,,SH
+density,geldsetzer,,validity,unsupported grain form,grain_form,SHcv,,,,,,3,3,,,SHcv
+density,geldsetzer,,validity,unsupported grain form,grain_form,SHsu,,,,,,281,256,,,SHsu
+density,geldsetzer,,validity,unsupported grain form,grain_form,SHxr,,,,,,138,120,,,SHxr
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,DF,DF,0.67,4.33,"[0.67, 4.33]",index,10,9,4.67,5.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,DFbk,DF,0.67,4.33,"[0.67, 4.33]",index,8,8,4.67,5.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,DFdc,DF,0.67,4.33,"[0.67, 4.33]",index,4,4,4.67,5.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,DHcp,DH,1.0,5.0,"[1.0, 5.0]",index,1,1,6.0,6.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,FC,FC,0.67,4.67,"[0.67, 4.67]",index,8,8,5.0,5.33,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,FCsf,FC,0.67,4.67,"[0.67, 4.67]",index,1,1,5.0,5.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,FCso,FC,0.67,4.67,"[0.67, 4.67]",index,4,4,5.0,5.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,FCxr,FC,0.67,4.67,"[0.67, 4.67]",index,10,8,5.0,5.0,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,PPgp,PPgp,0.67,4.0,"[0.67, 4.0]",index,1,1,4.33,4.33,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,PPip,PP,0.67,4.0,"[0.67, 4.0]",index,1,1,4.33,4.33,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,PPrm,PP,0.67,4.0,"[0.67, 4.0]",index,22,19,4.33,6.33,
+density,geldsetzer,,validity,above upper bound,hand_hardness_index,RGwp,RG,1.0,5.33,"[1.0, 5.33]",index,1,1,6.0,6.0,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,DH,DH,1.0,5.0,"[1.0, 5.0]",index,4,3,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,DHch,DH,1.0,5.0,"[1.0, 5.0]",index,2,2,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,DHcp,DH,1.0,5.0,"[1.0, 5.0]",index,3,2,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,RG,RG,1.0,5.33,"[1.0, 5.33]",index,14,13,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,RGlr,RG,1.0,5.33,"[1.0, 5.33]",index,1,1,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,RGsr,RG,1.0,5.33,"[1.0, 5.33]",index,8,8,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,RGwp,RG,1.0,5.33,"[1.0, 5.33]",index,1,1,0.67,0.67,
+density,geldsetzer,,validity,below lower bound,hand_hardness_index,RGxf,RG,1.0,5.33,"[1.0, 5.33]",index,3,3,0.67,0.67,
+density,kim_jamieson_table2,,missing,absent observation,grain_form,,,,,,,3727,8792,,,
+density,kim_jamieson_table2,,missing,missing observation,hand_hardness,,,,,,,4365,4669,,,
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,IF,,,,,,474,517,,,IF
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,IFic,,,,,,2,2,,,IFic
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,IFil,,,,,,335,358,,,IFil
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,IFrc,,,,,,884,886,,,IFrc
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,IFsc,,,,,,264,273,,,IFsc
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,MF,,,,,,419,504,,,MF
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,MFcl,,,,,,254,279,,,MFcl
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,MFpc,,,,,,185,211,,,MFpc
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,MFsl,,,,,,51,46,,,MFsl
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,MM,,,,,,1,1,,,MM
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,MMci,,,,,,1,1,,,MMci
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,SH,,,,,,817,721,,,SH
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,SHcv,,,,,,3,3,,,SHcv
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,SHsu,,,,,,281,256,,,SHsu
+density,kim_jamieson_table2,,validity,unsupported grain form,grain_form,SHxr,,,,,,138,120,,,SHxr
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,DF,DF,0.67,4.67,"[0.67, 4.67]",index,7,7,5.0,5.0,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,DFbk,DF,0.67,4.67,"[0.67, 4.67]",index,5,5,5.0,5.0,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,DFdc,DF,0.67,4.67,"[0.67, 4.67]",index,3,3,5.0,5.0,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,DHcp,DH,1.0,5.0,"[1.0, 5.0]",index,1,1,6.0,6.0,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,FC,FC,0.67,5.0,"[0.67, 5.0]",index,2,2,5.33,5.33,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,MFcr,MFcr,2.0,5.33,"[2.0, 5.33]",index,83,86,5.67,6.0,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,PPgp,PPgp,0.67,4.0,"[0.67, 4.0]",index,1,1,4.33,4.33,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,PPip,PP,0.67,4.0,"[0.67, 4.0]",index,1,1,4.33,4.33,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,PPrm,PP,0.67,4.0,"[0.67, 4.0]",index,22,19,4.33,6.33,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,RGwp,RG,0.67,5.33,"[0.67, 5.33]",index,1,1,6.0,6.0,
+density,kim_jamieson_table2,,validity,above upper bound,hand_hardness_index,RGxf,RGxf,0.67,4.33,"[0.67, 4.33]",index,6,6,4.67,5.0,
+density,kim_jamieson_table2,,validity,below lower bound,hand_hardness_index,DH,DH,1.0,5.0,"[1.0, 5.0]",index,4,3,0.67,0.67,
+density,kim_jamieson_table2,,validity,below lower bound,hand_hardness_index,DHch,DH,1.0,5.0,"[1.0, 5.0]",index,2,2,0.67,0.67,
+density,kim_jamieson_table2,,validity,below lower bound,hand_hardness_index,DHcp,DH,1.0,5.0,"[1.0, 5.0]",index,3,2,0.67,0.67,
+density,kim_jamieson_table2,,validity,below lower bound,hand_hardness_index,MFcr,MFcr,2.0,5.33,"[2.0, 5.33]",index,44,36,0.67,1.67,
+density,kim_jamieson_table6,,missing,absent observation,grain_form,,,,,,,3727,8792,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,,,,,,mm,3597,8631,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DF,DF,,,,mm,2870,3203,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DFbk,DF,,,,mm,800,753,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DFdc,DF,,,,mm,602,600,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DH,,,,,mm,31,31,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DHch,,,,,mm,1,1,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DHcp,,,,,mm,1,1,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,DHla,,,,,mm,1,1,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,FC,FC,,,,mm,771,841,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,FCsf,FC,,,,mm,278,252,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,FCso,FC,,,,mm,166,183,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,FCxr,FCxr,,,,mm,458,489,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,IF,,,,,mm,456,496,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,IFic,,,,,mm,2,2,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,IFil,,,,,mm,317,334,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,IFrc,,,,,mm,820,820,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,IFsc,,,,,mm,245,247,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,MF,MF,,,,mm,233,270,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,MFcl,MF,,,,mm,109,118,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,MFcr,MF,,,,mm,3288,3993,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,MFpc,MF,,,,mm,87,99,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,MFsl,MF,,,,mm,38,33,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,MMci,,,,,mm,1,1,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PP,PP,,,,mm,2687,2497,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPgp,PPgp,,,,mm,149,139,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPip,PP,,,,mm,1,1,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPir,PP,,,,mm,23,20,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPnd,PP,,,,mm,12,12,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPpl,PP,,,,mm,15,12,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPrm,PP,,,,mm,120,107,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,PPsd,PP,,,,mm,235,211,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,RG,,,,,mm,1447,1793,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,RGlr,,,,,mm,102,106,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,RGsr,,,,,mm,292,343,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,RGwp,,,,,mm,1313,1278,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,RGxf,,,,,mm,241,261,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,SH,,,,,mm,171,149,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,SHsu,,,,,mm,73,71,,,
+density,kim_jamieson_table6,,missing,absent observation,grain_size,SHxr,,,,,mm,44,36,,,
+density,kim_jamieson_table6,,missing,missing observation,hand_hardness,,,,,,,4365,4669,,,
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,DH,,,,,,94,94,,,DH
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,DHch,,,,,,11,11,,,DHch
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,DHcp,,,,,,20,19,,,DHcp
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,DHla,,,,,,12,12,,,DHla
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,DHpr,,,,,,7,7,,,DHpr
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,DHxr,,,,,,21,20,,,DHxr
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,IF,,,,,,474,517,,,IF
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,IFic,,,,,,2,2,,,IFic
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,IFil,,,,,,335,358,,,IFil
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,IFrc,,,,,,884,886,,,IFrc
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,IFsc,,,,,,264,273,,,IFsc
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,MM,,,,,,1,1,,,MM
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,MMci,,,,,,1,1,,,MMci
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,RG,,,,,,3420,4518,,,RG
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,RGlr,,,,,,392,432,,,RGlr
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,RGsr,,,,,,1085,1317,,,RGsr
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,RGwp,,,,,,2294,2225,,,RGwp
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,RGxf,,,,,,873,977,,,RGxf
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,SH,,,,,,817,721,,,SH
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,SHcv,,,,,,3,3,,,SHcv
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,SHsu,,,,,,281,256,,,SHsu
+density,kim_jamieson_table6,,validity,unsupported grain form,grain_form,SHxr,,,,,,138,120,,,SHxr
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,DF,DF,1.0,3.0,"[1.0, 3.0]",index,292,300,3.33,5.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,DFbk,DF,1.0,3.0,"[1.0, 3.0]",index,271,238,3.33,5.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,DFdc,DF,1.0,3.0,"[1.0, 3.0]",index,76,71,3.33,5.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,FC,FC,1.67,4.0,"[1.67, 4.0]",index,25,25,4.33,5.33,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,FCsf,FC,1.67,4.0,"[1.67, 4.0]",index,1,1,5.0,5.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,FCso,FC,1.67,4.0,"[1.67, 4.0]",index,9,10,4.33,5.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,FCxr,FCxr,2.33,4.33,"[2.33, 4.33]",index,11,9,4.67,5.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,MF,MF,2.33,4.33,"[2.33, 4.33]",index,74,85,4.67,6.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,MFcl,MF,2.33,4.33,"[2.33, 4.33]",index,24,24,4.67,6.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,MFcr,MF,2.33,4.33,"[2.33, 4.33]",index,1299,1482,4.67,6.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,MFpc,MF,2.33,4.33,"[2.33, 4.33]",index,29,29,4.67,5.67,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PP,PP,0.67,2.0,"[0.67, 2.0]",index,95,86,2.33,4.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPgp,PPgp,1.0,3.33,"[1.0, 3.33]",index,5,6,3.67,4.33,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPhl,PP,0.67,2.0,"[0.67, 2.0]",index,1,1,3.0,3.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPip,PP,0.67,2.0,"[0.67, 2.0]",index,2,2,4.0,4.33,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPir,PP,0.67,2.0,"[0.67, 2.0]",index,4,3,3.0,4.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPnd,PP,0.67,2.0,"[0.67, 2.0]",index,4,3,2.33,3.67,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPpl,PP,0.67,2.0,"[0.67, 2.0]",index,1,1,3.0,3.0,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPrm,PP,0.67,2.0,"[0.67, 2.0]",index,103,93,2.33,6.33,
+density,kim_jamieson_table6,,validity,above upper bound,hand_hardness_index,PPsd,PP,0.67,2.0,"[0.67, 2.0]",index,9,9,2.33,4.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,DF,DF,1.0,3.0,"[1.0, 3.0]",index,127,100,0.67,0.67,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,DFbk,DF,1.0,3.0,"[1.0, 3.0]",index,24,20,0.67,0.67,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,DFdc,DF,1.0,3.0,"[1.0, 3.0]",index,52,46,0.67,0.67,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,FC,FC,1.67,4.0,"[1.67, 4.0]",index,988,965,0.67,1.33,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,FCsf,FC,1.67,4.0,"[1.67, 4.0]",index,595,528,0.67,1.33,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,FCso,FC,1.67,4.0,"[1.67, 4.0]",index,317,319,0.67,1.33,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,FCxr,FCxr,2.33,4.33,"[2.33, 4.33]",index,959,993,0.67,2.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,MF,MF,2.33,4.33,"[2.33, 4.33]",index,128,124,0.67,2.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,MFcl,MF,2.33,4.33,"[2.33, 4.33]",index,86,77,1.0,2.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,MFcr,MF,2.33,4.33,"[2.33, 4.33]",index,190,164,0.67,2.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,MFpc,MF,2.33,4.33,"[2.33, 4.33]",index,47,40,1.0,2.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,MFsl,MF,2.33,4.33,"[2.33, 4.33]",index,41,38,0.67,2.0,
+density,kim_jamieson_table6,,validity,below lower bound,hand_hardness_index,PPgp,PPgp,1.0,3.33,"[1.0, 3.33]",index,19,17,0.67,0.67,
+slab_weight,sum_layer_weight,,blocked,density step unsuccessful,density,,,,,,,14756,0,,,
+slab_weight_shear,slope_parallel_component,,blocked,integrated weight unsuccessful,slab_weight,,,,,,,14756,0,,,
+slab_weight_shear,slope_parallel_component,,missing,nonfinite observation,slope_angle,,,,,,degrees,1061,0,,,

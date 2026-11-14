@@ -1,0 +1,9 @@
+pathway,step,requirement,entering,surviving,newly_lost,missing_only,validity_only,mixed,other
+Direct matched density,1,"Density, $\rho$",14776,109,14667,14667,0,0,0
+Direct matched density,2,"Shear weight, $W_{\mathrm{shear}}$",109,109,0,0,0,0,0
+Geldsetzer,1,"Density, $\rho$",14776,4495,10281,3865,3370,3046,0
+Geldsetzer,2,"Shear weight, $W_{\mathrm{shear}}$",4495,4187,308,308,0,0,0
+Kim T2,1,"Density, $\rho$",14776,5907,8869,5204,1958,1707,0
+Kim T2,2,"Shear weight, $W_{\mathrm{shear}}$",5907,5470,437,437,0,0,0
+Kim T6,1,"Density, $\rho$",14776,736,14040,3835,2234,7971,0
+Kim T6,2,"Shear weight, $W_{\mathrm{shear}}$",736,697,39,39,0,0,0

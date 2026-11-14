@@ -1,0 +1,14 @@
+{
+  "seed": 20261010,
+  "draws_per_scenario": 100000,
+  "scenarios": 768,
+  "independent_D11_checks": 108,
+  "observed_independent_normal_domain_failure_fraction_range": [
+    0.00065,
+    0.57141
+  ],
+  "observed_independent_normal_conditional_SD_ratio_range": [
+    0.7993907150214619,
+    3.2268647030416604
+  ]
+}

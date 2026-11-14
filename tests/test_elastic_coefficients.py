@@ -17,7 +17,7 @@ from snowpyt_mechparams.methods.layer import (
     [
         ("bergfeld", ["PP", "RG", "DF"], 110, 363),
         ("kochle", ["RG", "FC", "DH", "MF"], 150, 450),
-        ("wautier", ["DF", "RG", "FC", "DH", "MF"], 103, 544),
+        ("wautier", ["PP", "DF", "RG", "FC", "DH", "MF"], 103, 544),
     ],
 )
 def test_elastic_domains_and_all_supported_grains(method, grains, low, high):

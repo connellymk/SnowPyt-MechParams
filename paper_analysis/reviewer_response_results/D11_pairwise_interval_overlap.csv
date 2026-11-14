@@ -1,0 +1,7 @@
+E_a,E_b,pairs,overlap_pairs,overlap_percent
+bergfeld,kochle,1264,1164,92.08860759493672
+bergfeld,wautier,1264,0,0.0
+bergfeld,schottner,1264,1264,100.0
+kochle,wautier,1264,380,30.063291139240505
+kochle,schottner,1264,482,38.13291139240506
+wautier,schottner,1264,0,0.0

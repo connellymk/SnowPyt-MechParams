@@ -157,6 +157,7 @@ examples/*.svg
 
 # Data files (unless specifically needed)
 *.csv
+!paper_analysis/reviewer_response_results/*.csv
 *.xlsx
 *.xls
 *.h5

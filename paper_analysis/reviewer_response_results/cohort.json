@@ -1,0 +1,59 @@
+{
+  "counts": {
+    "records_without_layers": 131,
+    "density_observations": 19118,
+    "layers_missing_top": 0,
+    "layers_nonpositive_or_missing_thickness": 0,
+    "layer_gaps": 15,
+    "layer_overlaps": 21,
+    "density_observations_nonpositive_or_nonfinite": 71,
+    "density_observations_exactly_matched": 10468,
+    "density_observations_invalid_geometry": 8650,
+    "ectp_slab_wetness_all_missing": 10894,
+    "ectp_slab_wetness_any_non_dry_code": 1143,
+    "ectp_slab_wetness_partly_missing_no_non_dry": 585,
+    "density_observations_crossing_layer_boundaries": 0,
+    "ectp_slab_wetness_all_reported_dry": 2154,
+    "files": 50278,
+    "parsed_pits": 50278,
+    "layers": 371429,
+    "duplicate_pit_ids": 0,
+    "records_missing_pit_id": 17,
+    "duplicate_file_contents": 16,
+    "layers_exact_density": 10468,
+    "layers_alternative_density": 10468,
+    "records_missing_date": 21,
+    "records_before_stated_start": 42,
+    "records_after_stated_end": 0
+  },
+  "date_min": "1998-12-17",
+  "date_max": "2025-08-26",
+  "wetness_all_layers": {
+    "None": 277788,
+    "D-M": 5763,
+    "D": 69668,
+    "M": 12506,
+    "M-W": 1974,
+    "W": 2811,
+    "W-V": 241,
+    "V": 462,
+    "S": 120,
+    "V-S": 96
+  },
+  "ectp_selection": {
+    "included": 14776,
+    "no_matching_layer": 283,
+    "no_overlying_layers": 197
+  },
+  "density_matching_status": {
+    "no_contained_sample": 361004,
+    "exact": 10425
+  },
+  "contained_sample_fraction_quantiles": {
+    "0.0": null,
+    "0.25": null,
+    "0.5": null,
+    "0.75": null,
+    "1.0": null
+  }
+}

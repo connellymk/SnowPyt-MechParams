@@ -344,7 +344,7 @@ def _calculate_elastic_modulus_wautier(
         value.
     grain_form : str
         Grain form classification. Supported values:
-        - 'DF', 'RG', 'FC', 'DH', 'MF'
+        - 'PP', 'DF', 'RG', 'FC', 'DH', 'MF'
     E_ice : UncertainValue, optional
         Young's modulus of ice in MPa. May be a plain float or an uncertain
         value. Default is 10 GPa (10,000 MPa), the bulk polycrystalline ice
@@ -390,8 +390,10 @@ def _calculate_elastic_modulus_wautier(
       Young's modulus. The fit does not capture the orthotropic (anisotropic)
       behavior often observed in snow, which can lead to significant deviation
       from directional moduli.
-    - The fit applies for relative density (ρ_snow / ρ_ice) in the range [0.1;
-      0.6], corresponding approximately to densities from 103 to 544 kg m⁻³.
+    - Section 4.1 reports a pooled sample density range of 103 to 544 kg m⁻³;
+      this implementation uses that range as its nominal-density restriction.
+      Figure 2 includes PP, DF, RG, FC, DH, and MF. The pooled range does not
+      establish separate validation of every grain type throughout the range.
     - The ``include_method_uncertainty`` parameter is accepted for API
       consistency but has no effect: Wautier et al. (2015) report R² = 0.97
       but do not publish standard errors or confidence intervals for the
@@ -406,7 +408,7 @@ def _calculate_elastic_modulus_wautier(
     Geophysical Research Letters, 42, 8031–8041.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ["DF", "RG", "FC", "DH", "MF"]:
+    if main_grain_shape not in ["PP", "DF", "RG", "FC", "DH", "MF"]:
         logger.debug(
             "wautier: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
             grain_form,

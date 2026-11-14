@@ -60,7 +60,7 @@ HARDNESS_RANGES = {
 GRAIN_DOMAINS = {
     ("elastic_modulus", "bergfeld"): {"PP", "RG", "DF"},
     ("elastic_modulus", "kochle"): {"RG", "FC", "DH", "MF"},
-    ("elastic_modulus", "wautier"): {"DF", "RG", "FC", "DH", "MF"},
+    ("elastic_modulus", "wautier"): {"PP", "DF", "RG", "FC", "DH", "MF"},
     ("elastic_modulus", "schottner"): {"DF", "RG", "FC", "DH", "SH"},
     ("poissons_ratio", "kochle"): {"RG", "FC", "DH"},
     ("poissons_ratio", "srivastava"): {"RG", "PP", "DF", "FC", "DH"},

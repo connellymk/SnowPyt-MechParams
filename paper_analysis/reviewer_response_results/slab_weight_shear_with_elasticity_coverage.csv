@@ -1,0 +1,33 @@
+pathway,density_method,emod_method,nu_method,successful_slabs,attempted_slabs,coverage_percent
+Kim T2 → Schöttner → Köchle,kim_jamieson_table2,schottner,kochle,687,14776,4.649431510557661
+Kim T2 → Wautier → Köchle,kim_jamieson_table2,wautier,kochle,687,14776,4.649431510557661
+Geldsetzer → Schöttner → Köchle,geldsetzer,schottner,kochle,684,14776,4.629128316188414
+Geldsetzer → Wautier → Köchle,geldsetzer,wautier,kochle,684,14776,4.629128316188414
+Geldsetzer → Köchle → Köchle,geldsetzer,kochle,kochle,677,14776,4.581754195993503
+Kim T2 → Köchle → Köchle,kim_jamieson_table2,kochle,kochle,581,14776,3.9320519761775854
+Kim T2 → Bergfeld → Köchle,kim_jamieson_table2,bergfeld,kochle,465,14776,3.1469951272333514
+Geldsetzer → Bergfeld → Köchle,geldsetzer,bergfeld,kochle,443,14776,2.9981050351922036
+Kim T2 → Wautier → Srivastava,kim_jamieson_table2,wautier,srivastava,420,14776,2.84244721169464
+Geldsetzer → Schöttner → Srivastava,geldsetzer,schottner,srivastava,418,14776,2.8289117487818083
+Geldsetzer → Wautier → Srivastava,geldsetzer,wautier,srivastava,418,14776,2.8289117487818083
+Kim T2 → Schöttner → Srivastava,kim_jamieson_table2,schottner,srivastava,415,14776,2.8086085544125607
+Kim T2 → Bergfeld → Srivastava,kim_jamieson_table2,bergfeld,srivastava,380,14776,2.5717379534380074
+Geldsetzer → Köchle → Srivastava,geldsetzer,kochle,srivastava,357,14776,2.4160801299404437
+Kim T2 → Köchle → Srivastava,kim_jamieson_table2,kochle,srivastava,353,14776,2.389009204114781
+Geldsetzer → Bergfeld → Srivastava,geldsetzer,bergfeld,srivastava,349,14776,2.3619382782891174
+Direct matched density → Schöttner → Köchle,data_flow,schottner,kochle,17,14776,0.11505143475906876
+Direct matched density → Wautier → Köchle,data_flow,wautier,kochle,17,14776,0.11505143475906876
+Direct matched density → Köchle → Köchle,data_flow,kochle,kochle,16,14776,0.10828370330265295
+Direct matched density → Schöttner → Srivastava,data_flow,schottner,srivastava,12,14776,0.08121277747698971
+Direct matched density → Wautier → Srivastava,data_flow,wautier,srivastava,12,14776,0.08121277747698971
+Direct matched density → Bergfeld → Srivastava,data_flow,bergfeld,srivastava,8,14776,0.05414185165132648
+Direct matched density → Bergfeld → Köchle,data_flow,bergfeld,kochle,6,14776,0.040606388738494856
+Kim T6 → Köchle → Köchle,kim_jamieson_table6,kochle,kochle,6,14776,0.040606388738494856
+Kim T6 → Schöttner → Köchle,kim_jamieson_table6,schottner,kochle,6,14776,0.040606388738494856
+Kim T6 → Wautier → Köchle,kim_jamieson_table6,wautier,kochle,6,14776,0.040606388738494856
+Direct matched density → Köchle → Srivastava,data_flow,kochle,srivastava,5,14776,0.03383865728207905
+Kim T6 → Köchle → Srivastava,kim_jamieson_table6,kochle,srivastava,5,14776,0.03383865728207905
+Kim T6 → Schöttner → Srivastava,kim_jamieson_table6,schottner,srivastava,5,14776,0.03383865728207905
+Kim T6 → Wautier → Srivastava,kim_jamieson_table6,wautier,srivastava,5,14776,0.03383865728207905
+Kim T6 → Bergfeld → Köchle,kim_jamieson_table6,bergfeld,kochle,0,14776,0.0
+Kim T6 → Bergfeld → Srivastava,kim_jamieson_table6,bergfeld,srivastava,0,14776,0.0

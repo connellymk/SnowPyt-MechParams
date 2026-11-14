@@ -1,0 +1,12 @@
+first_failed_step,reason_combination,slabs,percent_of_14776
+complete,success,687,4.649431510557661
+density,missing observation,5204,35.219274499187875
+density,missing observation + outside numerical bounds,62,0.41959935029778017
+density,missing observation + outside numerical bounds + unsupported grain form,18,0.12181916621548457
+density,missing observation + unsupported grain form,1627,11.011099079588522
+density,outside numerical bounds,65,0.4399025446670276
+density,outside numerical bounds + unsupported grain form,39,0.26394152680021654
+density,unsupported grain form,1854,12.547374120194911
+elastic_modulus,outside numerical bounds,3370,22.807255008121277
+poissons_ratio,unsupported grain form,1413,9.562804547915539
+slab_weight_shear,missing observation,437,2.9574986464537085

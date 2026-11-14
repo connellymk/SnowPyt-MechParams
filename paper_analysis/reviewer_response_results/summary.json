@@ -1,0 +1,302 @@
+{
+  "cohort": {
+    "counts": {
+      "records_without_layers": 131,
+      "density_observations": 19118,
+      "layers_missing_top": 0,
+      "layers_nonpositive_or_missing_thickness": 0,
+      "layer_gaps": 15,
+      "layer_overlaps": 21,
+      "density_observations_nonpositive_or_nonfinite": 71,
+      "density_observations_exactly_matched": 10468,
+      "density_observations_invalid_geometry": 8650,
+      "ectp_slab_wetness_all_missing": 10894,
+      "ectp_slab_wetness_any_non_dry_code": 1143,
+      "ectp_slab_wetness_partly_missing_no_non_dry": 585,
+      "density_observations_crossing_layer_boundaries": 0,
+      "ectp_slab_wetness_all_reported_dry": 2154,
+      "files": 50278,
+      "parsed_pits": 50278,
+      "layers": 371429,
+      "duplicate_pit_ids": 0,
+      "records_missing_pit_id": 17,
+      "duplicate_file_contents": 16,
+      "layers_exact_density": 10468,
+      "layers_alternative_density": 10468,
+      "records_missing_date": 21,
+      "records_before_stated_start": 42,
+      "records_after_stated_end": 0
+    },
+    "date_min": "1998-12-17",
+    "date_max": "2025-08-26",
+    "wetness_all_layers": {
+      "None": 277788,
+      "D-M": 5763,
+      "D": 69668,
+      "M": 12506,
+      "M-W": 1974,
+      "W": 2811,
+      "W-V": 241,
+      "V": 462,
+      "S": 120,
+      "V-S": 96
+    },
+    "ectp_selection": {
+      "included": 14776,
+      "no_matching_layer": 283,
+      "no_overlying_layers": 197
+    },
+    "density_matching_status": {
+      "no_contained_sample": 361004,
+      "exact": 10425
+    },
+    "contained_sample_fraction_quantiles": {
+      "0.0": null,
+      "0.25": null,
+      "0.5": null,
+      "0.75": null,
+      "1.0": null
+    },
+    "slabs": 14776,
+    "unique_pits": 12347,
+    "pits_with_multiple_slabs": 2113
+  },
+  "slab_weight_shear": {
+    "corrected": {
+      "successful_attempts": 10463,
+      "union_slabs": 5535,
+      "best_pathway_slabs": 5470,
+      "histogram": {
+        "0": 9241,
+        "1": 1304,
+        "2": 3554,
+        "3": 657,
+        "4": 20
+      }
+    },
+    "original": {
+      "successful_attempts": 10463,
+      "union_slabs": 5535,
+      "best_pathway_slabs": 5470,
+      "histogram": {
+        "0": 9241,
+        "1": 1304,
+        "2": 3554,
+        "3": 657,
+        "4": 20
+      }
+    }
+  },
+  "slab_weight_shear_with_elasticity": {
+    "corrected": {
+      "successful_attempts": 8144,
+      "union_slabs": 772,
+      "best_pathway_slabs": 687,
+      "histogram": {
+        "0": 14004,
+        "2": 12,
+        "3": 17,
+        "4": 10,
+        "5": 34,
+        "6": 187,
+        "7": 61,
+        "8": 87,
+        "9": 9,
+        "12": 34,
+        "14": 21,
+        "15": 1,
+        "16": 291,
+        "18": 5,
+        "22": 1,
+        "24": 2
+      }
+    },
+    "original": {
+      "successful_attempts": 8139,
+      "union_slabs": 772,
+      "best_pathway_slabs": 687,
+      "histogram": {
+        "0": 14004,
+        "1": 5,
+        "2": 7,
+        "3": 17,
+        "4": 10,
+        "5": 34,
+        "6": 187,
+        "7": 61,
+        "8": 87,
+        "9": 9,
+        "12": 34,
+        "14": 21,
+        "15": 1,
+        "16": 291,
+        "18": 5,
+        "22": 1,
+        "24": 2
+      }
+    }
+  },
+  "D11": {
+    "corrected": {
+      "successful_attempts": 8722,
+      "union_slabs": 823,
+      "best_pathway_slabs": 735,
+      "histogram": {
+        "0": 13953,
+        "2": 12,
+        "3": 17,
+        "4": 10,
+        "5": 36,
+        "6": 200,
+        "7": 63,
+        "8": 94,
+        "9": 9,
+        "12": 37,
+        "14": 22,
+        "15": 1,
+        "16": 313,
+        "18": 6,
+        "22": 1,
+        "24": 2
+      }
+    },
+    "original": {
+      "successful_attempts": 8717,
+      "union_slabs": 823,
+      "best_pathway_slabs": 735,
+      "histogram": {
+        "0": 13953,
+        "1": 5,
+        "2": 7,
+        "3": 17,
+        "4": 10,
+        "5": 36,
+        "6": 200,
+        "7": 63,
+        "8": 94,
+        "9": 9,
+        "12": 37,
+        "14": 22,
+        "15": 1,
+        "16": 313,
+        "18": 6,
+        "22": 1,
+        "24": 2
+      }
+    },
+    "common_subset": {
+      "slabs": 316,
+      "rows": 5056,
+      "single_layer_slabs": 257,
+      "grain_parent_combinations": {
+        "RG": 316
+      },
+      "spread_quantiles": {
+        "0.0": 25.69882457437743,
+        "0.25": 31.778037197602032,
+        "0.5": 31.778037197602035,
+        "0.75": 51.611391585968875,
+        "0.9": 62.966210819656524,
+        "1.0": 62.96621081965654
+      },
+      "pooled_relative_SD_quantiles": {
+        "0.25": 0.5584355888637645,
+        "0.5": 0.7843525250240571,
+        "0.75": 0.8515857904033877
+      },
+      "extreme_one_SD_intervals_disjoint_slabs": 316,
+      "top_pathways": [
+        "kim_jamieson_table2 -> schottner -> kochle",
+        "kim_jamieson_table2 -> wautier -> kochle",
+        "geldsetzer -> schottner -> kochle",
+        "geldsetzer -> wautier -> kochle",
+        "geldsetzer -> kochle -> kochle",
+        "kim_jamieson_table2 -> kochle -> kochle",
+        "kim_jamieson_table2 -> bergfeld -> kochle",
+        "geldsetzer -> bergfeld -> kochle",
+        "kim_jamieson_table2 -> wautier -> srivastava",
+        "geldsetzer -> schottner -> srivastava",
+        "geldsetzer -> wautier -> srivastava",
+        "kim_jamieson_table2 -> schottner -> srivastava",
+        "kim_jamieson_table2 -> bergfeld -> srivastava",
+        "geldsetzer -> kochle -> srivastava",
+        "kim_jamieson_table2 -> kochle -> srivastava",
+        "geldsetzer -> bergfeld -> srivastava"
+      ]
+    }
+  },
+  "domain_sensitivity": {
+    "successful_kochle_E_pathways_with_MF": 0,
+    "schottner_sample_envelope_D11": {
+      "successful_attempts": 8558,
+      "union_slabs": 823,
+      "best_pathway_slabs": 735,
+      "histogram": {
+        "0": 13953,
+        "1": 2,
+        "2": 11,
+        "3": 23,
+        "4": 39,
+        "5": 6,
+        "6": 252,
+        "7": 7,
+        "8": 92,
+        "9": 9,
+        "10": 3,
+        "12": 56,
+        "15": 1,
+        "16": 313,
+        "18": 6,
+        "20": 1,
+        "24": 2
+      }
+    },
+    "schottner_sample_envelope_elastic_availability": {
+      "successful_attempts": 7986,
+      "union_slabs": 772,
+      "best_pathway_slabs": 687,
+      "histogram": {
+        "0": 14004,
+        "1": 2,
+        "2": 11,
+        "3": 23,
+        "4": 37,
+        "5": 6,
+        "6": 237,
+        "7": 7,
+        "8": 85,
+        "9": 9,
+        "10": 3,
+        "12": 52,
+        "15": 1,
+        "16": 291,
+        "18": 5,
+        "20": 1,
+        "24": 2
+      }
+    }
+  },
+  "density_matching_sensitivity": {
+    "changed_slabs": 0,
+    "successful_changed_slab_pathways_by_target": {}
+  },
+  "timing": {
+    "parse_qc_and_slab_creation_seconds": 17.19359712500591,
+    "slab_weight_shear_seconds": 4.996947749983519,
+    "slab_weight_shear_with_elasticity_seconds": 60.77695433300687,
+    "D11_all_32_pathways_seconds": 40.88198245904641,
+    "density_matching_sensitivity_seconds": 0.021318792016245425
+  },
+  "environment": {
+    "python": "3.13.11 (main, Jan 14 2026, 23:14:53) [Clang 21.1.4 ]",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "base_commit": "c8b712e93fe219c9c5dd71e6a5a8a3a6d947866c",
+    "source_sha256": {
+      "paper_analysis/reviewer_response_analysis.py": "05b5a034f02905a59f8269b380242a01a6c72d8d018cb28d0489a73871adb248",
+      "src/snowpyt_mechparams/methods/layer/elastic_modulus.py": "8fc2fb9aeda0307c260952c15a9ddcc55cc6d4a0de7ab816d0d73eeff88be1c2",
+      "paper_analysis/loss_analysis_utils.py": "157a01f52028169990615b8b4cf4911e1a853fb4d8ec6d86deadb38db95e5bc1",
+      "uv.lock": "310afd883be5904ee8f8804b07f7d04c35c7fc07fb4aa316b1f88327318c93c8"
+    }
+  }
+}

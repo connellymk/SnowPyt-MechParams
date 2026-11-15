@@ -17,7 +17,7 @@ from snowpyt_mechparams.methods.layer import (
     [
         ("bergfeld", ["PP", "RG", "DF"], 110, 363),
         ("kochle", ["RG", "FC", "DH", "MF"], 150, 450),
-        ("wautier", ["DF", "RG", "FC", "DH", "MF"], 103, 544),
+        ("wautier", ["PP", "DF", "RG", "FC", "DH", "MF"], 103, 544),
     ],
 )
 def test_elastic_domains_and_all_supported_grains(method, grains, low, high):
@@ -101,7 +101,8 @@ def test_wautier_ice_modulus_units_and_uncertainty():
 def test_schottner_every_fit_and_analytic_uncertainty(
     grain, a, sa, n, sn, with_method, uncertain_input
 ):
-    rho = ufloat(300, 8) if uncertain_input else 300
+    nominal_rho = 150 if grain == "SH" else 300
+    rho = ufloat(nominal_rho, 8) if uncertain_input else nominal_rho
     ice = ufloat(10000, 400) if uncertain_input else 10000
     value = calculate_elastic_modulus(
         "schottner",
@@ -110,12 +111,12 @@ def test_schottner_every_fit_and_analytic_uncertainty(
         E_ice=ice,
         include_method_uncertainty=with_method,
     )
-    mean = 10000 * a * (300 / 917) ** n
+    mean = 10000 * a * (nominal_rho / 917) ** n
     relative_variance = (
-        ((400 / 10000) ** 2 + (n * 8 / 300) ** 2) if uncertain_input else 0
+        ((400 / 10000) ** 2 + (n * 8 / nominal_rho) ** 2) if uncertain_input else 0
     )
     if with_method:
-        relative_variance += (sa / a) ** 2 + (math.log(300 / 917) * sn) ** 2
+        relative_variance += (sa / a) ** 2 + (math.log(nominal_rho / 917) * sn) ** 2
     assert nominal_value(value) == pytest.approx(mean, rel=1e-12)
     assert std_dev(value) == pytest.approx(
         mean * math.sqrt(relative_variance), rel=1e-12, abs=1e-12

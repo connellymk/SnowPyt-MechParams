@@ -297,3 +297,10 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for
 details.
 
 **Version**: 0.4.0 | **Last Updated**: April 2026 | **Python**: 3.9+
+
+## Reviewer-response reproducibility
+
+See [the reviewer analysis guide](paper_analysis/README.md) for the pinned baseline,
+corrected method domains, density-assignment sensitivity, Monte Carlo checks, and
+repository-local response figures. Generated response wording is in
+[reviewer response support](paper_analysis/results/reviewer_response_support.md).

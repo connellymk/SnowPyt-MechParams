@@ -16,10 +16,10 @@ SnowPilot/CAAML dataset used by the research workflows.
 ## Active Notebooks
 
 - `slab_weight_inputs.ipynb`: slab-weight and elasticity input coverage.
-- `all_D11_pathways.ipynb`: all currently available `D11` pathways.
-- `all_density_pathways.ipynb`: density method comparison.
-- `all_e_mod_pathways.ipynb`: elastic-modulus method comparison.
-- `all_poissons_ratio_pathways.ipynb`: Poisson's-ratio method comparison.
+- `archive/all_D11_pathways.ipynb`: all currently available `D11` pathways.
+- `archive/all_density_pathways.ipynb`: density method comparison.
+- `archive/all_e_mod_pathways.ipynb`: elastic-modulus method comparison.
+- `archive/all_poissons_ratio_pathways.ipynb`: Poisson's-ratio method comparison.
 - `dataset_overview.ipynb`, `dataset_ectp_slabs.ipynb`, and
   `grain_form_count.ipynb`: dataset exploration and summary workflows.
 - `paper_diagrams.ipynb`: generated diagrams and figures for manuscript work.
@@ -50,3 +50,12 @@ it is not packaged into source distributions.
 historical references, not canonical examples for new workflows. New examples
 should follow the active notebooks and the public imports documented in the root
 README.
+
+Reviewer-response results are reproduced by `paper_analysis/run_review.py`; see
+[its guide](../paper_analysis/README.md). `D11_analysis.ipynb` presents those results.
+Figure exports remain inside the repository unless an external destination is
+explicitly provided. Archived notebooks are historical, not canonical workflows.
+
+The former D11 spread/attribute correlation graphic is retired. The canonical
+reviewer workflow instead exports per-slab range-to-interval-width and all-pair
+interval-separation diagnostics, with explicit aggregation and no inferential claims.

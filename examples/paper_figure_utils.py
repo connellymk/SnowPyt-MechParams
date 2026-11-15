@@ -15,13 +15,12 @@ import matplotlib.ticker as mticker
 from matplotlib.offsetbox import AnchoredOffsetbox, HPacker, TextArea, VPacker
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 from notebook_utils import (
     DENSITY_COLORS,
     DOUBLE_COL,
     DPI,
-    EXTERNAL_PAPER_FIGURES_DIR,
+    EXTERNAL_PAPER_FIGURES_DIR as EXTERNAL_PAPER_FIGURES_DIR,  # legacy export only
     PAPER_FIGURES_DIR,
     REPO_PAPER_FIGURES_DIR,
 )
@@ -111,33 +110,34 @@ def paper_figures_dir() -> Path:
 
 
 def save_paper_figure(
-    fig: plt.Figure, stem: str, close: bool = False
+    fig: plt.Figure, stem: str, close: bool = False, *,
+    output_dir: Path | None = None, external_dir: Path | None = None,
 ) -> dict[str, Path]:
-    """Export once, then copy identical files to the manuscript directory."""
-    REPO_PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    EXTERNAL_PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-
-    repo_pdf = REPO_PAPER_FIGURES_DIR / f"{stem}.pdf"
-    repo_png = REPO_PAPER_FIGURES_DIR / f"{stem}.png"
-    external_pdf = EXTERNAL_PAPER_FIGURES_DIR / f"{stem}.pdf"
-    external_png = EXTERNAL_PAPER_FIGURES_DIR / f"{stem}.png"
+    """Export locally. External copying requires an explicit destination."""
+    output_dir = Path(output_dir) if output_dir is not None else REPO_PAPER_FIGURES_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+    repo_pdf = output_dir / f"{stem}.pdf"
+    repo_png = output_dir / f"{stem}.png"
 
     with _quiet_fonttools_pdf_metadata_warnings():
         fig.savefig(repo_pdf, dpi=DPI, bbox_inches="tight")
     fig.savefig(repo_png, dpi=DPI, bbox_inches="tight")
-    shutil.copy2(repo_pdf, external_pdf)
-    shutil.copy2(repo_png, external_png)
 
     saved_paths: dict[str, Path] = {
         "repo_pdf": repo_pdf,
         "repo_png": repo_png,
-        "external_pdf": external_pdf,
-        "external_png": external_png,
     }
 
     saved_paths["pdf"] = saved_paths["repo_pdf"]
     saved_paths["png"] = saved_paths["repo_png"]
-    saved_paths["external_dir"] = EXTERNAL_PAPER_FIGURES_DIR
+    if external_dir is not None:
+        external_dir = Path(external_dir)
+        external_dir.mkdir(parents=True, exist_ok=True)
+        for kind, source in [("pdf", repo_pdf), ("png", repo_png)]:
+            destination = external_dir / source.name
+            shutil.copy2(source, destination)
+            saved_paths[f"external_{kind}"] = destination
+        saved_paths["external_dir"] = external_dir
     if close:
         plt.close(fig)
     return saved_paths
@@ -317,23 +317,11 @@ DENSITY_BOUNDARIES = [103, 110, 150, 200, 363, 450, 544, 580]
 DENSITY_X_MIN = 0.0
 DENSITY_X_MAX = 600.0
 
+from snowpyt_mechparams.methods.layer._applicability import ELASTIC_DOMAINS, density_bounds
+
 ELASTIC_SUPPORT = {
-    "bergfeld": {
-        "grain_forms": {"PP", "RG", "DF"},
-        "density_ranges": [(110.0, 363.0)],
-    },
-    "kochle": {
-        "grain_forms": {"RG", "FC", "DH", "MF"},
-        "density_ranges": [(150.0, 450.0)],
-    },
-    "wautier": {
-        "grain_forms": {"DF", "RG", "FC", "DH", "MF"},
-        "density_ranges": [(103.0, 544.0)],
-    },
-    "schottner": {
-        "grain_forms": {"DF", "RG", "FC", "DH", "SH"},
-        "density_ranges": [(DENSITY_X_MIN, DENSITY_X_MAX)],
-    },
+    method: {"grain_forms": set(domains), "density_ranges": sorted(set(domains.values()))}
+    for method, domains in ELASTIC_DOMAINS.items()
 }
 
 
@@ -359,7 +347,15 @@ def _schottner_curve(rho: np.ndarray, a: float, n: float) -> np.ndarray:
 
 def build_elastic_modulus_curves_figure() -> plt.Figure:
     """Create the log-scale Young's-modulus parameterization figure."""
-    rho = np.linspace(100.0, 545.0, 600)
+    def domain(grain, method="schottner"):
+        low, high = density_bounds(method, grain)
+        return np.linspace(low, high, 300)
+
+    bergfeld_rho = domain("RG", "bergfeld")
+    wautier_rho = domain("RG", "wautier")
+    low, high = density_bounds("kochle", "RG")
+    kochle_low_rho = np.linspace(low, np.nextafter(250.0, -np.inf), 300)
+    kochle_high_rho = np.linspace(250.0, high, 300)
 
     fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.15))
     curve_specs = [
@@ -367,56 +363,56 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
             "Bergfeld",
             SUPPORT_METHOD_STYLES["bergfeld"]["color"],
             "-",
-            _bergfeld_curve(rho[(rho >= 110) & (rho <= 363)]),
-            rho[(rho >= 110) & (rho <= 363)],
+            _bergfeld_curve(bergfeld_rho),
+            bergfeld_rho,
             "PP, DF, RG",
         ),
         (
             "Köchle low",
             SUPPORT_METHOD_STYLES["kochle"]["color"],
             "-",
-            _kochle_low_curve(rho[(rho >= 150) & (rho < 250)]),
-            rho[(rho >= 150) & (rho < 250)],
+            _kochle_low_curve(kochle_low_rho),
+            kochle_low_rho,
             "RG, FC, DH, MF",
         ),
         (
             "Köchle high",
             SUPPORT_METHOD_STYLES["kochle"]["color"],
             "--",
-            _kochle_high_curve(rho[(rho >= 250) & (rho <= 450)]),
-            rho[(rho >= 250) & (rho <= 450)],
+            _kochle_high_curve(kochle_high_rho),
+            kochle_high_rho,
             "RG, FC, DH, MF",
         ),
         (
             "Wautier",
             SUPPORT_METHOD_STYLES["wautier"]["color"],
             "-",
-            _wautier_curve(rho[(rho >= 103) & (rho <= 544)]),
-            rho[(rho >= 103) & (rho <= 544)],
-            "DF, RG, FC, DH, MF",
+            _wautier_curve(wautier_rho),
+            wautier_rho,
+            "PP, DF, RG, FC, DH, MF",
         ),
         (
             "Schöttner DF/RG",
             SUPPORT_METHOD_STYLES["schottner"]["color"],
             "-",
-            _schottner_curve(rho, 0.40, 4.6),
-            rho,
+            _schottner_curve(domain("RG"), 0.40, 4.6),
+            domain("RG"),
             "DF, RG",
         ),
         (
             "Schöttner FC/DH",
             SUPPORT_METHOD_STYLES["schottner"]["color"],
             "--",
-            _schottner_curve(rho, 1.8, 5.1),
-            rho,
+            _schottner_curve(domain("FC"), 1.8, 5.1),
+            domain("FC"),
             "FC, DH",
         ),
         (
             "Schöttner SH",
             SUPPORT_METHOD_STYLES["schottner"]["color"],
             ":",
-            _schottner_curve(rho, 0.011, 1.7),
-            rho,
+            _schottner_curve(domain("SH"), 0.011, 1.7),
+            domain("SH"),
             "SH",
         ),
     ]
@@ -430,7 +426,7 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
             linewidth=2.1 if "Wautier" in label else 1.8,
             label=f"{label} ({grain_forms})",
         )
-    ax.set_xlim(100, 550)
+    ax.set_xlim(60, 550)
     ax.set_yscale("log")
     ax.set_ylim(0.3, 5000)
     ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
@@ -468,10 +464,8 @@ def _density_method_supports(method: str, grain_form: str, hhi: float) -> bool:
 def _elastic_supported_ranges(
     method: str, grain_form: str
 ) -> list[tuple[float, float]]:
-    support = ELASTIC_SUPPORT[method]
-    if _main_grain_form(grain_form) not in support["grain_forms"]:
-        return []
-    return support["density_ranges"]
+    bounds = density_bounds(method, grain_form)
+    return [bounds] if bounds is not None else []
 
 
 def _poissons_supported_ranges(
@@ -712,7 +706,7 @@ def build_elastic_applicability_figure() -> plt.Figure:
                 color = SUPPORT_METHOD_STYLES[method]["color"]
                 center = row - 0.38 + (lane + 0.5) * lane_height
                 for low, high in _parameter_supported_ranges(method, grain, parameter):
-                    unbounded_low = method == "schottner" or (
+                    unbounded_low = (
                         parameter == "poissons_ratio" and method == "kochle"
                     )
                     unbounded_high = unbounded_low or (
@@ -824,7 +818,7 @@ def build_slab_weight_coverage_comparison_figure(
             rf"$\rho$ {method_label(dm, short=True)}"
             "\n"
             rf"$E$ {method_label(em, short=True)}"
-            "\n"
+            " / "
             rf"$\nu$ {method_label(nu, short=True)} ({int(count):,})"
         )
         for dm, em, nu, count in zip(
@@ -839,7 +833,7 @@ def build_slab_weight_coverage_comparison_figure(
     fig, axes = plt.subplots(
         1,
         2,
-        figsize=(DOUBLE_COL, 5.05),
+        figsize=(DOUBLE_COL, 5.6),
         sharey=False,
         gridspec_kw={"width_ratios": [4, 9]},
     )
@@ -917,7 +911,7 @@ def build_slab_weight_coverage_comparison_figure(
                 clip_on=False,
             )
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(labels, fontsize=6.2)
+        ax.set_yticklabels(labels, fontsize=7)
         ax.invert_yaxis()
 
     axes[0].set_title(
@@ -968,7 +962,7 @@ def build_slab_weight_coverage_comparison_figure(
     for ax in axes:
         ax.tick_params(axis="x", labelsize=6.6)
     axes[0].tick_params(axis="y", labelsize=7.5)
-    axes[1].tick_params(axis="y", labelsize=6.2)
+    axes[1].tick_params(axis="y", labelsize=7)
 
     legend_handles = [
         mpatches.Patch(
@@ -992,7 +986,7 @@ def build_slab_weight_coverage_comparison_figure(
         columnspacing=1.2,
         handlelength=1.5,
     )
-    fig.subplots_adjust(left=0.09, right=0.985, top=0.91, bottom=0.31, wspace=0.50)
+    fig.subplots_adjust(left=0.09, right=0.985, top=0.91, bottom=0.31, wspace=0.70)
     return fig
 
 

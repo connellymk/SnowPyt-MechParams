@@ -176,3 +176,11 @@ safety-report.json
 # Local configuration
 local_config.py
 config_local.py
+
+# Reviewer analysis: retain compact evidence; reproduce bulky intermediates.
+paper_analysis/results/**/*.parquet
+paper_analysis/results/**/profile_audit.json
+paper_analysis/results/**/input_manifest.json
+paper_analysis/results/smoke/
+!paper_analysis/results/**/*.csv
+coverage.json

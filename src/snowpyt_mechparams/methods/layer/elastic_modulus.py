@@ -15,6 +15,7 @@ from uncertainties import UFloat, ufloat, umath
 
 from snowpyt_mechparams.constants import RHO_ICE, E_ICE_POLYCRYSTALLINE
 from snowpyt_mechparams.models import UncertainValue
+from snowpyt_mechparams.methods.layer._applicability import density_bounds
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,8 @@ def _calculate_elastic_modulus_bergfeld(
 
     # Check grain form validity (only PP, RG, DF are supported)
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ["PP", "RG", "DF"]:
+    bounds = density_bounds("bergfeld", main_grain_shape)
+    if bounds is None:
         logger.debug(
             "bergfeld: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
             grain_form,
@@ -169,7 +171,7 @@ def _calculate_elastic_modulus_bergfeld(
         return ufloat(np.nan, np.nan)
 
     # Check density is within the valid range of the fit (110-363 kg/m³)
-    if rho_nominal < 110 or rho_nominal > 363:
+    if not bounds[0] <= rho_nominal <= bounds[1]:
         logger.debug(
             "bergfeld: density %.1f kg/m³ outside valid range 110-363 kg/m³; returning NaN",
             rho_nominal,
@@ -280,7 +282,8 @@ def _calculate_elastic_modulus_kochle(
     weak layers. Journal of Glaciology, 60(220), 304-315.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ["RG", "FC", "DH", "MF"]:
+    bounds = density_bounds("kochle", main_grain_shape)
+    if bounds is None:
         logger.debug(
             "kochle: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
             grain_form,
@@ -299,12 +302,12 @@ def _calculate_elastic_modulus_kochle(
     # parameterization.
 
     # Check for valid density range and apply appropriate formula (Equations 11 and 12 from source)
-    if 150 <= rho_nominal < 250:
+    if bounds[0] <= rho_nominal < 250:
         # Low Density Fit (R² = 0.68)
         # E = 0.0061 * exp(0.0396 * ρ)
         C_0 = 0.0061
         C_1 = 0.0396
-    elif 250 <= rho_nominal <= 450:
+    elif 250 <= rho_nominal <= bounds[1]:
         # High Density Fit (R² = 0.92)
         # E = 6.0457 * exp(0.011 * ρ)
         C_0 = 6.0457
@@ -344,7 +347,7 @@ def _calculate_elastic_modulus_wautier(
         value.
     grain_form : str
         Grain form classification. Supported values:
-        - 'DF', 'RG', 'FC', 'DH', 'MF'
+        - 'PP', 'DF', 'RG', 'FC', 'DH', 'MF'
     E_ice : UncertainValue, optional
         Young's modulus of ice in MPa. May be a plain float or an uncertain
         value. Default is 10 GPa (10,000 MPa), the bulk polycrystalline ice
@@ -406,7 +409,8 @@ def _calculate_elastic_modulus_wautier(
     Geophysical Research Letters, 42, 8031–8041.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ["DF", "RG", "FC", "DH", "MF"]:
+    bounds = density_bounds("wautier", main_grain_shape)
+    if bounds is None:
         logger.debug(
             "wautier: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
             grain_form,
@@ -418,7 +422,7 @@ def _calculate_elastic_modulus_wautier(
     rho_nominal = _nominal_value(rho_snow)
 
     # Check for nominal density in range of fit
-    if rho_nominal < 103 or rho_nominal > 544:
+    if not bounds[0] <= rho_nominal <= bounds[1]:
         logger.debug(
             "wautier: density %.1f kg/m³ outside valid range 103-544 kg/m³; returning NaN",
             rho_nominal,
@@ -481,12 +485,18 @@ def _calculate_elastic_modulus_schottner(
     -----------
     - The exponents were derived from experimental uniaxial compression tests
       on weak layers.
+    - Nominal density must lie within author-supplied observed sample limits:
+      SH 67.8358–175.0897, DF/RG 148.5054–355.6796, FC/DH
+      150.3388–462.9335 kg/m³ (volume fractions times 916.7). These bounds
+      delimit the calibration samples; they do not establish accuracy.
+      Equation normalization remains 917 kg/m³.
     - This model reflects the *effective* elastic modulus E_eff, which is a
       simplification that enables the application of non-time-dependent models
       to snow's time-dependent behavior.
     """
     main_grain_shape = grain_form[:2].upper()
-    if main_grain_shape not in ["DF", "RG", "FC", "DH", "SH"]:
+    bounds = density_bounds("schottner", main_grain_shape)
+    if bounds is None:
         logger.debug(
             "schottner: unsupported grain_form=%r (main_grain_shape=%r); returning NaN",
             grain_form,
@@ -495,6 +505,11 @@ def _calculate_elastic_modulus_schottner(
         return ufloat(np.nan, np.nan)
 
     rho_snow = density  # kg/m³, input
+    # Author-supplied observed density limits; uncertainty crossing a boundary
+    # is not clipped. This is an applicability check at the nominal value only.
+    if not bounds[0] <= _nominal_value(density) <= bounds[1]:
+        logger.debug("schottner: density outside grain-specific bounds %s", bounds)
+        return ufloat(np.nan, np.nan)
 
     def _u(val: float, std: float) -> UFloat:
         return ufloat(val, std if include_method_uncertainty else 0.0)

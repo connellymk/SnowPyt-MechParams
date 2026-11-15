@@ -36,7 +36,9 @@ SNOW_ROOT = Path(__file__).resolve().parents[2]
 REPO_PAPER_FIGURES_DIR = REPO_ROOT / "paper" / "figures"
 EXTERNAL_PAPER_FIGURES_DIR = SNOW_ROOT / "mech_params_paper" / "figures"
 PAPER_FIGURES_DIR = REPO_PAPER_FIGURES_DIR
-PAPER_FIGURES_DIRS = (REPO_PAPER_FIGURES_DIR, EXTERNAL_PAPER_FIGURES_DIR)
+# Automatic export destinations are local. External copying requires an explicit
+# destination passed to save_paper_figure(external_dir=...).
+PAPER_FIGURES_DIRS = (REPO_PAPER_FIGURES_DIR,)
 
 
 def hess_rcparams() -> None:

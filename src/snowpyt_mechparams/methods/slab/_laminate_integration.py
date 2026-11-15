@@ -2,7 +2,7 @@
 
 A11, B11, and D11 all share the same structure:
 1. Validate slab (non-empty layers, required properties present)
-2. Compute z-coordinates for each layer relative to the slab centroid
+2. Compute z-coordinates relative to the geometric reference plane
 3. Calculate plane-strain modulus E_i / (1 - nu_i^2) for each layer
 4. Accumulate a weighted sum that differs only in the power of z
 
@@ -45,9 +45,14 @@ def integrate_plane_strain_over_layers(
     - Computes the plane-strain modulus ``E_i / (1 - nu_i^2)``.
     - Converts layer thickness from cm to mm.
     - Reads ``layer.depth_top`` (measured depth from snow surface in cm) to
-      compute z-coordinates relative to the slab midplane (z = 0 at midplane,
-      positive upward). Returns ``ufloat(NaN, NaN)`` if any layer is missing
-      ``depth_top``. For A11 the z-coordinates cancel (``z_top - z_bottom =
+      compute upward-positive z-coordinates. The reference depth is the first
+      layer top plus half the sum of thicknesses; with gaps it is not the
+      bounding-interval midpoint, nor generally the stiffness-weighted neutral
+      axis. Measured tops remain fixed while thickness uncertainty propagates.
+      If the first top is absent, use cumulative thicknesses (A11's compatible
+      fallback); if the first top is present, all subsequent tops are required.
+      D11's public wrapper requires measured tops. For A11 the z-coordinates
+      cancel (``z_top - z_bottom =
       h_i``); B11 and D11 depend on the actual z-positions.
     - Calls ``accumulate(plane_strain_modulus, z_top, z_bottom)`` and adds
       the result to a running sum.
@@ -80,7 +85,7 @@ def integrate_plane_strain_over_layers(
 
     h_total_mm = total_thickness * 10.0  # cm → mm
 
-    # Reference plane: midplane of the slab.
+    # Reference depth: first top plus half the sum of thicknesses.
     # When depth_top is available on all layers, use measured snowpack positions
     # so that gaps between layers are reflected in the z-coordinates.
     # Fall back to cumulative thickness when depth_top is absent (e.g. for A11,

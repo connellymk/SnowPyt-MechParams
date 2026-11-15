@@ -923,6 +923,8 @@ def plot_pathway_distribution(weight: LossAnalysis, elastic_weight: LossAnalysis
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 
+    plt.rcParams["mathtext.cal"] = "cmmi10"
+
     table = successful_pathway_table(weight, elastic_weight)
     n_rows = len(table)
     ticks = MaxNLocator(nbins=3, integer=True).tick_values(0, weight.n_slabs)
@@ -1002,7 +1004,7 @@ def plot_pathway_distribution(weight: LossAnalysis, elastic_weight: LossAnalysis
             if panel == 0
             else r"(b) Shear weight with elasticity"
             + "\n"
-            + r"($E$ and $\nu$ required)"
+            + _cm_nu(r"($E$ and $\nu$ required)")
         )
         fig.text(
             (bounds.x0 + bounds.x1) / 2,
@@ -1143,6 +1145,16 @@ def _figure_label(text: str) -> str:
     return text.replace("→", r"$\rightarrow$")
 
 
+def _cm_nu(text: str) -> str:
+    """Use Computer Modern italic ν; Helvetica italic ``\\nu`` looks like v."""
+    marker = "\0CMNU\0"
+    return (
+        text.replace(r"\mathcal{\nu}", marker)
+        .replace(r"\nu", r"\mathcal{\nu}")
+        .replace(marker, r"\mathcal{\nu}")
+    )
+
+
 DENSITY_ORDER = [
     "data_flow",
     "geldsetzer",
@@ -1159,7 +1171,7 @@ def _stepwise_title(result: LossAnalysis, pathway: str) -> str:
     for column, symbol in [
         ("density_method", r"$\rho$"),
         ("emod_method", "$E$"),
-        ("nu_method", r"$\nu$"),
+        ("nu_method", _cm_nu(r"$\nu$")),
     ]:
         method = methods[column]
         if method:
@@ -1184,6 +1196,8 @@ def plot_stepwise_losses(
     from matplotlib.patches import Patch
     from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 
+    # Helvetica italic \nu is a Latin v; \mathcal{\nu} uses Computer Modern.
+    plt.rcParams["mathtext.cal"] = "cmmi10"
     if pathway is None:
         pathway = result.coverage.iloc[0].pathway
     stages = result.stages[result.stages.pathway == pathway].sort_values("step")
@@ -1195,7 +1209,7 @@ def plot_stepwise_losses(
     parameters = [p for p, _ in STEPS[result.target]]
     requirements = []
     for parameter, label in zip(parameters, stages.requirement):
-        label = PARAMETER_LABELS.get(parameter, label)
+        label = _cm_nu(PARAMETER_LABELS.get(parameter, label))
         if parameter == "slab_weight_shear":
             label += (
                 "\n"
@@ -1212,7 +1226,7 @@ def plot_stepwise_losses(
     if result.target == "slab_weight_shear_with_elasticity":
         target_label = (
             "Shear weight with elasticity\n"
-            + r"(Join: $W_{\mathrm{shear}}$, $E$, $\nu$)"
+            + _cm_nu(r"(Join: $W_{\mathrm{shear}}$, $E$, $\nu$)")
         )
     else:
         target_label += "\n(Final target)"
@@ -1331,6 +1345,7 @@ def plot_stepwise_comparison(
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
 
+    plt.rcParams["mathtext.cal"] = "cmmi10"
     if weight.n_slabs != elastic_weight.n_slabs:
         raise ValueError("Both panels must use the same slab cohort")
     weight_pathway = weight_pathway or weight.coverage.iloc[0].pathway
@@ -1385,6 +1400,7 @@ def plot_loss_heatmap(result: LossAnalysis):
     """
     import matplotlib.pyplot as plt
 
+    plt.rcParams["mathtext.cal"] = "cmmi10"
     steps = result.stages.requirement.drop_duplicates().tolist()
     losses = result.stages.pivot(
         index="pathway", columns="requirement", values="newly_lost"
@@ -1394,9 +1410,9 @@ def plot_loss_heatmap(result: LossAnalysis):
         fig, axes = plt.subplots(2, 2, figsize=(13, 9), constrained_layout=True)
         panels = axes.ravel()
         short_steps = (
-            [r"Density, $\rho$", "$E$", r"$\nu$", "Layer geometry", "$D_{11}$"]
+            [r"Density, $\rho$", "$E$", _cm_nu(r"$\nu$"), "Layer geometry", "$D_{11}$"]
             if result.target == "D11"
-            else [r"Density, $\rho$", r"$W_{\mathrm{shear}}$", "$E$", r"$\nu$"]
+            else [r"Density, $\rho$", r"$W_{\mathrm{shear}}$", "$E$", _cm_nu(r"$\nu$")]
         )
     else:
         fig, ax = plt.subplots(figsize=(7.5, 3.8), constrained_layout=True)
@@ -1461,7 +1477,9 @@ def plot_loss_heatmap(result: LossAnalysis):
     if result.target != "slab_weight_shear":
         fig.suptitle(
             f"{TARGET_LABELS[result.target]}: losses across all 32 pathways\n"
-            r"Rows: Young's modulus, $E$ $\rightarrow$ Poisson's ratio, $\nu$",
+            + _cm_nu(
+                r"Rows: Young's modulus, $E$ $\rightarrow$ Poisson's ratio, $\nu$"
+            ),
             fontsize=14,
         )
     return fig
@@ -1519,6 +1537,7 @@ def plot_method_causes(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 
+    plt.rcParams["mathtext.cal"] = "cmmi10"
     if top_n < 1:
         raise ValueError("top_n must be positive")
     frame = result.reasons[
@@ -1583,7 +1602,9 @@ def plot_method_causes(
         ax.xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
         ax.grid(axis="x", alpha=0.2)
         ax.set_axisbelow(True)
-    title = f"{PARAMETER_LABELS[parameter]}: {METHOD_LABELS.get(method, method)}"
+    title = _cm_nu(
+        f"{PARAMETER_LABELS[parameter]}: {METHOD_LABELS.get(method, method)}"
+    )
     if density_context is not None:
         title += f"\nDensity method: {METHOD_LABELS[density_context]}"
     fig.suptitle(title, fontsize=13)

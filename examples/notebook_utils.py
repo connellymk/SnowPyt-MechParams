@@ -49,6 +49,8 @@ def hess_rcparams() -> None:
     mpl.rcParams["mathtext.rm"] = "Helvetica"
     mpl.rcParams["mathtext.it"] = "Helvetica:italic"
     mpl.rcParams["mathtext.bf"] = "Helvetica:bold"
+    # Helvetica italic \nu is a Latin v; \mathcal{\nu} uses Computer Modern.
+    mpl.rcParams["mathtext.cal"] = "cmmi10"
     mpl.rcParams["mathtext.fallback"] = "None"
     mpl.rcParams["font.size"] = 8.0
     mpl.rcParams["axes.labelsize"] = 8.0
@@ -60,6 +62,16 @@ def hess_rcparams() -> None:
     mpl.rcParams["savefig.dpi"] = DPI
     mpl.rcParams["pdf.fonttype"] = 42
     mpl.rcParams["ps.fonttype"] = 42
+
+
+def cm_nu(text: str) -> str:
+    """Use Computer Modern italic ν; Helvetica italic ``\\nu`` looks like v."""
+    marker = "\0CMNU\0"
+    return (
+        text.replace(r"\mathcal{\nu}", marker)
+        .replace(r"\nu", r"\mathcal{\nu}")
+        .replace(marker, r"\mathcal{\nu}")
+    )
 
 
 # ── Wong (2011) colorblind-safe palette — density method colours ─────────────

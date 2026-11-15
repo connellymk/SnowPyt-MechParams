@@ -23,6 +23,7 @@ from notebook_utils import (
     EXTERNAL_PAPER_FIGURES_DIR as EXTERNAL_PAPER_FIGURES_DIR,  # legacy export only
     PAPER_FIGURES_DIR,
     REPO_PAPER_FIGURES_DIR,
+    cm_nu,
 )
 
 COLOR_BORDER = "#404040"
@@ -119,6 +120,7 @@ def save_paper_figure(
     repo_pdf = output_dir / f"{stem}.pdf"
     repo_png = output_dir / f"{stem}.png"
 
+    plt.rcParams["mathtext.cal"] = "cmmi10"
     with _quiet_fonttools_pdf_metadata_warnings():
         fig.savefig(repo_pdf, dpi=DPI, bbox_inches="tight")
     fig.savefig(repo_png, dpi=DPI, bbox_inches="tight")
@@ -693,7 +695,7 @@ def build_elastic_applicability_figure() -> plt.Figure:
         axes,
         ["elastic_modulus", "poissons_ratio"],
         [ELASTIC_SUPPORT_METHODS, POISSONS_SUPPORT_METHODS],
-        [r"(a) Young's modulus, $E$", r"(b) Poisson's ratio, $\nu$"],
+        [r"(a) Young's modulus, $E$", cm_nu(r"(b) Poisson's ratio, $\nu$")],
         strict=True,
     ):
         lane_height = 0.76 / len(methods)
@@ -814,7 +816,7 @@ def build_slab_weight_coverage_comparison_figure(
         )
     ]
     elasticity_plot["label"] = [
-        (
+        cm_nu(
             rf"$\rho$ {method_label(dm, short=True)}"
             "\n"
             rf"$E$ {method_label(em, short=True)}"
@@ -927,7 +929,7 @@ def build_slab_weight_coverage_comparison_figure(
     axes[0].set_ylabel("Coverage of ECTP slabs (%)", fontsize=8.0)
 
     axes[1].set_title(
-        r"(b) Shear weight ($W_{\mathrm{shear}}$) with elastic inputs ($E$, $\nu$)",
+        cm_nu(r"(b) Shear weight ($W_{\mathrm{shear}}$) with elastic inputs ($E$, $\nu$)"),
         loc="left",
         fontsize=8.5,
         fontweight="bold",
@@ -1063,7 +1065,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
         ax.text(
             0.05,
             y_pos - 0.01,
-            label,
+            cm_nu(label),
             ha="left",
             va="center",
             fontsize=8.5,
@@ -1083,7 +1085,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             ax.text(
                 0.76,
                 y_pos - 0.01,
-                method_steps[idx],
+                cm_nu(method_steps[idx]),
                 ha="left",
                 va="center",
                 fontsize=8.0,
@@ -1396,8 +1398,10 @@ def build_d11_faceted_paired_ratio_figure(
                 continue
             ratio_data.append(ratios)
             labels.append(
-                rf"$\rho$: {method_label(density, short=True)}  "
-                rf"$\nu$: {method_label(nu, short=True)}"
+                cm_nu(
+                    rf"$\rho$: {method_label(density, short=True)}  "
+                    rf"$\nu$: {method_label(nu, short=True)}"
+                )
             )
             coverage_counts.append(
                 pathway_coverage.get(pathway) if pathway_coverage else None

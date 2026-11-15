@@ -1,6 +1,10 @@
 [
   {
     "case": "linear_density",
+    "case_type": "control",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -35,97 +39,9 @@
     ],
     "pit_id": null,
     "seed": 3208360356,
-    "slab_id": null,
-    "slope_degrees": {
-      "nominal": 30.0,
-      "sigma": 2.0
-    },
-    "target": "density"
-  },
-  {
-    "case": "nonlinear_density",
-    "layers": [
-      {
-        "density_measured": {
-          "nominal": 250.0,
-          "sigma": 25.0
-        },
-        "depth_top": {
-          "nominal": 0.0,
-          "sigma": 0.0
-        },
-        "grain_form": "RG",
-        "grain_size_avg": {
-          "nominal": 1.0,
-          "sigma": 0.48
-        },
-        "hand_hardness_index": {
-          "nominal": 3.0,
-          "sigma": 0.67
-        },
-        "thickness": {
-          "nominal": 20.0,
-          "sigma": 1.0
-        }
-      }
+    "selection": [
+      "linear_density"
     ],
-    "paths": [
-      [
-        "geldsetzer",
-        "",
-        ""
-      ],
-      [
-        "kim_jamieson_table2",
-        "",
-        ""
-      ]
-    ],
-    "pit_id": null,
-    "seed": 3280551768,
-    "slab_id": null,
-    "slope_degrees": {
-      "nominal": 30.0,
-      "sigma": 2.0
-    },
-    "target": "density"
-  },
-  {
-    "case": "kim_t6_grain_size",
-    "layers": [
-      {
-        "density_measured": {
-          "nominal": 250.0,
-          "sigma": 25.0
-        },
-        "depth_top": {
-          "nominal": 0.0,
-          "sigma": 0.0
-        },
-        "grain_form": "FC",
-        "grain_size_avg": {
-          "nominal": 2.0,
-          "sigma": 0.96
-        },
-        "hand_hardness_index": {
-          "nominal": 3.0,
-          "sigma": 0.67
-        },
-        "thickness": {
-          "nominal": 20.0,
-          "sigma": 1.0
-        }
-      }
-    ],
-    "paths": [
-      [
-        "kim_jamieson_table6",
-        "",
-        ""
-      ]
-    ],
-    "pit_id": null,
-    "seed": 3457084348,
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -135,6 +51,10 @@
   },
   {
     "case": "homogeneous_D11",
+    "case_type": "control",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -169,6 +89,9 @@
     ],
     "pit_id": null,
     "seed": 3981502993,
+    "selection": [
+      "homogeneous_D11"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -178,6 +101,12 @@
   },
   {
     "case": "layered_D11",
+    "case_type": "control",
+    "correlations": [
+      0,
+      0.5,
+      1
+    ],
     "layers": [
       {
         "density_measured": {
@@ -240,6 +169,9 @@
     ],
     "pit_id": null,
     "seed": 4042619682,
+    "selection": [
+      "layered_D11"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -249,6 +181,10 @@
   },
   {
     "case": "kochle_breakpoint_249",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -283,6 +219,9 @@
     ],
     "pit_id": null,
     "seed": 1219356650,
+    "selection": [
+      "kochle_breakpoint_249"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -292,6 +231,10 @@
   },
   {
     "case": "kochle_breakpoint_250",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -326,6 +269,9 @@
     ],
     "pit_id": null,
     "seed": 2801118042,
+    "selection": [
+      "kochle_breakpoint_250"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -335,6 +281,10 @@
   },
   {
     "case": "kochle_breakpoint_251",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -369,6 +319,9 @@
     ],
     "pit_id": null,
     "seed": 3274881167,
+    "selection": [
+      "kochle_breakpoint_251"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -378,6 +331,10 @@
   },
   {
     "case": "schottner_SH_lower",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -412,6 +369,9 @@
     ],
     "pit_id": null,
     "seed": 1790846323,
+    "selection": [
+      "schottner_SH_lower"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -421,6 +381,10 @@
   },
   {
     "case": "schottner_SH_upper",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -455,6 +419,9 @@
     ],
     "pit_id": null,
     "seed": 1523302039,
+    "selection": [
+      "schottner_SH_upper"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -464,6 +431,10 @@
   },
   {
     "case": "schottner_RG_lower",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -498,6 +469,9 @@
     ],
     "pit_id": null,
     "seed": 1594535961,
+    "selection": [
+      "schottner_RG_lower"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -507,6 +481,10 @@
   },
   {
     "case": "schottner_RG_upper",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -541,6 +519,9 @@
     ],
     "pit_id": null,
     "seed": 455332490,
+    "selection": [
+      "schottner_RG_upper"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -550,6 +531,10 @@
   },
   {
     "case": "schottner_FC_lower",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -584,6 +569,9 @@
     ],
     "pit_id": null,
     "seed": 698413505,
+    "selection": [
+      "schottner_FC_lower"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -593,6 +581,10 @@
   },
   {
     "case": "schottner_FC_upper",
+    "case_type": "boundary",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -627,6 +619,9 @@
     ],
     "pit_id": null,
     "seed": 766990193,
+    "selection": [
+      "schottner_FC_upper"
+    ],
     "slab_id": null,
     "slope_degrees": {
       "nominal": 30.0,
@@ -636,6 +631,10 @@
   },
   {
     "case": "1057_slab_0",
+    "case_type": "observed",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -745,6 +744,9 @@
     ],
     "pit_id": "1057",
     "seed": 1580027453,
+    "selection": [
+      "D11 spread-quantile illustration"
+    ],
     "slab_id": "1057_slab_0",
     "slope_degrees": {
       "nominal": 37.0,
@@ -754,6 +756,10 @@
   },
   {
     "case": "14909_slab_0",
+    "case_type": "observed",
+    "correlations": [
+      0
+    ],
     "layers": [
       {
         "density_measured": {
@@ -863,6 +869,9 @@
     ],
     "pit_id": "14909",
     "seed": 1922593444,
+    "selection": [
+      "D11 spread-quantile illustration"
+    ],
     "slab_id": "14909_slab_0",
     "slope_degrees": {
       "nominal": 15.0,
@@ -872,6 +881,12 @@
   },
   {
     "case": "29863_slab_0",
+    "case_type": "observed",
+    "correlations": [
+      0,
+      0.5,
+      1
+    ],
     "layers": [
       {
         "density_measured": {
@@ -1014,6 +1029,9 @@
     ],
     "pit_id": "29863",
     "seed": 2918560013,
+    "selection": [
+      "First successful multilayer Kim T6 D11 slab by slab ID"
+    ],
     "slab_id": "29863_slab_0",
     "slope_degrees": {
       "nominal": 31.0,
@@ -1023,6 +1041,12 @@
   },
   {
     "case": "50003_slab_0",
+    "case_type": "observed",
+    "correlations": [
+      0,
+      0.5,
+      1
+    ],
     "layers": [
       {
         "density_measured": {
@@ -1155,6 +1179,9 @@
     ],
     "pit_id": "50003",
     "seed": 3088615316,
+    "selection": [
+      "D11 spread-quantile illustration"
+    ],
     "slab_id": "50003_slab_0",
     "slope_degrees": {
       "nominal": 38.0,

@@ -241,23 +241,16 @@ def synthetic(grain="RG", rho=250, hardness="1F", size=1, layers=1):
     )
 
 
+def correlation_levels(slab):
+    """Inter-layer dependence is meaningful only for multilayer slabs."""
+    return [0, 0.5, 1] if len(slab.layers) > 1 else [0]
+
+
 def controls():
     layered = synthetic(layers=2)
     layered.layers[1].density_measured = ufloat(300, 30)
     cases = [
         ("linear_density", synthetic("FC"), "density", [("geldsetzer", "", "")]),
-        (
-            "nonlinear_density",
-            synthetic(),
-            "density",
-            [("geldsetzer", "", ""), ("kim_jamieson_table2", "", "")],
-        ),
-        (
-            "kim_t6_grain_size",
-            synthetic("FC", size=2),
-            "density",
-            [("kim_jamieson_table6", "", "")],
-        ),
         ("homogeneous_D11", synthetic(), "D11", [("data_flow", "wautier", "kochle")]),
         (
             "layered_D11",
@@ -303,13 +296,19 @@ def main():
     summary = json.loads((args.results / "summary.json").read_text())
     records = pd.read_parquet(args.results / "attempts.parquet")
     selected = {row["slab_id"] for row in summary["D11"]["illustrations"]}
+    selections = {key: ["D11 spread-quantile illustration"] for key in selected}
     kim = records[
         (records.target == "D11")
         & records.success
+        & (records.n_layers > 1)
         & records.pathway.str.startswith("kim_jamieson_table6")
     ]
     if not kim.empty:
-        selected.add(sorted(kim.slab_id)[0])
+        kim_id = sorted(kim.slab_id)[0]
+        selected.add(kim_id)
+        selections.setdefault(kim_id, []).append(
+            "First successful multilayer Kim T6 D11 slab by slab ID"
+        )
     manifest = json.loads((args.results / "input_manifest.json").read_text())
     files = {str(row["pit_id"]): row["filename"] for row in manifest}
     for slab_id in sorted(selected):
@@ -329,15 +328,24 @@ def main():
             )
         ]
         cases.append((slab_id, slab, "D11", methods))
-    results, inputs, paired = [], [], []
+    results, inputs = [], []
     engine = ExecutionEngine()
     for case_id, slab, target, pathways in cases:
         seed = SEED + int(hashlib.sha256(case_id.encode()).hexdigest()[:8], 16)
+        case_type = (
+            "observed"
+            if case_id in selected
+            else "boundary" if target == "elastic_modulus" else "control"
+        )
+        correlations = correlation_levels(slab)
         inputs.append(
             {
                 "case": case_id,
                 "target": target,
                 "seed": seed,
+                "case_type": case_type,
+                "selection": selections.get(case_id, [case_id]),
+                "correlations": correlations,
                 "pit_id": slab.pit_id,
                 "slab_id": slab.slab_id,
                 "slope_degrees": {
@@ -374,9 +382,8 @@ def main():
                 slab, target, config=ExecutionConfig(include_method_uncertainty=False)
             ).pathways.values()
         }
-        for correlation in [0, 0.5, 1]:
+        for correlation in correlations:
             samples = sample_observations(slab, args.draws, correlation, seed)
-            outputs = []
             for methods in pathways:
                 out, masks = evaluate(slab, target, methods, samples)
                 counts = summarize(out, masks)
@@ -393,6 +400,8 @@ def main():
                 results.append(
                     {
                         "case": case_id,
+                        "case_type": case_type,
+                        "n_layers": len(slab.layers),
                         "target": target,
                         "pathway": key,
                         "correlation": correlation,
@@ -404,30 +413,10 @@ def main():
                         **counts,
                     }
                 )
-                outputs.append((key, out, masks["success"]))
-            for i in range(len(outputs)):
-                for j in range(i + 1, len(outputs)):
-                    a, b = outputs[i], outputs[j]
-                    valid = a[2] & b[2]
-                    diff = a[1][valid] - b[1][valid]
-                    paired.append(
-                        {
-                            "case": case_id,
-                            "correlation": correlation,
-                            "pathway_a": a[0],
-                            "pathway_b": b[0],
-                            "joint_successful_draws": len(diff),
-                            "conditional_difference_mean": (
-                                float(diff.mean()) if len(diff) else None
-                            ),
-                            "conditional_difference_std": (
-                                float(diff.std(ddof=1)) if len(diff) > 1 else None
-                            ),
-                        }
-                    )
     pd.DataFrame(results).to_csv(args.results / "monte_carlo.csv", index=False)
-    pd.DataFrame(paired).to_csv(args.results / "monte_carlo_paired.csv", index=False)
     write_json(args.results / "monte_carlo_cases.json", inputs)
+    # Retire the old generated artifact when rerunning an existing results folder.
+    (args.results / "monte_carlo_paired.csv").unlink(missing_ok=True)
     print(
         f"Monte Carlo: {len(results)} case/path/correlation summaries; {args.draws} draws each"
     )

@@ -1,6 +1,7 @@
 {
   "baseline_revision": "c8b712e93fe219c9c5dd71e6a5a8a3a6d947866c",
   "cache_conditions": "Fresh compute processes and engine per benchmark repeat; OS file cache uncontrolled and warmed by prior runs; no cache flush.",
+  "correlation_scope": "multilayer D11 cases only; single-layer cases use 0",
   "correlations": [
     0,
     0.5,
@@ -176,19 +177,20 @@
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O"
   },
   "measurement_uncertainty_only": true,
+  "monte_carlo_scope": "limited propagation assessment; production engine unchanged",
   "random_seed": 20261114,
   "smoke": false,
   "source_sha256": {
     "examples/notebook_utils.py": "cb78320f3b284499b0ae3b678c66cd79defdaff7b331e4f6c8e88bda75898e79",
     "examples/paper_figure_utils.py": "82b4b9537bf080cfd1cceab6b94443e8227047f2b6a273d2847633a98c745624",
     "paper_analysis/loss_analysis_utils.py": "56e4bba7dc3a5c7bef054976fa2abb4d96175dcc07c5049ca8f8e8b1b8f5e02c",
-    "paper_analysis/review_audit.py": "6e3694396dce794efc3bade755c6a975f36f31e21b101534c3eb195142958d9b",
+    "paper_analysis/review_audit.py": "2aa043ea988f8b29e8f2ae77b82819253b157b9a08aa3a444893d5f8842d549c",
     "paper_analysis/review_compute.py": "774501bbce0c11f407032cc4e8f8d5d5f6bc7d20c8dec6328146b9aef8a5b3cf",
     "paper_analysis/review_diagnostics.py": "cdd01fd9b4538da8096570db5bee061ac78835fd6a4a30bb2cfbb7b40a7c6de4",
-    "paper_analysis/review_metrics.py": "d41d7a65f729f3aa55a54836287b750fc8f8e2bbccd06e783d06fdfcb86dbea2",
-    "paper_analysis/review_monte_carlo.py": "11da8b0a0fea8838b2dea2e5d0293a723bcb6e0f1ce7a7b461944dd092a5b0c0",
-    "paper_analysis/review_report.py": "7f5cdf0b5bdca975d380917c7bff3f4827627037797c0d05725d279c4e4c4a19",
-    "paper_analysis/run_review.py": "f75792ce2db5dc4dbae4d98e822f461c995c58b84de3261cf808dd9966676f3e",
+    "paper_analysis/review_metrics.py": "800badabf458802d0c4694c18e685f2d8816bb7f2f54cafb1080504d798d2a60",
+    "paper_analysis/review_monte_carlo.py": "d40a3e16723501f6ea13164fe57c8b9081c0c778761beff6b8095baa39be79d6",
+    "paper_analysis/review_report.py": "1d782abf8e456898fa4bf1a2f3ada468ba7f6035f6625b9986dd0388fd57311c",
+    "paper_analysis/run_review.py": "2927dc4135bfc34f50c8fd6c20a26969ad1a439ff68be431fbb66c96af5f5b93",
     "src/snowpyt_mechparams/__init__.py": "f1896855bf10ba71edd5087f7a82ff57f18e92bf32cc8ef60cbf882909bf9531",
     "src/snowpyt_mechparams/constants.py": "675b939fb4352f7e1cfdac25c50751ab76798f661a929843ebd04ab999cf8b89",
     "src/snowpyt_mechparams/execution/__init__.py": "c19491cfa3070d0712e440adae14cc513792ad83621fff1163eaeccfa51a1f99",
@@ -243,18 +245,21 @@
     "src/snowpyt_mechparams/stability_criteria/weac/weac_result.py": "af10fea24f62e95141f7f960e573bb90720b8f6e721c4d898d063fb0fd82fa7e"
   },
   "step_seconds": {
-    "review_compute.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/baseline": 104.37223412498133,
-    "review_compute.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/contained --contained": 114.7987427500193,
-    "review_compute.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/corrected --benchmark": 137.69201929098926,
-    "review_diagnostics.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/baseline": 138.23087429103907,
-    "review_diagnostics.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/contained --contained": 134.6722495839931,
-    "review_diagnostics.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/corrected": 134.68566429102793,
-    "review_monte_carlo.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --results /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/corrected --draws 20000": 0.9847527500241995,
-    "review_report.py --results /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results": 5.241591874975711
+    "review_compute.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/baseline": 101.53612175001763,
+    "review_compute.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/contained --contained": 102.37008300004527,
+    "review_compute.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/corrected --benchmark": 122.03944816603325,
+    "review_diagnostics.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/baseline": 135.11708283401094,
+    "review_diagnostics.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/contained --contained": 146.15743041597307,
+    "review_diagnostics.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --output /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/corrected": 135.76962358300807,
+    "review_monte_carlo.py --data /Users/marykate/Desktop/Snow/SnowPyt-MechParams/examples/data --results /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results/corrected --draws 20000": 1.1917062919819728,
+    "review_report.py --results /Users/marykate/Desktop/Snow/SnowPyt-MechParams/paper_analysis/results": 7.689441874972545
   },
   "steps": [
+    "compute",
+    "diagnostics",
+    "mc",
     "render"
   ],
-  "working_revision": "eb53d7453b8ff406cfd934cb7d3307d55a39ab12",
+  "working_revision": "ead06d451875d654b99b3e3e104191713cf62691",
   "working_tree_modified": true
 }

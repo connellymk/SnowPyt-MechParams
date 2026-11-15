@@ -13,7 +13,7 @@ from uncertainties import ufloat
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "paper_analysis"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
 from review_audit import density_audit, assign_contained
-from review_metrics import d11_comparison, number
+from review_metrics import d11_comparison, monte_carlo_tables, number
 from review_monte_carlo import (
     sample_observations,
     standardized_draws,
@@ -22,6 +22,7 @@ from review_monte_carlo import (
     evaluate,
     summarize,
     synthetic,
+    correlation_levels,
 )
 from snowpyt_mechparams.models import Pit, Slab, Layer
 from snowpyt_mechparams.models.pit_parser import parse_pit
@@ -124,6 +125,41 @@ def test_single_contained_sample_normalizes_units_and_retains_partial_coverage()
     assert pit.layers[0].density_measured.nominal_value == 250
     assert pit.layers[0].density_measured.std_dev == 25
     assert ledger[0]["sampled_fraction"] == pytest.approx(0.2)
+
+
+def test_single_normalized_exact_sample_is_assigned():
+    raw = raw_profile(
+        [([0, "cm"], [10, "cm"])],
+        [([0, "m"], [0.1, "m"], [0.25, "g/cm3"])],
+    )
+    pit = Pit.from_snow_pit(raw)
+    assert pit.layers[0].density_measured is None
+    ledger = assign_contained(raw, pit)
+    assert ledger[0]["policy"] == "normalized_exact"
+    assert ledger[0]["sampled_fraction"] == 1
+    assert pit.layers[0].density_measured.nominal_value == 250
+    assert pit.layers[0].density_measured.std_dev == 25
+
+
+@pytest.mark.parametrize(
+    "competing_sample",
+    [
+        ([0, "m"], [0.1, "m"], [400, "kgm-3"]),
+        ([2, "cm"], [2, "cm"], [400, "kgm-3"]),
+    ],
+    ids=["normalized_exact", "partial_contained"],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+def test_normalized_exact_rejects_competing_samples(competing_sample, reverse):
+    samples = [([0, "m"], [0.1, "m"], [200, "kgm-3"]), competing_sample]
+    raw = raw_profile([([0, "cm"], [10, "cm"])], samples[::-1] if reverse else samples)
+    pit = Pit.from_snow_pit(raw)
+    ledger = assign_contained(raw, pit)
+    assert ledger[0]["raw_exact_count"] == 0
+    assert ledger[0]["contained_count"] == 2
+    assert ledger[0]["policy"] == "unmatched"
+    assert ledger[0]["sample_index"] is None
+    assert pit.layers[0].density_measured is None
 
 
 def test_point_density_is_processing_exclusion_but_never_assigned():
@@ -250,6 +286,52 @@ def test_sampling_reproducibility_correlation_and_partition():
     y = 112 + 46 * z
     assert y.mean() == pytest.approx(250, abs=5 * 4.6 / math.sqrt(20000))
     assert y.std(ddof=1) == pytest.approx(4.6, rel=0.03)
+
+
+def test_correlation_scenarios_require_multiple_layers():
+    assert correlation_levels(synthetic(layers=1)) == [0]
+    assert correlation_levels(synthetic(layers=2)) == [0, 0.5, 1]
+
+
+def test_mc_tables_keep_cases_separate_and_match_pathway_denominators():
+    rows = []
+    for case, layers, path, first_sd, draws in [
+        ("multi", 2, "a", 2, [(0, 4, 1.0), (0.5, 6, 0.9), (1, 8, 0.8)]),
+        ("multi", 2, "b", 10, [(0, 5, 0.8), (0.5, 10, 0.7), (1, 15, 0.6)]),
+        ("single", 1, "c", 10, [(0, 1, 0.5)]),
+        ("boundary", 1, "d", 1, [(0, 99, 0.5)]),
+    ]:
+        for correlation, sd, success in draws:
+            rows.append(
+                dict(
+                    case=case,
+                    case_type="boundary" if case == "boundary" else "observed",
+                    n_layers=layers,
+                    pathway=path,
+                    target="D11",
+                    correlation=correlation,
+                    first_order_sigma=first_sd,
+                    first_order_nominal=100,
+                    conditional_std=sd,
+                    conditional_mean=110,
+                    success_fraction=success,
+                )
+            )
+    comparison, correlation = monte_carlo_tables(pd.DataFrame(rows[::-1]))
+    assert set(comparison["case"]) == {"multi", "single"}
+    multi = comparison.set_index("case").loc["multi"]
+    assert multi.pathways == multi.estimable_sd_ratios == 2
+    assert [multi.sd_ratio_min, multi.sd_ratio_median, multi.sd_ratio_max] == [
+        0.5,
+        1.25,
+        2,
+    ]
+    assert [multi.success_min, multi.success_max] == [0.8, 1]
+    assert set(correlation["case"]) == {"multi"}
+    assert correlation.correlation.tolist() == [0.5, 1]
+    assert correlation.sd_ratio_median.tolist() == [1.75, 2.5]
+    assert correlation.independent_success_min.tolist() == [0.8, 0.8]
+    assert correlation.success_min.tolist() == [0.7, 0.6]
 
 
 @pytest.mark.parametrize("elastic", ["bergfeld", "wautier", "kochle", "schottner"])

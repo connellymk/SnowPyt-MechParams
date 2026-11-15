@@ -16,7 +16,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from review_metrics import coverage_summary, d11_comparison, write_json
+from review_metrics import (
+    coverage_summary,
+    d11_comparison,
+    monte_carlo_tables,
+    write_json,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "examples"))
@@ -85,6 +90,36 @@ def table(frame):
         for r in frame.itertuples(index=False, name=None)
     ]
     return "\n".join(rows)
+
+
+def uncertainty_table(frame, correlated=False):
+    """Two compact supplementary tables; raw numerical summaries stay in CSV."""
+    names = {
+        "linear_density": "Linear density control",
+        "homogeneous_D11": "Homogeneous D11 control",
+        "layered_D11": "Layered D11 control",
+    }
+    rows = []
+    for row in frame.itertuples():
+        entry = {
+            "Case": names.get(row.case, row.case),
+            "Layers": row.n_layers,
+            "Pathways": row.pathways,
+        }
+        if correlated:
+            entry["Correlation"] = f"{row.correlation:g}"
+        entry["SD ratio: median [min, max]"] = (
+            f"{row.sd_ratio_median:.3f} [{row.sd_ratio_min:.3f}, {row.sd_ratio_max:.3f}]"
+        )
+        entry["Successful draws: min–max"] = (
+            f"{row.success_min:.1%}–{row.success_max:.1%}"
+        )
+        if row.estimable_sd_ratios != row.pathways:
+            entry[
+                "SD ratio: median [min, max]"
+            ] += f" ({row.estimable_sd_ratios}/{row.pathways} ratios available)"
+        rows.append(entry)
+    return table(pd.DataFrame(rows))
 
 
 def diagrams(folder):
@@ -428,15 +463,21 @@ def main():
                     )
     mc = pd.read_csv(root / "corrected/monte_carlo.csv")
     controlled = mc[mc["case"].str.startswith("schottner") & (mc.correlation == 0)]
-    fig, ax = plt.subplots(figsize=(9, 4), layout="constrained")
-    boundary_labels = controlled["case"].map(
-        lambda s: f"{s.split('_')[1]}: {s.split('_')[2]} boundary"
+    mc_comparison, mc_correlation = monte_carlo_tables(mc)
+    mc_comparison.to_csv(root / "corrected/monte_carlo_comparison.csv", index=False)
+    mc_correlation.to_csv(root / "corrected/monte_carlo_correlation.csv", index=False)
+    for suffix in [".png", ".pdf"]:
+        (folder / ("boundary_sampling_success" + suffix)).unlink(missing_ok=True)
+    observed_mc = mc[mc.case_type.eq("observed") & mc.correlation.eq(0)]
+    observed_ratios = observed_mc.conditional_std / observed_mc.first_order_sigma
+    observed_correlation = mc_correlation[
+        mc_correlation.case_type.eq("observed") & mc_correlation.correlation.eq(1)
+    ]
+    breakpoint = mc[mc["case"].str.startswith("kochle_breakpoint")].sort_values("case")
+    breakpoint_ratios = ", ".join(
+        f"{r.conditional_std / r.first_order_sigma:.2f}× at {r.case.rsplit('_', 1)[1]}"
+        for r in breakpoint.itertuples()
     )
-    ax.barh(boundary_labels, controlled.success_fraction, color="#2b7c85")
-    ax.set(
-        xlabel="Fraction of Gaussian draws inside the applicable domain", xlim=(0, 1)
-    )
-    save(fig, folder, "boundary_sampling_success")
     audit = json.loads((root / "corrected/audit_summary.json").read_text())
     matching_fields = [
         "density_observations",
@@ -464,27 +505,6 @@ def main():
         ]
     )
     matching.to_csv(root / "density_matching_comparison.csv", index=False)
-    controls = mc[
-        (mc.correlation == 0)
-        & mc["case"].isin(
-            [
-                "linear_density",
-                "nonlinear_density",
-                "kim_t6_grain_size",
-                "homogeneous_D11",
-                "layered_D11",
-                "kochle_breakpoint_250",
-            ]
-        )
-    ].copy()
-    controls["pathway"] = controls.pathway.map(label)
-    controls = controls[
-        ["case", "pathway", "first_order_sigma", "conditional_std", "success_fraction"]
-    ].round(4)
-    correlated = mc[mc.target.eq("D11")].pivot(
-        index=["case", "pathway"], columns="correlation", values="conditional_std"
-    )
-    correlation_ratios = correlated[1.0] / correlated[0.0]
     union_rows = []
     for target in TARGET:
         union_rows.append(
@@ -522,7 +542,8 @@ def main():
         validation = json.loads((root / "validation.json").read_text())
         package = validation["package_coverage"]
         validation_wording = (
-            f"The recorded validation run passed {validation['pytest']['passed']} tests. "
+            f"The earlier validation run at `{validation['implementation_revision']}` "
+            f"passed {validation['pytest']['passed']} tests. "
             "The 17 checked method/dispatcher modules and 59 named functions attained "
             "100% statement and branch coverage. Across the entire package, coverage was "
             f"{package['percent_statements_covered']:.2f}% of statements and "
@@ -532,6 +553,14 @@ def main():
             "layered D11 examples. Documentation, method-catalog, lint, notebook and "
             "LaTeX-table checks passed. See `validation.json` for the recorded scope."
         )
+        if "limited_propagation_revision" in validation:
+            recent = validation["limited_propagation_revision"]
+            validation_wording += (
+                f"\n\nFor this limited-propagation revision, {recent['pytest']['passed']} "
+                "tests passed. Fresh checks and source hashes are recorded separately "
+                "under `limited_propagation_revision`; historical coverage measurements "
+                "above have not been relabeled as a new measurement."
+            )
     wording = f"""# Reviewer response support
 
 These are suggested responses and evidence from the pinned repository baseline
@@ -621,29 +650,95 @@ Validity and the Köchle branch are evaluated at nominal density; uncertainty
 crossing a boundary is not truncated. Uncertainty need not grow monotonically
 along a calculation pathway.
 
-The Monte Carlo checks use Gaussian perturbations, a fixed seed, and
-{int(mc.draws.iloc[0]):,} draws per case/pathway/correlation condition. Correlations
-0, 0.5 and 1 are hypothetical shared-observer scenarios within a measurement type,
-not estimated population correlations. Different measurement types are independent;
-the same raw draw is reused across pathways and one slope observation is shared.
-Physical-input, method-domain and numerical failures are reported separately.
-No draw is clipped, replaced or resampled. Successful-draw summaries are conditional
-where draws fail; comparing them directly with unconditioned first-order standard
-deviations also reflects selection. Boundary-case success fractions range from
-{controlled.success_fraction.min():.1%} to {controlled.success_fraction.max():.1%}.
-These checks quantify limitations without replacing the production uncertainty engine.
-The current density functions reconstruct ufloats; correlated scenarios therefore
-operate on shared raw samples rather than assuming those outputs retain covariance.
+## Limited propagation checks — supplementary evidence
 
-Selected controls with independent layers (density in kg m⁻³, modulus in MPa,
-D11 in N mm; Monte Carlo standard deviations are conditional on successful draws):
+This is a limited assessment of the current first-order approximation, not a new
+production uncertainty engine or population-wide validation. Cases comprise a linear
+density control, homogeneous/layered D11 controls, the three D11 spread-quantile
+illustrations (30th, 60th and 90th percentiles), and the first multilayer slab by
+slab ID with a successful Kim T6 D11 pathway, where available. All nominally successful
+D11 pathways for each selected real slab are retained; none are selected by agreement
+with Monte Carlo. Exact inputs, selections and seeds are in
+`corrected/monte_carlo_cases.json`; pathway-level results are in `corrected/monte_carlo.csv`.
 
-{table(controls)}
+Each condition uses {int(mc.draws.iloc[0]):,} Gaussian raw-input draws with the assigned
+standard deviations above. Independent-layer results are compared with first-order
+estimates. Different measurement types are independent; raw observations are shared
+across pathways. Measured layer tops remain fixed while thicknesses vary. Physical-input,
+method-domain and numerical failures are counted separately. No draw is clipped,
+replaced or resampled. All Monte Carlo summaries below condition on successful draws:
+smaller standard deviations after rejection do not establish that first-order
+propagation overestimates uncertainty. Neither method establishes empirical accuracy.
 
-Across the selected D11 case–pathway pairs, the conditional standard-deviation ratio
-for inter-layer correlation 1 versus 0 ranges from {correlation_ratios.min():.3f}
-to {correlation_ratios.max():.3f}. These are scenario sensitivities, including
-changes in domain-crossing selection, rather than empirical correlation estimates.
+### Table S1 Independent-layer comparison
+
+SD ratio is conditional Monte Carlo SD / first-order SD. Ranges and medians summarize
+all evaluated pathways within each case, not pooled slabs. Numerical summaries,
+including mean ratios, are in `corrected/monte_carlo_comparison.csv`.
+
+{uncertainty_table(mc_comparison)}
+
+Across the {len(observed_mc)} pathway comparisons for {observed_mc['case'].nunique()}
+selected real slabs, SD ratios range from {observed_ratios.min():.2f} to
+{observed_ratios.max():.2f}; {int(((observed_ratios - 1).abs() > 0.2).sum())}
+differ from one by more than 20%. Agreement for simple controls therefore does not
+establish adequacy for the selected nonlinear pathways. These cases are illustrative,
+and repeated pathways and slabs are not independent observations.
+
+Boundary checks use measured density with 10% SD. For Köchle, conditional MC/first-order
+SD ratios are {breakpoint_ratios} kg m⁻³. Production selects the branch at nominal
+density; MC evaluates the branch separately for each draw. At the six Schöttner
+grain-group endpoints, {controlled.success_fraction.min():.1%}–{controlled.success_fraction.max():.1%}
+of draws succeed. The latter comparisons reflect both nonlinearity and selection
+at the calibration limits. These checks remain in the raw results without a separate figure.
+
+### Table S2 Multilayer correlation sensitivity
+
+Correlations 0.5 and 1 are hypothetical shared-observer scenarios within each
+measurement type across layers. SD ratio here is correlated MC SD / independent MC SD
+for the same case/pathway; Table S1 supplies the independent success fractions.
+Only multilayer D11 cases are evaluated. Single-layer slabs have no inter-layer
+correlation to vary. Numerical summaries are in `corrected/monte_carlo_correlation.csv`.
+
+{uncertainty_table(mc_correlation, correlated=True)}
+
+These are scenario sensitivities, including changes in domain-crossing selection,
+not estimated population correlations. Density methods rebuild ufloats, so the
+correlated checks operate on raw observations rather than assuming covariance
+survives the production interfaces.
+
+### Suggested response to Reviewer 1 major comment 8
+
+We agree that first-order propagation and the independence assumption require
+qualification. We added limited Monte Carlo checks for the Figure 10 examples,
+a multilayer Kim T6 example, and simple controls (Table S1). Some nonlinear pathways
+show substantial differences despite close agreement for simple controls. We also
+tested hypothetical inter-layer correlations of 0.5 and 1 for multilayer cases
+(Table S2). For the selected real multilayer cases, correlation 1 versus 0 changes
+conditional SD by factors of {observed_correlation.sd_ratio_min.min():.2f}–{observed_correlation.sd_ratio_max.max():.2f}.
+These sensitivities include changes in which draws remain applicable and do not
+estimate observer correlations. We retain first-order propagation and will describe
+its outputs as approximate propagated measurement SDs, conditional on the selected
+relationships and assigned input uncertainties. Negative lower error-bar endpoints
+indicate a limitation of the symmetric approximation, not physically negative D11.
+A general Monte Carlo implementation remains future work.
+
+### Suggested response to Reviewer 2 major comment 6
+
+We added the assigned-uncertainty table and a limited numerical assessment of
+first-order propagation (Tables S1–S2), with specified Gaussian input distributions,
+recorded seeds, and explicit failure counts. Across the selected real-slab pathways,
+conditional MC/first-order SD ratios span {observed_ratios.min():.2f}–{observed_ratios.max():.2f}.
+We also checked the Köchle breakpoint and Schöttner calibration endpoints. In production,
+applicability and branch selection use nominal inputs; uncertainty extending beyond
+a boundary is not clipped. In the checks, each draw is evaluated separately and
+reported statistics condition on successful draws. We will explicitly state the
+independent-layer assumption, fixed measured tops with uncertain thicknesses,
+and the shared observations across pathways and repeated ECT slabs. Grain-form
+misclassification and parameterization uncertainty remain excluded. These checks
+qualify interpretation of the current approximation; a general Monte Carlo engine
+is deferred. The {sigma['median']:.1%} statistic is defined below as a pooled median over
+slab–pathway pairs, rather than a median of per-slab medians.
 
 ## D11 comparison and interpretation — R1 Figures 9–10; R2 major 6–7
 
@@ -668,8 +763,25 @@ slabs have at least one disjoint pair. This describes interval separation, not
 statistical significance or pathway accuracy. There are
 {d11['negative_lower_endpoints']:,} negative lower interval endpoints; these remain
 visible as a limitation of the uncertainty approximation. The previous aggregate
-“dominates by ~12x” heuristic is removed. Paired Monte Carlo difference summaries
-use the same raw observations across pathways.
+“dominates by ~12x” heuristic is removed. These first-order interval summaries do
+not validate the error bars or establish that pathway spread generally dominates
+measurement uncertainty.
+
+Suggested response to Reviewer 1's comment on lines 377–382: We extended the
+descriptive comparison to all {n} common-subset slabs, using all 120 pathway pairs
+per slab. The median range/largest full ±1σ width is
+{d11['range_to_interval_width']['median']:.3f}, and the median fraction of disjoint
+interval pairs is {d11['nonoverlap_fraction']['median']:.1%}. We will replace the
+claim that pathway differences far exceed measurement uncertainty with these
+qualified comparisons. They use approximate first-order error bars and are not
+significance tests. Uncertainty need not increase monotonically along a pathway.
+
+Suggested abstract replacement for the spread/uncertainty sentence: For {n}
+rounded-grain slabs where all 16 selected bending-stiffness pathways are valid,
+nominal estimates vary by a median factor of {d11['spread_ratio']['median']:.1f}.
+The pooled median relative first-order propagated measurement SD is
+{sigma['median']:.1%}; these approximate uncertainties exclude parameterization
+uncertainty and are sensitive to nonlinear propagation and dependence assumptions.
 
 Reproducibility discrepancy: rerunning the requested baseline revision gives
 {summaries['baseline']['D11']['common_slabs']} common slabs, whereas the previously

@@ -108,16 +108,15 @@ def density_audit(raw):
         selected, policy = None, "unmatched"
         if exact_raw:
             policy = "original_exact"  # Preserve current first match, even if invalid.
-        elif exact:
-            first = exact[0]
-            if first["valid"] and len(first["containers"]) == 1:
-                selected, policy = first, "normalized_exact"
         elif (
             len(contained) == 1
             and contained[0]["valid"]
             and len(contained[0]["containers"]) == 1
         ):
-            selected, policy = contained[0], "single_contained"
+            # Normalized exact matches obey the same uniqueness rule as
+            # partial samples; only raw exact matches retain first-match behavior.
+            selected = contained[0]
+            policy = "normalized_exact" if exact else "single_contained"
         fraction = None
         if selected:
             fraction = (selected["bounds"][1] - selected["bounds"][0]) / (

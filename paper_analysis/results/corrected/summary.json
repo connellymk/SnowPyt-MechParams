@@ -200,10 +200,10 @@
     "snowpylot": "1.1.5",
     "uncertainties": "3.2.3"
   },
-  "execution_seconds": 101.80050095799379,
+  "execution_seconds": 88.87245654204162,
   "machine": "arm64",
   "parse_failures": [],
-  "parsing_seconds": 13.056854083959479,
+  "parsing_seconds": 12.057098249963019,
   "pits": 50278,
   "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
   "python": "3.13.11",

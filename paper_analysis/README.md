@@ -50,8 +50,10 @@ working tree from its recorded Git revision; stage metadata identifies what ran.
 - `results/{baseline,corrected,contained}/`: compact coverage/D11/audit summaries,
   slab/test identifiers, selected cases and benchmark evidence.
 - `results/figures/`: reproducible PDF/PNG response-support figures.
-- `results/corrected/monte_carlo*.csv`: conditional summaries, failure counts and
-  paired differences computed from shared observations.
+- `results/corrected/monte_carlo.csv`: pathway-level conditional summaries and
+  failure counts for the limited propagation checks.
+- `results/corrected/monte_carlo_comparison.csv` and `monte_carlo_correlation.csv`:
+  numerical summaries for supplementary Tables S1–S2 in the response support.
 
 Parquet attempt tables, observation/layer ledgers and verbose profile audits are
 untracked and regenerated. Raw Monte Carlo draws are not persisted; case definitions
@@ -63,8 +65,9 @@ independent coefficients and analytical derivatives; compact saved text summariz
 the checks and detailed HTML worked examples regenerate on execution.
 `examples/D11_analysis.ipynb` presents canonical pipeline results without duplicating
 aggregation logic. `loss-analysis.ipynb` loads canonical diagnostics, preserving
-raw density-processing provenance. `reviewer_evidence.ipynb` presents audits,
-Monte Carlo results, correlation checks, and timings from the same outputs.
+raw density-processing provenance. `reviewer_evidence.ipynb` presents audits and
+timings, and links to the canonical propagation checks rather than duplicating
+their tables.
 
 To regenerate the notebook presentations and legacy repository-local paper assets:
 
@@ -91,6 +94,18 @@ the new reason-class tables/figures separate them explicitly. Audits do not newl
 filter, deduplicate, repair geometry, select one ECT per pit or screen wetness.
 
 Gaussian distributions and correlations 0/0.5/1 are sensitivity assumptions.
+The limited assessment retains a linear density control, homogeneous/layered D11
+controls, the three spread-quantile illustrations, and the first multilayer slab
+by slab ID with a successful Kim T6 D11 pathway (when available). Every nominally
+successful D11 pathway for each selected real slab is included, independent of
+its Monte Carlo agreement. These illustrative cases do not validate uncertainty
+across the full population. Köchle breakpoint and Schöttner endpoint checks are
+described in a short paragraph; no standalone boundary figure is generated.
+Only multilayer D11 cases vary inter-layer correlation; single-layer cases run
+at correlation zero. Paired-pathway Monte Carlo differences are outside this
+limited check and are no longer generated. Production propagation is unchanged;
+a general Monte Carlo implementation remains future work.
+
 Correlations operate within measurement type across layers; types remain
 independent. The same raw observations are shared across pathways, and slope is
 shared within each slab. Geometry retains fixed measured tops and uncertain

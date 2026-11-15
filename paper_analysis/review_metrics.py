@@ -83,6 +83,67 @@ def coverage_summary(records):
     )
 
 
+def monte_carlo_tables(records):
+    """Summarize every selected pathway, without pooling different slabs.
+
+    The first table compares independent draws with first-order propagation.
+    The second compares correlated MC draws with independent MC draws, matching
+    each case/pathway before aggregation. Boundary controls remain in the raw
+    results and are described separately in the response.
+    """
+    independent = records[records.correlation.eq(0)].copy()
+    independent["sd_ratio"] = (
+        independent.conditional_std / independent.first_order_sigma
+    ).replace([np.inf, -np.inf], np.nan)
+    independent["mean_ratio"] = (
+        independent.conditional_mean / independent.first_order_nominal
+    ).replace([np.inf, -np.inf], np.nan)
+    comparison = (
+        independent[independent.case_type.ne("boundary")]
+        .groupby(["case_type", "case", "n_layers"], as_index=False, sort=True)
+        .agg(
+            pathways=("pathway", "size"),
+            estimable_sd_ratios=("sd_ratio", "count"),
+            sd_ratio_min=("sd_ratio", "min"),
+            sd_ratio_median=("sd_ratio", "median"),
+            sd_ratio_max=("sd_ratio", "max"),
+            mean_ratio_min=("mean_ratio", "min"),
+            mean_ratio_max=("mean_ratio", "max"),
+            success_min=("success_fraction", "min"),
+            success_max=("success_fraction", "max"),
+        )
+    )
+    multilayer = records[records.target.eq("D11") & records.n_layers.gt(1)]
+    reference = multilayer[multilayer.correlation.eq(0)][
+        ["case", "pathway", "conditional_std", "success_fraction"]
+    ].rename(
+        columns={
+            "conditional_std": "independent_std",
+            "success_fraction": "independent_success",
+        }
+    )
+    paired = multilayer[multilayer.correlation.gt(0)].merge(
+        reference, on=["case", "pathway"], validate="many_to_one"
+    )
+    paired["sd_ratio"] = (paired.conditional_std / paired.independent_std).replace(
+        [np.inf, -np.inf], np.nan
+    )
+    correlation = paired.groupby(
+        ["case_type", "case", "n_layers", "correlation"], as_index=False, sort=True
+    ).agg(
+        pathways=("pathway", "size"),
+        estimable_sd_ratios=("sd_ratio", "count"),
+        sd_ratio_min=("sd_ratio", "min"),
+        sd_ratio_median=("sd_ratio", "median"),
+        sd_ratio_max=("sd_ratio", "max"),
+        independent_success_min=("independent_success", "min"),
+        independent_success_max=("independent_success", "max"),
+        success_min=("success_fraction", "min"),
+        success_max=("success_fraction", "max"),
+    )
+    return comparison, correlation
+
+
 def d11_comparison(records, paths=None):
     """Compare only complete, positive, finite D11 results; no inferential claims."""
     d = records[records.target == "D11"].copy()

@@ -209,6 +209,8 @@ def main():
         "random_seed": 20261114,
         "draws": 1000 if args.smoke else 20000,
         "correlations": [0, 0.5, 1],
+        "correlation_scope": "multilayer D11 cases only; single-layer cases use 0",
+        "monte_carlo_scope": "limited propagation assessment; production engine unchanged",
         "data_selection": "all sorted examples/data/*.xml; no new quality or wetness filtering",
         "figure_export": "repository local; no implicit external copying",
     }

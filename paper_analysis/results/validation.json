@@ -53,5 +53,30 @@
     "Monte Carlo Gaussian and correlation scenarios are sensitivity assumptions.",
     "Historical saved 317-slab common subset is 316 when rerunning the pinned baseline."
   ],
-  "implementation_revision": "eb53d7453b8ff406cfd934cb7d3307d55a39ab12"
+  "implementation_revision": "eb53d7453b8ff406cfd934cb7d3307d55a39ab12",
+  "limited_propagation_revision": {
+    "base_revision": "ead06d451875d654b99b3e3e104191713cf62691",
+    "working_tree_changes": true,
+    "source_sha256": {
+      "paper_analysis/review_audit.py": "2aa043ea988f8b29e8f2ae77b82819253b157b9a08aa3a444893d5f8842d549c",
+      "paper_analysis/review_metrics.py": "800badabf458802d0c4694c18e685f2d8816bb7f2f54cafb1080504d798d2a60",
+      "paper_analysis/review_monte_carlo.py": "d40a3e16723501f6ea13164fe57c8b9081c0c778761beff6b8095baa39be79d6",
+      "paper_analysis/review_report.py": "1d782abf8e456898fa4bf1a2f3ada468ba7f6035f6625b9986dd0388fd57311c",
+      "paper_analysis/run_review.py": "2927dc4135bfc34f50c8fd6c20a26969ad1a439ff68be431fbb66c96af5f5b93",
+      "tests/test_reviewer_revision.py": "3ad09f7788d6f28ec67c393440f20cf0bf92bb5ee762955db7fc70684cf4fac0"
+    },
+    "pytest": {
+      "passed": 848,
+      "warnings": 249,
+      "seconds": 10.05
+    },
+    "checks": {
+      "ruff_analysis_and_revision_tests": "passed",
+      "git_diff_check": "passed"
+    },
+    "notes": [
+      "Previous coverage, notebook and manuscript-file audits above remain historical evidence for implementation_revision.",
+      "Production uncertainty propagation is unchanged; this revision narrows the analysis and adds aggregation and density-assignment regression tests."
+    ]
+  }
 }

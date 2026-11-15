@@ -104,38 +104,110 @@ Validity and the Köchle branch are evaluated at nominal density; uncertainty
 crossing a boundary is not truncated. Uncertainty need not grow monotonically
 along a calculation pathway.
 
-The Monte Carlo checks use Gaussian perturbations, a fixed seed, and
-20,000 draws per case/pathway/correlation condition. Correlations
-0, 0.5 and 1 are hypothetical shared-observer scenarios within a measurement type,
-not estimated population correlations. Different measurement types are independent;
-the same raw draw is reused across pathways and one slope observation is shared.
-Physical-input, method-domain and numerical failures are reported separately.
-No draw is clipped, replaced or resampled. Successful-draw summaries are conditional
-where draws fail; comparing them directly with unconditioned first-order standard
-deviations also reflects selection. Boundary-case success fractions range from
-49.3% to 50.7%.
-These checks quantify limitations without replacing the production uncertainty engine.
-The current density functions reconstruct ufloats; correlated scenarios therefore
-operate on shared raw samples rather than assuming those outputs retain covariance.
+## Limited propagation checks — supplementary evidence
 
-Selected controls with independent layers (density in kg m⁻³, modulus in MPa,
-D11 in N mm; Monte Carlo standard deviations are conditional on successful draws):
+This is a limited assessment of the current first-order approximation, not a new
+production uncertainty engine or population-wide validation. Cases comprise a linear
+density control, homogeneous/layered D11 controls, the three D11 spread-quantile
+illustrations (30th, 60th and 90th percentiles), and the first multilayer slab by
+slab ID with a successful Kim T6 D11 pathway, where available. All nominally successful
+D11 pathways for each selected real slab are retained; none are selected by agreement
+with Monte Carlo. Exact inputs, selections and seeds are in
+`corrected/monte_carlo_cases.json`; pathway-level results are in `corrected/monte_carlo.csv`.
 
-| case | pathway | first_order_sigma | conditional_std | success_fraction |
+Each condition uses 20,000 Gaussian raw-input draws with the assigned
+standard deviations above. Independent-layer results are compared with first-order
+estimates. Different measurement types are independent; raw observations are shared
+across pathways. Measured layer tops remain fixed while thicknesses vary. Physical-input,
+method-domain and numerical failures are counted separately. No draw is clipped,
+replaced or resampled. All Monte Carlo summaries below condition on successful draws:
+smaller standard deviations after rejection do not establish that first-order
+propagation overestimates uncertainty. Neither method establishes empirical accuracy.
+
+### Table S1 Independent-layer comparison
+
+SD ratio is conditional Monte Carlo SD / first-order SD. Ranges and medians summarize
+all evaluated pathways within each case, not pooled slabs. Numerical summaries,
+including mean ratios, are in `corrected/monte_carlo_comparison.csv`.
+
+| Case | Layers | Pathways | SD ratio: median [min, max] | Successful draws: min–max |
 | --- | --- | --- | --- | --- |
-| linear_density | Geldsetzer | 30.82 | 30.0641 | 0.9938 |
-| nonlinear_density | Geldsetzer | 33.82 | 36.9328 | 0.9987 |
-| nonlinear_density | Kim T2 | 37.3302 | 37.7437 | 0.9998 |
-| kim_t6_grain_size | Kim T6 | 39.5831 | 33.5423 | 0.8929 |
-| homogeneous_D11 | Measured / Wautier / Köchle | 71136648.8044 | 72411531.3915 | 1.0 |
-| layered_D11 | Measured / Wautier / Köchle | 481200623.8231 | 487887319.8582 | 1.0 |
-| layered_D11 | Measured / Bergfeld / Köchle | 64888740.7496 | 64330277.1888 | 0.9828 |
-| kochle_breakpoint_250 | Measured / Köchle | 26.0069 | 38.2201 | 0.9999 |
+| Homogeneous D11 control | 1 | 1 | 1.018 [1.018, 1.018] | 100.0%–100.0% |
+| Layered D11 control | 2 | 2 | 1.003 [0.991, 1.014] | 98.3%–100.0% |
+| Linear density control | 1 | 1 | 0.975 [0.975, 0.975] | 99.4%–99.4% |
+| 1057_slab_0 | 1 | 16 | 0.991 [0.755, 1.641] | 80.1%–97.7% |
+| 14909_slab_0 | 1 | 16 | 1.651 [1.092, 2.628] | 52.0%–100.0% |
+| 29863_slab_0 | 2 | 18 | 0.648 [0.408, 0.915] | 32.5%–91.0% |
+| 50003_slab_0 | 2 | 16 | 1.023 [0.794, 1.680] | 41.2%–97.5% |
 
-Across the selected D11 case–pathway pairs, the conditional standard-deviation ratio
-for inter-layer correlation 1 versus 0 ranges from 0.925
-to 1.327. These are scenario sensitivities, including
-changes in domain-crossing selection, rather than empirical correlation estimates.
+Across the 66 pathway comparisons for 4
+selected real slabs, SD ratios range from 0.41 to
+2.63; 38
+differ from one by more than 20%. Agreement for simple controls therefore does not
+establish adequacy for the selected nonlinear pathways. These cases are illustrative,
+and repeated pathways and slabs are not independent observations.
+
+Boundary checks use measured density with 10% SD. For Köchle, conditional MC/first-order
+SD ratios are 0.33× at 249, 1.47× at 250, 1.45× at 251 kg m⁻³. Production selects the branch at nominal
+density; MC evaluates the branch separately for each draw. At the six Schöttner
+grain-group endpoints, 49.3%–50.7%
+of draws succeed. The latter comparisons reflect both nonlinearity and selection
+at the calibration limits. These checks remain in the raw results without a separate figure.
+
+### Table S2 Multilayer correlation sensitivity
+
+Correlations 0.5 and 1 are hypothetical shared-observer scenarios within each
+measurement type across layers. SD ratio here is correlated MC SD / independent MC SD
+for the same case/pathway; Table S1 supplies the independent success fractions.
+Only multilayer D11 cases are evaluated. Single-layer slabs have no inter-layer
+correlation to vary. Numerical summaries are in `corrected/monte_carlo_correlation.csv`.
+
+| Case | Layers | Pathways | Correlation | SD ratio: median [min, max] | Successful draws: min–max |
+| --- | --- | --- | --- | --- | --- |
+| Layered D11 control | 2 | 2 | 0.5 | 1.152 [1.140, 1.164] | 97.9%–100.0% |
+| Layered D11 control | 2 | 2 | 1 | 1.284 [1.264, 1.304] | 98.2%–100.0% |
+| 29863_slab_0 | 2 | 18 | 0.5 | 1.137 [1.104, 1.168] | 39.7%–91.6% |
+| 29863_slab_0 | 2 | 18 | 1 | 1.256 [1.166, 1.327] | 48.5%–93.0% |
+| 50003_slab_0 | 2 | 16 | 0.5 | 1.097 [1.069, 1.184] | 40.1%–97.6% |
+| 50003_slab_0 | 2 | 16 | 1 | 1.113 [0.925, 1.260] | 38.8%–97.6% |
+
+These are scenario sensitivities, including changes in domain-crossing selection,
+not estimated population correlations. Density methods rebuild ufloats, so the
+correlated checks operate on raw observations rather than assuming covariance
+survives the production interfaces.
+
+### Suggested response to Reviewer 1 major comment 8
+
+We agree that first-order propagation and the independence assumption require
+qualification. We added limited Monte Carlo checks for the Figure 10 examples,
+a multilayer Kim T6 example, and simple controls (Table S1). Some nonlinear pathways
+show substantial differences despite close agreement for simple controls. We also
+tested hypothetical inter-layer correlations of 0.5 and 1 for multilayer cases
+(Table S2). For the selected real multilayer cases, correlation 1 versus 0 changes
+conditional SD by factors of 0.93–1.33.
+These sensitivities include changes in which draws remain applicable and do not
+estimate observer correlations. We retain first-order propagation and will describe
+its outputs as approximate propagated measurement SDs, conditional on the selected
+relationships and assigned input uncertainties. Negative lower error-bar endpoints
+indicate a limitation of the symmetric approximation, not physically negative D11.
+A general Monte Carlo implementation remains future work.
+
+### Suggested response to Reviewer 2 major comment 6
+
+We added the assigned-uncertainty table and a limited numerical assessment of
+first-order propagation (Tables S1–S2), with specified Gaussian input distributions,
+recorded seeds, and explicit failure counts. Across the selected real-slab pathways,
+conditional MC/first-order SD ratios span 0.41–2.63.
+We also checked the Köchle breakpoint and Schöttner calibration endpoints. In production,
+applicability and branch selection use nominal inputs; uncertainty extending beyond
+a boundary is not clipped. In the checks, each draw is evaluated separately and
+reported statistics condition on successful draws. We will explicitly state the
+independent-layer assumption, fixed measured tops with uncertain thicknesses,
+and the shared observations across pathways and repeated ECT slabs. Grain-form
+misclassification and parameterization uncertainty remain excluded. These checks
+qualify interpretation of the current approximation; a general Monte Carlo engine
+is deferred. The 78.4% statistic is defined below as a pooled median over
+slab–pathway pairs, rather than a median of per-slab medians.
 
 ## D11 comparison and interpretation — R1 Figures 9–10; R2 major 6–7
 
@@ -160,8 +232,25 @@ slabs have at least one disjoint pair. This describes interval separation, not
 statistical significance or pathway accuracy. There are
 1,044 negative lower interval endpoints; these remain
 visible as a limitation of the uncertainty approximation. The previous aggregate
-“dominates by ~12x” heuristic is removed. Paired Monte Carlo difference summaries
-use the same raw observations across pathways.
+“dominates by ~12x” heuristic is removed. These first-order interval summaries do
+not validate the error bars or establish that pathway spread generally dominates
+measurement uncertainty.
+
+Suggested response to Reviewer 1's comment on lines 377–382: We extended the
+descriptive comparison to all 316 common-subset slabs, using all 120 pathway pairs
+per slab. The median range/largest full ±1σ width is
+0.867, and the median fraction of disjoint
+interval pairs is 50.0%. We will replace the
+claim that pathway differences far exceed measurement uncertainty with these
+qualified comparisons. They use approximate first-order error bars and are not
+significance tests. Uncertainty need not increase monotonically along a pathway.
+
+Suggested abstract replacement for the spread/uncertainty sentence: For 316
+rounded-grain slabs where all 16 selected bending-stiffness pathways are valid,
+nominal estimates vary by a median factor of 31.8.
+The pooled median relative first-order propagated measurement SD is
+78.4%; these approximate uncertainties exclude parameterization
+uncertainty and are sensitive to nonlinear propagation and dependence assumptions.
 
 Reproducibility discrepancy: rerunning the requested baseline revision gives
 316 common slabs, whereas the previously
@@ -189,18 +278,20 @@ times and repeat timings are saved alongside the results. Graph calculation and
 method-domain verification establish implementation agreement, not empirical
 accuracy.
 
-The recorded validation run passed 841 tests. The 17 checked method/dispatcher modules and 59 named functions attained 100% statement and branch coverage. Across the entire package, coverage was 90.86% of statements and 81.63% of branches. The independent notebook verified 36 pathways on 394 selected slab–pathway cases (3,037 numeric comparisons and 4,711 matched unavailable outputs), plus homogeneous and layered D11 examples. Documentation, method-catalog, lint, notebook and LaTeX-table checks passed. See `validation.json` for the recorded scope.
+The earlier validation run at `eb53d7453b8ff406cfd934cb7d3307d55a39ab12` passed 841 tests. The 17 checked method/dispatcher modules and 59 named functions attained 100% statement and branch coverage. Across the entire package, coverage was 90.86% of statements and 81.63% of branches. The independent notebook verified 36 pathways on 394 selected slab–pathway cases (3,037 numeric comparisons and 4,711 matched unavailable outputs), plus homogeneous and layered D11 examples. Documentation, method-catalog, lint, notebook and LaTeX-table checks passed. See `validation.json` for the recorded scope.
+
+For this limited-propagation revision, 848 tests passed. Fresh checks and source hashes are recorded separately under `limited_propagation_revision`; historical coverage measurements above have not been relabeled as a new measurement.
 
 On the recorded machine, corrected parsing and slab construction took
-13.06 s and full-cohort execution of all
-three targets took 101.80 s.
+12.06 s and full-cohort execution of all
+three targets took 88.87 s.
 Deterministic subset execution timings (seconds; three repeats, fresh engine,
 uncontrolled warm filesystem cache) were:
 
 | slabs | count | min | median | max |
 | --- | --- | --- | --- | --- |
-| 100 | 3 | 0.56 | 0.566 | 0.584 |
-| 1000 | 3 | 6.252 | 6.657 | 6.866 |
+| 100 | 3 | 0.538 | 0.553 | 0.666 |
+| 1000 | 3 | 5.885 | 6.088 | 6.321 |
 
 Auditing, each diagnostic target and rendering are timed separately in the saved
 metadata. These measurements do not establish operational or real-time suitability.

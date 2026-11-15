@@ -1,0 +1,4 @@
+policy,density_observations,pits_with_density_observations,layers_with_density_present,layers_with_positive_finite_density,pits_with_positive_finite_density,slabs_with_all_positive_finite_density,slabs_with_any_positive_finite_density,partial_layer_assignments
+baseline,19118,2872,10468,10425,1884,108,253,0
+corrected,19118,2872,10468,10425,1884,108,253,0
+contained,19118,2872,10468,10425,1884,108,253,0

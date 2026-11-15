@@ -1,0 +1,161 @@
+pathway,step,requirement,entering,surviving,newly_lost,missing_only,validity_only,mixed,other
+Direct matched density → Bergfeld → Köchle,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Bergfeld → Köchle,2,Young's modulus,109,33,76,1,74,1,0
+Direct matched density → Bergfeld → Köchle,3,Poisson's ratio,33,6,27,0,27,0,0
+Direct matched density → Bergfeld → Köchle,4,Layer geometry,6,6,0,0,0,0,0
+Direct matched density → Bergfeld → Köchle,5,D11 calculation,6,6,0,0,0,0,0
+Direct matched density → Bergfeld → Srivastava,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Bergfeld → Srivastava,2,Young's modulus,109,33,76,1,74,1,0
+Direct matched density → Bergfeld → Srivastava,3,Poisson's ratio,33,8,25,0,25,0,0
+Direct matched density → Bergfeld → Srivastava,4,Layer geometry,8,8,0,0,0,0,0
+Direct matched density → Bergfeld → Srivastava,5,D11 calculation,8,8,0,0,0,0,0
+Direct matched density → Köchle → Köchle,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Köchle → Köchle,2,Young's modulus,109,19,90,2,88,0,0
+Direct matched density → Köchle → Köchle,3,Poisson's ratio,19,16,3,0,3,0,0
+Direct matched density → Köchle → Köchle,4,Layer geometry,16,16,0,0,0,0,0
+Direct matched density → Köchle → Köchle,5,D11 calculation,16,16,0,0,0,0,0
+Direct matched density → Köchle → Srivastava,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Köchle → Srivastava,2,Young's modulus,109,19,90,2,88,0,0
+Direct matched density → Köchle → Srivastava,3,Poisson's ratio,19,5,14,0,14,0,0
+Direct matched density → Köchle → Srivastava,4,Layer geometry,5,5,0,0,0,0,0
+Direct matched density → Köchle → Srivastava,5,D11 calculation,5,5,0,0,0,0,0
+Direct matched density → Schöttner → Köchle,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Schöttner → Köchle,2,Young's modulus,109,60,49,1,47,1,0
+Direct matched density → Schöttner → Köchle,3,Poisson's ratio,60,17,43,0,43,0,0
+Direct matched density → Schöttner → Köchle,4,Layer geometry,17,17,0,0,0,0,0
+Direct matched density → Schöttner → Köchle,5,D11 calculation,17,17,0,0,0,0,0
+Direct matched density → Schöttner → Srivastava,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Schöttner → Srivastava,2,Young's modulus,109,60,49,1,47,1,0
+Direct matched density → Schöttner → Srivastava,3,Poisson's ratio,60,12,48,0,48,0,0
+Direct matched density → Schöttner → Srivastava,4,Layer geometry,12,12,0,0,0,0,0
+Direct matched density → Schöttner → Srivastava,5,D11 calculation,12,12,0,0,0,0,0
+Direct matched density → Wautier → Köchle,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Wautier → Köchle,2,Young's modulus,109,53,56,2,54,0,0
+Direct matched density → Wautier → Köchle,3,Poisson's ratio,53,17,36,0,36,0,0
+Direct matched density → Wautier → Köchle,4,Layer geometry,17,17,0,0,0,0,0
+Direct matched density → Wautier → Köchle,5,D11 calculation,17,17,0,0,0,0,0
+Direct matched density → Wautier → Srivastava,1,Density,14776,109,14667,14667,0,0,0
+Direct matched density → Wautier → Srivastava,2,Young's modulus,109,53,56,2,54,0,0
+Direct matched density → Wautier → Srivastava,3,Poisson's ratio,53,12,41,0,41,0,0
+Direct matched density → Wautier → Srivastava,4,Layer geometry,12,12,0,0,0,0,0
+Direct matched density → Wautier → Srivastava,5,D11 calculation,12,12,0,0,0,0,0
+Geldsetzer → Bergfeld → Köchle,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Bergfeld → Köchle,2,Young's modulus,4495,1207,3288,0,3288,0,0
+Geldsetzer → Bergfeld → Köchle,3,Poisson's ratio,1207,474,733,0,733,0,0
+Geldsetzer → Bergfeld → Köchle,4,Layer geometry,474,474,0,0,0,0,0
+Geldsetzer → Bergfeld → Köchle,5,D11 calculation,474,474,0,0,0,0,0
+Geldsetzer → Bergfeld → Srivastava,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Bergfeld → Srivastava,2,Young's modulus,4495,1207,3288,0,3288,0,0
+Geldsetzer → Bergfeld → Srivastava,3,Poisson's ratio,1207,373,834,0,834,0,0
+Geldsetzer → Bergfeld → Srivastava,4,Layer geometry,373,373,0,0,0,0,0
+Geldsetzer → Bergfeld → Srivastava,5,D11 calculation,373,373,0,0,0,0,0
+Geldsetzer → Köchle → Köchle,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Köchle → Köchle,2,Young's modulus,4495,725,3770,0,3770,0,0
+Geldsetzer → Köchle → Köchle,3,Poisson's ratio,725,725,0,0,0,0,0
+Geldsetzer → Köchle → Köchle,4,Layer geometry,725,725,0,0,0,0,0
+Geldsetzer → Köchle → Köchle,5,D11 calculation,725,725,0,0,0,0,0
+Geldsetzer → Köchle → Srivastava,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Köchle → Srivastava,2,Young's modulus,4495,725,3770,0,3770,0,0
+Geldsetzer → Köchle → Srivastava,3,Poisson's ratio,725,384,341,0,341,0,0
+Geldsetzer → Köchle → Srivastava,4,Layer geometry,384,384,0,0,0,0,0
+Geldsetzer → Köchle → Srivastava,5,D11 calculation,384,384,0,0,0,0,0
+Geldsetzer → Schöttner → Köchle,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Schöttner → Köchle,2,Young's modulus,4495,2732,1763,0,1763,0,0
+Geldsetzer → Schöttner → Köchle,3,Poisson's ratio,2732,732,2000,0,2000,0,0
+Geldsetzer → Schöttner → Köchle,4,Layer geometry,732,732,0,0,0,0,0
+Geldsetzer → Schöttner → Köchle,5,D11 calculation,732,732,0,0,0,0,0
+Geldsetzer → Schöttner → Srivastava,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Schöttner → Srivastava,2,Young's modulus,4495,2732,1763,0,1763,0,0
+Geldsetzer → Schöttner → Srivastava,3,Poisson's ratio,2732,448,2284,0,2284,0,0
+Geldsetzer → Schöttner → Srivastava,4,Layer geometry,448,448,0,0,0,0,0
+Geldsetzer → Schöttner → Srivastava,5,D11 calculation,448,448,0,0,0,0,0
+Geldsetzer → Wautier → Köchle,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Wautier → Köchle,2,Young's modulus,4495,1567,2928,0,2928,0,0
+Geldsetzer → Wautier → Köchle,3,Poisson's ratio,1567,732,835,0,835,0,0
+Geldsetzer → Wautier → Köchle,4,Layer geometry,732,732,0,0,0,0,0
+Geldsetzer → Wautier → Köchle,5,D11 calculation,732,732,0,0,0,0,0
+Geldsetzer → Wautier → Srivastava,1,Density,14776,4495,10281,3865,3370,3046,0
+Geldsetzer → Wautier → Srivastava,2,Young's modulus,4495,1567,2928,0,2928,0,0
+Geldsetzer → Wautier → Srivastava,3,Poisson's ratio,1567,448,1119,0,1119,0,0
+Geldsetzer → Wautier → Srivastava,4,Layer geometry,448,448,0,0,0,0,0
+Geldsetzer → Wautier → Srivastava,5,D11 calculation,448,448,0,0,0,0,0
+Kim T2 → Bergfeld → Köchle,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Bergfeld → Köchle,2,Young's modulus,5907,1229,4678,0,4678,0,0
+Kim T2 → Bergfeld → Köchle,3,Poisson's ratio,1229,497,732,0,732,0,0
+Kim T2 → Bergfeld → Köchle,4,Layer geometry,497,497,0,0,0,0,0
+Kim T2 → Bergfeld → Köchle,5,D11 calculation,497,497,0,0,0,0,0
+Kim T2 → Bergfeld → Srivastava,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Bergfeld → Srivastava,2,Young's modulus,5907,1229,4678,0,4678,0,0
+Kim T2 → Bergfeld → Srivastava,3,Poisson's ratio,1229,406,823,0,823,0,0
+Kim T2 → Bergfeld → Srivastava,4,Layer geometry,406,406,0,0,0,0,0
+Kim T2 → Bergfeld → Srivastava,5,D11 calculation,406,406,0,0,0,0,0
+Kim T2 → Köchle → Köchle,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Köchle → Köchle,2,Young's modulus,5907,817,5090,0,5090,0,0
+Kim T2 → Köchle → Köchle,3,Poisson's ratio,817,626,191,0,191,0,0
+Kim T2 → Köchle → Köchle,4,Layer geometry,626,626,0,0,0,0,0
+Kim T2 → Köchle → Köchle,5,D11 calculation,626,626,0,0,0,0,0
+Kim T2 → Köchle → Srivastava,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Köchle → Srivastava,2,Young's modulus,5907,817,5090,0,5090,0,0
+Kim T2 → Köchle → Srivastava,3,Poisson's ratio,817,380,437,0,437,0,0
+Kim T2 → Köchle → Srivastava,4,Layer geometry,380,380,0,0,0,0,0
+Kim T2 → Köchle → Srivastava,5,D11 calculation,380,380,0,0,0,0,0
+Kim T2 → Schöttner → Köchle,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Schöttner → Köchle,2,Young's modulus,5907,2747,3160,0,3160,0,0
+Kim T2 → Schöttner → Köchle,3,Poisson's ratio,2747,735,2012,0,2012,0,0
+Kim T2 → Schöttner → Köchle,4,Layer geometry,735,735,0,0,0,0,0
+Kim T2 → Schöttner → Köchle,5,D11 calculation,735,735,0,0,0,0,0
+Kim T2 → Schöttner → Srivastava,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Schöttner → Srivastava,2,Young's modulus,5907,2747,3160,0,3160,0,0
+Kim T2 → Schöttner → Srivastava,3,Poisson's ratio,2747,445,2302,0,2302,0,0
+Kim T2 → Schöttner → Srivastava,4,Layer geometry,445,445,0,0,0,0,0
+Kim T2 → Schöttner → Srivastava,5,D11 calculation,445,445,0,0,0,0,0
+Kim T2 → Wautier → Köchle,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Wautier → Köchle,2,Young's modulus,5907,2059,3848,0,3848,0,0
+Kim T2 → Wautier → Köchle,3,Poisson's ratio,2059,735,1324,0,1324,0,0
+Kim T2 → Wautier → Köchle,4,Layer geometry,735,735,0,0,0,0,0
+Kim T2 → Wautier → Köchle,5,D11 calculation,735,735,0,0,0,0,0
+Kim T2 → Wautier → Srivastava,1,Density,14776,5907,8869,5204,1958,1707,0
+Kim T2 → Wautier → Srivastava,2,Young's modulus,5907,2059,3848,0,3848,0,0
+Kim T2 → Wautier → Srivastava,3,Poisson's ratio,2059,445,1614,0,1614,0,0
+Kim T2 → Wautier → Srivastava,4,Layer geometry,445,445,0,0,0,0,0
+Kim T2 → Wautier → Srivastava,5,D11 calculation,445,445,0,0,0,0,0
+Kim T6 → Bergfeld → Köchle,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Bergfeld → Köchle,2,Young's modulus,736,134,602,0,602,0,0
+Kim T6 → Bergfeld → Köchle,3,Poisson's ratio,134,0,134,0,134,0,0
+Kim T6 → Bergfeld → Köchle,4,Layer geometry,0,0,0,0,0,0,0
+Kim T6 → Bergfeld → Köchle,5,D11 calculation,0,0,0,0,0,0,0
+Kim T6 → Bergfeld → Srivastava,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Bergfeld → Srivastava,2,Young's modulus,736,134,602,0,602,0,0
+Kim T6 → Bergfeld → Srivastava,3,Poisson's ratio,134,0,134,0,134,0,0
+Kim T6 → Bergfeld → Srivastava,4,Layer geometry,0,0,0,0,0,0,0
+Kim T6 → Bergfeld → Srivastava,5,D11 calculation,0,0,0,0,0,0,0
+Kim T6 → Köchle → Köchle,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Köchle → Köchle,2,Young's modulus,736,20,716,0,716,0,0
+Kim T6 → Köchle → Köchle,3,Poisson's ratio,20,7,13,0,13,0,0
+Kim T6 → Köchle → Köchle,4,Layer geometry,7,7,0,0,0,0,0
+Kim T6 → Köchle → Köchle,5,D11 calculation,7,7,0,0,0,0,0
+Kim T6 → Köchle → Srivastava,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Köchle → Srivastava,2,Young's modulus,736,20,716,0,716,0,0
+Kim T6 → Köchle → Srivastava,3,Poisson's ratio,20,6,14,0,14,0,0
+Kim T6 → Köchle → Srivastava,4,Layer geometry,6,6,0,0,0,0,0
+Kim T6 → Köchle → Srivastava,5,D11 calculation,6,6,0,0,0,0,0
+Kim T6 → Schöttner → Köchle,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Schöttner → Köchle,2,Young's modulus,736,356,380,0,380,0,0
+Kim T6 → Schöttner → Köchle,3,Poisson's ratio,356,7,349,0,349,0,0
+Kim T6 → Schöttner → Köchle,4,Layer geometry,7,7,0,0,0,0,0
+Kim T6 → Schöttner → Köchle,5,D11 calculation,7,7,0,0,0,0,0
+Kim T6 → Schöttner → Srivastava,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Schöttner → Srivastava,2,Young's modulus,736,356,380,0,380,0,0
+Kim T6 → Schöttner → Srivastava,3,Poisson's ratio,356,6,350,0,350,0,0
+Kim T6 → Schöttner → Srivastava,4,Layer geometry,6,6,0,0,0,0,0
+Kim T6 → Schöttner → Srivastava,5,D11 calculation,6,6,0,0,0,0,0
+Kim T6 → Wautier → Köchle,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Wautier → Köchle,2,Young's modulus,736,287,449,0,449,0,0
+Kim T6 → Wautier → Köchle,3,Poisson's ratio,287,7,280,0,280,0,0
+Kim T6 → Wautier → Köchle,4,Layer geometry,7,7,0,0,0,0,0
+Kim T6 → Wautier → Köchle,5,D11 calculation,7,7,0,0,0,0,0
+Kim T6 → Wautier → Srivastava,1,Density,14776,736,14040,3835,2234,7971,0
+Kim T6 → Wautier → Srivastava,2,Young's modulus,736,287,449,0,449,0,0
+Kim T6 → Wautier → Srivastava,3,Poisson's ratio,287,6,281,0,281,0,0
+Kim T6 → Wautier → Srivastava,4,Layer geometry,6,6,0,0,0,0,0
+Kim T6 → Wautier → Srivastava,5,D11 calculation,6,6,0,0,0,0,0

@@ -1,0 +1,28 @@
+pathway,first_failed_step,failure_reason_classes,lost_attempts
+Direct matched density,density,missing_observation,14579
+Direct matched density,density,missing_observation+processing_exclusion,66
+Direct matched density,density,processing_exclusion,22
+Geldsetzer,density,missing_observation,3865
+Geldsetzer,density,missing_observation+numerical_domain,16
+Geldsetzer,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer,density,missing_observation+unsupported_grain,3021
+Geldsetzer,density,numerical_domain,45
+Geldsetzer,density,numerical_domain+unsupported_grain,33
+Geldsetzer,density,unsupported_grain,3292
+Geldsetzer,slab_weight_shear,missing_observation,308
+Kim T2,density,missing_observation,5204
+Kim T2,density,missing_observation+numerical_domain,62
+Kim T2,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2,density,missing_observation+unsupported_grain,1627
+Kim T2,density,numerical_domain,65
+Kim T2,density,numerical_domain+unsupported_grain,39
+Kim T2,density,unsupported_grain,1854
+Kim T2,slab_weight_shear,missing_observation,437
+Kim T6,density,missing_observation,3835
+Kim T6,density,missing_observation+numerical_domain,1522
+Kim T6,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6,density,missing_observation+unsupported_grain,4075
+Kim T6,density,numerical_domain,409
+Kim T6,density,numerical_domain+unsupported_grain,545
+Kim T6,density,unsupported_grain,1280
+Kim T6,slab_weight_shear,missing_observation,39

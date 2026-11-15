@@ -1,0 +1,5 @@
+pathway,density_method,emod_method,nu_method,successful_slabs,attempted_slabs,coverage_percent
+Kim T2,kim_jamieson_table2,,,5470,14776,37.019491066594476
+Geldsetzer,geldsetzer,,,4187,14776,28.336491608012995
+Kim T6,kim_jamieson_table6,,,697,14776,4.717108825121819
+Direct matched density,data_flow,,,109,14776,0.7376827287493233

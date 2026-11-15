@@ -1,0 +1,57 @@
+{
+  "pytest": {
+    "passed": 841,
+    "warnings": 249,
+    "seconds": 12.05
+  },
+  "package_coverage": {
+    "covered_lines": 1749,
+    "num_statements": 1925,
+    "percent_covered": 88.43355036384527,
+    "percent_covered_display": "88",
+    "missing_lines": 176,
+    "excluded_lines": 40,
+    "percent_statements_covered": 90.85714285714286,
+    "percent_statements_covered_display": "91",
+    "num_branches": 686,
+    "num_partial_branches": 64,
+    "covered_branches": 560,
+    "missing_branches": 126,
+    "percent_branches_covered": 81.63265306122449,
+    "percent_branches_covered_display": "82"
+  },
+  "method_coverage": {
+    "modules": 17,
+    "named_functions": 59,
+    "statement_percent": 100,
+    "branch_percent": 100,
+    "required_threshold_percent": 98
+  },
+  "independent_verification": {
+    "pathways": 36,
+    "selected_slab_pathway_cases": 394,
+    "numeric_comparisons": 3037,
+    "matched_unavailable_outputs": 4711,
+    "max_nominal_difference": 4.547e-13,
+    "max_sigma_difference": 2.558e-13,
+    "D11_homogeneous_and_layered_checks": "passed"
+  },
+  "checks": {
+    "sphinx_warnings_as_errors": "passed",
+    "method_catalog": "passed",
+    "ruff_source_tests_analysis_examples": "passed",
+    "full_workflow": "passed",
+    "smoke_workflow": "passed",
+    "all_updated_notebooks": "passed",
+    "latex_table_preview": "passed",
+    "external_files_unchanged": 4335,
+    "dataset_git_changes": false,
+    "visual_inspection": "Passed canonical figures, legacy paper figures and compiled table preview; corrected clipped domain and overlapping labels."
+  },
+  "notes": [
+    "Method coverage is not whole-package coverage.",
+    "Monte Carlo Gaussian and correlation scenarios are sensitivity assumptions.",
+    "Historical saved 317-slab common subset is 316 when rerunning the pinned baseline."
+  ],
+  "implementation_revision": "eb53d7453b8ff406cfd934cb7d3307d55a39ab12"
+}

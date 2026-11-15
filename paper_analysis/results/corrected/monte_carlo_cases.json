@@ -1,0 +1,1165 @@
+[
+  {
+    "case": "linear_density",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 250.0,
+          "sigma": 25.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "FC",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "geldsetzer",
+        "",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 3208360356,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "density"
+  },
+  {
+    "case": "nonlinear_density",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 250.0,
+          "sigma": 25.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "geldsetzer",
+        "",
+        ""
+      ],
+      [
+        "kim_jamieson_table2",
+        "",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 3280551768,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "density"
+  },
+  {
+    "case": "kim_t6_grain_size",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 250.0,
+          "sigma": 25.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "FC",
+        "grain_size_avg": {
+          "nominal": 2.0,
+          "sigma": 0.96
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "kim_jamieson_table6",
+        "",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 3457084348,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "density"
+  },
+  {
+    "case": "homogeneous_D11",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 250.0,
+          "sigma": 25.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "wautier",
+        "kochle"
+      ]
+    ],
+    "pit_id": null,
+    "seed": 3981502993,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "D11"
+  },
+  {
+    "case": "layered_D11",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 250.0,
+          "sigma": 25.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      },
+      {
+        "density_measured": {
+          "nominal": 300.0,
+          "sigma": 30.0
+        },
+        "depth_top": {
+          "nominal": 20.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "data_flow",
+        "bergfeld",
+        "kochle"
+      ]
+    ],
+    "pit_id": null,
+    "seed": 4042619682,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "D11"
+  },
+  {
+    "case": "kochle_breakpoint_249",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 249.0,
+          "sigma": 24.900000000000002
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "kochle",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 1219356650,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "kochle_breakpoint_250",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 250.0,
+          "sigma": 25.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "kochle",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 2801118042,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "kochle_breakpoint_251",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 251.0,
+          "sigma": 25.1
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "kochle",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 3274881167,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "schottner_SH_lower",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 67.8358,
+          "sigma": 6.783580000000001
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "SH",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "schottner",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 1790846323,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "schottner_SH_upper",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 175.08970000000002,
+          "sigma": 17.50897
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "SH",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "schottner",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 1523302039,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "schottner_RG_lower",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 148.5054,
+          "sigma": 14.850540000000002
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "schottner",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 1594535961,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "schottner_RG_upper",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 355.67960000000005,
+          "sigma": 35.56796000000001
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RG",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "schottner",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 455332490,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "schottner_FC_lower",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 150.33880000000002,
+          "sigma": 15.033880000000003
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "FC",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "schottner",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 698413505,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "schottner_FC_upper",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": 462.93350000000004,
+          "sigma": 46.293350000000004
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "FC",
+        "grain_size_avg": {
+          "nominal": 1.0,
+          "sigma": 0.48
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 20.0,
+          "sigma": 1.0
+        }
+      }
+    ],
+    "paths": [
+      [
+        "data_flow",
+        "schottner",
+        ""
+      ]
+    ],
+    "pit_id": null,
+    "seed": 766990193,
+    "slab_id": null,
+    "slope_degrees": {
+      "nominal": 30.0,
+      "sigma": 2.0
+    },
+    "target": "elastic_modulus"
+  },
+  {
+    "case": "1057_slab_0",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RGwp",
+        "grain_size_avg": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "hand_hardness_index": {
+          "nominal": 4.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 30.0,
+          "sigma": 1.5
+        }
+      }
+    ],
+    "paths": [
+      [
+        "geldsetzer",
+        "bergfeld",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "bergfeld",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "bergfeld",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "bergfeld",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "srivastava"
+      ]
+    ],
+    "pit_id": "1057",
+    "seed": 1580027453,
+    "slab_id": "1057_slab_0",
+    "slope_degrees": {
+      "nominal": 37.0,
+      "sigma": 2.0
+    },
+    "target": "D11"
+  },
+  {
+    "case": "14909_slab_0",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RGwp",
+        "grain_size_avg": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 21.0,
+          "sigma": 1.05
+        }
+      }
+    ],
+    "paths": [
+      [
+        "geldsetzer",
+        "bergfeld",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "bergfeld",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "bergfeld",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "bergfeld",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "srivastava"
+      ]
+    ],
+    "pit_id": "14909",
+    "seed": 1922593444,
+    "slab_id": "14909_slab_0",
+    "slope_degrees": {
+      "nominal": 15.0,
+      "sigma": 2.0
+    },
+    "target": "D11"
+  },
+  {
+    "case": "29863_slab_0",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "FCxr",
+        "grain_size_avg": {
+          "nominal": 0.3,
+          "sigma": 0.144
+        },
+        "hand_hardness_index": {
+          "nominal": 4.33,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 25.0,
+          "sigma": 1.25
+        }
+      },
+      {
+        "density_measured": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "depth_top": {
+          "nominal": 25.0,
+          "sigma": 0.0
+        },
+        "grain_form": "FCxr",
+        "grain_size_avg": {
+          "nominal": 0.5,
+          "sigma": 0.24
+        },
+        "hand_hardness_index": {
+          "nominal": 4.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 15.0,
+          "sigma": 0.75
+        }
+      }
+    ],
+    "paths": [
+      [
+        "geldsetzer",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table6",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table6",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table6",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table6",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table6",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table6",
+        "wautier",
+        "srivastava"
+      ]
+    ],
+    "pit_id": "29863",
+    "seed": 2918560013,
+    "slab_id": "29863_slab_0",
+    "slope_degrees": {
+      "nominal": 31.0,
+      "sigma": 2.0
+    },
+    "target": "D11"
+  },
+  {
+    "case": "50003_slab_0",
+    "layers": [
+      {
+        "density_measured": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "depth_top": {
+          "nominal": 0.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RGwp",
+        "grain_size_avg": {
+          "nominal": 0.1,
+          "sigma": 0.048
+        },
+        "hand_hardness_index": {
+          "nominal": 4.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 70.0,
+          "sigma": 3.5
+        }
+      },
+      {
+        "density_measured": {
+          "nominal": null,
+          "sigma": 0.0
+        },
+        "depth_top": {
+          "nominal": 70.0,
+          "sigma": 0.0
+        },
+        "grain_form": "RGsr",
+        "grain_size_avg": {
+          "nominal": 0.5,
+          "sigma": 0.24
+        },
+        "hand_hardness_index": {
+          "nominal": 3.0,
+          "sigma": 0.67
+        },
+        "thickness": {
+          "nominal": 23.0,
+          "sigma": 1.1500000000000001
+        }
+      }
+    ],
+    "paths": [
+      [
+        "geldsetzer",
+        "bergfeld",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "bergfeld",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "geldsetzer",
+        "wautier",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "bergfeld",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "bergfeld",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "kochle",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "schottner",
+        "srivastava"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "kochle"
+      ],
+      [
+        "kim_jamieson_table2",
+        "wautier",
+        "srivastava"
+      ]
+    ],
+    "pit_id": "50003",
+    "seed": 3088615316,
+    "slab_id": "50003_slab_0",
+    "slope_degrees": {
+      "nominal": 38.0,
+      "sigma": 2.0
+    },
+    "target": "D11"
+  }
+]

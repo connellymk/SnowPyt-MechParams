@@ -1,0 +1,58 @@
+{
+  "D11_diagnostics_seconds": 55.16091770899948,
+  "audit_seconds": 14.568313832976855,
+  "contributing_pits": 12347,
+  "density_observations": 19118,
+  "density_observations_ambiguous": 0,
+  "density_observations_contained": 10468,
+  "density_observations_crossing": 0,
+  "density_observations_exact": 10468,
+  "density_observations_without_overlap": 8650,
+  "duplicate_file_content_excess": 16,
+  "duplicate_pit_id_excess": 16,
+  "files": 50278,
+  "invalid_density_observations": 8693,
+  "issues": {
+    "layer_gap": 173,
+    "layer_overlap": 163,
+    "measured_density_outside_0_917": 48
+  },
+  "layer_assignment_policy_counts": {
+    "original_exact": 10468,
+    "unmatched": 360961
+  },
+  "layers": 371429,
+  "layers_with_density_present": 10468,
+  "layers_with_positive_finite_density": 10425,
+  "multiple_exact_layers": 0,
+  "observations_with_invalid_density_value": 71,
+  "observations_with_unusable_interval": 8650,
+  "parse_failures": [],
+  "parsed_pits": 50278,
+  "partial_layer_assignments": 0,
+  "pits_with_density_observations": 2872,
+  "pits_with_multiple_slabs": 2113,
+  "pits_with_positive_finite_density": 1884,
+  "point_observations_located_in_layer": 8481,
+  "processing_excluded_layers": 5599,
+  "processing_excluded_pits": 970,
+  "repeated_stratigraphies_within_pit": 1265,
+  "slab_exclusions": {
+    "failure_depth_outside_layers": 283,
+    "no_overlying_layer": 197
+  },
+  "slab_weight_shear_diagnostics_seconds": 4.982182874984574,
+  "slab_weight_shear_with_elasticity_diagnostics_seconds": 59.35412887495477,
+  "slabs": 14776,
+  "slabs_per_pit_distribution": {
+    "1": 10234,
+    "2": 1858,
+    "3": 205,
+    "4": 40,
+    "5": 9,
+    "6": 1
+  },
+  "slabs_with_all_positive_finite_density": 108,
+  "slabs_with_any_positive_finite_density": 253,
+  "slabs_with_unavailable_processed_density": 88
+}

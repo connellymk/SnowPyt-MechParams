@@ -1,0 +1,330 @@
+pathway,first_failed_step,failure_reason_classes,lost_attempts
+Direct matched density → Bergfeld → Köchle,density,missing_observation,14579
+Direct matched density → Bergfeld → Köchle,density,missing_observation+processing_exclusion,66
+Direct matched density → Bergfeld → Köchle,density,processing_exclusion,22
+Direct matched density → Bergfeld → Köchle,elastic_modulus,missing_observation,1
+Direct matched density → Bergfeld → Köchle,elastic_modulus,missing_observation+numerical_domain+unsupported_grain,1
+Direct matched density → Bergfeld → Köchle,elastic_modulus,numerical_domain,28
+Direct matched density → Bergfeld → Köchle,elastic_modulus,numerical_domain+unsupported_grain,21
+Direct matched density → Bergfeld → Köchle,elastic_modulus,unsupported_grain,25
+Direct matched density → Bergfeld → Köchle,poissons_ratio,unsupported_grain,27
+Direct matched density → Bergfeld → Srivastava,density,missing_observation,14579
+Direct matched density → Bergfeld → Srivastava,density,missing_observation+processing_exclusion,66
+Direct matched density → Bergfeld → Srivastava,density,processing_exclusion,22
+Direct matched density → Bergfeld → Srivastava,elastic_modulus,missing_observation,1
+Direct matched density → Bergfeld → Srivastava,elastic_modulus,missing_observation+numerical_domain+unsupported_grain,1
+Direct matched density → Bergfeld → Srivastava,elastic_modulus,numerical_domain,28
+Direct matched density → Bergfeld → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,21
+Direct matched density → Bergfeld → Srivastava,elastic_modulus,unsupported_grain,25
+Direct matched density → Bergfeld → Srivastava,poissons_ratio,numerical_domain,25
+Direct matched density → Köchle → Köchle,density,missing_observation,14579
+Direct matched density → Köchle → Köchle,density,missing_observation+processing_exclusion,66
+Direct matched density → Köchle → Köchle,density,processing_exclusion,22
+Direct matched density → Köchle → Köchle,elastic_modulus,missing_observation,2
+Direct matched density → Köchle → Köchle,elastic_modulus,numerical_domain,1
+Direct matched density → Köchle → Köchle,elastic_modulus,numerical_domain+unsupported_grain,63
+Direct matched density → Köchle → Köchle,elastic_modulus,unsupported_grain,24
+Direct matched density → Köchle → Köchle,poissons_ratio,unsupported_grain,3
+Direct matched density → Köchle → Srivastava,density,missing_observation,14579
+Direct matched density → Köchle → Srivastava,density,missing_observation+processing_exclusion,66
+Direct matched density → Köchle → Srivastava,density,processing_exclusion,22
+Direct matched density → Köchle → Srivastava,elastic_modulus,missing_observation,2
+Direct matched density → Köchle → Srivastava,elastic_modulus,numerical_domain,1
+Direct matched density → Köchle → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,63
+Direct matched density → Köchle → Srivastava,elastic_modulus,unsupported_grain,24
+Direct matched density → Köchle → Srivastava,poissons_ratio,numerical_domain,11
+Direct matched density → Köchle → Srivastava,poissons_ratio,numerical_domain+unsupported_grain,2
+Direct matched density → Köchle → Srivastava,poissons_ratio,unsupported_grain,1
+Direct matched density → Schöttner → Köchle,density,missing_observation,14579
+Direct matched density → Schöttner → Köchle,density,missing_observation+processing_exclusion,66
+Direct matched density → Schöttner → Köchle,density,processing_exclusion,22
+Direct matched density → Schöttner → Köchle,elastic_modulus,missing_observation,1
+Direct matched density → Schöttner → Köchle,elastic_modulus,missing_observation+unsupported_grain,1
+Direct matched density → Schöttner → Köchle,elastic_modulus,numerical_domain,27
+Direct matched density → Schöttner → Köchle,elastic_modulus,numerical_domain+unsupported_grain,19
+Direct matched density → Schöttner → Köchle,elastic_modulus,unsupported_grain,28
+Direct matched density → Schöttner → Köchle,poissons_ratio,unsupported_grain,19
+Direct matched density → Schöttner → Srivastava,density,missing_observation,14579
+Direct matched density → Schöttner → Srivastava,density,missing_observation+processing_exclusion,66
+Direct matched density → Schöttner → Srivastava,density,processing_exclusion,22
+Direct matched density → Schöttner → Srivastava,elastic_modulus,missing_observation,1
+Direct matched density → Schöttner → Srivastava,elastic_modulus,missing_observation+unsupported_grain,1
+Direct matched density → Schöttner → Srivastava,elastic_modulus,numerical_domain,27
+Direct matched density → Schöttner → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,19
+Direct matched density → Schöttner → Srivastava,elastic_modulus,unsupported_grain,28
+Direct matched density → Schöttner → Srivastava,poissons_ratio,numerical_domain,21
+Direct matched density → Schöttner → Srivastava,poissons_ratio,numerical_domain+unsupported_grain,1
+Direct matched density → Wautier → Köchle,density,missing_observation,14579
+Direct matched density → Wautier → Köchle,density,missing_observation+processing_exclusion,66
+Direct matched density → Wautier → Köchle,density,processing_exclusion,22
+Direct matched density → Wautier → Köchle,elastic_modulus,missing_observation,2
+Direct matched density → Wautier → Köchle,elastic_modulus,numerical_domain,38
+Direct matched density → Wautier → Köchle,elastic_modulus,numerical_domain+unsupported_grain,2
+Direct matched density → Wautier → Köchle,elastic_modulus,unsupported_grain,1
+Direct matched density → Wautier → Köchle,poissons_ratio,unsupported_grain,49
+Direct matched density → Wautier → Srivastava,density,missing_observation,14579
+Direct matched density → Wautier → Srivastava,density,missing_observation+processing_exclusion,66
+Direct matched density → Wautier → Srivastava,density,processing_exclusion,22
+Direct matched density → Wautier → Srivastava,elastic_modulus,missing_observation,2
+Direct matched density → Wautier → Srivastava,elastic_modulus,numerical_domain,38
+Direct matched density → Wautier → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,2
+Direct matched density → Wautier → Srivastava,elastic_modulus,unsupported_grain,1
+Direct matched density → Wautier → Srivastava,poissons_ratio,numerical_domain,47
+Direct matched density → Wautier → Srivastava,poissons_ratio,numerical_domain+unsupported_grain,5
+Direct matched density → Wautier → Srivastava,poissons_ratio,unsupported_grain,2
+Geldsetzer → Bergfeld → Köchle,density,missing_observation,3865
+Geldsetzer → Bergfeld → Köchle,density,missing_observation+numerical_domain,16
+Geldsetzer → Bergfeld → Köchle,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Bergfeld → Köchle,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Bergfeld → Köchle,density,numerical_domain,45
+Geldsetzer → Bergfeld → Köchle,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Bergfeld → Köchle,density,unsupported_grain,3292
+Geldsetzer → Bergfeld → Köchle,elastic_modulus,numerical_domain,1913
+Geldsetzer → Bergfeld → Köchle,elastic_modulus,numerical_domain+unsupported_grain,917
+Geldsetzer → Bergfeld → Köchle,elastic_modulus,unsupported_grain,458
+Geldsetzer → Bergfeld → Köchle,poissons_ratio,unsupported_grain,733
+Geldsetzer → Bergfeld → Srivastava,density,missing_observation,3865
+Geldsetzer → Bergfeld → Srivastava,density,missing_observation+numerical_domain,16
+Geldsetzer → Bergfeld → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Bergfeld → Srivastava,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Bergfeld → Srivastava,density,numerical_domain,45
+Geldsetzer → Bergfeld → Srivastava,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Bergfeld → Srivastava,density,unsupported_grain,3292
+Geldsetzer → Bergfeld → Srivastava,elastic_modulus,numerical_domain,1913
+Geldsetzer → Bergfeld → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,917
+Geldsetzer → Bergfeld → Srivastava,elastic_modulus,unsupported_grain,458
+Geldsetzer → Bergfeld → Srivastava,poissons_ratio,numerical_domain,834
+Geldsetzer → Köchle → Köchle,density,missing_observation,3865
+Geldsetzer → Köchle → Köchle,density,missing_observation+numerical_domain,16
+Geldsetzer → Köchle → Köchle,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Köchle → Köchle,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Köchle → Köchle,density,numerical_domain,45
+Geldsetzer → Köchle → Köchle,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Köchle → Köchle,density,unsupported_grain,3292
+Geldsetzer → Köchle → Köchle,elastic_modulus,numerical_domain,7
+Geldsetzer → Köchle → Köchle,elastic_modulus,numerical_domain+unsupported_grain,3445
+Geldsetzer → Köchle → Köchle,elastic_modulus,unsupported_grain,318
+Geldsetzer → Köchle → Srivastava,density,missing_observation,3865
+Geldsetzer → Köchle → Srivastava,density,missing_observation+numerical_domain,16
+Geldsetzer → Köchle → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Köchle → Srivastava,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Köchle → Srivastava,density,numerical_domain,45
+Geldsetzer → Köchle → Srivastava,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Köchle → Srivastava,density,unsupported_grain,3292
+Geldsetzer → Köchle → Srivastava,elastic_modulus,numerical_domain,7
+Geldsetzer → Köchle → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,3445
+Geldsetzer → Köchle → Srivastava,elastic_modulus,unsupported_grain,318
+Geldsetzer → Köchle → Srivastava,poissons_ratio,numerical_domain,341
+Geldsetzer → Schöttner → Köchle,density,missing_observation,3865
+Geldsetzer → Schöttner → Köchle,density,missing_observation+numerical_domain,16
+Geldsetzer → Schöttner → Köchle,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Schöttner → Köchle,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Schöttner → Köchle,density,numerical_domain,45
+Geldsetzer → Schöttner → Köchle,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Schöttner → Köchle,density,unsupported_grain,3292
+Geldsetzer → Schöttner → Köchle,elastic_modulus,numerical_domain,1716
+Geldsetzer → Schöttner → Köchle,elastic_modulus,numerical_domain+unsupported_grain,854
+Geldsetzer → Schöttner → Köchle,elastic_modulus,unsupported_grain,909
+Geldsetzer → Schöttner → Köchle,poissons_ratio,unsupported_grain,322
+Geldsetzer → Schöttner → Srivastava,density,missing_observation,3865
+Geldsetzer → Schöttner → Srivastava,density,missing_observation+numerical_domain,16
+Geldsetzer → Schöttner → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Schöttner → Srivastava,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Schöttner → Srivastava,density,numerical_domain,45
+Geldsetzer → Schöttner → Srivastava,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Schöttner → Srivastava,density,unsupported_grain,3292
+Geldsetzer → Schöttner → Srivastava,elastic_modulus,numerical_domain,1716
+Geldsetzer → Schöttner → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,854
+Geldsetzer → Schöttner → Srivastava,elastic_modulus,unsupported_grain,909
+Geldsetzer → Schöttner → Srivastava,poissons_ratio,numerical_domain,595
+Geldsetzer → Wautier → Köchle,density,missing_observation,3865
+Geldsetzer → Wautier → Köchle,density,missing_observation+numerical_domain,16
+Geldsetzer → Wautier → Köchle,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Wautier → Köchle,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Wautier → Köchle,density,numerical_domain,45
+Geldsetzer → Wautier → Köchle,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Wautier → Köchle,density,unsupported_grain,3292
+Geldsetzer → Wautier → Köchle,elastic_modulus,numerical_domain,2758
+Geldsetzer → Wautier → Köchle,poissons_ratio,unsupported_grain,1005
+Geldsetzer → Wautier → Srivastava,density,missing_observation,3865
+Geldsetzer → Wautier → Srivastava,density,missing_observation+numerical_domain,16
+Geldsetzer → Wautier → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,9
+Geldsetzer → Wautier → Srivastava,density,missing_observation+unsupported_grain,3021
+Geldsetzer → Wautier → Srivastava,density,numerical_domain,45
+Geldsetzer → Wautier → Srivastava,density,numerical_domain+unsupported_grain,33
+Geldsetzer → Wautier → Srivastava,density,unsupported_grain,3292
+Geldsetzer → Wautier → Srivastava,elastic_modulus,numerical_domain,2758
+Geldsetzer → Wautier → Srivastava,poissons_ratio,numerical_domain,1289
+Kim T2 → Bergfeld → Köchle,density,missing_observation,5204
+Kim T2 → Bergfeld → Köchle,density,missing_observation+numerical_domain,62
+Kim T2 → Bergfeld → Köchle,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Bergfeld → Köchle,density,missing_observation+unsupported_grain,1627
+Kim T2 → Bergfeld → Köchle,density,numerical_domain,65
+Kim T2 → Bergfeld → Köchle,density,numerical_domain+unsupported_grain,39
+Kim T2 → Bergfeld → Köchle,density,unsupported_grain,1854
+Kim T2 → Bergfeld → Köchle,elastic_modulus,numerical_domain,1901
+Kim T2 → Bergfeld → Köchle,elastic_modulus,numerical_domain+unsupported_grain,1793
+Kim T2 → Bergfeld → Köchle,elastic_modulus,unsupported_grain,984
+Kim T2 → Bergfeld → Köchle,poissons_ratio,unsupported_grain,732
+Kim T2 → Bergfeld → Srivastava,density,missing_observation,5204
+Kim T2 → Bergfeld → Srivastava,density,missing_observation+numerical_domain,62
+Kim T2 → Bergfeld → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Bergfeld → Srivastava,density,missing_observation+unsupported_grain,1627
+Kim T2 → Bergfeld → Srivastava,density,numerical_domain,65
+Kim T2 → Bergfeld → Srivastava,density,numerical_domain+unsupported_grain,39
+Kim T2 → Bergfeld → Srivastava,density,unsupported_grain,1854
+Kim T2 → Bergfeld → Srivastava,elastic_modulus,numerical_domain,1901
+Kim T2 → Bergfeld → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,1793
+Kim T2 → Bergfeld → Srivastava,elastic_modulus,unsupported_grain,984
+Kim T2 → Bergfeld → Srivastava,poissons_ratio,numerical_domain,823
+Kim T2 → Köchle → Köchle,density,missing_observation,5204
+Kim T2 → Köchle → Köchle,density,missing_observation+numerical_domain,62
+Kim T2 → Köchle → Köchle,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Köchle → Köchle,density,missing_observation+unsupported_grain,1627
+Kim T2 → Köchle → Köchle,density,numerical_domain,65
+Kim T2 → Köchle → Köchle,density,numerical_domain+unsupported_grain,39
+Kim T2 → Köchle → Köchle,density,unsupported_grain,1854
+Kim T2 → Köchle → Köchle,elastic_modulus,numerical_domain,153
+Kim T2 → Köchle → Köchle,elastic_modulus,numerical_domain+unsupported_grain,4567
+Kim T2 → Köchle → Köchle,elastic_modulus,unsupported_grain,370
+Kim T2 → Köchle → Köchle,poissons_ratio,unsupported_grain,191
+Kim T2 → Köchle → Srivastava,density,missing_observation,5204
+Kim T2 → Köchle → Srivastava,density,missing_observation+numerical_domain,62
+Kim T2 → Köchle → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Köchle → Srivastava,density,missing_observation+unsupported_grain,1627
+Kim T2 → Köchle → Srivastava,density,numerical_domain,65
+Kim T2 → Köchle → Srivastava,density,numerical_domain+unsupported_grain,39
+Kim T2 → Köchle → Srivastava,density,unsupported_grain,1854
+Kim T2 → Köchle → Srivastava,elastic_modulus,numerical_domain,153
+Kim T2 → Köchle → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,4567
+Kim T2 → Köchle → Srivastava,elastic_modulus,unsupported_grain,370
+Kim T2 → Köchle → Srivastava,poissons_ratio,numerical_domain,246
+Kim T2 → Köchle → Srivastava,poissons_ratio,numerical_domain+unsupported_grain,96
+Kim T2 → Köchle → Srivastava,poissons_ratio,unsupported_grain,95
+Kim T2 → Schöttner → Köchle,density,missing_observation,5204
+Kim T2 → Schöttner → Köchle,density,missing_observation+numerical_domain,62
+Kim T2 → Schöttner → Köchle,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Schöttner → Köchle,density,missing_observation+unsupported_grain,1627
+Kim T2 → Schöttner → Köchle,density,numerical_domain,65
+Kim T2 → Schöttner → Köchle,density,numerical_domain+unsupported_grain,39
+Kim T2 → Schöttner → Köchle,density,unsupported_grain,1854
+Kim T2 → Schöttner → Köchle,elastic_modulus,numerical_domain,1791
+Kim T2 → Schöttner → Köchle,elastic_modulus,numerical_domain+unsupported_grain,1786
+Kim T2 → Schöttner → Köchle,elastic_modulus,unsupported_grain,1374
+Kim T2 → Schöttner → Köchle,poissons_ratio,unsupported_grain,331
+Kim T2 → Schöttner → Srivastava,density,missing_observation,5204
+Kim T2 → Schöttner → Srivastava,density,missing_observation+numerical_domain,62
+Kim T2 → Schöttner → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Schöttner → Srivastava,density,missing_observation+unsupported_grain,1627
+Kim T2 → Schöttner → Srivastava,density,numerical_domain,65
+Kim T2 → Schöttner → Srivastava,density,numerical_domain+unsupported_grain,39
+Kim T2 → Schöttner → Srivastava,density,unsupported_grain,1854
+Kim T2 → Schöttner → Srivastava,elastic_modulus,numerical_domain,1791
+Kim T2 → Schöttner → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,1786
+Kim T2 → Schöttner → Srivastava,elastic_modulus,unsupported_grain,1374
+Kim T2 → Schöttner → Srivastava,poissons_ratio,numerical_domain,511
+Kim T2 → Wautier → Köchle,density,missing_observation,5204
+Kim T2 → Wautier → Köchle,density,missing_observation+numerical_domain,62
+Kim T2 → Wautier → Köchle,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Wautier → Köchle,density,missing_observation+unsupported_grain,1627
+Kim T2 → Wautier → Köchle,density,numerical_domain,65
+Kim T2 → Wautier → Köchle,density,numerical_domain+unsupported_grain,39
+Kim T2 → Wautier → Köchle,density,unsupported_grain,1854
+Kim T2 → Wautier → Köchle,elastic_modulus,numerical_domain,3629
+Kim T2 → Wautier → Köchle,poissons_ratio,unsupported_grain,1543
+Kim T2 → Wautier → Srivastava,density,missing_observation,5204
+Kim T2 → Wautier → Srivastava,density,missing_observation+numerical_domain,62
+Kim T2 → Wautier → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,18
+Kim T2 → Wautier → Srivastava,density,missing_observation+unsupported_grain,1627
+Kim T2 → Wautier → Srivastava,density,numerical_domain,65
+Kim T2 → Wautier → Srivastava,density,numerical_domain+unsupported_grain,39
+Kim T2 → Wautier → Srivastava,density,unsupported_grain,1854
+Kim T2 → Wautier → Srivastava,elastic_modulus,numerical_domain,3629
+Kim T2 → Wautier → Srivastava,poissons_ratio,numerical_domain,1300
+Kim T2 → Wautier → Srivastava,poissons_ratio,numerical_domain+unsupported_grain,429
+Kim T2 → Wautier → Srivastava,poissons_ratio,unsupported_grain,99
+Kim T6 → Bergfeld → Köchle,density,missing_observation,3835
+Kim T6 → Bergfeld → Köchle,density,missing_observation+numerical_domain,1522
+Kim T6 → Bergfeld → Köchle,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Bergfeld → Köchle,density,missing_observation+unsupported_grain,4075
+Kim T6 → Bergfeld → Köchle,density,numerical_domain,409
+Kim T6 → Bergfeld → Köchle,density,numerical_domain+unsupported_grain,545
+Kim T6 → Bergfeld → Köchle,density,unsupported_grain,1280
+Kim T6 → Bergfeld → Köchle,elastic_modulus,numerical_domain,383
+Kim T6 → Bergfeld → Köchle,elastic_modulus,numerical_domain+unsupported_grain,168
+Kim T6 → Bergfeld → Köchle,elastic_modulus,unsupported_grain,51
+Kim T6 → Bergfeld → Köchle,poissons_ratio,unsupported_grain,134
+Kim T6 → Bergfeld → Srivastava,density,missing_observation,3835
+Kim T6 → Bergfeld → Srivastava,density,missing_observation+numerical_domain,1522
+Kim T6 → Bergfeld → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Bergfeld → Srivastava,density,missing_observation+unsupported_grain,4075
+Kim T6 → Bergfeld → Srivastava,density,numerical_domain,409
+Kim T6 → Bergfeld → Srivastava,density,numerical_domain+unsupported_grain,545
+Kim T6 → Bergfeld → Srivastava,density,unsupported_grain,1280
+Kim T6 → Bergfeld → Srivastava,elastic_modulus,numerical_domain,383
+Kim T6 → Bergfeld → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,168
+Kim T6 → Bergfeld → Srivastava,elastic_modulus,unsupported_grain,51
+Kim T6 → Bergfeld → Srivastava,poissons_ratio,numerical_domain,134
+Kim T6 → Köchle → Köchle,density,missing_observation,3835
+Kim T6 → Köchle → Köchle,density,missing_observation+numerical_domain,1522
+Kim T6 → Köchle → Köchle,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Köchle → Köchle,density,missing_observation+unsupported_grain,4075
+Kim T6 → Köchle → Köchle,density,numerical_domain,409
+Kim T6 → Köchle → Köchle,density,numerical_domain+unsupported_grain,545
+Kim T6 → Köchle → Köchle,density,unsupported_grain,1280
+Kim T6 → Köchle → Köchle,elastic_modulus,numerical_domain+unsupported_grain,657
+Kim T6 → Köchle → Köchle,elastic_modulus,unsupported_grain,59
+Kim T6 → Köchle → Köchle,poissons_ratio,unsupported_grain,13
+Kim T6 → Köchle → Srivastava,density,missing_observation,3835
+Kim T6 → Köchle → Srivastava,density,missing_observation+numerical_domain,1522
+Kim T6 → Köchle → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Köchle → Srivastava,density,missing_observation+unsupported_grain,4075
+Kim T6 → Köchle → Srivastava,density,numerical_domain,409
+Kim T6 → Köchle → Srivastava,density,numerical_domain+unsupported_grain,545
+Kim T6 → Köchle → Srivastava,density,unsupported_grain,1280
+Kim T6 → Köchle → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,657
+Kim T6 → Köchle → Srivastava,elastic_modulus,unsupported_grain,59
+Kim T6 → Köchle → Srivastava,poissons_ratio,numerical_domain,1
+Kim T6 → Köchle → Srivastava,poissons_ratio,unsupported_grain,13
+Kim T6 → Schöttner → Köchle,density,missing_observation,3835
+Kim T6 → Schöttner → Köchle,density,missing_observation+numerical_domain,1522
+Kim T6 → Schöttner → Köchle,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Schöttner → Köchle,density,missing_observation+unsupported_grain,4075
+Kim T6 → Schöttner → Köchle,density,numerical_domain,409
+Kim T6 → Schöttner → Köchle,density,numerical_domain+unsupported_grain,545
+Kim T6 → Schöttner → Köchle,density,unsupported_grain,1280
+Kim T6 → Schöttner → Köchle,elastic_modulus,numerical_domain,294
+Kim T6 → Schöttner → Köchle,elastic_modulus,numerical_domain+unsupported_grain,217
+Kim T6 → Schöttner → Köchle,elastic_modulus,unsupported_grain,163
+Kim T6 → Schöttner → Köchle,poissons_ratio,unsupported_grain,55
+Kim T6 → Schöttner → Srivastava,density,missing_observation,3835
+Kim T6 → Schöttner → Srivastava,density,missing_observation+numerical_domain,1522
+Kim T6 → Schöttner → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Schöttner → Srivastava,density,missing_observation+unsupported_grain,4075
+Kim T6 → Schöttner → Srivastava,density,numerical_domain,409
+Kim T6 → Schöttner → Srivastava,density,numerical_domain+unsupported_grain,545
+Kim T6 → Schöttner → Srivastava,density,unsupported_grain,1280
+Kim T6 → Schöttner → Srivastava,elastic_modulus,numerical_domain,294
+Kim T6 → Schöttner → Srivastava,elastic_modulus,numerical_domain+unsupported_grain,217
+Kim T6 → Schöttner → Srivastava,elastic_modulus,unsupported_grain,163
+Kim T6 → Schöttner → Srivastava,poissons_ratio,numerical_domain,56
+Kim T6 → Wautier → Köchle,density,missing_observation,3835
+Kim T6 → Wautier → Köchle,density,missing_observation+numerical_domain,1522
+Kim T6 → Wautier → Köchle,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Wautier → Köchle,density,missing_observation+unsupported_grain,4075
+Kim T6 → Wautier → Köchle,density,numerical_domain,409
+Kim T6 → Wautier → Köchle,density,numerical_domain+unsupported_grain,545
+Kim T6 → Wautier → Köchle,density,unsupported_grain,1280
+Kim T6 → Wautier → Köchle,elastic_modulus,numerical_domain,424
+Kim T6 → Wautier → Köchle,poissons_ratio,unsupported_grain,305
+Kim T6 → Wautier → Srivastava,density,missing_observation,3835
+Kim T6 → Wautier → Srivastava,density,missing_observation+numerical_domain,1522
+Kim T6 → Wautier → Srivastava,density,missing_observation+numerical_domain+unsupported_grain,2374
+Kim T6 → Wautier → Srivastava,density,missing_observation+unsupported_grain,4075
+Kim T6 → Wautier → Srivastava,density,numerical_domain,409
+Kim T6 → Wautier → Srivastava,density,numerical_domain+unsupported_grain,545
+Kim T6 → Wautier → Srivastava,density,unsupported_grain,1280
+Kim T6 → Wautier → Srivastava,elastic_modulus,numerical_domain,424
+Kim T6 → Wautier → Srivastava,poissons_ratio,numerical_domain,268
+Kim T6 → Wautier → Srivastava,poissons_ratio,numerical_domain+unsupported_grain,25
+Kim T6 → Wautier → Srivastava,poissons_ratio,unsupported_grain,13

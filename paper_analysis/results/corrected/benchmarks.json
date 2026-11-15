@@ -1,0 +1,35 @@
+{
+  "cache_policy": "fresh engine per run; execute_all shares branches within slab",
+  "runs": [
+    {
+      "repeat": 1,
+      "seconds": 0.5839454169617966,
+      "slabs": 100
+    },
+    {
+      "repeat": 2,
+      "seconds": 0.560409541008994,
+      "slabs": 100
+    },
+    {
+      "repeat": 3,
+      "seconds": 0.5661538339918479,
+      "slabs": 100
+    },
+    {
+      "repeat": 1,
+      "seconds": 6.866385874978732,
+      "slabs": 1000
+    },
+    {
+      "repeat": 2,
+      "seconds": 6.657152667001355,
+      "slabs": 1000
+    },
+    {
+      "repeat": 3,
+      "seconds": 6.251810833986383,
+      "slabs": 1000
+    }
+  ]
+}

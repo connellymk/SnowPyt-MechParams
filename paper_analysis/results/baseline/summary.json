@@ -1,0 +1,211 @@
+{
+  "D11": {
+    "common_pits": 283,
+    "common_slabs": 316,
+    "grain_forms": [
+      "RG"
+    ],
+    "illustrations": [
+      {
+        "quantile": 0.3,
+        "slab_id": "1057_slab_0",
+        "spread_ratio": 31.778037197602032
+      },
+      {
+        "quantile": 0.6,
+        "slab_id": "50003_slab_0",
+        "spread_ratio": 35.90580420862919
+      },
+      {
+        "quantile": 0.9,
+        "slab_id": "14909_slab_0",
+        "spread_ratio": 62.966210819656524
+      }
+    ],
+    "median_relative_uncertainty": {
+      "max": 0.8977186929558909,
+      "median": 0.7583034117516496,
+      "min": 0.48174432473647577,
+      "n": 316,
+      "q25": 0.7583034117516496,
+      "q75": 0.7971615466891209,
+      "q90": 0.8361902680914164
+    },
+    "negative_lower_endpoints": 1044,
+    "nonoverlap_fraction": {
+      "max": 0.6666666666666666,
+      "median": 0.5,
+      "min": 0.26666666666666666,
+      "n": 316,
+      "q25": 0.4,
+      "q75": 0.5,
+      "q90": 0.5666666666666667
+    },
+    "pathways": [
+      "kim_jamieson_table2 -> schottner -> kochle",
+      "kim_jamieson_table2 -> wautier -> kochle",
+      "geldsetzer -> schottner -> kochle",
+      "geldsetzer -> wautier -> kochle",
+      "geldsetzer -> kochle -> kochle",
+      "kim_jamieson_table2 -> kochle -> kochle",
+      "kim_jamieson_table2 -> bergfeld -> kochle",
+      "geldsetzer -> bergfeld -> kochle",
+      "geldsetzer -> schottner -> srivastava",
+      "geldsetzer -> wautier -> srivastava",
+      "kim_jamieson_table2 -> schottner -> srivastava",
+      "kim_jamieson_table2 -> wautier -> srivastava",
+      "kim_jamieson_table2 -> bergfeld -> srivastava",
+      "geldsetzer -> kochle -> srivastava",
+      "kim_jamieson_table2 -> kochle -> srivastava",
+      "geldsetzer -> bergfeld -> srivastava"
+    ],
+    "pooled_relative_uncertainty": {
+      "max": 2.071244625713761,
+      "median": 0.7843525250240571,
+      "min": 0.21360642121059786,
+      "n": 5056,
+      "q25": 0.5584355888637645,
+      "q75": 0.8515857904033877,
+      "q90": 1.0684263131410832
+    },
+    "range_to_interval_width": {
+      "max": 2.012403805192865,
+      "median": 0.8668721040371552,
+      "min": 0.8205129036259802,
+      "n": 316,
+      "q25": 0.866872104037155,
+      "q75": 1.0956639901053897,
+      "q90": 1.2440184240193304
+    },
+    "single_layer_slabs": 257,
+    "slabs_with_any_nonoverlap": 316,
+    "spread_ratio": {
+      "max": 62.96621081965654,
+      "median": 31.778037197602035,
+      "min": 25.69882457437743,
+      "n": 316,
+      "q25": 31.778037197602032,
+      "q75": 51.611391585968875,
+      "q90": 62.966210819656524
+    }
+  },
+  "contributing_pits": 12347,
+  "coverage": [
+    {
+      "histogram": {
+        "0": 13953,
+        "1": 5,
+        "10": 0,
+        "11": 0,
+        "12": 37,
+        "13": 0,
+        "14": 22,
+        "15": 1,
+        "16": 313,
+        "17": 0,
+        "18": 6,
+        "19": 0,
+        "2": 7,
+        "20": 0,
+        "21": 0,
+        "22": 1,
+        "23": 0,
+        "24": 2,
+        "25": 0,
+        "26": 0,
+        "27": 0,
+        "28": 0,
+        "29": 0,
+        "3": 17,
+        "30": 0,
+        "31": 0,
+        "32": 0,
+        "4": 10,
+        "5": 36,
+        "6": 200,
+        "7": 63,
+        "8": 94,
+        "9": 9
+      },
+      "pathways": 32,
+      "slabs": 14776,
+      "successful_attempts": 8717,
+      "target": "D11",
+      "union": 823,
+      "union_percent": 5.569842988630211
+    },
+    {
+      "histogram": {
+        "0": 9241,
+        "1": 1304,
+        "2": 3554,
+        "3": 657,
+        "4": 20
+      },
+      "pathways": 4,
+      "slabs": 14776,
+      "successful_attempts": 10463,
+      "target": "slab_weight_shear",
+      "union": 5535,
+      "union_percent": 37.459393611261504
+    },
+    {
+      "histogram": {
+        "0": 14004,
+        "1": 5,
+        "10": 0,
+        "11": 0,
+        "12": 34,
+        "13": 0,
+        "14": 21,
+        "15": 1,
+        "16": 291,
+        "17": 0,
+        "18": 5,
+        "19": 0,
+        "2": 7,
+        "20": 0,
+        "21": 0,
+        "22": 1,
+        "23": 0,
+        "24": 2,
+        "25": 0,
+        "26": 0,
+        "27": 0,
+        "28": 0,
+        "29": 0,
+        "3": 17,
+        "30": 0,
+        "31": 0,
+        "32": 0,
+        "4": 10,
+        "5": 34,
+        "6": 187,
+        "7": 61,
+        "8": 87,
+        "9": 9
+      },
+      "pathways": 32,
+      "slabs": 14776,
+      "successful_attempts": 8139,
+      "target": "slab_weight_shear_with_elasticity",
+      "union": 772,
+      "union_percent": 5.224688684353005
+    }
+  ],
+  "dependencies": {
+    "numpy": "2.3.5",
+    "pandas": "3.0.1",
+    "scipy": "1.17.1",
+    "snowpylot": "1.1.5",
+    "uncertainties": "3.2.3"
+  },
+  "execution_seconds": 91.88124466699082,
+  "machine": "arm64",
+  "parse_failures": [],
+  "parsing_seconds": 11.426196832966525,
+  "pits": 50278,
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "python": "3.13.11",
+  "slabs": 14776
+}

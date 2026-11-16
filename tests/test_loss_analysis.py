@@ -472,14 +472,15 @@ def test_horizontal_stepwise_final_target_and_parameter_method_labels(target):
     for column, symbol in [
         ("density_method", r"$\rho$"),
         ("emod_method", "$E$"),
-        ("nu_method", r"$\nu$"),
+        ("nu_method", r"$\mathcal{\nu}$"),
     ]:
         method = methods[column]
         if method:
             assert f"{METHOD_LABELS[method]} ({symbol})" in figure._suptitle.get_text()
             assert not any(METHOD_LABELS[method] in label for label in labels)
     if target == "slab_weight_shear_with_elasticity":
-        assert "(Join:" in labels[-1] and "$E$" in labels[-1] and r"$\nu$" in labels[-1]
+        assert "(Join:" in labels[-1] and "$E$" in labels[-1]
+        assert r"$\mathcal{\nu}$" in labels[-1]
     plt.close(figure)
 
 

@@ -176,3 +176,13 @@ safety-report.json
 # Local configuration
 local_config.py
 config_local.py
+
+# Compact reviewer evidence is versioned; caches and large ledgers are reproducible.
+!paper_analysis/reviewer_results/*.csv
+!paper/tables/elastic_applicability.csv
+!paper/tables/observation_uncertainty.csv
+!paper/tables/successful_pathway_distribution.csv
+paper_analysis/reviewer_results/*.parquet
+paper_analysis/reviewer_results/*ledger*
+paper_analysis/reviewer_results/*attempt*
+coverage.json

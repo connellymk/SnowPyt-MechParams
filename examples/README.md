@@ -50,3 +50,8 @@ it is not packaged into source distributions.
 historical references, not canonical examples for new workflows. New examples
 should follow the active notebooks and the public imports documented in the root
 README.
+
+For the corrected reviewer-response figures, execute `paper_diagrams.ipynb`,
+`slab_weight_inputs.ipynb`, and `D11_analysis.ipynb` with the notebook workflow in
+[the reviewer evidence index](../paper_analysis/README.md). Figure exports are
+repository-local; external manuscript copying requires an explicit destination.

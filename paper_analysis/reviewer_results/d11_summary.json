@@ -1,0 +1,90 @@
+{
+  "common_pits": 283,
+  "common_slabs": 316,
+  "grain_forms": [
+    "RG"
+  ],
+  "illustrations": [
+    {
+      "quantile": 0.3,
+      "slab_id": "1057_slab_0",
+      "spread_ratio": 31.778037197602032
+    },
+    {
+      "quantile": 0.6,
+      "slab_id": "50003_slab_0",
+      "spread_ratio": 35.90580420862919
+    },
+    {
+      "quantile": 0.9,
+      "slab_id": "14909_slab_0",
+      "spread_ratio": 62.966210819656524
+    }
+  ],
+  "median_relative_uncertainty": {
+    "max": 0.8977186929558909,
+    "median": 0.7583034117516496,
+    "min": 0.48174432473647577,
+    "n": 316,
+    "q25": 0.7583034117516496,
+    "q75": 0.7971615466891209,
+    "q90": 0.8361902680914164
+  },
+  "negative_lower_endpoints": 1044,
+  "nonoverlap_fraction": {
+    "max": 0.6666666666666666,
+    "median": 0.5,
+    "min": 0.26666666666666666,
+    "n": 316,
+    "q25": 0.4,
+    "q75": 0.5,
+    "q90": 0.5666666666666667
+  },
+  "pathways": [
+    "kim_jamieson_table2 -> wautier -> kochle",
+    "geldsetzer -> wautier -> kochle",
+    "geldsetzer -> kochle -> kochle",
+    "geldsetzer -> schottner -> kochle",
+    "kim_jamieson_table2 -> kochle -> kochle",
+    "kim_jamieson_table2 -> schottner -> kochle",
+    "kim_jamieson_table2 -> bergfeld -> kochle",
+    "geldsetzer -> bergfeld -> kochle",
+    "kim_jamieson_table2 -> wautier -> srivastava",
+    "geldsetzer -> wautier -> srivastava",
+    "kim_jamieson_table2 -> schottner -> srivastava",
+    "geldsetzer -> schottner -> srivastava",
+    "kim_jamieson_table2 -> bergfeld -> srivastava",
+    "geldsetzer -> kochle -> srivastava",
+    "kim_jamieson_table2 -> kochle -> srivastava",
+    "geldsetzer -> bergfeld -> srivastava"
+  ],
+  "pooled_relative_uncertainty": {
+    "max": 2.071244625713761,
+    "median": 0.7843525250240571,
+    "min": 0.21360642121059786,
+    "n": 5056,
+    "q25": 0.5584355888637645,
+    "q75": 0.8515857904033877,
+    "q90": 1.0684263131410832
+  },
+  "range_to_interval_width": {
+    "max": 2.012403805192865,
+    "median": 0.8668721040371552,
+    "min": 0.8205129036259802,
+    "n": 316,
+    "q25": 0.866872104037155,
+    "q75": 1.0956639901053897,
+    "q90": 1.2440184240193304
+  },
+  "single_layer_slabs": 257,
+  "slabs_with_any_nonoverlap": 316,
+  "spread_ratio": {
+    "max": 62.96621081965654,
+    "median": 31.778037197602035,
+    "min": 25.69882457437743,
+    "n": 316,
+    "q25": 31.778037197602032,
+    "q75": 51.611391585968875,
+    "q90": 62.966210819656524
+  }
+}

@@ -11,19 +11,17 @@ from typing import Sequence
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import matplotlib.ticker as mticker
-from matplotlib.offsetbox import AnchoredOffsetbox, HPacker, TextArea, VPacker
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 from notebook_utils import (
     DENSITY_COLORS,
     DOUBLE_COL,
     DPI,
-    EXTERNAL_PAPER_FIGURES_DIR,
+    EXTERNAL_PAPER_FIGURES_DIR as EXTERNAL_PAPER_FIGURES_DIR,  # legacy export only
     PAPER_FIGURES_DIR,
     REPO_PAPER_FIGURES_DIR,
+    cm_nu,
 )
 
 COLOR_BORDER = "#404040"
@@ -111,33 +109,35 @@ def paper_figures_dir() -> Path:
 
 
 def save_paper_figure(
-    fig: plt.Figure, stem: str, close: bool = False
+    fig: plt.Figure, stem: str, close: bool = False, *,
+    output_dir: Path | None = None, external_dir: Path | None = None,
 ) -> dict[str, Path]:
-    """Export once, then copy identical files to the manuscript directory."""
-    REPO_PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    EXTERNAL_PAPER_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    """Export locally. External copying requires an explicit destination."""
+    output_dir = Path(output_dir) if output_dir is not None else REPO_PAPER_FIGURES_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+    repo_pdf = output_dir / f"{stem}.pdf"
+    repo_png = output_dir / f"{stem}.png"
 
-    repo_pdf = REPO_PAPER_FIGURES_DIR / f"{stem}.pdf"
-    repo_png = REPO_PAPER_FIGURES_DIR / f"{stem}.png"
-    external_pdf = EXTERNAL_PAPER_FIGURES_DIR / f"{stem}.pdf"
-    external_png = EXTERNAL_PAPER_FIGURES_DIR / f"{stem}.png"
-
+    plt.rcParams["mathtext.cal"] = "cmmi10"
     with _quiet_fonttools_pdf_metadata_warnings():
         fig.savefig(repo_pdf, dpi=DPI, bbox_inches="tight")
     fig.savefig(repo_png, dpi=DPI, bbox_inches="tight")
-    shutil.copy2(repo_pdf, external_pdf)
-    shutil.copy2(repo_png, external_png)
 
     saved_paths: dict[str, Path] = {
         "repo_pdf": repo_pdf,
         "repo_png": repo_png,
-        "external_pdf": external_pdf,
-        "external_png": external_png,
     }
 
     saved_paths["pdf"] = saved_paths["repo_pdf"]
     saved_paths["png"] = saved_paths["repo_png"]
-    saved_paths["external_dir"] = EXTERNAL_PAPER_FIGURES_DIR
+    if external_dir is not None:
+        external_dir = Path(external_dir)
+        external_dir.mkdir(parents=True, exist_ok=True)
+        for kind, source in [("pdf", repo_pdf), ("png", repo_png)]:
+            destination = external_dir / source.name
+            shutil.copy2(source, destination)
+            saved_paths[f"external_{kind}"] = destination
+        saved_paths["external_dir"] = external_dir
     if close:
         plt.close(fig)
     return saved_paths
@@ -317,23 +317,11 @@ DENSITY_BOUNDARIES = [103, 110, 150, 200, 363, 450, 544, 580]
 DENSITY_X_MIN = 0.0
 DENSITY_X_MAX = 600.0
 
+from snowpyt_mechparams.methods.layer._applicability import ELASTIC_DOMAINS, density_bounds
+
 ELASTIC_SUPPORT = {
-    "bergfeld": {
-        "grain_forms": {"PP", "RG", "DF"},
-        "density_ranges": [(110.0, 363.0)],
-    },
-    "kochle": {
-        "grain_forms": {"RG", "FC", "DH", "MF"},
-        "density_ranges": [(150.0, 450.0)],
-    },
-    "wautier": {
-        "grain_forms": {"DF", "RG", "FC", "DH", "MF"},
-        "density_ranges": [(103.0, 544.0)],
-    },
-    "schottner": {
-        "grain_forms": {"DF", "RG", "FC", "DH", "SH"},
-        "density_ranges": [(DENSITY_X_MIN, DENSITY_X_MAX)],
-    },
+    method: {"grain_forms": set(domains), "density_ranges": sorted(set(domains.values()))}
+    for method, domains in ELASTIC_DOMAINS.items()
 }
 
 
@@ -359,7 +347,15 @@ def _schottner_curve(rho: np.ndarray, a: float, n: float) -> np.ndarray:
 
 def build_elastic_modulus_curves_figure() -> plt.Figure:
     """Create the log-scale Young's-modulus parameterization figure."""
-    rho = np.linspace(100.0, 545.0, 600)
+    def domain(grain, method="schottner"):
+        low, high = density_bounds(method, grain)
+        return np.linspace(low, high, 300)
+
+    bergfeld_rho = domain("RG", "bergfeld")
+    wautier_rho = domain("RG", "wautier")
+    low, high = density_bounds("kochle", "RG")
+    kochle_low_rho = np.linspace(low, np.nextafter(250.0, -np.inf), 300)
+    kochle_high_rho = np.linspace(250.0, high, 300)
 
     fig, ax = plt.subplots(figsize=(DOUBLE_COL, 3.15))
     curve_specs = [
@@ -367,56 +363,56 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
             "Bergfeld",
             SUPPORT_METHOD_STYLES["bergfeld"]["color"],
             "-",
-            _bergfeld_curve(rho[(rho >= 110) & (rho <= 363)]),
-            rho[(rho >= 110) & (rho <= 363)],
+            _bergfeld_curve(bergfeld_rho),
+            bergfeld_rho,
             "PP, DF, RG",
         ),
         (
             "Köchle low",
             SUPPORT_METHOD_STYLES["kochle"]["color"],
             "-",
-            _kochle_low_curve(rho[(rho >= 150) & (rho < 250)]),
-            rho[(rho >= 150) & (rho < 250)],
+            _kochle_low_curve(kochle_low_rho),
+            kochle_low_rho,
             "RG, FC, DH, MF",
         ),
         (
             "Köchle high",
             SUPPORT_METHOD_STYLES["kochle"]["color"],
             "--",
-            _kochle_high_curve(rho[(rho >= 250) & (rho <= 450)]),
-            rho[(rho >= 250) & (rho <= 450)],
+            _kochle_high_curve(kochle_high_rho),
+            kochle_high_rho,
             "RG, FC, DH, MF",
         ),
         (
             "Wautier",
             SUPPORT_METHOD_STYLES["wautier"]["color"],
             "-",
-            _wautier_curve(rho[(rho >= 103) & (rho <= 544)]),
-            rho[(rho >= 103) & (rho <= 544)],
-            "DF, RG, FC, DH, MF",
+            _wautier_curve(wautier_rho),
+            wautier_rho,
+            "PP, DF, RG, FC, DH, MF",
         ),
         (
             "Schöttner DF/RG",
             SUPPORT_METHOD_STYLES["schottner"]["color"],
             "-",
-            _schottner_curve(rho, 0.40, 4.6),
-            rho,
+            _schottner_curve(domain("RG"), 0.40, 4.6),
+            domain("RG"),
             "DF, RG",
         ),
         (
             "Schöttner FC/DH",
             SUPPORT_METHOD_STYLES["schottner"]["color"],
             "--",
-            _schottner_curve(rho, 1.8, 5.1),
-            rho,
+            _schottner_curve(domain("FC"), 1.8, 5.1),
+            domain("FC"),
             "FC, DH",
         ),
         (
             "Schöttner SH",
             SUPPORT_METHOD_STYLES["schottner"]["color"],
             ":",
-            _schottner_curve(rho, 0.011, 1.7),
-            rho,
+            _schottner_curve(domain("SH"), 0.011, 1.7),
+            domain("SH"),
             "SH",
         ),
     ]
@@ -430,7 +426,7 @@ def build_elastic_modulus_curves_figure() -> plt.Figure:
             linewidth=2.1 if "Wautier" in label else 1.8,
             label=f"{label} ({grain_forms})",
         )
-    ax.set_xlim(100, 550)
+    ax.set_xlim(60, 550)
     ax.set_yscale("log")
     ax.set_ylim(0.3, 5000)
     ax.set_xlabel(r"Density, $\rho$ (kg m$^{-3}$)")
@@ -468,10 +464,8 @@ def _density_method_supports(method: str, grain_form: str, hhi: float) -> bool:
 def _elastic_supported_ranges(
     method: str, grain_form: str
 ) -> list[tuple[float, float]]:
-    support = ELASTIC_SUPPORT[method]
-    if _main_grain_form(grain_form) not in support["grain_forms"]:
-        return []
-    return support["density_ranges"]
+    bounds = density_bounds(method, grain_form)
+    return [bounds] if bounds is not None else []
 
 
 def _poissons_supported_ranges(
@@ -649,40 +643,25 @@ def _style_support_panel(ax: plt.Axes, panel_label: str, title: str) -> None:
 
 
 def build_method_support_matrices_figure() -> plt.Figure:
-    """Create the density-method support matrix."""
-    fig, ax = plt.subplots(figsize=(DOUBLE_COL, 4.05))
-
-    _draw_density_support_panel(ax)
-    _style_support_panel(ax, "", "")
-
-    handles = [
-        mpatches.Patch(
-            facecolor=SUPPORT_METHOD_STYLES[method]["color"],
-            edgecolor=COLOR_BORDER,
-            label=SUPPORT_METHOD_STYLES[method]["label"],
-        )
-        for method in DENSITY_SUPPORT_METHODS
-    ]
-    handles.append(
-        mpatches.Patch(
-            facecolor="white",
-            edgecolor="#8F8F8F",
-            label="Unsupported",
-        )
-    )
-    fig.legend(
-        handles=handles,
-        loc="lower center",
-        ncol=4,
-        frameon=False,
-        bbox_to_anchor=(0.50, 0.005),
-        fontsize=7.5,
-        title="Density method (lanes top to bottom)",
-        title_fontsize=7.5,
-        columnspacing=0.95,
-        handlelength=1.4,
-    )
-    fig.subplots_adjust(left=0.085, right=0.99, top=0.91, bottom=0.23)
+    """One readable support matrix per density method."""
+    from matplotlib.colors import ListedColormap
+    hardness = list(HARDNESS_MAPPING.items())
+    fig, axes = plt.subplots(3, 1, figsize=(DOUBLE_COL, 7.2), sharex=True, sharey=True)
+    for ax, method in zip(axes, DENSITY_SUPPORT_METHODS):
+        values = [[_density_method_supports(method, grain, hhi) for _, hhi in hardness]
+                  for grain in SUPPORT_GRAIN_FORM_ORDER]
+        ax.imshow(values, aspect="auto", vmin=0, vmax=1,
+                  cmap=ListedColormap(["white", SUPPORT_METHOD_STYLES[method]["color"]]))
+        ax.set_yticks(range(len(SUPPORT_GRAIN_FORM_ORDER)), SUPPORT_GRAIN_FORM_ORDER, fontsize=8)
+        ax.set_xticks(range(len(hardness)), [code for code, _ in hardness], fontsize=8)
+        ax.set_xticks(np.arange(-0.5, len(hardness), 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, len(SUPPORT_GRAIN_FORM_ORDER), 1), minor=True)
+        ax.grid(which="minor", color="#cccccc", linewidth=0.4)
+        ax.tick_params(which="both", length=0)
+        ax.set_title(method_label(method, short=True), loc="left", fontweight="bold")
+        ax.set_ylabel("Grain form")
+    axes[-1].set_xlabel("Hand hardness (white cells: unsupported)")
+    fig.tight_layout(h_pad=1.2)
     return fig
 
 
@@ -699,7 +678,7 @@ def build_elastic_applicability_figure() -> plt.Figure:
         axes,
         ["elastic_modulus", "poissons_ratio"],
         [ELASTIC_SUPPORT_METHODS, POISSONS_SUPPORT_METHODS],
-        [r"(a) Young's modulus, $E$", r"(b) Poisson's ratio, $\nu$"],
+        [r"(a) Young's modulus, $E$", cm_nu(r"(b) Poisson's ratio, $\nu$")],
         strict=True,
     ):
         lane_height = 0.76 / len(methods)
@@ -712,7 +691,7 @@ def build_elastic_applicability_figure() -> plt.Figure:
                 color = SUPPORT_METHOD_STYLES[method]["color"]
                 center = row - 0.38 + (lane + 0.5) * lane_height
                 for low, high in _parameter_supported_ranges(method, grain, parameter):
-                    unbounded_low = method == "schottner" or (
+                    unbounded_low = (
                         parameter == "poissons_ratio" and method == "kochle"
                     )
                     unbounded_high = unbounded_low or (
@@ -820,11 +799,11 @@ def build_slab_weight_coverage_comparison_figure(
         )
     ]
     elasticity_plot["label"] = [
-        (
+        cm_nu(
             rf"$\rho$ {method_label(dm, short=True)}"
             "\n"
             rf"$E$ {method_label(em, short=True)}"
-            "\n"
+            " / "
             rf"$\nu$ {method_label(nu, short=True)} ({int(count):,})"
         )
         for dm, em, nu, count in zip(
@@ -839,7 +818,7 @@ def build_slab_weight_coverage_comparison_figure(
     fig, axes = plt.subplots(
         1,
         2,
-        figsize=(DOUBLE_COL, 5.05),
+        figsize=(DOUBLE_COL, 5.6),
         sharey=False,
         gridspec_kw={"width_ratios": [4, 9]},
     )
@@ -917,7 +896,7 @@ def build_slab_weight_coverage_comparison_figure(
                 clip_on=False,
             )
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(labels, fontsize=6.2)
+        ax.set_yticklabels(labels, fontsize=7)
         ax.invert_yaxis()
 
     axes[0].set_title(
@@ -933,7 +912,7 @@ def build_slab_weight_coverage_comparison_figure(
     axes[0].set_ylabel("Coverage of ECTP slabs (%)", fontsize=8.0)
 
     axes[1].set_title(
-        r"(b) Shear weight ($W_{\mathrm{shear}}$) with elastic inputs ($E$, $\nu$)",
+        cm_nu(r"(b) Shear weight ($W_{\mathrm{shear}}$) with elastic inputs ($E$, $\nu$)"),
         loc="left",
         fontsize=8.5,
         fontweight="bold",
@@ -968,7 +947,7 @@ def build_slab_weight_coverage_comparison_figure(
     for ax in axes:
         ax.tick_params(axis="x", labelsize=6.6)
     axes[0].tick_params(axis="y", labelsize=7.5)
-    axes[1].tick_params(axis="y", labelsize=6.2)
+    axes[1].tick_params(axis="y", labelsize=7)
 
     legend_handles = [
         mpatches.Patch(
@@ -992,7 +971,7 @@ def build_slab_weight_coverage_comparison_figure(
         columnspacing=1.2,
         handlelength=1.5,
     )
-    fig.subplots_adjust(left=0.09, right=0.985, top=0.91, bottom=0.31, wspace=0.50)
+    fig.subplots_adjust(left=0.09, right=0.985, top=0.91, bottom=0.31, wspace=0.70)
     return fig
 
 
@@ -1069,7 +1048,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
         ax.text(
             0.05,
             y_pos - 0.01,
-            label,
+            cm_nu(label),
             ha="left",
             va="center",
             fontsize=8.5,
@@ -1089,7 +1068,7 @@ def build_slab_weight_shear_with_elasticity_attrition_figure(
             ax.text(
                 0.76,
                 y_pos - 0.01,
-                method_steps[idx],
+                cm_nu(method_steps[idx]),
                 ha="left",
                 va="center",
                 fontsize=8.0,
@@ -1357,147 +1336,18 @@ def build_d11_faceted_paired_ratio_figure(
     selected_paths: Sequence[str],
     pathway_coverage: dict[str, int] | None = None,
 ) -> plt.Figure:
-    """Create a 4-panel faceted paired-ratio plot grouped by Young's-modulus method.
-
-    Parameters
-    ----------
-    pathway_coverage : dict mapping pathway key -> total successful slabs
-        When provided, each box row is annotated with ``n = <count>`` on
-        the right-hand side.
-    """
-    sorted_paths = sort_pathways_by_emod_group(list(selected_paths))
-
-    emod_groups: dict[str, list[str]] = {}
-    for pathway in sorted_paths:
-        _, emod, _ = _parse_pathway(pathway)
-        emod_groups.setdefault(emod, []).append(pathway)
-
-    active_emods = [e for e in EMOD_METHOD_ORDER if e in emod_groups]
-    n_panels = len(active_emods)
-
-    max_rows = max(len(emod_groups[e]) for e in active_emods)
-    panel_height = max(1.45, 0.30 * max_rows + 0.35)
-    fig, axes = plt.subplots(
-        n_panels,
-        1,
-        figsize=(DOUBLE_COL, panel_height * n_panels + 0.85),
-        sharex=True,
-        squeeze=False,
-    )
-    axes = axes.ravel()
-
-    for panel_idx, emod in enumerate(active_emods):
-        ax = axes[panel_idx]
-        panel_pathways = emod_groups[emod]
-        ratio_data: list[np.ndarray] = []
-        labels: list[str] = []
-        coverage_counts: list[int | None] = []
-
-        for pathway in panel_pathways:
-            density, _, nu = _parse_pathway(pathway)
-            rows = paired_effects[paired_effects["pathway"] == pathway]
-            ratios = np.asarray(rows["pathway_ratio"], dtype=float)
-            ratios = ratios[np.isfinite(ratios) & (ratios > 0)]
-            if ratios.size == 0:
-                continue
-            ratio_data.append(ratios)
-            labels.append(
-                rf"$\rho$: {method_label(density, short=True)}  "
-                rf"$\nu$: {method_label(nu, short=True)}"
-            )
-            coverage_counts.append(
-                pathway_coverage.get(pathway) if pathway_coverage else None
-            )
-
-        if not ratio_data:
-            ax.set_visible(False)
-            continue
-
-        box = ax.boxplot(
-            ratio_data,
-            vert=False,
-            patch_artist=True,
-            widths=0.55,
-            showfliers=True,
-            medianprops={"color": "#222222", "linewidth": 1.0},
-            whiskerprops={"color": "#555555", "linewidth": 0.8},
-            capprops={"color": "#555555", "linewidth": 0.8},
-            flierprops={
-                "marker": ".",
-                "markerfacecolor": "#555555",
-                "markeredgecolor": "#555555",
-                "markersize": 2.2,
-                "alpha": 0.45,
-            },
-        )
-        emod_color = SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})["color"]
-        for patch in box["boxes"]:
-            patch.set_facecolor(emod_color)
-            patch.set_edgecolor(COLOR_BORDER)
-            patch.set_hatch(EMOD_METHOD_HATCHES.get(emod, ""))
-            patch.set_alpha(0.75)
-
-        if pathway_coverage:
-            for y_pos, count in enumerate(coverage_counts, start=1):
-                if count is not None:
-                    ax.text(
-                        0.99,
-                        y_pos,
-                        f"n = {count:,}",
-                        transform=ax.get_yaxis_transform(),
-                        ha="right",
-                        va="center",
-                        fontsize=6.4,
-                        color="#555555",
-                    )
-
-        ax.axvline(1.0, color=COLOR_BORDER, linewidth=0.9, linestyle="--", zorder=0)
-        ax.set_yticks(range(1, len(labels) + 1))
-        ax.set_yticklabels(labels, fontsize=7.0)
-        ax.invert_yaxis()
-        ax.text(
-            0.01,
-            1.05,
-            _emod_panel_label(panel_idx, emod),
-            transform=ax.transAxes,
-            ha="left",
-            va="bottom",
-            fontsize=8.5,
-            fontweight="bold",
-        )
-        _setup_publication_axes(ax, x_grid=True, y_grid=False)
-
-    for ax in axes:
-        ax.set_xscale("log")
-        ax.set_xlim(0.1, 22.0)
-        ax.xaxis.set_major_locator(mticker.LogLocator(base=10, numticks=4))
-        ax.xaxis.set_major_formatter(mticker.LogFormatterMathtext(base=10))
-        ax.tick_params(axis="x", labelsize=7.5)
-    axes[-1].set_xlabel(r"$D_{11}$ ratio", fontsize=8.5)
-    emod_handles = [
-        mpatches.Patch(
-            facecolor=SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})[
-                "color"
-            ],
-            edgecolor=COLOR_BORDER,
-            hatch=EMOD_METHOD_HATCHES.get(emod, ""),
-            label=method_label(emod, short=True),
-            alpha=0.75,
-        )
-        for emod in active_emods
-    ]
-    fig.legend(
-        handles=emod_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.005),
-        ncol=len(emod_handles),
-        frameon=False,
-        fontsize=7.5,
-        title="Young's modulus method",
-        title_fontsize=7.2,
-    )
-    fig.tight_layout(pad=0.5)
-    fig.subplots_adjust(hspace=0.45, bottom=0.12)
+    """Retain the reviewer revision's compact, shared-label paired-ratio plot."""
+    paths = sort_pathways_by_emod_group(list(selected_paths))
+    labels = [" / ".join(method_label(m, short=True) for m in _parse_pathway(p)) for p in paths]
+    if pathway_coverage:
+        labels = [f"{label} (n={pathway_coverage[path]})" for label, path in zip(labels, paths)]
+    fig, ax = plt.subplots(figsize=(9, 7), layout="constrained")
+    ax.boxplot([paired_effects.loc[paired_effects.pathway == p, "pathway_ratio"] for p in paths],
+               orientation="horizontal", tick_labels=labels, showfliers=False)
+    ax.axvline(1, color="#aaa", ls="--")
+    ax.set_xscale("log")
+    ax.set_xlabel(r"$D_{11}$ / within-slab median $D_{11}$")
+    ax.tick_params(axis="y", labelsize=9)
     return fig
 
 
@@ -1512,192 +1362,54 @@ def build_d11_quantile_slab_uncertainty_figure(
     pit_id_labels: Sequence[str] | None = None,
     slab_heights_cm: Sequence[float] | None = None,
 ) -> plt.Figure:
-    """Create a multi-panel slab dot plot for selected spread-ratio percentiles."""
-    sorted_paths = sort_pathways_by_emod_group(list(selected_paths))
-    n_slabs = len(selected_slab_indices)
-
-    if quantile_labels is None:
-        quantile_labels = [f"Slab {i + 1}" for i in range(n_slabs)]
-
-    emod_boundaries: list[int] = []
-    current_emod = ""
-    for i, pw in enumerate(sorted_paths):
-        _, emod, _ = _parse_pathway(pw)
-        if emod != current_emod:
-            if i > 0:
-                emod_boundaries.append(i)
-            current_emod = emod
-
-    fig, axes = plt.subplots(
-        n_slabs,
-        1,
-        figsize=(DOUBLE_COL, 2.42 * n_slabs),
-        sharex=False,
-        squeeze=False,
-    )
-    axes = axes.ravel()
-
-    for ax_idx, slab_idx in enumerate(selected_slab_indices):
-        ax = axes[ax_idx]
-        slab_rows = d11_common[d11_common["slab_index"] == slab_idx].copy()
-        slab_rows = slab_rows.set_index("pathway").reindex(sorted_paths).reset_index()
-
-        y_positions = np.arange(len(sorted_paths))
-        d11_nom = slab_rows["D11_nominal"].to_numpy(dtype=float)
-        d11_unc = np.nan_to_num(
-            slab_rows["D11_std"].to_numpy(dtype=float), nan=0.0
-        )
-        d11_unc = np.clip(d11_unc, 0.0, None)
-        xerr_lower = d11_unc
-        xerr_upper = d11_unc
-        finite_points = np.isfinite(d11_nom) & (d11_nom > 0)
-        x_lower = d11_nom[finite_points] - d11_unc[finite_points]
-        x_upper = d11_nom[finite_points] + d11_unc[finite_points]
-        x_min = float(np.nanmin(x_lower))
-        x_max = float(np.nanmax(x_upper))
-        x_span = x_max - x_min
-        x_pad = 0.05 * x_span if x_span > 0 else max(abs(x_max), 1.0) * 0.05
-        x_min = min(x_min - x_pad, 0.0)
-        x_max += x_pad
-
-        emod_colors = []
-        for pw in sorted_paths:
-            _, emod, _ = _parse_pathway(pw)
-            emod_colors.append(
-                SUPPORT_METHOD_STYLES.get(emod, {"color": "#888888"})["color"]
-            )
-
-        for i in range(len(sorted_paths)):
-            if not np.isfinite(d11_nom[i]) or d11_nom[i] <= 0:
-                continue
-            _, emod, _ = _parse_pathway(sorted_paths[i])
-            ax.errorbar(
-                d11_nom[i],
-                y_positions[i],
-                xerr=np.array([[xerr_lower[i]], [xerr_upper[i]]]),
-                fmt=EMOD_METHOD_MARKERS.get(emod, "o"),
-                capsize=3,
-                markersize=4.5,
-                color=emod_colors[i],
-                markeredgecolor=COLOR_BORDER,
-                markeredgewidth=0.45,
-                ecolor="#555555",
-                elinewidth=0.9,
-                zorder=3,
-            )
-
-        for boundary in emod_boundaries:
-            ax.axhline(
-                boundary - 0.5,
-                color="#CCCCCC",
-                linewidth=0.6,
-                linestyle="--",
-                zorder=1,
-            )
-
-        pathway_labels = []
-        for pw in sorted_paths:
-            density, emod, nu = _parse_pathway(pw)
-            pathway_labels.append(
-                f"{method_label(density, short=True)} / "
-                f"{method_label(emod, short=True)} / "
-                f"{method_label(nu, short=True)}"
-            )
-        ax.set_yticks(y_positions)
-        ax.set_yticklabels(pathway_labels, fontsize=6.4)
-        ax.invert_yaxis()
-
-        title_rows: list[TextArea | HPacker] = []
-        if pit_id_labels is not None:
-            title_rows.append(
-                HPacker(
-                    children=[
-                        TextArea(
-                            f"Pit ID: {pit_id_labels[ax_idx]}",
-                            textprops={"fontsize": 7.7, "fontweight": "bold"},
-                        ),
-                        TextArea(
-                            f", {quantile_labels[ax_idx]}",
-                            textprops={"fontsize": 7.7},
-                        ),
-                    ],
-                    align="baseline",
-                    pad=0,
-                    sep=0,
-                )
-            )
-        else:
-            title_rows.append(
-                TextArea(quantile_labels[ax_idx], textprops={"fontsize": 7.7})
-            )
-
-        row_two: list[str] = []
-        if spread_ratios is not None:
-            row_two.append(f"spread ratio = {spread_ratios[ax_idx]:.1f}")
-        if slab_heights_cm is not None:
-            row_two.append(f"H = {slab_heights_cm[ax_idx]:.0f} cm")
-        if row_two:
-            title_rows.append(
-                TextArea(", ".join(row_two), textprops={"fontsize": 7.7})
-            )
-        if slab_metadata_labels is not None:
-            title_rows.append(
-                TextArea(
-                    slab_metadata_labels[ax_idx], textprops={"fontsize": 7.7}
-                )
-            )
-        title_box = VPacker(children=title_rows, align="left", pad=0, sep=1.5)
-        ax.add_artist(
-            AnchoredOffsetbox(
-                loc="lower left",
-                child=title_box,
-                frameon=False,
-                bbox_to_anchor=(0.0, 1.02),
-                bbox_transform=ax.transAxes,
-                borderpad=0,
-                pad=0,
-            )
-        )
-
-        ax.set_xlim(x_min, x_max)
+    """Three larger panels sharing pathway labels; symmetric SDs are not clipped."""
+    paths = sort_pathways_by_emod_group(list(selected_paths))
+    fig, axes = plt.subplots(1, len(selected_slab_indices), figsize=(13, 7),
+                             sharey=True, squeeze=False, layout="constrained")
+    for i, (ax, slab_index) in enumerate(zip(axes.flat, selected_slab_indices)):
+        rows = d11_common[d11_common.slab_index == slab_index].set_index("pathway").reindex(paths)
+        ax.errorbar(rows.D11_nominal, np.arange(len(paths)), xerr=rows.D11_std,
+                    fmt="o", markersize=4, color="#2b7c85", capsize=2)
+        title = quantile_labels[i] if quantile_labels else f"Slab {slab_index}"
+        if pit_id_labels: title += f": pit {pit_id_labels[i]}"
+        if spread_ratios: title += f"\nSpread {spread_ratios[i]:.2f}×"
+        if slab_heights_cm: title += f", H = {slab_heights_cm[i]:g} cm"
+        if slab_metadata_labels:
+            title += "\n" + (slab_metadata_labels[i].replace("Layer ", "L")
+                              .replace(": HH = ", ": ").replace(", grain form = ", ", ")
+                              .replace("; ", "\n"))
+        ax.set_title(title, fontsize=9)
+        ax.axvline(0, color="#aaa", lw=0.7)
+        ax.set_xlabel(r"$D_{11}$ (N mm)")
         ax.ticklabel_format(axis="x", style="sci", scilimits=(0, 0))
-        ax.tick_params(axis="x", labelsize=7.2)
-        _setup_publication_axes(ax, x_grid=True, y_grid=False)
-
-    axes[-1].set_xlabel(r"$D_{11}$ (N mm)", fontsize=8.2)
-
-    emod_handles = [
-        plt.Line2D(
-            [],
-            [],
-            color=SUPPORT_METHOD_STYLES[emod]["color"],
-            marker=EMOD_METHOD_MARKERS.get(emod, "o"),
-            linestyle="None",
-            markeredgecolor=COLOR_BORDER,
-            markeredgewidth=0.45,
-            markersize=5.2,
-            label=method_label(emod, short=True),
-        )
-        for emod in EMOD_METHOD_ORDER
-        if emod in SUPPORT_METHOD_STYLES
-    ]
-    fig.legend(
-        handles=emod_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.005),
-        ncol=len(emod_handles),
-        frameon=False,
-        fontsize=7.5,
-        title="Young's modulus method",
-        title_fontsize=7.2,
-    )
-
-    legend_bottom = 0.105 if n_slabs <= 3 else 0.075
-    fig.tight_layout(pad=0.5)
-    fig.subplots_adjust(hspace=0.78, bottom=legend_bottom)
+    axes.flat[0].set_yticks(range(len(paths)), [" / ".join(method_label(m, short=True) for m in _parse_pathway(p)) for p in paths], fontsize=9)
+    axes.flat[0].invert_yaxis()
+    fig.suptitle("Approximate propagated measurement uncertainty (±1 SD)", fontsize=11)
     return fig
 
 
 def notebook_latex(df: pd.DataFrame) -> str:
     """Return a compact LaTeX string for notebook display."""
     return df.to_latex(index=False, escape=False)
+
+
+def build_density_pathways_figure() -> plt.Figure:
+    """Four density pathways displaying only the observations and active edges."""
+    fig, axes = plt.subplots(2, 2, figsize=(9, 5), layout="constrained")
+    specs = [("Measured density", ["Matched density\nsample"], "Direct transfer"),
+             ("Geldsetzer", ["Hand hardness", "Grain form"], "Geldsetzer"),
+             ("Kim T2", ["Hand hardness", "Grain form"], "Kim T2"),
+             ("Kim T6", ["Hand hardness", "Grain form", "Grain size"], "Kim T6")]
+    for ax, (title, inputs, method) in zip(axes.flat, specs):
+        ax.set(xlim=(0, 1), ylim=(0, 1))
+        ax.axis("off")
+        ax.set_title(title, loc="left", fontweight="bold")
+        ys = np.linspace(0.25, 0.75, len(inputs)) if len(inputs) > 1 else [0.5]
+        for y, label in zip(ys, inputs):
+            ax.text(0.01, y, label, va="center", fontsize=10)
+            ax.annotate("", xy=(0.47, 0.5), xytext=(0.34, y),
+                        arrowprops={"arrowstyle": "->", "color": "#555"})
+        ax.text(0.49, 0.5, method, va="center", fontsize=10)
+        ax.annotate("", xy=(0.91, 0.5), xytext=(0.79, 0.5), arrowprops={"arrowstyle": "->"})
+        ax.text(0.94, 0.5, r"$\rho$", va="center", fontsize=13)
+    return fig

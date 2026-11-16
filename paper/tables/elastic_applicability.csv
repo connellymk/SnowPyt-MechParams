@@ -1,0 +1,27 @@
+Parameter,Method,Parent grain,Density minimum kg/m3,Density maximum kg/m3,Qualification
+E,Bergfeld,PP,110.0,363.0,Source domain mapped to two-character parent class
+E,Bergfeld,DF,110.0,363.0,Source domain mapped to two-character parent class
+E,Bergfeld,RG,110.0,363.0,Source domain mapped to two-character parent class
+E,Kochle,RG,150.0,450.0,Source domain mapped to two-character parent class
+E,Kochle,FC,150.0,450.0,Source domain mapped to two-character parent class
+E,Kochle,DH,150.0,450.0,Source domain mapped to two-character parent class
+E,Kochle,MF,150.0,450.0,MF inclusion is an implementation choice; source reports distinct MF behavior
+E,Wautier,PP,103.0,544.0,Source domain mapped to two-character parent class
+E,Wautier,DF,103.0,544.0,Source domain mapped to two-character parent class
+E,Wautier,RG,103.0,544.0,Source domain mapped to two-character parent class
+E,Wautier,FC,103.0,544.0,Source domain mapped to two-character parent class
+E,Wautier,DH,103.0,544.0,Source domain mapped to two-character parent class
+E,Wautier,MF,103.0,544.0,Source domain mapped to two-character parent class
+E,Schottner,SH,67.8358,175.0897,Author-supplied volume fractions times 916.7; equation uses 917
+E,Schottner,DF,148.5054,355.6796,Author-supplied volume fractions times 916.7; equation uses 917
+E,Schottner,RG,148.5054,355.6796,Author-supplied volume fractions times 916.7; equation uses 917
+E,Schottner,FC,150.3388,462.9335,Author-supplied volume fractions times 916.7; equation uses 917
+E,Schottner,DH,150.3388,462.9335,Author-supplied volume fractions times 916.7; equation uses 917
+nu,Köchle,RG,,,No numerical density limit implemented; source reports no density correlation
+nu,Köchle,FC,,,No numerical density limit implemented; source reports no density correlation
+nu,Köchle,DH,,,No numerical density limit implemented; source reports no density correlation
+nu,Srivastava,PP,200.0,,Lower density bound is strict (>200); RG upper bound inclusive
+nu,Srivastava,DF,200.0,,Lower density bound is strict (>200); RG upper bound inclusive
+nu,Srivastava,RG,200.0,580.0,Lower density bound is strict (>200); RG upper bound inclusive
+nu,Srivastava,FC,200.0,,Lower density bound is strict (>200); RG upper bound inclusive
+nu,Srivastava,DH,200.0,,Lower density bound is strict (>200); RG upper bound inclusive

@@ -389,7 +389,9 @@ def _calculate_density_kim_jamieson_table6(
         - MF: 4F+ to P+
     grain_size : UncertainValue
         Grain size in mm with measurement uncertainty already applied
-        (``ufloat(gs, U_GRAIN_SIZE)``). Obtain via ``Layer.grain_size_avg``.
+        (the parser assigns ``ufloat(gs, abs(gs) * 0.48)``).
+        Obtain via ``Layer.grain_size_avg``; this symmetric approximation cannot
+        represent the proposed asymmetric grain-size percentile bounds.
 
     Returns
     -------

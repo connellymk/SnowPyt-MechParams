@@ -9,7 +9,7 @@ from uncertainties import ufloat as _ufloat
 
 from snowpyt_mechparams.constants import (
     U_DENSITY_FRACTION,
-    U_GRAIN_SIZE,
+    U_GRAIN_SIZE_FRACTION,
     U_SLOPE_ANGLE,
     U_THICKNESS_FRACTION,
 )
@@ -151,7 +151,7 @@ def _create_layers(snow_pit: Any) -> List[Layer]:
                     if isinstance(grain_size_data, (list, tuple))
                     else grain_size_data
                 )
-                grain_size_avg = _ufloat(gs, U_GRAIN_SIZE)
+                grain_size_avg = _ufloat(gs, abs(gs) * U_GRAIN_SIZE_FRACTION)
 
         density_measured: Optional[UncertainValue] = None
         try:

@@ -111,7 +111,9 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     - The origin (z = 0) is at the geometric centroid of the slab
     - For a slab with total thickness h, z ranges from -h/2 (bottom) to +h/2 (top)
     - Layers are ordered from top to bottom in the Slab object
-    - Layer boundaries are calculated based on cumulative thickness from the top
+    - Layer tops use measured depths; bottoms add the measured thickness.
+    - The reference is first layer top plus half the sum of layer thicknesses.
+      Gaps are retained; this is not the midpoint of the bounding interval when gaps exist.
 
     Unit Conversions:
     - Input elastic modulus: MPa = N/mm²
@@ -123,8 +125,8 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     - D11 represents the bending moment per unit width required to produce
       unit curvature in the slab
     - Higher values indicate a stiffer slab that resists bending
-    - Bending stiffness increases with the cube of the distance from the
-      neutral axis, making layer position critical
+    - The integral weights stiffness by squared distance from the reference
+      plane; its antiderivative uses cubed boundary coordinates
     - Layering effects can be dramatic: a stiff layer far from the centroid
       contributes much more than the same layer near the centroid
 
@@ -136,8 +138,9 @@ def _calculate_D11_weissgraeber_rosendahl(slab: Slab) -> UncertainValue:
     - Assumes homogeneous and isotropic properties within each layer
     - Assumes small deformations (linear beam theory)
     - Does not account for temperature effects on material properties
-    - The neutral axis is assumed to be at the geometric centroid, which is
-      exact only for symmetric layering or uniform properties
+    - The geometric reference plane is not generally the stiffness-weighted
+      neutral axis. D11 here is the reference-plane coefficient, not a
+      bending-extension-decoupled rigidity
 
     References
     ----------

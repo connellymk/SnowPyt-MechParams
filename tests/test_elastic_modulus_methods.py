@@ -244,9 +244,9 @@ class TestSchottnerNumerical:
         )
         assert result.nominal_value == pytest.approx(expected, rel=1e-3)
 
-    def test_SH_rho_200(self):
-        rho = ufloat(200.0, 0.0)
-        expected = 10000.0 * 0.011 * (200.0 / RHO_ICE) ** 1.7
+    def test_SH_rho_150(self):
+        rho = ufloat(150.0, 0.0)
+        expected = 10000.0 * 0.011 * (150.0 / RHO_ICE) ** 1.7
         result = calculate_elastic_modulus(
             "schottner",
             density=rho,

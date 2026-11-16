@@ -1,6 +1,6 @@
 {
-  "D11_diagnostics_seconds": 54.67829866701504,
-  "audit_seconds": 15.32031924999319,
+  "D11_diagnostics_seconds": 61.73463745799381,
+  "audit_seconds": 17.378896499983966,
   "contributing_pits": 12347,
   "density_observations": 19118,
   "density_observations_ambiguous": 0,
@@ -41,8 +41,8 @@
     "failure_depth_outside_layers": 283,
     "no_overlying_layer": 197
   },
-  "slab_weight_shear_diagnostics_seconds": 4.988836249976885,
-  "slab_weight_shear_with_elasticity_diagnostics_seconds": 60.15387312503299,
+  "slab_weight_shear_diagnostics_seconds": 5.598464459006209,
+  "slab_weight_shear_with_elasticity_diagnostics_seconds": 66.83089458296308,
   "slabs": 14776,
   "slabs_per_pit_distribution": {
     "1": 10234,

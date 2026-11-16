@@ -195,17 +195,17 @@
   ],
   "dependencies": {
     "numpy": "2.3.5",
-    "pandas": "3.0.1",
-    "scipy": "1.17.1",
-    "snowpylot": "1.1.5",
+    "pandas": "3.0.0",
+    "scipy": "1.17.0",
+    "snowpylot": "1.1.3",
     "uncertainties": "3.2.3"
   },
-  "execution_seconds": 88.87245654204162,
+  "execution_seconds": 106.22221795801306,
   "machine": "arm64",
   "parse_failures": [],
-  "parsing_seconds": 12.057098249963019,
+  "parsing_seconds": 14.969148791977204,
   "pits": 50278,
   "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
-  "python": "3.13.11",
+  "python": "3.14.7",
   "slabs": 14776
 }

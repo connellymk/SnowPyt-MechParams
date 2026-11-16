@@ -283,15 +283,15 @@ The earlier validation run at `eb53d7453b8ff406cfd934cb7d3307d55a39ab12` passed 
 For this limited-propagation revision, 848 tests passed. Fresh checks and source hashes are recorded separately under `limited_propagation_revision`; historical coverage measurements above have not been relabeled as a new measurement.
 
 On the recorded machine, corrected parsing and slab construction took
-12.06 s and full-cohort execution of all
-three targets took 88.87 s.
+14.97 s and full-cohort execution of all
+three targets took 106.22 s.
 Deterministic subset execution timings (seconds; three repeats, fresh engine,
 uncontrolled warm filesystem cache) were:
 
 | slabs | count | min | median | max |
 | --- | --- | --- | --- | --- |
-| 100 | 3 | 0.538 | 0.553 | 0.666 |
-| 1000 | 3 | 5.885 | 6.088 | 6.321 |
+| 100 | 3 | 0.641 | 0.645 | 0.654 |
+| 1000 | 3 | 6.926 | 7.267 | 7.531 |
 
 Auditing, each diagnostic target and rendering are timed separately in the saved
 metadata. These measurements do not establish operational or real-time suitability.

@@ -389,7 +389,7 @@ class MethodSpec:
 | **elastic_modulus** | `bergfeld` | layer | density, grain_form | Bergfeld et al. (2023) |
 | | `kochle` | layer | density, grain_form | Köchle & Schneebeli (2014) |
 | | `wautier` | layer | density, grain_form | Wautier et al. (2015) |
-| | `schottner` | layer | density, grain_form | Scapozza (2004) via Schöttner |
+| | `schottner` | layer | density, grain_form | Schöttner et al. (2026) |
 | **poissons_ratio** | `kochle` | layer | grain_form | Köchle (grain-form dependent) |
 | | `srivastava` | layer | density, grain_form | Srivastava et al. (2016) |
 | **shear_modulus** | `lame_relationship` | layer | elastic_modulus, poissons_ratio | Isotropic Lamé relationship: G = E / (2(1 + ν)) |

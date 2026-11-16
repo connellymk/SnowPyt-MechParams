@@ -1,0 +1,76 @@
+{
+  "coverage_and_first_failure_reconciliation": {
+    "D11": {
+      "attempts": 472832,
+      "first_failure_losses": 464289,
+      "successful_attempts": 8543,
+      "union_slabs": 823
+    },
+    "slab_weight_shear": {
+      "attempts": 59104,
+      "first_failure_losses": 48641,
+      "successful_attempts": 10463,
+      "union_slabs": 5535
+    },
+    "slab_weight_shear_with_elasticity": {
+      "attempts": 472832,
+      "first_failure_losses": 464861,
+      "successful_attempts": 7971,
+      "union_slabs": 772
+    }
+  },
+  "git_diff_check": "passed",
+  "independent_verification": {
+    "matched_unavailable_outputs": 4711,
+    "maximum_nominal_difference": 4.547e-13,
+    "maximum_sd_difference": 2.558e-13,
+    "numeric_comparisons": 3037,
+    "pathways": 36,
+    "selected_cases": 394
+  },
+  "method_coverage": {
+    "each_exceeds_98_percent_statement_and_branch": true,
+    "modules": 17,
+    "named_functions": 59
+  },
+  "notebook_execution": {
+    "clean_kernels": true,
+    "wall_seconds": {
+      "examples/D11_analysis.ipynb": 97.85,
+      "examples/paper_diagrams.ipynb": 2.12,
+      "examples/slab_weight_inputs.ipynb": 67.07,
+      "paper_analysis/hand-verification.ipynb": 81.33,
+      "paper_analysis/loss-analysis.ipynb": 152.44,
+      "paper_analysis/reviewer_evidence.ipynb": 216.31
+    }
+  },
+  "protected_original_files": {
+    "changed": [],
+    "files_checked": 54927
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest --cov=snowpyt_mechparams --cov-branch --cov-report=json:coverage.json",
+    "passed": 800,
+    "seconds": 11.92,
+    "warnings": 238
+  },
+  "ruff_changed_python": "passed",
+  "source_and_notebook_hashes_verified": true,
+  "sphinx_warnings_as_errors": "passed",
+  "test_source_sha256": {
+    "tests/test_reviewer_evidence.py": "ab641a00a1a4f95d5b4d9280e6be94f51b6ab79c3244f17c25f19f3b193f8790",
+    "tests/test_reviewer_methods.py": "7cf5c3589e8793c15b329204f3ac3af4a590b81dd9f33132d0973fc36105c5c2"
+  },
+  "uv_lock_sha256": "310afd883be5904ee8f8804b07f7d04c35c7fc07fb4aa316b1f88327318c93c8",
+  "visual_qa": {
+    "canonical_figures": 9,
+    "checks": [
+      "legibility and spacing",
+      "Greek nu",
+      "units and domain limits",
+      "symmetric measurement SD labels",
+      "agreement with compact tables"
+    ],
+    "editable_latex_tables": 3
+  }
+}

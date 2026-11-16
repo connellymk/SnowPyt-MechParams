@@ -1,0 +1,6 @@
+Observation,Uncertainty,Meaning,Basis
+Density,10% of magnitude,Assigned symmetric SD,Conger and McClung (2009); Proksch et al. (2016)
+Slope angle,2 degrees,Assigned symmetric SD,McCammon (2023) and observational experience
+Hand-hardness index,0.67 (two subclasses),Assigned symmetric SD,Observational experience; Geldsetzer index mapping
+Grain size,48% of magnitude,Assigned symmetric SD; not -48%/+122% percentiles,"Langlois et al. (2020), lower relative percentile width"
+Layer thickness,5% of magnitude,Assigned symmetric SD,Observational experience

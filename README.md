@@ -297,3 +297,9 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for
 details.
 
 **Version**: 0.4.0 | **Last Updated**: April 2026 | **Python**: 3.9+
+
+### Reviewer-response reproduction
+
+The focused reviewer revision and manuscript figures are reproduced by the
+existing notebooks. See [the evidence index](paper_analysis/README.md) for the
+execution order, retained outputs, validation commands, and manuscript handoff.

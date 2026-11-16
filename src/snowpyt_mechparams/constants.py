@@ -48,8 +48,15 @@ U_HAND_HARDNESS_INDEX = 0.67
 # Slope angle measurement uncertainty: ±2° (degrees)
 U_SLOPE_ANGLE = 2.0  # degrees
 
-# Grain size measurement uncertainty: ±0.5 mm
+# Legacy absolute uncertainty retained for API compatibility; no longer used by
+# the parser. New analyses use U_GRAIN_SIZE_FRACTION below.
 U_GRAIN_SIZE = 0.5  # mm
+
+# Assigned symmetric standard deviation for first-order ufloat propagation.
+# The proposed grain-size bounds are asymmetric (-48%, +122%); a single ufloat
+# cannot represent them. Using the lower relative width symmetrically is an
+# explicit approximation, not a reproduction of those percentiles/distribution.
+U_GRAIN_SIZE_FRACTION = 0.48
 
 # Layer thickness measurement uncertainty: ±5% (relative, multiply by measured value)
 U_THICKNESS_FRACTION = 0.05  # 5%
